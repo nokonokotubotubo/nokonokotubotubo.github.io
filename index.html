@@ -196,7 +196,7 @@
         <table v-if="hasWeatherData" class="desktop-table">
           <thead>
             <tr>
-              <th>時間</th>
+              <th>⛅ 時間</th>
               <th v-for="hour in hours" :key="hour" :class="{ 'current-time-highlight': isCurrentHour(hour) }" :id="`hour-${hour}`">
                 <span class="weather-emoji">{{ weatherIcon(weatherData[hour]?.weather_code, weatherData[hour]?.precipitation_probability) }}</span> {{ hour }}:00
               </th>
