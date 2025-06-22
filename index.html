@@ -196,7 +196,7 @@
         <table v-if="hasWeatherData" class="desktop-table">
           <thead>
             <tr>
-              <th>⛅ 時間</th>
+              <th>⛅ 天気</th>
               <th v-for="hour in hours" :key="hour" :class="{ 'current-time-highlight': isCurrentHour(hour) }" :id="`hour-${hour}`">
                 <span class="weather-emoji">{{ weatherIcon(weatherData[hour]?.weather_code, weatherData[hour]?.precipitation_probability) }}</span> {{ hour }}:00
               </th>
@@ -256,7 +256,7 @@
         <table v-if="hasWeatherData" class="mobile-table">
           <thead>
             <tr>
-              <th>時間</th>
+              <th>⛅<br>天気</th>
               <th>🌧️<br>降水確率</th>
               <th>🌡️<br>気温</th>
               <th>🤒<br>体感温度</th>
