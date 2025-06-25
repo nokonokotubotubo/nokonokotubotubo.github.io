@@ -17,7 +17,8 @@ html,body,#app{height:100vh;margin:0;padding:0;font-family:-apple-system,BlinkMa
 body{background:#e6f2ff;overflow:hidden;overflow-x:hidden}
 #app{display:flex;flex-direction:column;background:#fff;overflow-x:hidden}
 .title-header{background:linear-gradient(135deg,#66a3ff,#3385ff,#0059b3);border-radius:0 0 10px 10px;padding:8px 0;text-align:center;box-shadow:0 2px 6px rgba(0,89,179,.1);flex:0 0 31px;display:flex;align-items:center;position:relative}
-.title-content{display:flex;align-items:center;justify-content:center;gap:6px;height:100%;width:100%}
+.title-content{display:flex;align-items:center;justify-content:center;gap:6px;height:100%;width:100%;cursor:pointer;user-select:none;transition:all .2s ease}
+.title-content:hover{transform:translateY(-1px)}
 .title-icon{font-size:1.4em;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2)}
 .title-text{color:#fff;font-size:1.1em;font-weight:bold;letter-spacing:2px;line-height:1.2}
 .mobile-copyright{display:none}
@@ -42,8 +43,6 @@ body{background:#e6f2ff;overflow:hidden;overflow-x:hidden}
 #map{flex:1;min-width:0;min-height:260px;width:100vw;height:100%;border-radius:8px;border:2px solid #99c2ff;margin:0}
 .current-location-btn{position:absolute;bottom:12px;left:12px;z-index:1000;padding:8px 16px;background:linear-gradient(135deg,#66a3ff,#3385ff);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:1em;box-shadow:0 3px 8px rgba(51,133,255,.25);transition:all .3s ease;user-select:none;outline:none}
 .current-location-btn:hover{background:linear-gradient(135deg,#3385ff,#0059b3);transform:translateY(-2px);box-shadow:0 5px 15px rgba(51,133,255,.35)}
-.map-toggle-btn{display:none;position:absolute;bottom:60px;left:12px;z-index:1000;padding:8px 16px;background:linear-gradient(135deg,#66a3ff,#3385ff);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:1em;box-shadow:0 3px 8px rgba(51,133,255,.25);transition:all .3s ease;user-select:none;outline:none}
-.map-toggle-btn:hover{background:linear-gradient(135deg,#3385ff,#0059b3);transform:translateY(-2px);box-shadow:0 5px 15px rgba(51,133,255,.35)}
 .table-area{flex:0 0 61%;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:#fff;padding-top:6px;min-height:0}
 .error-message{color:#dc2626;background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-weight:600;font-size:1em;width:90vw;margin:0 auto 12px;box-shadow:0 2px 8px rgba(220,38,38,.1)}
 .table-container{width:99vw;height:100%;overflow:auto;margin:0 auto;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:#fff}
@@ -120,7 +119,6 @@ th,td{font-size:13px;padding:6px 3px}
 .memory-group,.date-group{min-height:36px}
 .map-area{flex:0 0 26%;min-height:208px;max-height:39vh}
 #map{min-height:208px}
-.map-toggle-btn{display:block}
 .table-area{flex:0 0 74%;overflow:hidden;position:relative}
 .desktop-table{display:none}
 .mobile-table{display:table;width:100%;table-layout:fixed;border-spacing:0;margin:0}
@@ -155,7 +153,7 @@ th,td{font-size:13px;padding:6px 3px}
 <body>
 <div id="app">
 <div class="title-header">
-<div class="title-content">
+<div class="title-content" @click="toggleMap" @touchend.prevent="toggleMap">
 <i class="fas fa-shirt title-icon"></i>
 <div class="title-text">Fukuなび <i class="fas fa-cloud-sun title-icon"></i></div>
 </div>
@@ -187,9 +185,6 @@ th,td{font-size:13px;padding:6px 3px}
 <div class="main-content">
 <div class="map-area" v-show="showMap">
 <div id="map">
-<button class="map-toggle-btn" @click="toggleMap" @touchend.prevent="toggleMap" type="button">
-{{ showMap ? '🗺️ 地図を隠す' : '🗺️ 地図を表示' }}
-</button>
 <button class="current-location-btn" @click="getCurrentLocation" @touchend.prevent="getCurrentLocation" type="button">📍 現在地</button>
 </div>
 </div>
