@@ -108,8 +108,8 @@ th,td{font-size:13px;padding:6px 3px}
 .refresh-btn{display:none}
 .memory-group{margin-left:5px}
 .date-row{margin:6px 0 6px 1vw;align-items:center}
-.date-group{margin-left:8px}
-.date-buttons{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.date-group{margin-left:8px;max-width:calc(100vw - 200px);overflow:hidden}
+.date-buttons{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
 .date-button{min-width:60px;flex-shrink:0}
 .date-button-content{font-size:.75em}
 .date-detail{font-size:1.1em;letter-spacing:1px}
@@ -143,6 +143,7 @@ th,td{font-size:13px;padding:6px 3px}
 .table-area{flex:0 0 79.2%}
 .memory-group-icon,.date-group-icon{font-size:1em;margin-right:3px;width:1.2em;height:1.2em}
 .mobile-copyright{right:6px;font-size:.6em}
+.date-group{max-width:calc(100vw - 150px)}
 }
 </style>
 </head>
