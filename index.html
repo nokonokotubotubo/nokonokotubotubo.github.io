@@ -164,7 +164,7 @@ th,td{font-size:13px;padding:6px 3px}
 <div class="memory-group-icon">📒</div>
 <div class="memory-buttons">
 <button v-for="(memory, index) in locationMemories" :key="index" @click="loadLocationMemory(index)" @mousedown="startLongPress(index, $event)" @mouseup="endLongPress" @mouseleave="endLongPress" @touchstart="startLongPress(index, $event)" @touchend="endLongPress" :class="['memory-btn', { saved: memory.name }]">
-{{ memory.name || `メモリー\n${getMemoryNumber(index)}` }}
+{{ memory.name || `メモリ\n${getMemoryNumber(index)}` }}
 </button>
 </div>
 </div>
