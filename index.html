@@ -316,7 +316,7 @@ th,td{font-size:13px;padding:6px 3px}
 </footer>
 <div v-if="showContextMenu" class="context-menu-overlay" @click="closeContextMenu">
 <div class="context-menu" @click.stop :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }">
-<div class="context-menu-header">メモリー{{ getMemoryNumber(contextMenuIndex) }}</div>
+<div class="context-menu-header">メモリ{{ getMemoryNumber(contextMenuIndex) }}</div>
 <div v-if="!isMemorySlotSaved(contextMenuIndex)" class="context-menu-item register-item" @click="openSaveDialog">
 <i class="fas fa-plus"></i>位置を登録
 </div>
