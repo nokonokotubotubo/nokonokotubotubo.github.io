@@ -150,6 +150,19 @@ th,td{font-size:13px;padding:6px 3px}
 .date-button{min-width:50px}
 .date-buttons{gap:2px}
 }
+/* デスクトップ表示用の修正 */
+@media(min-width: 901px) {
+  .memory-buttons, .date-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+  }
+  .memory-btn, .date-button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+  }
+}
 </style>
 </head>
 <body>
