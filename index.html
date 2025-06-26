@@ -168,12 +168,11 @@ th,td{font-size:13px;padding:6px 3px}
 <div class="mobile-copyright">&copy; 2025 nokotubo</div>
 </div>
 <div class="date-row">
-<div class="location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 <div class="memory-group">
 <div class="memory-group-icon">📒</div>
 <div class="memory-buttons">
 <button v-for="(memory, index) in locationMemories" :key="index" @click="loadLocationMemory(index)" @mousedown="startLongPress(index, $event)" @mouseup="endLongPress" @mouseleave="endLongPress" @touchstart="startLongPress(index, $event)" @touchend="endLongPress" :class="['memory-btn', { saved: memory.name }]">
-{{ memory.name || `メモリー\n${getMemoryNumber(index)}` }}
+{{ memory.name || `メモリ\n${getMemoryNumber(index)}` }}
 </button>
 </div>
 </div>
@@ -188,7 +187,6 @@ th,td{font-size:13px;padding:6px 3px}
 </button>
 </div>
 </div>
-<button class="refresh-btn" @click="refreshDateAndWeather">🔄 更新</button>
 </div>
 <div class="main-content">
 <div class="map-area">
