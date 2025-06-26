@@ -112,6 +112,35 @@ th,td{font-size:13px;padding:6px 3px}
 @media(max-width:600px){
 .title-text{font-size:.9em;letter-spacing:.5px}
 .title-icon{font-size:1.1em}
+
+/* モバイルでも都市表示を表示 */
+.desktop-location-address{
+    display: block !important;
+    width: 7em;
+    font-size: .75em;
+    padding: 3px 6px;
+    border-radius: 2px;
+}
+
+/* ヘッダーレイアウトの調整 */
+.title-header{
+    padding: 8px 6px;
+    justify-content: space-between;
+    flex: 0 0 28px;
+}
+
+/* タイトルを中央に配置 */
+.title-content{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+}
+
 .location-address{display:none}
 .memory-btn{padding:6px 10px;font-size:.8em;min-width:55px;min-height:32px}
 .refresh-btn{display:none}
