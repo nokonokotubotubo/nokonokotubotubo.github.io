@@ -197,7 +197,7 @@ th,td{font-size:13px;padding:6px 3px}
 <tr>
 <th>⛅ 天気</th>
 <th v-for="hour in hours" :key="hour" :class="{ 'current-time-highlight': isCurrentHour(hour) }" :id="`hour-${hour}`">
-<span class="weather-emoji">{{ weatherIcon(weatherData[hour]?.weather_code, weatherData[hour]?.precipitation_probability) }}</span> {{ hour }}:00
+<span class="weather-emoji">{{ weatherIcon(weatherData[hour]?.weather_code, weatherData[hour]?.precipitation_probability) }}</span><br>{{ hour }}:00
 </th>
 </tr>
 </thead>
