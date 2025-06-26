@@ -16,8 +16,11 @@
 html,body,#app{height:100vh;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
 body{background:#e6f2ff;overflow:hidden;overflow-x:hidden}
 #app{display:flex;flex-direction:column;background:#fff;overflow-x:hidden}
-.title-header{background:linear-gradient(135deg,#66a3ff,#3385ff,#0059b3);border-radius:0 0 10px 10px;padding:8px 0;text-align:center;box-shadow:0 2px 6px rgba(0,89,179,.1);flex:0 0 31px;display:flex;align-items:center;position:relative}
-.title-content{display:flex;align-items:center;justify-content:center;gap:6px;height:100%;width:100%}
+.title-header{background:linear-gradient(135deg,#66a3ff,#3385ff,#0059b3);border-radius:0 0 10px 10px;padding:8px 16px;text-align:center;box-shadow:0 2px 6px rgba(0,89,179,.1);flex:0 0 31px;display:flex;align-items:center;justify-content:space-between;position:relative}
+.desktop-location-address{width:12em;font-size:.9em;color:#fff;background:rgba(255,255,255,.2);padding:4px 8px;border-radius:3px;border:1px solid rgba(255,255,255,.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(10px)}
+.desktop-refresh-btn{padding:4px 12px;border:1.2px solid rgba(255,255,255,.3);border-radius:5px;background:rgba(255,255,255,.2);color:#fff;font-size:.8em;cursor:pointer;transition:all .2s;white-space:nowrap;font-weight:600;user-select:none;backdrop-filter:blur(10px)}
+.desktop-refresh-btn:hover{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.5);transform:translateY(-1px)}
+.title-content{display:flex;align-items:center;justify-content:center;gap:6px;height:100%}
 .title-icon{font-size:1.4em;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2)}
 .title-text{color:#fff;font-size:1.1em;font-weight:bold;letter-spacing:2px;line-height:1.2}
 .mobile-copyright{display:none}
@@ -87,7 +90,9 @@ th{background:linear-gradient(135deg,#f0f8ff,#e6f2ff);font-weight:bold;position:
 @keyframes modalBackdropFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes modalContentFadeIn{from{opacity:0;transform:scale(.85)translateY(-30px)}to{opacity:1;transform:scale(1)translateY(0)}}
 @media(max-width:900px){
-.title-header{flex:0 0 28px}
+.title-header{padding:8px 0;justify-content:center;flex:0 0 28px}
+.desktop-location-address{display:none}
+.desktop-refresh-btn{display:none}
 .title-text{font-size:1em}
 .title-icon{font-size:1.2em}
 th,td{font-size:13px;padding:6px 3px}
@@ -154,10 +159,12 @@ th,td{font-size:13px;padding:6px 3px}
 <body>
 <div id="app">
 <div class="title-header">
+<div class="desktop-location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 <div class="title-content">
 <i class="fas fa-shirt title-icon"></i>
 <div class="title-text">Fukuなび <i class="fas fa-cloud-sun title-icon"></i></div>
 </div>
+<button class="desktop-refresh-btn" @click="refreshDateAndWeather">🔄 更新</button>
 <div class="mobile-copyright">&copy; 2025 nokotubo</div>
 </div>
 <div class="date-row">
