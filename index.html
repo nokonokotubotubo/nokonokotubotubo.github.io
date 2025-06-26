@@ -25,9 +25,6 @@ body{background:#e6f2ff;overflow:hidden;overflow-x:hidden}
 .title-text{color:#fff;font-size:1.1em;font-weight:bold;letter-spacing:2px;line-height:1.2}
 .mobile-copyright{display:none}
 .date-row{display:flex;align-items:flex-start;gap:10px;margin:6px 0 6px 2vw;flex:0 0 36px;flex-wrap:wrap}
-.location-address{width:8em;font-size:.9em;color:#0059b3;background:#f0f8ff;padding:4px 8px;border-radius:3px;border:1px solid #cce0ff;margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.refresh-btn{margin-left:auto;margin-right:10px;padding:7px 12px;border:1.2px solid #66a3ff;border-radius:5px;background:#cce0ff;color:#003366;font-size:.8em;cursor:pointer;transition:all .2s;white-space:nowrap;font-weight:600;user-select:none}
-.refresh-btn:hover{background:#99c2ff;border-color:#3385ff;transform:translateY(-1px)}
 .memory-group,.date-group{display:flex;align-items:flex-start;gap:8px;margin-left:30px;min-height:40px}
 .memory-group-icon,.date-group-icon{font-size:1.8em;color:#0059b3;width:1.5em;height:1.5em;display:flex;align-items:center;justify-content:center;margin-right:4px;margin-top:2px}
 .memory-buttons,.date-buttons{display:flex;gap:5px;flex-wrap:wrap}
@@ -109,9 +106,7 @@ th,td{font-size:13px;padding:6px 3px}
 @media(max-width:600px){
 .title-text{font-size:.9em;letter-spacing:.5px}
 .title-icon{font-size:1.1em}
-.location-address{display:none}
 .memory-btn{padding:6px 10px;font-size:.8em;min-width:55px;min-height:32px}
-.refresh-btn{display:none}
 .date-row{margin:6px 0 6px 1vw;align-items:flex-start;width:calc(100% - 2vw);flex-direction:column;gap:4px;flex:0 0 76px}
 .memory-group,.date-group{margin-left:5px;margin-right:5px;margin-top:0;margin-bottom:0;gap:3px;width:calc(100% - 10px);align-items:flex-start}
 .memory-buttons{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;gap:3px}
@@ -168,7 +163,6 @@ th,td{font-size:13px;padding:6px 3px}
 <div class="mobile-copyright">&copy; 2025 nokotubo</div>
 </div>
 <div class="date-row">
-<div class="location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 <div class="memory-group">
 <div class="memory-group-icon">📒</div>
 <div class="memory-buttons">
@@ -188,7 +182,6 @@ th,td{font-size:13px;padding:6px 3px}
 </button>
 </div>
 </div>
-<button class="refresh-btn" @click="refreshDateAndWeather">🔄 更新</button>
 </div>
 <div class="main-content">
 <div class="map-area">
