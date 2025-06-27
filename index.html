@@ -482,18 +482,18 @@ createApp({
       if (0 !== selectedDateIndex.value) return;
       const now = new Date();
       const h = now.getHours();
-      h < 6 || h > 22 || windowWidth.value > 600 || setTimeout(() => {
-        const el = document.getElementById(`mobile-hour-${h}`);
-        if (el && tableContainer.value) {
-          const c = tableContainer.value;
-          const rect = c.getBoundingClientRect();
-          const abs = el.offsetTop;
-          const vh = rect.height;
-          const rh = el.offsetHeight;
-          const target = abs - vh / 2 + rh / 2;
-          c.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-        }
-      }, 1000);
+      if (h < 6 || h > 22 || windowWidth.value > 600) return;
+      
+      const el = document.getElementById(`mobile-hour-${h}`);
+      if (el && tableContainer.value) {
+        const c = tableContainer.value;
+        const rect = c.getBoundingClientRect();
+        const abs = el.offsetTop;
+        const vh = rect.height;
+        const rh = el.offsetHeight;
+        const target = abs - vh / 2 + rh / 2;
+        c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
+      }
     };
 
     watch(hasWeatherData, v => v && scrollToCurrentTime());
