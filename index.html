@@ -77,6 +77,8 @@ th{background:linear-gradient(135deg,#f0f8ff,#e6f2ff);font-weight:bold;position:
 .location-save-content{background:#fff;padding:28px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.1);max-width:340px;width:88%;max-height:85vh;overflow-y:auto;position:relative;margin:20px;border:1px solid rgba(51,133,255,.1);animation:modalContentFadeIn .3s ease-out}
 .location-save-title{color:#0059b3;font-weight:bold;font-size:1.2em;margin-bottom:20px;text-align:center;line-height:1.4;display:flex;align-items:center;justify-content:center;gap:8px}
 .location-save-title::before{content:"📍";font-size:1.1em}
+.location-save-select{width:100%;padding:14px 16px;border:2px solid #e0e9ff;border-radius:10px;margin-bottom:12px;font-size:1em;outline:none;transition:all .3s ease;background:#fafcff;font-family:inherit}
+.location-save-select:focus{border-color:#3385ff;background:#fff;box-shadow:0 0 0 4px rgba(51,133,255,.1),0 2px 8px rgba(51,133,255,.15);transform:translateY(-1px)}
 .location-save-input{width:100%;padding:14px 16px;border:2px solid #e0e9ff;border-radius:10px;margin-bottom:24px;font-size:1em;outline:none;transition:all .3s ease;background:#fafcff;font-family:inherit}
 .location-save-input:focus{border-color:#3385ff;background:#fff;box-shadow:0 0 0 4px rgba(51,133,255,.1),0 2px 8px rgba(51,133,255,.15);transform:translateY(-1px)}
 .location-save-buttons{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -327,7 +329,13 @@ th,td{font-size:13px;padding:6px 3px}
 <div v-if="showSaveDialog" class="location-save-modal" @click="closeSaveDialog">
 <div class="location-save-content" @click.stop>
 <div class="location-save-title">位置を登録</div>
-<input v-model="saveLocationName" class="location-save-input" placeholder="例: 自宅、職場、学校..." @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20">
+<select v-model="selectedPreset" class="location-save-select">
+<option value="">選択してください</option>
+<option value="自宅">自宅</option>
+<option value="職場">職場</option>
+<option value="実家">実家</option>
+</select>
+<input v-model="saveLocationName" class="location-save-input" placeholder="自由入力欄（例: カフェ、友人宅など）" @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20">
 <div class="location-save-buttons">
 <button class="location-save-btn save-btn" @click="saveLocationMemory">登録</button>
 <button class="location-save-btn cancel-btn" @click="closeSaveDialog">キャンセル</button>
@@ -360,6 +368,7 @@ createApp({
     const showSaveDialog = ref(false);
     const locationMemories = ref(Array.from({ length: 5 }, () => ({ name: '', lat: null, lng: null, address: '' })));
     const saveLocationName = ref('');
+    const selectedPreset = ref('');
     const saveLocationIndex = ref(0);
     const longPressTimer = ref(null);
     const saveLocationInput = ref(null);
@@ -422,6 +431,7 @@ createApp({
     const openSaveDialog = () => {
       saveLocationIndex.value = contextMenuIndex.value;
       saveLocationName.value = '';
+      selectedPreset.value = '';
       closeContextMenu();
       showSaveDialog.value = true;
       nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
@@ -451,6 +461,7 @@ createApp({
     const closeSaveDialog = () => {
       showSaveDialog.value = false;
       saveLocationName.value = '';
+      selectedPreset.value = '';
       saveLocationIndex.value = 0;
     };
 
@@ -525,18 +536,25 @@ createApp({
     const saveLocationMemoriesToStorage = () => localStorage.setItem('fukuanvi-location-memories', JSON.stringify(locationMemories.value));
 
     const saveLocationMemory = () => {
-      const n = saveLocationName.value.trim();
-      n && n.length <= 20 ? (
-        locationMemories.value[saveLocationIndex.value] = {
-          name: n,
-          lat: selectedLatLng.lat,
-          lng: selectedLatLng.lng,
-          address: currentAddress.value
-        },
-        saveLocationMemoriesToStorage(),
-        closeSaveDialog()
-      ) : n ? errorMessage.value = '位置名は20文字以内で入力してください。' : saveLocationInput.value && saveLocationInput.value.focus();
-      n || (errorMessage.value && setTimeout(() => errorMessage.value = '', 3000));
+      let n = selectedPreset.value || saveLocationName.value.trim();
+      if (!n) {
+        errorMessage.value = '位置名を選択または入力してください。';
+        saveLocationInput.value && saveLocationInput.value.focus();
+        setTimeout(() => errorMessage.value = '', 3000);
+        return;
+      }
+      if (n.length > 20) {
+        errorMessage.value = '位置名は20文字以内で入力してください。';
+        return;
+      }
+      locationMemories.value[saveLocationIndex.value] = {
+        name: n,
+        lat: selectedLatLng.lat,
+        lng: selectedLatLng.lng,
+        address: currentAddress.value
+      };
+      saveLocationMemoriesToStorage();
+      closeSaveDialog();
     };
 
     const loadLocationMemory = i => {
@@ -761,6 +779,7 @@ createApp({
       locationMemories,
       showSaveDialog,
       saveLocationName,
+      selectedPreset,
       saveLocationInput,
       startLongPress,
       endLongPress,
