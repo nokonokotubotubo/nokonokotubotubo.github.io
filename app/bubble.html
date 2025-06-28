@@ -281,6 +281,101 @@
             box-shadow: 0 4px 15px rgba(74,144,184,0.3);
         }
 
+        /* 検索結果セクション */
+        .search-results-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(76,144,184,0.15);
+            border: 2px solid rgba(139,206,235,0.3);
+            overflow: hidden;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-engine-selector {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .search-engine-selector select {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 1rem;
+        }
+
+        .back-button {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Noto Sans JP', sans-serif;
+            transition: all 0.3s ease;
+            margin-left: auto;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .search-tabs {
+            display: flex;
+            background: rgba(176,224,230,0.3);
+            overflow-x: auto;
+            border-bottom: 2px solid rgba(139,206,235,0.3);
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            background: rgba(255,255,255,0.5);
+            border-right: 1px solid rgba(139,206,235,0.3);
+            color: #2C5F7A;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .tab-button:hover {
+            background: rgba(255,255,255,0.8);
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #4A90B8;
+            font-weight: 600;
+            border-bottom: 3px solid #4A90B8;
+        }
+
+        .search-iframe-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            min-height: 0;
+        }
+
+        .search-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
         /* Canvasスタイル */
         #bubbleCanvas {
             position: absolute;
@@ -317,6 +412,26 @@
             .progress-bar {
                 width: 250px;
             }
+
+            .search-engine-selector {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .back-button {
+                margin-left: 0;
+            }
+            
+            .search-results-section {
+                height: 85vh;
+            }
+            
+            .tab-button {
+                min-width: 100px;
+                padding: 0.8rem 1rem;
+                font-size: 0.9rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -338,7 +453,7 @@
 
         <main class="main">
             <!-- 検索入力セクション -->
-            <div class="search-section" v-if="!showBubbles">
+            <div class="search-section" v-if="!showBubbles && !showSearchResults">
                 <div class="search-container">
                     <input 
                         type="text" 
@@ -388,8 +503,8 @@
                 <!-- 検索中オーバーレイ -->
                 <div class="searching-overlay" v-if="isSearching">
                     <div class="searching-text">
-                        🔍 Google検索を開いています...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">各キーワードを別タブで検索します</span>
+                        🔍 検索結果を準備中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">各キーワードの検索結果を取得しています</span>
                     </div>
                 </div>
 
@@ -398,7 +513,7 @@
                     <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
                     <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
                     <button @click="searchWithRemaining" class="proceed-button">
-                        🔍 Google検索実行 ({{ activeBubblesCount }}個のワードで検索)
+                        🔍 タブ検索実行 ({{ activeBubblesCount }}個のワードで検索)
                     </button>
                 </div>
                 
@@ -408,6 +523,41 @@
                     @click="handleCanvasClick"
                     v-show="!isSearching && !isGeneratingKeywords && !hasError"
                 ></canvas>
+            </div>
+
+            <!-- 検索結果タブセクション -->
+            <div class="search-results-section" v-if="showSearchResults">
+                <div class="search-engine-selector">
+                    <label>検索エンジン選択:</label>
+                    <select v-model="selectedSearchEngine" @change="updateSearchResults">
+                        <option value="duckduckgo">DuckDuckGo</option>
+                        <option value="bing">Bing</option>
+                        <option value="startpage">StartPage</option>
+                        <option value="yandex">Yandex</option>
+                    </select>
+                    <button @click="resetSearch" class="back-button">← 戻る</button>
+                </div>
+                
+                <div class="search-tabs">
+                    <div 
+                        v-for="(tab, index) in searchTabs" 
+                        :key="index"
+                        @click="activeTabIndex = index"
+                        :class="['tab-button', { active: activeTabIndex === index }]"
+                    >
+                        {{ tab.title }}
+                    </div>
+                </div>
+                
+                <div class="search-iframe-container">
+                    <iframe 
+                        v-if="searchTabs[activeTabIndex]"
+                        :src="searchTabs[activeTabIndex].url"
+                        :title="searchTabs[activeTabIndex].title + ' の検索結果'"
+                        class="search-iframe"
+                        loading="lazy"
+                    ></iframe>
+                </div>
             </div>
         </main>
     </div>
@@ -420,6 +570,7 @@
                 return {
                     searchInput: '',
                     showBubbles: false,
+                    showSearchResults: false,
                     isSearching: false,
                     isGeneratingKeywords: false,
                     hasError: false,
@@ -435,12 +586,23 @@
                     animationId: null,
                     particles: [],
                     infoAreaHeight: 0,
-                    playableArea: { top: 0, bottom: 0, left: 0, right: 0 }
+                    playableArea: { top: 0, bottom: 0, left: 0, right: 0 },
+                    selectedSearchEngine: 'duckduckgo',
+                    searchTabs: [],
+                    activeTabIndex: 0
                 }
             },
             computed: {
                 activeBubblesCount() {
                     return this.bubbles.filter(b => b.active).length;
+                },
+                searchEngines() {
+                    return {
+                        duckduckgo: 'https://duckduckgo.com/?q=',
+                        bing: 'https://www.bing.com/search?q=',
+                        startpage: 'https://www.startpage.com/sp/search?q=',
+                        yandex: 'https://yandex.com/search/?text='
+                    };
                 }
             },
             methods: {
@@ -960,23 +1122,40 @@
                         cancelAnimationFrame(this.animationId);
                     }
                     
-                    // 元キーワードでGoogle検索を別タブで開く
-                    const originalQuery = this.originalWords.join(' ');
-                    window.open(`https://www.google.com/search?q=${encodeURIComponent(originalQuery)}`, '_blank');
+                    // タブデータの準備
+                    this.searchTabs = [];
                     
-                    // 各関連キーワードでGoogle検索を別タブで開く（500ms間隔）
-                    this.remainingWords.forEach((word, index) => {
-                        setTimeout(() => {
-                            window.open(`https://www.google.com/search?q=${encodeURIComponent(word)}`, '_blank');
-                        }, (index + 1) * 500);
+                    // 元キーワードタブ
+                    const originalQuery = this.originalWords.join(' ');
+                    this.searchTabs.push({
+                        title: 'メイン検索',
+                        keyword: originalQuery,
+                        url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(originalQuery)
                     });
                     
-                    // 全ての検索タブを開いた後、初期画面に戻る
-                    const totalTabs = 1 + this.remainingWords.length;
+                    // 関連キーワードタブ
+                    this.remainingWords.forEach((word, index) => {
+                        this.searchTabs.push({
+                            title: `関連${index + 1}`,
+                            keyword: word,
+                            url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(word)
+                        });
+                    });
+                    
+                    // 少し待ってから検索結果表示に切り替え
                     setTimeout(() => {
-                        this.resetSearch();
-                        alert(`${totalTabs}個のタブでGoogle検索を開きました！`);
-                    }, totalTabs * 500 + 1000);
+                        this.activeTabIndex = 0;
+                        this.showBubbles = false;
+                        this.showSearchResults = true;
+                        this.isSearching = false;
+                    }, 1000);
+                },
+
+                // 検索エンジン変更時の処理
+                updateSearchResults() {
+                    this.searchTabs.forEach(tab => {
+                        tab.url = this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(tab.keyword);
+                    });
                 },
                 
                 resetSearch() {
@@ -986,6 +1165,7 @@
                     
                     this.searchInput = '';
                     this.showBubbles = false;
+                    this.showSearchResults = false;
                     this.isSearching = false;
                     this.isGeneratingKeywords = false;
                     this.hasError = false;
@@ -998,6 +1178,8 @@
                     this.originalWords = [];
                     this.remainingWords = [];
                     this.infoAreaHeight = 0;
+                    this.searchTabs = [];
+                    this.activeTabIndex = 0;
                 }
             }
         }).mount('#app');
