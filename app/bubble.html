@@ -397,11 +397,12 @@
                     </button>
                 </div>
                 
+                <!-- v-ifをv-showに変更してCanvas要素を常にDOMに保持 -->
                 <canvas 
                     id="bubbleCanvas" 
                     ref="canvas"
                     @click="handleCanvasClick"
-                    v-if="!isSearching && !isGeneratingKeywords"
+                    v-show="!isSearching && !isGeneratingKeywords"
                 ></canvas>
             </div>
 
@@ -473,18 +474,34 @@
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
+                    
+                    // まずDOM要素を確実に作成
+                    await this.$nextTick();
+                    
+                    // Canvas初期化を先に実行
+                    this.initCanvas();
+                    this.calculatePlayableArea();
+                    
+                    // 関連キーワード生成開始
                     this.isGeneratingKeywords = true;
                     
-                    this.$nextTick(async () => {
-                        this.initCanvas();
-                        this.calculatePlayableArea();
+                    try {
                         await this.createBubbles();
+                    } catch (error) {
+                        console.error('シャボン玉生成エラー:', error);
+                    } finally {
                         this.isGeneratingKeywords = false;
                         this.startAnimation();
-                    });
+                    }
                 },
                 
                 initCanvas() {
+                    // Canvas要素の存在チェックを追加
+                    if (!this.$refs.canvas) {
+                        console.error('Canvas要素が見つかりません');
+                        return;
+                    }
+                    
                     this.canvas = this.$refs.canvas;
                     this.ctx = this.canvas.getContext('2d');
                     
@@ -494,13 +511,18 @@
                 },
                 
                 calculatePlayableArea() {
-                    const infoElement = this.$refs.bubbleInfo;
-                    if (infoElement) {
-                        const infoRect = infoElement.getBoundingClientRect();
-                        const containerRect = this.$refs.bubbleContainer.getBoundingClientRect();
-                        this.infoAreaHeight = infoRect.bottom - containerRect.top + 25;
-                    } else {
+                    // bubble-infoが非表示の場合は標準値を使用
+                    if (this.isGeneratingKeywords) {
                         this.infoAreaHeight = 120;
+                    } else {
+                        const infoElement = this.$refs.bubbleInfo;
+                        if (infoElement) {
+                            const infoRect = infoElement.getBoundingClientRect();
+                            const containerRect = this.$refs.bubbleContainer.getBoundingClientRect();
+                            this.infoAreaHeight = infoRect.bottom - containerRect.top + 25;
+                        } else {
+                            this.infoAreaHeight = 120;
+                        }
                     }
                     
                     this.playableArea = {
