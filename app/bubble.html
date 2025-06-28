@@ -283,14 +283,14 @@
 
         /* 検索結果セクション */
         .search-results-section {
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
             background: rgba(255,255,255,0.95);
-            border-radius: 20px;
+            border-radius: 0;
             box-shadow: 0 8px 25px rgba(76,144,184,0.15);
             border: 2px solid rgba(139,206,235,0.3);
             overflow: hidden;
-            height: 90vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -304,14 +304,6 @@
             gap: 1rem;
             font-weight: 500;
             flex-shrink: 0;
-        }
-
-        .search-engine-selector select {
-            padding: 0.5rem;
-            border: none;
-            border-radius: 8px;
-            font-family: 'Noto Sans JP', sans-serif;
-            font-size: 1rem;
         }
 
         .back-button {
@@ -528,11 +520,7 @@
             <!-- 検索結果タブセクション -->
             <div class="search-results-section" v-if="showSearchResults">
                 <div class="search-engine-selector">
-                    <label>検索エンジン選択:</label>
-                    <select v-model="selectedSearchEngine" @change="updateSearchResults">
-                        <option value="bing">Bing</option>
-                        <option value="yahoo">Yahoo! JAPAN</option>
-                    </select>
+                    <label>🔍 Bing検索結果</label>
                     <button @click="resetSearch" class="back-button">← 戻る</button>
                 </div>
                 
@@ -587,21 +575,57 @@
                     playableArea: { top: 0, bottom: 0, left: 0, right: 0 },
                     selectedSearchEngine: 'bing',
                     searchTabs: [],
-                    activeTabIndex: 0
+                    activeTabIndex: 0,
+                    isAllBubblesPopped: false
                 }
             },
             computed: {
                 activeBubblesCount() {
-                    return this.bubbles.filter(b => b.active).length;
+                    const count = this.bubbles.filter(b => b.active).length;
+                    // すべてのシャボン玉が消去された場合の処理
+                    if (count === 0 && this.bubbles.length > 0 && this.showBubbles && !this.isAllBubblesPopped) {
+                        this.isAllBubblesPopped = true;
+                        this.triggerCompleteAnimation();
+                    }
+                    return count;
                 },
                 searchEngines() {
                     return {
-                        bing: 'https://www.bing.com/search?q=',
-                        yahoo: 'https://search.yahoo.co.jp/search?p='
+                        bing: 'https://www.bing.com/search?q='
                     };
                 }
             },
             methods: {
+                triggerCompleteAnimation() {
+                    // 画面全体にシャボン玉を弾けさせるアニメーション
+                    for (let i = 0; i < 50; i++) {
+                        setTimeout(() => {
+                            const x = Math.random() * this.canvas.width;
+                            const y = Math.random() * this.canvas.height;
+                            
+                            // パーティクルエフェクトを作成
+                            for (let j = 0; j < 8; j++) {
+                                const angle = (j / 8) * Math.PI * 2;
+                                const speed = Math.random() * 3 + 2;
+                                
+                                this.particles.push({
+                                    x: x,
+                                    y: y,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: Math.sin(angle) * speed - 1,
+                                    size: Math.random() * 8 + 4,
+                                    life: 1
+                                });
+                            }
+                        }, i * 20);
+                    }
+                    
+                    // 1秒後に初期画面に戻る
+                    setTimeout(() => {
+                        this.resetSearch();
+                    }, 1000);
+                },
+
                 async generateBubbles() {
                     if (!this.searchInput.trim()) {
                         alert('検索ワードを入力してください 😊');
@@ -1176,6 +1200,7 @@
                     this.infoAreaHeight = 0;
                     this.searchTabs = [];
                     this.activeTabIndex = 0;
+                    this.isAllBubblesPopped = false;
                 }
             }
         }).mount('#app');
