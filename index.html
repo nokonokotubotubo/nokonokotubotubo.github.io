@@ -482,11 +482,14 @@ const scrollToCurrentTime = () => {
   if (0 !== selectedDateIndex.value) return;
   const now = new Date();
   const h = now.getHours();
+  const targetHour = h + 3;
+  
   if (h < 6 || h > 22 || windowWidth.value > 600) return;
   
-  // setTimeout を追加してDOM更新完了を待つ
+  const scrollTarget = targetHour > 22 ? 22 : targetHour;
+  
   setTimeout(() => {
-    const el = document.getElementById(`mobile-hour-${h}`);
+    const el = document.getElementById(`mobile-hour-${scrollTarget}`);
     if (el && tableContainer.value) {
       const c = tableContainer.value;
       const rect = c.getBoundingClientRect();
