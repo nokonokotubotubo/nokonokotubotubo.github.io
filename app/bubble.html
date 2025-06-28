@@ -151,6 +151,28 @@
             box-shadow: none;
         }
 
+        /* 関連キーワード生成中表示 */
+        .generating-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+            border-radius: 25px;
+        }
+
+        .generating-text {
+            font-size: 1.3rem;
+            color: #4A90B8;
+            font-weight: 600;
+            text-align: center;
+        }
+
         /* 検索中表示 */
         .searching-overlay {
             position: absolute;
@@ -350,6 +372,14 @@
 
             <!-- シャボン玉セクション -->
             <div class="bubble-container" v-if="showBubbles && !showResults" ref="bubbleContainer">
+                <!-- 関連キーワード生成中オーバーレイ -->
+                <div class="generating-overlay" v-if="isGeneratingKeywords">
+                    <div class="generating-text">
+                        ✨ 関連キーワードを生成中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">DuckDuckGo APIから関連キーワードを取得しています</span>
+                    </div>
+                </div>
+
                 <!-- 検索中オーバーレイ -->
                 <div class="searching-overlay" v-if="isSearching">
                     <div class="searching-text">
@@ -358,7 +388,7 @@
                     </div>
                 </div>
 
-                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching">
+                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching && !isGeneratingKeywords">
                     <p><strong>✨ 不要なシャボン玉をタップして消してください</strong></p>
                     <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
                     <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
@@ -371,7 +401,7 @@
                     id="bubbleCanvas" 
                     ref="canvas"
                     @click="handleCanvasClick"
-                    v-if="!isSearching"
+                    v-if="!isSearching && !isGeneratingKeywords"
                 ></canvas>
             </div>
 
@@ -413,6 +443,7 @@
                     showBubbles: false,
                     showResults: false,
                     isSearching: false,
+                    isGeneratingKeywords: false,
                     bubbles: [],
                     searchResults: [],
                     poppedCount: 0,
@@ -433,7 +464,7 @@
                 }
             },
             methods: {
-                generateBubbles() {
+                async generateBubbles() {
                     if (!this.searchInput.trim()) {
                         alert('検索ワードを入力してください 😊');
                         return;
@@ -442,11 +473,13 @@
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
+                    this.isGeneratingKeywords = true;
                     
-                    this.$nextTick(() => {
+                    this.$nextTick(async () => {
                         this.initCanvas();
                         this.calculatePlayableArea();
-                        this.createBubbles();
+                        await this.createBubbles();
+                        this.isGeneratingKeywords = false;
                         this.startAnimation();
                     });
                 },
@@ -478,22 +511,177 @@
                     };
                 },
                 
-                createBubbles() {
-                    const relatedWords = this.generateRelatedWords(this.originalWords);
+                async createBubbles() {
+                    // 動的関連キーワード取得
+                    const relatedWords = await this.generateDynamicRelatedWords(this.originalWords);
                     const targetCount = 3 * this.originalWords.length;
                     let allWords = [...this.originalWords, ...relatedWords];
                     
                     while (allWords.length < targetCount) {
-                        this.originalWords.forEach(word => {
-                            if (allWords.length < targetCount) {
-                                allWords.push(word + '関連');
-                            }
-                        });
+                        const fallbackWords = this.generateFallbackRelatedWords(this.originalWords);
+                        allWords.push(...fallbackWords);
+                        if (allWords.length >= targetCount) break;
                     }
                     
                     allWords = allWords.slice(0, targetCount);
                     this.bubbles = this.createNonOverlappingLayout(allWords);
                     this.totalBubbles = this.bubbles.length;
+                },
+
+                // DuckDuckGo APIから関連キーワードを動的に取得
+                async generateDynamicRelatedWords(words) {
+                    const allRelated = [];
+                    
+                    try {
+                        // 各ワードに対してDuckDuckGo APIで関連キーワードを取得
+                        for (const word of words) {
+                            const relatedWords = await this.fetchRelatedKeywords(word);
+                            allRelated.push(...relatedWords);
+                        }
+                        
+                        // 重複除去と元ワードの除外
+                        const uniqueRelated = [...new Set(allRelated)]
+                            .filter(word => !words.includes(word) && word.length > 1);
+                        
+                        console.log('動的取得した関連キーワード:', uniqueRelated);
+                        
+                        // 十分な数が取得できた場合はそれを返す
+                        if (uniqueRelated.length >= words.length * 2) {
+                            return uniqueRelated.slice(0, words.length * 2);
+                        }
+                        
+                        // 不足分は従来の方法で補完
+                        const fallbackWords = this.generateFallbackRelatedWords(words);
+                        const combined = [...uniqueRelated, ...fallbackWords];
+                        return [...new Set(combined)].slice(0, words.length * 2);
+                        
+                    } catch (error) {
+                        console.warn('動的関連キーワード取得に失敗:', error);
+                        return this.generateFallbackRelatedWords(words);
+                    }
+                },
+
+                // DuckDuckGo APIから関連キーワードを取得
+                async fetchRelatedKeywords(keyword) {
+                    try {
+                        const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`http://api.duckduckgo.com/?q=${encodeURIComponent(keyword)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`)}`;
+                        
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        return this.extractKeywordsFromResponse(data, keyword);
+                        
+                    } catch (error) {
+                        console.warn(`${keyword}の関連キーワード取得失敗:`, error);
+                        return [];
+                    }
+                },
+
+                // APIレスポンスからキーワードを抽出
+                extractKeywordsFromResponse(data, originalKeyword) {
+                    const keywords = [];
+                    
+                    // RelatedTopicsから関連キーワードを抽出
+                    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
+                        data.RelatedTopics.forEach(topic => {
+                            if (topic.Text) {
+                                const extracted = this.extractKeywordsFromText(topic.Text, originalKeyword);
+                                keywords.push(...extracted);
+                            }
+                        });
+                    }
+                    
+                    // Resultsから関連キーワードを抽出
+                    if (data.Results && Array.isArray(data.Results)) {
+                        data.Results.forEach(result => {
+                            if (result.Text) {
+                                const extracted = this.extractKeywordsFromText(result.Text, originalKeyword);
+                                keywords.push(...extracted);
+                            }
+                        });
+                    }
+                    
+                    // Abstractから関連キーワードを抽出
+                    if (data.AbstractText) {
+                        const extracted = this.extractKeywordsFromText(data.AbstractText, originalKeyword);
+                        keywords.push(...extracted);
+                    }
+                    
+                    // 重複除去と元キーワードの除外
+                    return [...new Set(keywords)]
+                        .filter(word => 
+                            word !== originalKeyword && 
+                            word.length > 1 && 
+                            word.length < 15 &&
+                            !word.includes('http') &&
+                            !word.includes('www')
+                        )
+                        .slice(0, 8);
+                },
+
+                // テキストからキーワードを抽出
+                extractKeywordsFromText(text, originalKeyword) {
+                    const keywords = [];
+                    
+                    // 日本語の場合の処理
+                    if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)) {
+                        // 特定のパターンでキーワードを抽出
+                        const patterns = [
+                            /([ァ-ヴー]{2,8})/g,  // カタカナ
+                            /([一-龯]{2,6})/g,     // 漢字
+                            /([a-zA-Z]{3,10})/g   // 英語
+                        ];
+                        
+                        patterns.forEach(pattern => {
+                            const matches = text.match(pattern);
+                            if (matches) {
+                                keywords.push(...matches.filter(match => 
+                                    match !== originalKeyword && 
+                                    !match.includes('http') &&
+                                    match.length > 1
+                                ));
+                            }
+                        });
+                    } else {
+                        // 英語の場合の処理
+                        const words = text.split(/[\s,.\-()]+/)
+                            .filter(word => 
+                                word.length > 2 && 
+                                word.length < 15 &&
+                                !/^(the|and|or|but|in|on|at|to|for|of|with|by|is|are|was|were|be|been|have|has|had|do|does|did|will|would|could|should|may|might|can|this|that|these|those|a|an)$/i.test(word) &&
+                                !word.includes('http') &&
+                                !word.includes('www')
+                            );
+                        keywords.push(...words);
+                    }
+                    
+                    return keywords;
+                },
+
+                // フォールバック用の関連ワード生成（従来の方法）
+                generateFallbackRelatedWords(words) {
+                    const relatedMap = {
+                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue', 'コーディング', '開発'],
+                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材', 'クッキング', '調味料'],
+                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊', 'ツアー', '海外'],
+                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート', 'メロディー', 'リズム'],
+                        '映画': ['監督', '俳優', 'ストーリー', '撮影', '上映', 'DVD', 'シネマ', '演技'],
+                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール', '競技', 'エクササイズ']
+                    };
+                    
+                    const allRelated = [];
+                    words.forEach(word => {
+                        if (relatedMap[word]) {
+                            allRelated.push(...relatedMap[word]);
+                        } else {
+                            allRelated.push(word + '基礎', word + '応用', word + '入門', word + '方法');
+                        }
+                    });
+                    
+                    return allRelated;
                 },
                 
                 createNonOverlappingLayout(words) {
@@ -845,28 +1033,6 @@
                     }
                 },
                 
-                generateRelatedWords(words) {
-                    const relatedMap = {
-                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue'],
-                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材'],
-                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊'],
-                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート'],
-                        '映画': ['監督', '俳優', 'ストーリー', '撮影', '上映', 'DVD'],
-                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール']
-                    };
-                    
-                    const allRelated = [];
-                    words.forEach(word => {
-                        if (relatedMap[word]) {
-                            allRelated.push(...relatedMap[word]);
-                        } else {
-                            allRelated.push(word + '基礎', word + '応用', word + '入門');
-                        }
-                    });
-                    
-                    return allRelated;
-                },
-                
                 async searchWithRemaining() {
                     this.remainingWords = this.bubbles
                         .filter(b => b.active)
@@ -975,6 +1141,7 @@
                     this.showBubbles = false;
                     this.showResults = false;
                     this.isSearching = false;
+                    this.isGeneratingKeywords = false;
                     this.bubbles = [];
                     this.particles = [];
                     this.searchResults = [];
