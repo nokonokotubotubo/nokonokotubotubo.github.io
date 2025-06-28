@@ -22,14 +22,14 @@
 
         .header {
             text-align: center;
-            padding: 1.5rem 1rem 1rem; /* パディングを大幅に削減 */
+            padding: 1.5rem 1rem 1rem;
             color: #2C5F7A;
         }
 
         .logo {
-            font-size: 3rem; /* サイズを少し小さく */
+            font-size: 3rem;
             font-weight: 700;
-            margin-bottom: 0; /* マージンを削除 */
+            margin-bottom: 0;
             color: #4A90B8;
             text-shadow: 0 2px 4px rgba(255,255,255,0.3);
             letter-spacing: 2px;
@@ -46,7 +46,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 75vh; /* 高さを拡大 */
+            min-height: 75vh;
         }
 
         .search-container {
@@ -100,7 +100,7 @@
         /* シャボン玉セクション */
         .bubble-container {
             position: relative;
-            height: 85vh; /* 高さを拡大 */
+            height: 85vh;
             background: rgba(255,255,255,0.2);
             border-radius: 25px;
             margin-bottom: 2rem;
@@ -115,7 +115,7 @@
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255,255,255,0.95);
-            padding: 1.2rem 2rem; /* パディングを少し削減 */
+            padding: 1.2rem 2rem;
             border-radius: 15px;
             text-align: center;
             z-index: 100;
@@ -171,6 +171,22 @@
             color: #4A90B8;
             font-weight: 600;
             text-align: center;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 6px;
+            background: rgba(74,144,184,0.2);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4A90B8, #6BB6D6);
+            border-radius: 3px;
+            transition: width 0.3s ease;
         }
 
         /* 検索中表示 */
@@ -320,7 +336,7 @@
             }
             
             .bubble-container {
-                height: 80vh; /* モバイルでも高さを拡大 */
+                height: 80vh;
             }
             
             .results-grid {
@@ -334,11 +350,15 @@
                 font-size: 0.9rem;
                 padding: 1rem 1.5rem;
             }
+
+            .progress-bar {
+                width: 250px;
+            }
         }
 
         @media (max-width: 480px) {
             .header {
-                padding: 1rem 1rem 0.5rem; /* さらにパディングを削減 */
+                padding: 1rem 1rem 0.5rem;
             }
             
             .logo {
@@ -376,7 +396,13 @@
                 <div class="generating-overlay" v-if="isGeneratingKeywords">
                     <div class="generating-text">
                         ✨ 関連キーワードを生成中...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">DuckDuckGo APIから関連キーワードを取得しています</span>
+                        <span style="font-size: 1rem; color: #5BA3C7;">Googleサジェストから関連キーワードを取得しています</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="{ width: keywordProgress + '%' }"></div>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #5BA3C7;">
+                            {{ currentKeywordSource }}
+                        </div>
                     </div>
                 </div>
 
@@ -397,7 +423,6 @@
                     </button>
                 </div>
                 
-                <!-- v-ifをv-showに変更してCanvas要素を常にDOMに保持 -->
                 <canvas 
                     id="bubbleCanvas" 
                     ref="canvas"
@@ -445,6 +470,8 @@
                     showResults: false,
                     isSearching: false,
                     isGeneratingKeywords: false,
+                    keywordProgress: 0,
+                    currentKeywordSource: '',
                     bubbles: [],
                     searchResults: [],
                     poppedCount: 0,
@@ -474,15 +501,13 @@
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
+                    this.keywordProgress = 0;
                     
-                    // まずDOM要素を確実に作成
                     await this.$nextTick();
                     
-                    // Canvas初期化を先に実行
                     this.initCanvas();
                     this.calculatePlayableArea();
                     
-                    // 関連キーワード生成開始
                     this.isGeneratingKeywords = true;
                     
                     try {
@@ -491,12 +516,13 @@
                         console.error('シャボン玉生成エラー:', error);
                     } finally {
                         this.isGeneratingKeywords = false;
+                        this.keywordProgress = 0;
+                        this.currentKeywordSource = '';
                         this.startAnimation();
                     }
                 },
                 
                 initCanvas() {
-                    // Canvas要素の存在チェックを追加
                     if (!this.$refs.canvas) {
                         console.error('Canvas要素が見つかりません');
                         return;
@@ -511,7 +537,6 @@
                 },
                 
                 calculatePlayableArea() {
-                    // bubble-infoが非表示の場合は標準値を使用
                     if (this.isGeneratingKeywords) {
                         this.infoAreaHeight = 120;
                     } else {
@@ -534,7 +559,7 @@
                 },
                 
                 async createBubbles() {
-                    // 動的関連キーワード取得
+                    // Googleサジェストから関連キーワード取得
                     const relatedWords = await this.generateDynamicRelatedWords(this.originalWords);
                     const targetCount = 3 * this.originalWords.length;
                     let allWords = [...this.originalWords, ...relatedWords];
@@ -550,140 +575,135 @@
                     this.totalBubbles = this.bubbles.length;
                 },
 
-                // DuckDuckGo APIから関連キーワードを動的に取得
+                // Googleサジェストから関連キーワードを動的に取得
                 async generateDynamicRelatedWords(words) {
                     const allRelated = [];
+                    const totalSteps = words.length * 8; // 各ワードにつき8つの拡張文字
+                    let currentStep = 0;
                     
-                    try {
-                        // 各ワードに対してDuckDuckGo APIで関連キーワードを取得
-                        for (const word of words) {
-                            const relatedWords = await this.fetchRelatedKeywords(word);
-                            allRelated.push(...relatedWords);
+                    for (const word of words) {
+                        this.currentKeywordSource = `「${word}」の関連キーワードを取得中...`;
+                        
+                        try {
+                            const suggestKeywords = await this.fetchRelatedKeywordsFromGoogleSuggest(word, (progress) => {
+                                currentStep++;
+                                this.keywordProgress = Math.min(95, (currentStep / totalSteps) * 100);
+                            });
+                            
+                            allRelated.push(...suggestKeywords);
+                            
+                        } catch (error) {
+                            console.warn(`${word}の関連キーワード取得失敗:`, error);
                         }
-                        
-                        // 重複除去と元ワードの除外
-                        const uniqueRelated = [...new Set(allRelated)]
-                            .filter(word => !words.includes(word) && word.length > 1);
-                        
-                        console.log('動的取得した関連キーワード:', uniqueRelated);
-                        
-                        // 十分な数が取得できた場合はそれを返す
-                        if (uniqueRelated.length >= words.length * 2) {
-                            return uniqueRelated.slice(0, words.length * 2);
-                        }
-                        
-                        // 不足分は従来の方法で補完
-                        const fallbackWords = this.generateFallbackRelatedWords(words);
-                        const combined = [...uniqueRelated, ...fallbackWords];
-                        return [...new Set(combined)].slice(0, words.length * 2);
-                        
-                    } catch (error) {
-                        console.warn('動的関連キーワード取得に失敗:', error);
-                        return this.generateFallbackRelatedWords(words);
-                    }
-                },
-
-                // DuckDuckGo APIから関連キーワードを取得
-                async fetchRelatedKeywords(keyword) {
-                    try {
-                        const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`http://api.duckduckgo.com/?q=${encodeURIComponent(keyword)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`)}`;
-                        
-                        const response = await fetch(apiUrl);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        return this.extractKeywordsFromResponse(data, keyword);
-                        
-                    } catch (error) {
-                        console.warn(`${keyword}の関連キーワード取得失敗:`, error);
-                        return [];
-                    }
-                },
-
-                // APIレスポンスからキーワードを抽出
-                extractKeywordsFromResponse(data, originalKeyword) {
-                    const keywords = [];
-                    
-                    // RelatedTopicsから関連キーワードを抽出
-                    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-                        data.RelatedTopics.forEach(topic => {
-                            if (topic.Text) {
-                                const extracted = this.extractKeywordsFromText(topic.Text, originalKeyword);
-                                keywords.push(...extracted);
-                            }
-                        });
                     }
                     
-                    // Resultsから関連キーワードを抽出
-                    if (data.Results && Array.isArray(data.Results)) {
-                        data.Results.forEach(result => {
-                            if (result.Text) {
-                                const extracted = this.extractKeywordsFromText(result.Text, originalKeyword);
-                                keywords.push(...extracted);
-                            }
-                        });
-                    }
+                    this.keywordProgress = 100;
+                    this.currentKeywordSource = '関連キーワードの整理中...';
                     
-                    // Abstractから関連キーワードを抽出
-                    if (data.AbstractText) {
-                        const extracted = this.extractKeywordsFromText(data.AbstractText, originalKeyword);
-                        keywords.push(...extracted);
-                    }
-                    
-                    // 重複除去と元キーワードの除外
-                    return [...new Set(keywords)]
+                    // 重複除去と元ワードの除外
+                    const uniqueRelated = [...new Set(allRelated)]
                         .filter(word => 
-                            word !== originalKeyword && 
+                            word && 
                             word.length > 1 && 
-                            word.length < 15 &&
-                            !word.includes('http') &&
-                            !word.includes('www')
-                        )
-                        .slice(0, 8);
-                },
-
-                // テキストからキーワードを抽出
-                extractKeywordsFromText(text, originalKeyword) {
-                    const keywords = [];
+                            word.length < 25 &&
+                            !words.includes(word) &&
+                            !word.includes('http')
+                        );
                     
-                    // 日本語の場合の処理
-                    if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)) {
-                        // 特定のパターンでキーワードを抽出
-                        const patterns = [
-                            /([ァ-ヴー]{2,8})/g,  // カタカナ
-                            /([一-龯]{2,6})/g,     // 漢字
-                            /([a-zA-Z]{3,10})/g   // 英語
-                        ];
-                        
-                        patterns.forEach(pattern => {
-                            const matches = text.match(pattern);
-                            if (matches) {
-                                keywords.push(...matches.filter(match => 
-                                    match !== originalKeyword && 
-                                    !match.includes('http') &&
-                                    match.length > 1
-                                ));
-                            }
-                        });
-                    } else {
-                        // 英語の場合の処理
-                        const words = text.split(/[\s,.\-()]+/)
-                            .filter(word => 
-                                word.length > 2 && 
-                                word.length < 15 &&
-                                !/^(the|and|or|but|in|on|at|to|for|of|with|by|is|are|was|were|be|been|have|has|had|do|does|did|will|would|could|should|may|might|can|this|that|these|those|a|an)$/i.test(word) &&
-                                !word.includes('http') &&
-                                !word.includes('www')
-                            );
-                        keywords.push(...words);
+                    console.log('Googleサジェストから取得した関連キーワード:', uniqueRelated);
+                    
+                    // 十分な数が取得できない場合は語尾変化で補完
+                    if (uniqueRelated.length < words.length * 2) {
+                        const variationKeywords = this.generateJapaneseKeywordVariations(words);
+                        return [...uniqueRelated, ...variationKeywords].slice(0, words.length * 2);
                     }
                     
-                    return keywords;
+                    return uniqueRelated.slice(0, words.length * 2);
                 },
 
-                // フォールバック用の関連ワード生成（従来の方法）
+                // Googleサジェストから関連キーワードを取得
+                async fetchRelatedKeywordsFromGoogleSuggest(keyword, progressCallback) {
+                    const suggestions = [];
+                    
+                    // 日本語拡張文字（ひらがな、カタカナ、アルファベット）
+                    const extensions = [
+                        'あ', 'い', 'う', 'と', 'の', 'は', 'を',
+                        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
+                    ];
+                    
+                    for (let i = 0; i < extensions.length; i++) {
+                        const ext = extensions[i];
+                        
+                        try {
+                            const query = `${keyword} ${ext}`;
+                            const suggestUrl = `https://corsproxy.io/?${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
+                            
+                            const response = await fetch(suggestUrl);
+                            if (response.ok) {
+                                const data = await response.json();
+                                
+                                if (data && data[1] && Array.isArray(data[1])) {
+                                    // 元のキーワードを含まないサジェストのみを追加
+                                    const filteredSuggestions = data[1].filter(suggestion => 
+                                        suggestion !== keyword && 
+                                        suggestion.includes(keyword) &&
+                                        suggestion.length > keyword.length + 1
+                                    );
+                                    suggestions.push(...filteredSuggestions);
+                                }
+                            }
+                            
+                            // プログレス更新
+                            if (progressCallback) {
+                                progressCallback((i + 1) / extensions.length * 100);
+                            }
+                            
+                            // API制限を避けるため待機
+                            await new Promise(resolve => setTimeout(resolve, 150));
+                            
+                        } catch (error) {
+                            console.warn(`サジェスト取得失敗 (${keyword} ${ext}):`, error);
+                        }
+                    }
+                    
+                    // 重複除去と品質フィルタリング
+                    return [...new Set(suggestions)]
+                        .filter(suggestion => 
+                            suggestion.length < 30 &&
+                            !suggestion.includes('http') &&
+                            !suggestion.includes('www')
+                        )
+                        .slice(0, 20);
+                },
+
+                // 日本語の語尾変化や助詞を活用したキーワード拡張
+                generateJapaneseKeywordVariations(originalWords) {
+                    const variations = [];
+                    const particles = ['とは', 'について', 'の方法', 'のやり方', 'の使い方', 'のメリット', 'の特徴', 'の効果'];
+                    const prefixes = ['初心者向け', '簡単', '効果的な', '最新の', 'おすすめの'];
+                    const suffixes = ['入門', '基礎', '応用', '活用', '比較', 'まとめ'];
+                    
+                    originalWords.forEach(word => {
+                        // 助詞を付加
+                        particles.forEach(particle => {
+                            variations.push(word + particle);
+                        });
+                        
+                        // 接頭語を付加
+                        prefixes.forEach(prefix => {
+                            variations.push(prefix + word);
+                        });
+                        
+                        // 接尾語を付加
+                        suffixes.forEach(suffix => {
+                            variations.push(word + suffix);
+                        });
+                    });
+                    
+                    return variations;
+                },
+
+                // フォールバック用の関連ワード生成
                 generateFallbackRelatedWords(words) {
                     const relatedMap = {
                         'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue', 'コーディング', '開発'],
@@ -1064,11 +1084,9 @@
                     this.isSearching = true;
                     
                     try {
-                        // DuckDuckGo APIを呼び出し
                         await this.callDuckDuckGoAPI();
                     } catch (error) {
                         console.error('検索エラー:', error);
-                        // エラー時はフォールバック結果を表示
                         this.generateFallbackResults();
                     }
                     
@@ -1097,7 +1115,6 @@
                     this.searchResults = [];
                     let resultId = 0;
                     
-                    // Abstract情報がある場合
                     if (data.Abstract && data.AbstractText) {
                         this.searchResults.push({
                             id: resultId++,
@@ -1107,7 +1124,6 @@
                         });
                     }
                     
-                    // Related Topics から結果を生成
                     if (data.RelatedTopics && data.RelatedTopics.length > 0) {
                         data.RelatedTopics.slice(0, 8).forEach(topic => {
                             if (topic.Text && topic.FirstURL) {
@@ -1121,7 +1137,6 @@
                         });
                     }
                     
-                    // Results から結果を生成
                     if (data.Results && data.Results.length > 0) {
                         data.Results.forEach(result => {
                             if (result.Text && result.FirstURL) {
@@ -1135,7 +1150,6 @@
                         });
                     }
                     
-                    // 結果が少ない場合はフォールバック結果を追加
                     if (this.searchResults.length < 3) {
                         this.generateFallbackResults();
                     }
@@ -1164,6 +1178,8 @@
                     this.showResults = false;
                     this.isSearching = false;
                     this.isGeneratingKeywords = false;
+                    this.keywordProgress = 0;
+                    this.currentKeywordSource = '';
                     this.bubbles = [];
                     this.particles = [];
                     this.searchResults = [];
