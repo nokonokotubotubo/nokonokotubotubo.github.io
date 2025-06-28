@@ -602,84 +602,43 @@
             },
             methods: {
                 triggerCompleteAnimation() {
-                    // 💖 爽やかでかわいらしいアニメーション 💖
-                    
-                    // 🌈 虹色キラキラパーティクル
-                    const rainbowColors = [
-                        'rgba(255,182,193,0.9)', // ピンク
-                        'rgba(255,218,185,0.9)', // ピーチ
-                        'rgba(255,255,224,0.9)', // クリーム
-                        'rgba(144,238,144,0.9)', // ライトグリーン
-                        'rgba(173,216,230,0.9)', // ライトブルー
-                        'rgba(221,160,221,0.9)', // プラム
-                        'rgba(255,192,203,0.9)'  // ピンク
+                    // シンプルで爽やかなアニメーション
+                    const refreshColors = [
+                        'rgba(135,206,235,0.7)', // スカイブルー
+                        'rgba(176,224,230,0.6)', // パウダーブルー
+                        'rgba(255,255,255,0.8)', // 白
+                        'rgba(230,230,250,0.6)', // ラベンダー
+                        'rgba(224,255,255,0.7)'  // ライトシアン
                     ];
 
-                    // ✨ メインエフェクト - 画面全体にキラキラ
-                    for (let i = 0; i < 100; i++) {
+                    // 30個のシンプルなパーティクル（100個から大幅削減）
+                    for (let i = 0; i < 30; i++) {
                         setTimeout(() => {
                             const x = Math.random() * this.canvas.width;
                             const y = Math.random() * this.canvas.height;
-                            const colorIndex = Math.floor(Math.random() * rainbowColors.length);
+                            const colorIndex = Math.floor(Math.random() * refreshColors.length);
                             
-                            // 💫 キラキラエフェクト（星形）
-                            for (let j = 0; j < 6; j++) {
-                                const angle = (j / 6) * Math.PI * 2;
-                                const speed = Math.random() * 4 + 2;
-                                
-                                this.particles.push({
-                                    x: x,
-                                    y: y,
-                                    vx: Math.cos(angle) * speed,
-                                    vy: Math.sin(angle) * speed - 1,
-                                    size: Math.random() * 12 + 6,
-                                    life: 1,
-                                    color: rainbowColors[colorIndex],
-                                    type: 'sparkle',
-                                    rotation: Math.random() * Math.PI * 2,
-                                    rotationSpeed: (Math.random() - 0.5) * 0.2
-                                });
-                            }
+                            // シンプルな円形パーティクルのみ
+                            this.particles.push({
+                                x: x,
+                                y: y,
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: Math.random() * -3 - 1,
+                                size: Math.random() * 8 + 4,
+                                life: 1,
+                                color: refreshColors[colorIndex],
+                                type: 'normal', // 円形のみ
+                                rotation: 0,
+                                rotationSpeed: 0
+                            });
 
-                            // 💕 ハート形パーティクル
-                            if (Math.random() < 0.3) {
-                                this.particles.push({
-                                    x: x,
-                                    y: y,
-                                    vx: (Math.random() - 0.5) * 3,
-                                    vy: Math.random() * -4 - 2,
-                                    size: Math.random() * 15 + 10,
-                                    life: 1,
-                                    color: 'rgba(255,182,193,0.8)',
-                                    type: 'heart',
-                                    rotation: Math.random() * Math.PI * 2,
-                                    rotationSpeed: (Math.random() - 0.5) * 0.1
-                                });
-                            }
-
-                            // 🌸 花びらパーティクル
-                            if (Math.random() < 0.2) {
-                                this.particles.push({
-                                    x: x,
-                                    y: y,
-                                    vx: (Math.random() - 0.5) * 2,
-                                    vy: Math.random() * -3 - 1,
-                                    size: Math.random() * 12 + 8,
-                                    life: 1,
-                                    color: 'rgba(255,218,185,0.8)',
-                                    type: 'petal',
-                                    rotation: Math.random() * Math.PI * 2,
-                                    rotationSpeed: (Math.random() - 0.5) * 0.15
-                                });
-                            }
-
-                        }, i * 15); // より密集したエフェクト
+                        }, i * 50); // 間隔をゆったりと
                     }
                     
-                    // 🎉 2秒後に初期画面に戻る
+                    // 1.5秒後に初期画面に戻る（短縮）
                     setTimeout(() => {
                         this.resetSearch();
-                    }, 2000);
+                    }, 1500);
                 },
 
                 async generateBubbles() {
@@ -1101,10 +1060,10 @@
                 drawParticle(particle) {
                     const ctx = this.ctx;
                     
-                    particle.life -= 0.008; // よりゆっくり消える
+                    particle.life -= 0.008;
                     particle.x += particle.vx;
                     particle.y += particle.vy;
-                    particle.vy += 0.03; // よりゆっくり落下
+                    particle.vy += 0.03;
                     particle.vx *= 0.995;
                     particle.rotation += particle.rotationSpeed;
                     
@@ -1117,101 +1076,14 @@
                     ctx.translate(particle.x, particle.y);
                     ctx.rotate(particle.rotation);
                     
-                    if (particle.type === 'sparkle') {
-                        // ✨ キラキラ（星形）
-                        this.drawStar(ctx, 0, 0, particle.size * particle.life, particle.color);
-                    } else if (particle.type === 'heart') {
-                        // 💕 ハート
-                        this.drawHeart(ctx, 0, 0, particle.size * particle.life, particle.color);
-                    } else if (particle.type === 'petal') {
-                        // 🌸 花びら
-                        this.drawPetal(ctx, 0, 0, particle.size * particle.life, particle.color);
-                    } else {
-                        // 通常の円形パーティクル
-                        ctx.beginPath();
-                        ctx.arc(0, 0, particle.size * particle.life, 0, Math.PI * 2);
-                        ctx.fillStyle = particle.color || 'rgba(135,206,235,0.8)';
-                        ctx.fill();
-                    }
+                    // シンプルな円形パーティクルのみ
+                    ctx.beginPath();
+                    ctx.arc(0, 0, particle.size * particle.life, 0, Math.PI * 2);
+                    ctx.fillStyle = particle.color || 'rgba(135,206,235,0.8)';
+                    ctx.fill();
                     
                     ctx.restore();
                     return true;
-                },
-
-                drawStar(ctx, x, y, size, color) {
-                    const spikes = 5;
-                    const outerRadius = size;
-                    const innerRadius = size * 0.5;
-                    
-                    ctx.beginPath();
-                    for (let i = 0; i < spikes * 2; i++) {
-                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                        const angle = (i / (spikes * 2)) * Math.PI * 2;
-                        const px = x + Math.cos(angle) * radius;
-                        const py = y + Math.sin(angle) * radius;
-                        
-                        if (i === 0) {
-                            ctx.moveTo(px, py);
-                        } else {
-                            ctx.lineTo(px, py);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fillStyle = color;
-                    ctx.fill();
-                },
-
-                drawHeart(ctx, x, y, size, color) {
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    
-                    const topCurveHeight = size * 0.3;
-                    ctx.moveTo(x, y + topCurveHeight);
-                    
-                    // 左カーブ
-                    ctx.bezierCurveTo(
-                        x, y, 
-                        x - size / 2, y, 
-                        x - size / 2, y + topCurveHeight
-                    );
-                    
-                    // 左側の丸み
-                    ctx.bezierCurveTo(
-                        x - size / 2, y + (size + topCurveHeight) / 2, 
-                        x, y + (size + topCurveHeight) / 2, 
-                        x, y + size
-                    );
-                    
-                    // 右側の丸み
-                    ctx.bezierCurveTo(
-                        x, y + (size + topCurveHeight) / 2, 
-                        x + size / 2, y + (size + topCurveHeight) / 2, 
-                        x + size / 2, y + topCurveHeight
-                    );
-                    
-                    // 右カーブ
-                    ctx.bezierCurveTo(
-                        x + size / 2, y, 
-                        x, y, 
-                        x, y + topCurveHeight
-                    );
-                    
-                    ctx.fill();
-                },
-
-                drawPetal(ctx, x, y, size, color) {
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    ctx.ellipse(x, y, size * 0.6, size * 1.2, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // 花びらの筋
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(x, y - size);
-                    ctx.lineTo(x, y + size);
-                    ctx.stroke();
                 },
                 
                 animate() {
@@ -1255,30 +1127,31 @@
                     bubble.popping = true;
                     bubble.popAnimation = 0;
                     
-                    // 🌈 かわいいポップエフェクト
+                    // シンプルで透明感のあるポップエフェクト
                     const popColors = [
-                        'rgba(255,182,193,0.8)',
-                        'rgba(255,218,185,0.8)',
-                        'rgba(144,238,144,0.8)',
-                        'rgba(173,216,230,0.8)'
+                        'rgba(135,206,235,0.6)', // スカイブルー
+                        'rgba(255,255,255,0.8)', // 白
+                        'rgba(176,224,230,0.7)', // パウダーブルー
+                        'rgba(230,230,250,0.6)'  // ラベンダー
                     ];
                     
-                    for (let i = 0; i < 15; i++) {
-                        const angle = (i / 15) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-                        const speed = Math.random() * 3 + 1;
+                    // パーティクル数を8個に削減（よりシンプルに）
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const speed = Math.random() * 2 + 0.5; // 速度を抑えめに
                         const colorIndex = Math.floor(Math.random() * popColors.length);
                         
                         this.particles.push({
                             x: bubble.x,
                             y: bubble.y,
                             vx: Math.cos(angle) * speed,
-                            vy: Math.sin(angle) * speed - 0.5,
-                            size: Math.random() * 8 + 4,
+                            vy: Math.sin(angle) * speed - 0.3,
+                            size: Math.random() * 4 + 2, // サイズを小さく
                             life: 1,
                             color: popColors[colorIndex],
-                            type: Math.random() < 0.5 ? 'sparkle' : 'normal',
-                            rotation: Math.random() * Math.PI * 2,
-                            rotationSpeed: (Math.random() - 0.5) * 0.1
+                            type: 'normal', // シンプルな円形のみ
+                            rotation: 0,
+                            rotationSpeed: 0
                         });
                     }
                 },
