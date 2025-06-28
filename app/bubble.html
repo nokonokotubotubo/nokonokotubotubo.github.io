@@ -894,7 +894,7 @@
 
                 async callDuckDuckGoAPI() {
                     const query = this.remainingWords.join(' ');
-                    const apiUrl = `https://crossorigin.me/http://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`;
+                    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`http://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`)}`;
                     
                     const response = await fetch(apiUrl);
                     if (!response.ok) {
