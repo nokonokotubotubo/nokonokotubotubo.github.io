@@ -211,6 +211,91 @@
             text-align: center;
         }
 
+        /* エラーメッセージ */
+        .error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            border-radius: 25px;
+        }
+
+        .error-content {
+            background: rgba(255,107,157,0.1);
+            border: 2px solid rgba(255,107,157,0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            color: #C1396A;
+            font-weight: 500;
+            max-width: 500px;
+            margin: 0 2rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #B02A50;
+        }
+
+        .error-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-details {
+            background: rgba(255,107,157,0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .retry-button {
+            margin: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #FF6B9D 0%, #FF8FB3 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255,107,157,0.3);
+        }
+
+        .back-button {
+            margin: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .back-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(74,144,184,0.3);
+        }
+
         /* Canvasスタイル */
         #bubbleCanvas {
             position: absolute;
@@ -414,6 +499,11 @@
                 font-size: 0.8rem;
                 padding: 0.6rem 1rem;
             }
+
+            .error-content {
+                margin: 0 1rem;
+                padding: 2rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -455,13 +545,47 @@
                 <!-- 関連キーワード生成中オーバーレイ -->
                 <div class="generating-overlay" v-if="isGeneratingKeywords">
                     <div class="generating-text">
-                        ✨ 関連キーワードを生成中...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを取得しています</span>
+                        ✨ Googleサジェストから関連キーワードを取得中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを6つ取得しています</span>
                         <div class="progress-bar">
                             <div class="progress-fill" :style="{ width: keywordProgress + '%' }"></div>
                         </div>
                         <div style="font-size: 0.9rem; color: #5BA3C7;">
                             {{ currentKeywordSource }}
+                        </div>
+                        <div v-if="retryCount > 0" style="font-size: 0.8rem; color: #FF6B9D; margin-top: 1rem;">
+                            リトライ {{ retryCount }}/{{ maxRetries }} 回目
+                        </div>
+                    </div>
+                </div>
+
+                <!-- エラー表示 -->
+                <div class="error-overlay" v-if="hasError">
+                    <div class="error-content">
+                        <div class="error-title">⚠️ Googleサジェスト取得エラー</div>
+                        <div class="error-message">
+                            申し訳ございません。Googleサジェストから関連キーワードを取得できませんでした。
+                        </div>
+                        <div class="error-details">
+                            <strong>発生したエラー:</strong><br>
+                            {{ errorMessage }}
+                            <br><br>
+                            <strong>試行した回数:</strong> {{ retryCount }}/{{ maxRetries }} 回<br>
+                            <strong>試行したAPI:</strong> {{ attemptedProxies.join(', ') }}
+                        </div>
+                        <div style="margin-top: 1.5rem;">
+                            <button @click="retryGeneration" class="retry-button">
+                                🔄 再試行
+                            </button>
+                            <button @click="resetSearch" class="back-button">
+                                ← 戻る
+                            </button>
+                        </div>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
+                            <strong>解決方法:</strong><br>
+                            • ネットワーク接続を確認してください<br>
+                            • しばらく時間をおいてから再試行してください<br>
+                            • ブラウザのキャッシュをクリアしてください
                         </div>
                     </div>
                 </div>
@@ -474,7 +598,7 @@
                     </div>
                 </div>
 
-                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching && !isGeneratingKeywords">
+                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching && !isGeneratingKeywords && !hasError">
                     <p><strong>✨ 不要なシャボン玉をタップして消してください</strong></p>
                     <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
                     <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
@@ -487,7 +611,7 @@
                     id="bubbleCanvas" 
                     ref="canvas"
                     @click="handleCanvasClick"
-                    v-show="!isSearching && !isGeneratingKeywords"
+                    v-show="!isSearching && !isGeneratingKeywords && !hasError"
                 ></canvas>
             </div>
 
@@ -578,11 +702,6 @@
     <script>
         const { createApp } = Vue;
 
-        // Vue.js開発モード警告を無効化
-        if (typeof Vue !== 'undefined' && Vue.config) {
-            Vue.config.productionTip = false;
-        }
-
         createApp({
             data() {
                 return {
@@ -591,6 +710,11 @@
                     showResults: false,
                     isSearching: false,
                     isGeneratingKeywords: false,
+                    hasError: false,
+                    errorMessage: '',
+                    retryCount: 0,
+                    maxRetries: 5,
+                    attemptedProxies: [],
                     keywordProgress: 0,
                     currentKeywordSource: '',
                     bubbles: [],
@@ -620,28 +744,54 @@
                         return;
                     }
                     
+                    this.resetGenerationState();
                     this.originalWords = this.searchInput.trim().split(/\s+/);
-                    this.poppedCount = 0;
                     this.showBubbles = true;
-                    this.keywordProgress = 0;
                     
                     await this.$nextTick();
                     
                     this.initCanvas();
                     this.calculatePlayableArea();
                     
+                    await this.attemptKeywordGeneration();
+                },
+
+                resetGenerationState() {
+                    this.hasError = false;
+                    this.errorMessage = '';
+                    this.retryCount = 0;
+                    this.attemptedProxies = [];
+                    this.poppedCount = 0;
+                    this.keywordProgress = 0;
+                    this.currentKeywordSource = '';
+                },
+
+                async attemptKeywordGeneration() {
                     this.isGeneratingKeywords = true;
                     
                     try {
                         await this.createBubbles();
+                        this.startAnimation();
                     } catch (error) {
-                        console.error('シャボン玉生成エラー:', error);
+                        console.error('Googleサジェスト取得エラー:', error);
+                        this.handleGenerationError(error);
                     } finally {
                         this.isGeneratingKeywords = false;
                         this.keywordProgress = 0;
                         this.currentKeywordSource = '';
-                        this.startAnimation();
                     }
+                },
+
+                handleGenerationError(error) {
+                    this.hasError = true;
+                    this.errorMessage = error.message || 'サジェスト取得に失敗しました';
+                },
+
+                async retryGeneration() {
+                    this.hasError = false;
+                    this.retryCount = 0;
+                    this.attemptedProxies = [];
+                    await this.attemptKeywordGeneration();
                 },
                 
                 initCanvas() {
@@ -681,8 +831,12 @@
                 },
                 
                 async createBubbles() {
-                    // 関連キーワードのみを生成（入力キーワードは含めない）
-                    const relatedWords = await this.generateDynamicRelatedWords(this.originalWords);
+                    // Googleサジェストから関連キーワード6つのみを取得（入力キーワードは含めない）
+                    const relatedWords = await this.fetchGoogleSuggestWithRetry(this.originalWords.join(' '));
+                    
+                    if (relatedWords.length === 0) {
+                        throw new Error('Googleサジェストから有効な関連キーワードを取得できませんでした。ネットワーク接続またはAPIアクセスに問題がある可能性があります。');
+                    }
                     
                     // 6つの関連ワードのみでシャボン玉作成
                     const bubbleWords = relatedWords.slice(0, 6);
@@ -690,108 +844,85 @@
                     this.totalBubbles = this.bubbles.length;
                 },
 
-                // Googleサジェストから関連キーワードを動的に取得（改善版）
-                async generateDynamicRelatedWords(words) {
-                    const inputText = words.join(' ');
-                    let allRelated = [];
-                    
-                    this.currentKeywordSource = `「${inputText}」の関連キーワードを取得中...`;
-                    this.keywordProgress = 20;
-                    
-                    try {
-                        // 複数の取得方法を試行
-                        const googleSuggests = await this.fetchRelatedKeywordsWithFallback(inputText);
-                        allRelated.push(...googleSuggests);
-                        this.keywordProgress = 60;
-                        
-                    } catch (error) {
-                        console.warn(`${inputText}の関連キーワード取得失敗:`, error);
-                    }
-                    
-                    this.keywordProgress = 80;
-                    this.currentKeywordSource = '関連キーワードの整理中...';
-                    
-                    // 重複除去と元ワードの除外
-                    const uniqueRelated = [...new Set(allRelated)]
-                        .filter(word => 
-                            word && 
-                            word.length > 1 && 
-                            word.length < 25 &&
-                            !words.some(originalWord => 
-                                word.toLowerCase().includes(originalWord.toLowerCase()) ||
-                                originalWord.toLowerCase().includes(word.toLowerCase())
-                            ) &&
-                            !word.includes('http')
-                        );
-                    
-                    console.log('取得した関連キーワード:', uniqueRelated);
-                    
-                    this.keywordProgress = 100;
-                    
-                    // 十分な数が取得できない場合は語尾変化で補完
-                    if (uniqueRelated.length < 6) {
-                        const variationKeywords = this.generateJapaneseKeywordVariations(words);
-                        return [...uniqueRelated, ...variationKeywords].slice(0, 6);
-                    }
-                    
-                    return uniqueRelated.slice(0, 6);
-                },
-
-                // 改善されたGoogleサジェスト取得（フォールバック付き）
-                async fetchRelatedKeywordsWithFallback(keyword) {
-                    const allSuggestions = [];
-                    
-                    // 方法1: 複数のCORSプロキシを試行
+                // Googleサジェスト取得（リトライ機能付き）
+                async fetchGoogleSuggestWithRetry(keyword) {
                     const corsProxies = [
-                        'https://corsproxy.io/?',
-                        'https://cors-anywhere.herokuapp.com/',
-                        'https://api.allorigins.win/raw?url='
+                        { name: 'CORS Proxy 1', url: 'https://corsproxy.io/?' },
+                        { name: 'CORS Proxy 2', url: 'https://cors-anywhere.herokuapp.com/' },
+                        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' }
                     ];
                     
-                    for (const proxy of corsProxies) {
-                        try {
-                            const suggestions = await this.tryGoogleSuggest(keyword, proxy);
-                            if (suggestions.length > 0) {
-                                allSuggestions.push(...suggestions);
-                                break; // 成功したら他のプロキシは試さない
+                    let allSuggestions = [];
+                    
+                    for (let proxyIndex = 0; proxyIndex < corsProxies.length; proxyIndex++) {
+                        const proxy = corsProxies[proxyIndex];
+                        this.attemptedProxies.push(proxy.name);
+                        this.currentKeywordSource = `${proxy.name}でサジェスト取得中...`;
+                        
+                        for (let retryAttempt = 0; retryAttempt < this.maxRetries; retryAttempt++) {
+                            this.retryCount = retryAttempt + 1;
+                            
+                            try {
+                                const suggestions = await this.fetchSuggestionsFromProxy(keyword, proxy.url, retryAttempt);
+                                
+                                if (suggestions.length > 0) {
+                                    allSuggestions.push(...suggestions);
+                                    
+                                    // 十分な数のサジェストが取得できた場合は成功
+                                    if (allSuggestions.length >= 6) {
+                                        this.keywordProgress = 100;
+                                        return this.processSuggestions(allSuggestions, keyword);
+                                    }
+                                }
+                                
+                                // このプロキシで少しでも結果が得られた場合は次のプロキシに移る
+                                if (suggestions.length > 0) {
+                                    break;
+                                }
+                                
+                            } catch (error) {
+                                console.warn(`${proxy.name} でのリトライ ${retryAttempt + 1} 失敗:`, error);
+                                
+                                // 指数的バックオフで待機（最大8秒）
+                                if (retryAttempt < this.maxRetries - 1) {
+                                    const delay = Math.min(1000 * Math.pow(2, retryAttempt), 8000);
+                                    this.currentKeywordSource = `${proxy.name} で ${delay/1000}秒 待機中...`;
+                                    await this.sleep(delay);
+                                }
                             }
-                        } catch (error) {
-                            console.warn(`プロキシ ${proxy} での取得失敗:`, error);
-                            continue;
+                            
+                            // プログレス更新
+                            const overallProgress = ((proxyIndex * this.maxRetries + retryAttempt + 1) / (corsProxies.length * this.maxRetries)) * 90;
+                            this.keywordProgress = Math.min(90, overallProgress);
                         }
                     }
                     
-                    // 方法2: JSONPを試行（ブラウザによっては動作する）
-                    if (allSuggestions.length < 3) {
-                        try {
-                            const jsonpSuggestions = await this.tryJsonpSuggest(keyword);
-                            allSuggestions.push(...jsonpSuggestions);
-                        } catch (error) {
-                            console.warn('JSONP取得失敗:', error);
-                        }
+                    // 全ての試行が失敗した場合
+                    if (allSuggestions.length === 0) {
+                        throw new Error(`全ての${corsProxies.length}つのAPIプロキシでの取得に失敗しました（計${this.retryCount}回試行）。ネットワーク接続またはCORSプロキシサービスに問題がある可能性があります。`);
                     }
                     
-                    return allSuggestions;
+                    return this.processSuggestions(allSuggestions, keyword);
                 },
 
-                // Googleサジェスト取得の試行
-                async tryGoogleSuggest(keyword, proxy) {
+                // 個別プロキシでのサジェスト取得
+                async fetchSuggestionsFromProxy(keyword, proxyUrl, retryAttempt) {
+                    const extensions = ['の', 'と', 'は', 'で', 'を', 'が'];
                     const suggestions = [];
-                    const extensions = ['の', 'と', 'は', 'で', 'を', 'a'];
                     
-                    for (let i = 0; i < Math.min(3, extensions.length); i++) {
-                        const ext = extensions[i];
+                    // リトライ回数に応じて試行する拡張文字数を調整
+                    const extensionsToTry = extensions.slice(0, Math.max(2, 6 - retryAttempt));
+                    
+                    for (let i = 0; i < extensionsToTry.length; i++) {
+                        const ext = extensionsToTry[i];
+                        const query = `${keyword} ${ext}`;
+                        const suggestUrl = `${proxyUrl}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
+                        
                         try {
-                            const query = `${keyword} ${ext}`;
-                            const url = `${proxy}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
+                            // タイムアウトを設定（リトライ回数に応じて調整）
+                            const timeoutMs = Math.min(5000 + (retryAttempt * 2000), 15000);
                             
-                            const response = await fetch(url, {
-                                method: 'GET',
-                                headers: {
-                                    'Accept': 'application/json',
-                                },
-                                timeout: 3000
-                            });
+                            const response = await this.fetchWithTimeout(suggestUrl, timeoutMs);
                             
                             if (response.ok) {
                                 const data = await response.json();
@@ -803,90 +934,58 @@
                                 }
                             }
                             
-                            await new Promise(resolve => setTimeout(resolve, 300));
+                            // API制限を避けるため待機
+                            await this.sleep(200);
+                            
                         } catch (error) {
-                            console.warn(`サジェスト取得エラー (${keyword} ${ext}):`, error);
+                            console.warn(`サジェスト取得失敗 (${keyword} ${ext}):`, error);
                         }
                     }
                     
-                    return [...new Set(suggestions)].slice(0, 10);
+                    return suggestions;
                 },
 
-                // JSONP方式での取得（フォールバック）
-                async tryJsonpSuggest(keyword) {
-                    return new Promise((resolve) => {
-                        const script = document.createElement('script');
-                        const callbackName = 'callback_' + Date.now();
-                        
-                        window[callbackName] = function(data) {
-                            const suggestions = data && data[1] ? data[1].slice(0, 5) : [];
-                            resolve(suggestions);
-                            document.head.removeChild(script);
-                            delete window[callbackName];
-                        };
-                        
-                        script.src = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(keyword)}&callback=${callbackName}`;
-                        script.onerror = () => {
-                            resolve([]);
-                            document.head.removeChild(script);
-                            delete window[callbackName];
-                        };
-                        
-                        document.head.appendChild(script);
-                        
-                        // タイムアウト設定
-                        setTimeout(() => {
-                            if (window[callbackName]) {
-                                resolve([]);
-                                document.head.removeChild(script);
-                                delete window[callbackName];
-                            }
-                        }, 5000);
-                    });
+                // タイムアウト付きfetch
+                async fetchWithTimeout(url, timeoutMs) {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                    
+                    try {
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: { 'Accept': 'application/json' },
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        return response;
+                    } catch (error) {
+                        clearTimeout(timeoutId);
+                        throw error;
+                    }
                 },
 
-                // 日本語の語尾変化や助詞を活用したキーワード拡張（改善版）
-                generateJapaneseKeywordVariations(originalWords) {
-                    const variations = [];
-                    const particles = ['とは', 'について', 'の方法', 'のやり方', 'の使い方', 'のメリット'];
-                    const prefixes = ['初心者向け', '簡単', '効果的な', '最新の', 'おすすめの', '人気の'];
-                    const suffixes = ['入門', '基礎', '応用', '活用', '比較', 'まとめ', '解説', 'ガイド'];
+                // サジェスト結果の処理
+                processSuggestions(allSuggestions, keyword) {
+                    const uniqueSuggestions = [...new Set(allSuggestions)]
+                        .filter(suggestion => 
+                            suggestion.length < 30 &&
+                            !suggestion.includes('http') &&
+                            !suggestion.includes('www') &&
+                            !this.originalWords.some(word => suggestion.toLowerCase() === word.toLowerCase())
+                        );
                     
-                    const inputText = originalWords.join(' ');
+                    console.log('Googleサジェストから取得した関連キーワード:', uniqueSuggestions);
                     
-                    // 助詞を付加
-                    particles.forEach(particle => {
-                        variations.push(inputText + particle);
-                    });
+                    if (uniqueSuggestions.length === 0) {
+                        throw new Error('有効なGoogleサジェストが取得できませんでした。検索キーワードを変更してお試しください。');
+                    }
                     
-                    // 接頭語を付加
-                    prefixes.forEach(prefix => {
-                        variations.push(prefix + inputText);
-                    });
-                    
-                    // 接尾語を付加
-                    suffixes.forEach(suffix => {
-                        variations.push(inputText + suffix);
-                    });
-                    
-                    // カテゴリ別の関連ワード
-                    const categoryMap = {
-                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue'],
-                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材'],
-                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊'],
-                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート'],
-                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール']
-                    };
-                    
-                    originalWords.forEach(word => {
-                        for (const [category, related] of Object.entries(categoryMap)) {
-                            if (word.includes(category) || category.includes(word)) {
-                                variations.push(...related);
-                            }
-                        }
-                    });
-                    
-                    return variations.slice(0, 12);
+                    return uniqueSuggestions;
+                },
+
+                // スリープ関数
+                sleep(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
                 },
 
                 createNonOverlappingLayout(words) {
@@ -1363,6 +1462,10 @@
                     this.showResults = false;
                     this.isSearching = false;
                     this.isGeneratingKeywords = false;
+                    this.hasError = false;
+                    this.errorMessage = '';
+                    this.retryCount = 0;
+                    this.attemptedProxies = [];
                     this.keywordProgress = 0;
                     this.currentKeywordSource = '';
                     this.bubbles = [];
