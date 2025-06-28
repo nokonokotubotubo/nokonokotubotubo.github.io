@@ -3,367 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Brave Search リアルタイムサジェスト シャボン玉ゲーム</title>
+    <title>bubblerch</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body {
+        * {
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #74b9ff, #0984e3);
-            font-family: 'Arial', sans-serif;
-            min-height: 100vh;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .game-container {
-            position: relative;
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #B0E0E6 50%, #E0F6FF 100%);
+            min-height: 100vh;
+            color: #2C5F7A;
+        }
+
+        .header {
+            text-align: center;
+            padding: 1.5rem 1rem 1rem; /* パディングを大幅に削減 */
+            color: #2C5F7A;
+        }
+
+        .logo {
+            font-size: 3rem; /* サイズを少し小さく */
+            font-weight: 700;
+            margin-bottom: 0; /* マージンを削除 */
+            color: #4A90B8;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+        }
+
+        .main {
+            padding: 0 1rem;
             max-width: 1200px;
             margin: 0 auto;
-            height: 80vh;
-            border: 2px solid #ddd;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        .bubble {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.3));
+        /* 検索セクション */
+        .search-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 75vh; /* 高さを拡大 */
+        }
+
+        .search-container {
+            background: rgba(255,255,255,0.9);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(76,144,184,0.15);
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid rgba(139,206,235,0.3);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            border: 2px solid #B0E0E6;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans JP', sans-serif;
+            background: rgba(255,255,255,0.8);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4A90B8;
+            box-shadow: 0 0 0 3px rgba(74,144,184,0.1);
+            background: white;
+        }
+
+        .search-button {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74,144,184,0.3);
+        }
+
+        /* シャボン玉セクション */
+        .bubble-container {
+            position: relative;
+            height: 85vh; /* 高さを拡大 */
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .bubble-info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 1.2rem 2rem; /* パディングを少し削減 */
+            border-radius: 15px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 6px 20px rgba(74,144,184,0.15);
+            max-width: calc(100% - 40px);
+            border: 2px solid rgba(139,206,235,0.3);
+            color: #2C5F7A;
+            font-weight: 500;
+        }
+
+        .proceed-button {
+            margin-top: 1rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #52C4A0 0%, #66D4B5 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .proceed-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(82,196,160,0.3);
+        }
+
+        .proceed-button:disabled {
+            background: #B0C4DE;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Canvasスタイル */
+        #bubbleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* 検索結果セクション */
+        .results-section {
+            background: rgba(255,255,255,0.9);
+            border-radius: 25px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            border: 2px solid rgba(139,206,235,0.2);
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #B0E0E6;
+        }
+
+        .results-header h2 {
+            font-size: 2.2rem;
+            color: #4A90B8;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .reset-button {
+            margin-top: 1.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .reset-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(74,144,184,0.3);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .result-card {
+            background: rgba(255,255,255,0.8);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(74,144,184,0.1);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(139,206,235,0.2);
+        }
+
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(74,144,184,0.2);
+        }
+
+        .result-image {
+            height: 180px;
+            background: linear-gradient(135deg, #E6F3FF 0%, #CCE7FF 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #2d3436;
-            font-weight: bold;
-            text-align: center;
-            word-wrap: break-word;
-            font-size: 12px;
-            user-select: none;
-            transition: all 0.3s ease;
-            animation: float 8s infinite linear;
-            border: 2px solid rgba(255,255,255,0.5);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            padding: 5px;
+            color: #4A90B8;
+            font-size: 1.5rem;
+            font-weight: 500;
         }
 
-        .bubble:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 25px rgba(255,255,255,0.7);
-            z-index: 100;
+        .result-content {
+            padding: 2rem;
         }
 
-        @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); }
-            100% { transform: translateY(-100px) rotate(360deg); }
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2C5F7A;
+            line-height: 1.4;
         }
 
-        .stats {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
+        .result-description {
+            color: #5BA3C7;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
         }
 
-        .stats h1 {
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .brave-api-settings {
-            background: rgba(255,255,255,0.9);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .brave-api-settings h3 {
-            margin-top: 0;
-            color: #2d3436;
-        }
-
-        .brave-api-settings input {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-
-        .btn {
-            background: #ff6900;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-
-        .btn:hover {
-            background: #e55a00;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .btn.secondary {
-            background: #00b894;
-        }
-
-        .btn.secondary:hover {
-            background: #00a085;
-        }
-
-        .btn.danger {
-            background: #d63031;
-        }
-
-        .btn.danger:hover {
-            background: #b71c1c;
-        }
-
-        .loading {
-            text-align: center;
-            color: white;
-            font-size: 18px;
-            margin: 20px 0;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        }
-
-        .search-results {
-            background: rgba(255,255,255,0.9);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .search-keyword-display {
-            background: rgba(255,255,255,0.9);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 10px 0;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .search-keyword {
-            font-size: 20px;
-            color: #2d3436;
-            margin: 10px 0;
-        }
-
-        .instructions {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .instructions h3 {
-            margin-top: 0;
-        }
-
-        .instructions a {
-            color: #74b9ff;
+        .result-link {
+            color: #4A90B8;
             text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: color 0.3s ease;
         }
 
-        .instructions a:hover {
-            text-decoration: underline;
+        .result-link:hover {
+            color: #2C5F7A;
         }
 
-        .api-info {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-size: 14px;
-            backdrop-filter: blur(10px);
-        }
-
-        .error {
-            background: rgba(255,107,107,0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 10px 0;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .success {
-            background: rgba(0,184,148,0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 10px 0;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .control-panel {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            margin: 10px 0;
-        }
-
-        .control-panel label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #2d3436;
-            font-weight: bold;
-        }
-
-        .control-panel input[type="number"] {
-            width: 80px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-        }
-
-        .suggestion-count {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            text-align: center;
-        }
-
+        /* レスポンシブ対応 */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
+            .logo {
+                font-size: 2.5rem;
             }
             
-            .game-container {
-                height: 60vh;
+            .search-container {
+                margin: 1rem;
+                padding: 2rem;
             }
             
-            .stats h1 {
-                font-size: 1.8em;
+            .bubble-container {
+                height: 80vh; /* モバイルでも高さを拡大 */
             }
             
-            .bubble {
-                font-size: 10px;
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bubble-info {
+                left: 15px;
+                right: 15px;
+                transform: none;
+                font-size: 0.9rem;
+                padding: 1rem 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 1rem 1rem 0.5rem; /* さらにパディングを削減 */
+            }
+            
+            .logo {
+                font-size: 2.2rem;
             }
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="stats">
-            <h1>🦁 Brave Search リアルタイムサジェスト シャボン玉ゲーム</h1>
-            <p>弾けた数: {{ poppedCount }} / {{ totalBubbles }}</p>
-            <p>残りワード数: {{ activeBubblesCount }}個</p>
-        </div>
+        <header class="header">
+            <h1 class="logo">bubblerch</h1>
+        </header>
 
-        <!-- 検索キーワード表示エリア -->
-        <div v-if="searchKeyword" class="search-keyword-display">
-            <h3>🔍 現在の検索キーワード</h3>
-            <p class="search-keyword"><strong>"{{ searchKeyword }}"</strong></p>
-            <small>※このキーワードはシャボン玉として出現しません</small>
-        </div>
-
-        <!-- Brave API設定パネル -->
-        <div class="brave-api-settings">
-            <h3>🔥 Brave Search API 設定</h3>
-            <div class="api-info">
-                📊 <strong>無料プラン</strong>: 月2000クエリまで無料 | <strong>登録</strong>: <a href="https://brave.com/ja/search/api/" target="_blank">brave.com/ja/search/api</a>
+        <main class="main">
+            <!-- 検索入力セクション -->
+            <div class="search-section" v-if="!showBubbles">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        v-model="searchInput" 
+                        @keyup.enter="generateBubbles"
+                        placeholder="検索ワードを入力"
+                        class="search-input"
+                    >
+                    <button @click="generateBubbles" class="search-button">
+                        🫧 検索
+                    </button>
+                </div>
             </div>
-            <input v-model="braveApiKey" placeholder="Brave Search APIキーを入力" type="password">
-            <input v-model="searchKeyword" placeholder="検索キーワード（例：プログラミング）" @keyup.enter="fetchBraveSuggestions">
-            
-            <div class="control-panel">
-                <label>
-                    <input type="number" v-model.number="suggestionCount" min="5" max="20">
-                    サジェスト取得数（5-20個）
-                </label>
-                <label>
-                    <input type="number" v-model.number="bubbleInterval" min="1000" max="5000" step="500">
-                    シャボン玉生成間隔（ミリ秒）
-                </label>
+
+            <!-- シャボン玉セクション -->
+            <div class="bubble-container" v-if="showBubbles && !showResults" ref="bubbleContainer">
+                <div class="bubble-info" ref="bubbleInfo">
+                    <p><strong>✨ 不要なシャボン玉をタップして消してください</strong></p>
+                    <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
+                    <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
+                    <button @click="searchWithRemaining" class="proceed-button">
+                        🔍 検索実行 ({{ activeBubblesCount }}個のワードで検索)
+                    </button>
+                </div>
+                
+                <canvas 
+                    id="bubbleCanvas" 
+                    ref="canvas"
+                    @click="handleCanvasClick"
+                ></canvas>
             </div>
-            
-            <div>
-                <button class="btn" @click="fetchBraveSuggestions">🔍 サジェスト取得</button>
-                <button class="btn secondary" @click="startAutoUpdate">⚡ 自動更新開始</button>
-                <button class="btn secondary" @click="stopAutoUpdate">⏹️ 自動更新停止</button>
-                <button class="btn secondary" @click="testConnection">🧪 接続テスト</button>
-                <button class="btn danger" @click="clearGame">🗑️ ゲームリセット</button>
+
+            <!-- 検索結果セクション -->
+            <div class="results-section" v-if="showResults">
+                <div class="results-header">
+                    <h2>🔍 検索結果</h2>
+                    <p style="color: #5BA3C7; font-size: 1.1rem; font-weight: 500;"><strong>選択されたキーワード:</strong> {{ remainingWords.join(', ') }}</p>
+                    <button @click="resetSearch" class="reset-button">🔄 新しい検索を始める</button>
+                </div>
+                
+                <div class="results-grid">
+                    <div 
+                        v-for="result in searchResults" 
+                        :key="result.id"
+                        class="result-card"
+                    >
+                        <div class="result-image">
+                            📖 記事
+                        </div>
+                        <div class="result-content">
+                            <h3 class="result-title">{{ result.title }}</h3>
+                            <p class="result-description">{{ result.description }}</p>
+                            <a :href="result.url" target="_blank" class="result-link">詳細を見る →</a>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <!-- ステータス表示 -->
-        <div v-if="loading" class="loading">
-            🔄 Brave Search APIからサジェストを取得中...
-        </div>
-
-        <div v-if="error" class="error">
-            ❌ {{ error }}
-        </div>
-
-        <div v-if="successMessage" class="success">
-            ✅ {{ successMessage }}
-        </div>
-
-        <!-- サジェスト数表示 -->
-        <div v-if="currentSuggestions.length > 0" class="suggestion-count">
-            📈 取得済みサジェスト: {{ currentSuggestions.length }}個
-        </div>
-
-        <!-- 使用方法説明 -->
-        <div class="instructions">
-            <h3>📝 使用方法</h3>
-            <ol>
-                <li><strong>APIキー取得</strong>: <a href="https://brave.com/ja/search/api/" target="_blank">Brave Search API</a>でアカウント作成</li>
-                <li><strong>キー入力</strong>: 上記で取得したAPIキーを入力欄に貼り付け</li>
-                <li><strong>テスト</strong>: 「🧪 接続テスト」で動作確認</li>
-                <li><strong>開始</strong>: キーワードを入力して「🔍 サジェスト取得」またはEnterキーを押す</li>
-                <li><strong>ゲーム</strong>: 浮上するシャボン玉をクリックして弾く</li>
-            </ol>
-        </div>
-
-        <div class="game-container" ref="gameContainer">
-            <div
-                v-for="bubble in bubbles"
-                :key="bubble.id"
-                class="bubble"
-                :style="{
-                    left: bubble.x + 'px',
-                    top: bubble.y + 'px',
-                    width: bubble.size + 'px',
-                    height: bubble.size + 'px',
-                    fontSize: Math.max(10, bubble.size/8) + 'px',
-                    animationDuration: bubble.speed + 's',
-                    animationDelay: bubble.delay + 's'
-                }"
-                @click="popBubble(bubble.id)"
-                :title="bubble.word"
-            >
-                {{ bubble.word }}
-            </div>
-        </div>
-
-        <div v-if="selectedWords.length > 0" class="search-results">
-            <h3>🔍 選択されたキーワード</h3>
-            <p><strong>{{ selectedWords.join(', ') }}</strong></p>
-            <button class="btn secondary" @click="clearSelectedWords">選択をクリア</button>
-        </div>
-
-        <!-- API使用状況 -->
-        <div v-if="apiUsage.total > 0" class="api-info">
-            📊 API使用状況: {{ apiUsage.total }}回 / 2000回（月間無料枠） | 自動更新: {{ autoUpdateStatus }}
-        </div>
+        </main>
     </div>
 
     <script>
@@ -372,443 +378,501 @@
         createApp({
             data() {
                 return {
-                    // Brave API設定
-                    braveApiKey: '',
-                    searchKeyword: 'プログラミング',
-                    suggestionCount: 15,
-                    bubbleInterval: 2500,
-                    loading: false,
-                    error: '',
-                    successMessage: '',
-                    
-                    // ゲーム状態
+                    searchInput: '',
+                    showBubbles: false,
+                    showResults: false,
                     bubbles: [],
+                    searchResults: [],
                     poppedCount: 0,
                     totalBubbles: 0,
-                    selectedWords: [],
-                    
-                    // システム
-                    bubbleId: 0,
-                    gameInterval: null,
-                    updateInterval: null,
-                    autoUpdateStatus: '停止中',
-                    
-                    // 現在のサジェストワード
-                    currentSuggestions: [],
-                    
-                    // API使用状況
-                    apiUsage: {
-                        total: 0,
-                        today: 0,
-                        lastReset: new Date().toDateString()
-                    },
-                    
-                    // デモ用のサンプルワード
-                    sampleWords: [
-                        'JavaScript学習', 'HTML基礎', 'CSS入門', 'React開発',
-                        'Vue.js実践', 'Python入門', 'データ分析', 'Web開発',
-                        'プログラミング学習', 'フロントエンド', 'バックエンド', 'API開発',
-                        'データベース設計', 'セキュリティ対策', 'クラウド運用'
-                    ]
+                    originalWords: [],
+                    remainingWords: [],
+                    canvas: null,
+                    ctx: null,
+                    animationId: null,
+                    particles: [],
+                    infoAreaHeight: 0,
+                    playableArea: { top: 0, bottom: 0, left: 0, right: 0 }
                 }
             },
             computed: {
                 activeBubblesCount() {
-                    return this.bubbles.length;
+                    return this.bubbles.filter(b => b.active).length;
                 }
-            },
-            mounted() {
-                // 保存されたAPIキーを復元
-                const savedApiKey = localStorage.getItem('braveApiKey');
-                if (savedApiKey) {
-                    this.braveApiKey = savedApiKey;
-                }
-                
-                // 保存されたAPI使用状況を復元
-                const savedUsage = localStorage.getItem('braveApiUsage');
-                if (savedUsage) {
-                    this.apiUsage = JSON.parse(savedUsage);
-                    // 日付が変わっていたらリセット
-                    if (this.apiUsage.lastReset !== new Date().toDateString()) {
-                        this.apiUsage.today = 0;
-                        this.apiUsage.lastReset = new Date().toDateString();
-                    }
-                }
-                
-                // デモ用にサンプルワードで開始
-                this.currentSuggestions = [...this.sampleWords];
-                this.startGame();
-                
-                console.log('🦁 Brave Search API サジェストシステム初期化完了');
             },
             methods: {
-                // Brave Search Suggest APIから直接サジェストを取得
-                async fetchBraveSuggestions() {
-                    if (!this.braveApiKey) {
-                        this.error = 'Brave Search APIキーを入力してください';
+                generateBubbles() {
+                    if (!this.searchInput.trim()) {
+                        alert('検索ワードを入力してください 😊');
                         return;
                     }
                     
-                    if (!this.searchKeyword.trim()) {
-                        this.error = '検索キーワードを入力してください';
-                        return;
-                    }
-
-                    this.loading = true;
-                    this.error = '';
-                    this.successMessage = '';
+                    this.originalWords = this.searchInput.trim().split(/\s+/);
+                    this.poppedCount = 0;
+                    this.showBubbles = true;
                     
-                    try {
-                        // APIキーを保存
-                        localStorage.setItem('braveApiKey', this.braveApiKey);
-                        
-                        // Brave Search Suggest API呼び出し
-                        const response = await fetch(`https://api.search.brave.com/res/v1/suggest/search?q=${encodeURIComponent(this.searchKeyword)}&country=JP&count=${this.suggestionCount + 5}`, {
-                            method: 'GET',
-                            headers: {
-                                'Accept': 'application/json',
-                                'Accept-Encoding': 'gzip',
-                                'X-Subscription-Token': this.braveApiKey
+                    this.$nextTick(() => {
+                        this.initCanvas();
+                        this.calculatePlayableArea();
+                        this.createBubbles();
+                        this.startAnimation();
+                    });
+                },
+                
+                initCanvas() {
+                    this.canvas = this.$refs.canvas;
+                    this.ctx = this.canvas.getContext('2d');
+                    
+                    const container = this.canvas.parentElement;
+                    this.canvas.width = container.offsetWidth;
+                    this.canvas.height = container.offsetHeight;
+                },
+                
+                calculatePlayableArea() {
+                    const infoElement = this.$refs.bubbleInfo;
+                    if (infoElement) {
+                        const infoRect = infoElement.getBoundingClientRect();
+                        const containerRect = this.$refs.bubbleContainer.getBoundingClientRect();
+                        this.infoAreaHeight = infoRect.bottom - containerRect.top + 25;
+                    } else {
+                        this.infoAreaHeight = 120;
+                    }
+                    
+                    this.playableArea = {
+                        top: this.infoAreaHeight,
+                        bottom: this.canvas.height - 15,
+                        left: 15,
+                        right: this.canvas.width - 15
+                    };
+                },
+                
+                createBubbles() {
+                    const relatedWords = this.generateRelatedWords(this.originalWords);
+                    const targetCount = 3 * this.originalWords.length;
+                    let allWords = [...this.originalWords, ...relatedWords];
+                    
+                    while (allWords.length < targetCount) {
+                        this.originalWords.forEach(word => {
+                            if (allWords.length < targetCount) {
+                                allWords.push(word + '関連');
                             }
                         });
+                    }
+                    
+                    allWords = allWords.slice(0, targetCount);
+                    this.bubbles = this.createNonOverlappingLayout(allWords);
+                    this.totalBubbles = this.bubbles.length;
+                },
+                
+                createNonOverlappingLayout(words) {
+                    const bubbles = [];
+                    const padding = 20;
+                    const maxAttempts = 100;
+                    
+                    words.forEach((word, index) => {
+                        const size = Math.random() * 40 + 70;
+                        const radius = size / 2;
+                        let x, y;
+                        let attempts = 0;
+                        let validPosition = false;
                         
-                        if (!response.ok) {
-                            if (response.status === 401) {
-                                throw new Error('APIキーが無効です。Brave Search APIの設定を確認してください。');
-                            } else if (response.status === 429) {
-                                throw new Error('API利用制限に達しました。しばらく待ってから再試行してください。');
-                            } else {
-                                throw new Error(`API呼び出しに失敗しました (${response.status})`);
+                        while (!validPosition && attempts < maxAttempts) {
+                            x = this.playableArea.left + radius + Math.random() * 
+                                (this.playableArea.right - this.playableArea.left - 2 * radius);
+                            y = this.playableArea.top + radius + Math.random() * 
+                                (this.playableArea.bottom - this.playableArea.top - 2 * radius);
+                            
+                            validPosition = true;
+                            
+                            for (let existing of bubbles) {
+                                const distance = Math.sqrt((x - existing.x) ** 2 + (y - existing.y) ** 2);
+                                const minDistance = radius + existing.radius + padding;
+                                
+                                if (distance < minDistance) {
+                                    validPosition = false;
+                                    break;
+                                }
                             }
+                            
+                            attempts++;
                         }
                         
-                        const data = await response.json();
-                        console.log('Brave API Response:', data);
-                        
-                        // サジェストデータを抽出（検索キーワードを除外）
-                        let suggestions = [];
-                        if (data && Array.isArray(data)) {
-                            suggestions = data
-                                .filter(item => 
-                                    item && 
-                                    typeof item === 'string' && 
-                                    item.trim().length > 0 &&
-                                    // 検索キーワードと完全一致するものを除外
-                                    item.toLowerCase() !== this.searchKeyword.toLowerCase() &&
-                                    // 検索キーワードのみで構成されているものを除外
-                                    !this.isExactSearchKeyword(item)
-                                )
-                                .slice(0, this.suggestionCount);
+                        if (!validPosition) {
+                            const cols = Math.ceil(Math.sqrt(words.length));
+                            const col = index % cols;
+                            const row = Math.floor(index / cols);
+                            
+                            const availableWidth = this.playableArea.right - this.playableArea.left - 60;
+                            const availableHeight = this.playableArea.bottom - this.playableArea.top - 60;
+                            const cellWidth = availableWidth / cols;
+                            const cellHeight = availableHeight / Math.ceil(words.length / cols);
+                            
+                            x = this.playableArea.left + col * cellWidth + cellWidth / 2 + 30;
+                            y = this.playableArea.top + row * cellHeight + cellHeight / 2 + 30;
                         }
                         
-                        if (suggestions.length === 0) {
-                            // フォールバック: 関連キーワードを生成（検索キーワードを除外）
-                            suggestions = this.generateFallbackSuggestions(this.searchKeyword);
-                            console.log('フォールバックサジェストを使用:', suggestions);
-                        }
-                        
-                        // 最終的なフィルタリングで検索キーワードを確実に除外
-                        this.currentSuggestions = this.filterOutSearchKeyword(suggestions);
-                        
-                        // API使用状況を更新
-                        this.apiUsage.total++;
-                        this.apiUsage.today++;
-                        localStorage.setItem('braveApiUsage', JSON.stringify(this.apiUsage));
-                        
-                        this.successMessage = `✅ ${this.currentSuggestions.length}個のサジェストを取得しました！`;
-                        console.log('取得したサジェスト（検索キーワード除外後）:', this.currentSuggestions);
-                        
-                        // 新しいサジェストでゲームを再開始
-                        this.restartGame();
-                        
-                    } catch (error) {
-                        console.error('Brave API呼び出しエラー:', error);
-                        this.error = error.message;
-                        
-                        // エラー時はフォールバックサジェストを使用（検索キーワード除外）
-                        this.currentSuggestions = this.generateFallbackSuggestions(this.searchKeyword);
-                        this.restartGame();
-                        
-                    } finally {
-                        this.loading = false;
-                        // 成功メッセージを3秒後に消す
-                        if (this.successMessage) {
-                            setTimeout(() => {
-                                this.successMessage = '';
-                            }, 3000);
-                        }
-                    }
-                },
-
-                // 検索キーワードかどうかを判定
-                isExactSearchKeyword(suggestion) {
-                    const keyword = this.searchKeyword.toLowerCase().trim();
-                    const suggestionLower = suggestion.toLowerCase().trim();
-                    
-                    // 完全一致
-                    if (suggestionLower === keyword) {
-                        return true;
-                    }
-                    
-                    // 検索キーワードのみを含む短い文字列（助詞などを除く）
-                    const cleanSuggestion = suggestionLower.replace(/[のはがをにでとからまで]/g, '').trim();
-                    if (cleanSuggestion === keyword) {
-                        return true;
-                    }
-                    
-                    return false;
-                },
-
-                // サジェストリストから検索キーワードを除外
-                filterOutSearchKeyword(suggestions) {
-                    const keyword = this.searchKeyword.toLowerCase().trim();
-                    
-                    return suggestions.filter(suggestion => {
-                        const suggestionLower = suggestion.toLowerCase().trim();
-                        
-                        // 完全一致を除外
-                        if (suggestionLower === keyword) {
-                            return false;
-                        }
-                        
-                        // 検索キーワードのみで構成されているものを除外
-                        if (this.isExactSearchKeyword(suggestion)) {
-                            return false;
-                        }
-                        
-                        // 検索キーワードが単独で含まれているかチェック
-                        const words = suggestionLower.split(/[\s　]+/);
-                        if (words.length === 1 && words[0] === keyword) {
-                            return false;
-                        }
-                        
-                        return true;
-                    });
-                },
-
-                // フォールバックサジェストを生成
-                generateFallbackSuggestions(keyword) {
-                    const suffixes = [
-                        'とは', '方法', 'やり方', 'おすすめ', '比較', '無料',
-                        '初心者', '入門', '基礎', '学習', 'ツール', 'コツ',
-                        '使い方', '選び方', 'メリット', 'デメリット', '効果',
-                        '種類', 'ランキング', '最新', '人気', '注意点'
-                    ];
-                    
-                    const prefixes = [
-                        '初心者向け', '無料の', 'おすすめの', '人気の', 
-                        '最新の', '効果的な', '簡単な', '実践的な'
-                    ];
-                    
-                    const suggestions = [];
-                    
-                    // サフィックス型サジェスト
-                    suffixes.forEach(suffix => {
-                        suggestions.push(`${keyword} ${suffix}`);
-                    });
-                    
-                    // プレフィックス型サジェスト
-                    prefixes.forEach(prefix => {
-                        suggestions.push(`${prefix} ${keyword}`);
-                    });
-                    
-                    // 検索キーワードを除外してフィルタリング
-                    return this.filterOutSearchKeyword(suggestions).slice(0, this.suggestionCount);
-                },
-
-                // API接続テスト
-                async testConnection() {
-                    if (!this.braveApiKey) {
-                        this.error = 'APIキーを入力してください';
-                        return;
-                    }
-                    
-                    this.loading = true;
-                    this.error = '';
-                    
-                    try {
-                        const response = await fetch('https://api.search.brave.com/res/v1/suggest/search?q=test&count=1', {
-                            method: 'GET',
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Subscription-Token': this.braveApiKey
-                            }
+                        bubbles.push({
+                            id: index,
+                            word: word,
+                            x: x,
+                            y: y,
+                            radius: radius,
+                            vx: (Math.random() - 0.5) * 0.15,
+                            vy: (Math.random() - 0.5) * 0.15,
+                            active: true,
+                            popping: false,
+                            popAnimation: 0,
+                            floatOffset: Math.random() * Math.PI * 2,
+                            opacity: 1,
+                            mass: radius,
+                            bounceTimer: 0
                         });
+                    });
+                    
+                    return bubbles;
+                },
+                
+                drawBubble(bubble) {
+                    if (!bubble.active) return;
+                    
+                    const ctx = this.ctx;
+                    const x = bubble.x;
+                    const y = bubble.y + Math.sin(Date.now() * 0.0008 + bubble.floatOffset) * 1.5;
+                    const radius = bubble.radius;
+                    
+                    if (bubble.popping) {
+                        bubble.popAnimation += 0.06;
+                        bubble.opacity = Math.max(0, 1 - bubble.popAnimation);
+                        const scale = 1 + bubble.popAnimation * 1.8;
                         
-                        if (response.ok) {
-                            this.successMessage = '✅ API接続に成功しました！';
-                            localStorage.setItem('braveApiKey', this.braveApiKey);
-                        } else {
-                            throw new Error(`接続に失敗しました (${response.status})`);
+                        if (bubble.popAnimation >= 1) {
+                            bubble.active = false;
+                            this.poppedCount++;
+                            return;
                         }
                         
-                    } catch (error) {
-                        this.error = `❌ 接続テスト失敗: ${error.message}`;
-                    } finally {
-                        this.loading = false;
-                        
-                        // メッセージを3秒後に消す
-                        setTimeout(() => {
-                            this.successMessage = '';
-                        }, 3000);
-                    }
-                },
-
-                // 自動更新開始
-                startAutoUpdate() {
-                    if (!this.braveApiKey) {
-                        this.error = 'APIキーを入力してから自動更新を開始してください';
-                        return;
+                        ctx.save();
+                        ctx.globalAlpha = bubble.opacity;
+                        ctx.translate(x, y);
+                        ctx.scale(scale, scale);
+                        ctx.translate(-x, -y);
                     }
                     
-                    if (this.updateInterval) {
-                        clearInterval(this.updateInterval);
-                    }
-                    
-                    // 60秒毎に自動更新（API制限を考慮）
-                    this.updateInterval = setInterval(() => {
-                        this.fetchBraveSuggestions();
-                    }, 60000);
-                    
-                    this.autoUpdateStatus = '動作中（60秒毎）';
-                    this.successMessage = '⚡ 自動更新を開始しました（60秒毎）';
-                    setTimeout(() => {
-                        this.successMessage = '';
-                    }, 3000);
-                },
-
-                // 自動更新停止
-                stopAutoUpdate() {
-                    if (this.updateInterval) {
-                        clearInterval(this.updateInterval);
-                        this.updateInterval = null;
-                        this.autoUpdateStatus = '停止中';
-                        this.successMessage = '⏹️ 自動更新を停止しました';
-                        setTimeout(() => {
-                            this.successMessage = '';
-                        }, 3000);
-                    }
-                },
-
-                // ゲーム開始
-                startGame() {
-                    if (this.gameInterval) {
-                        clearInterval(this.gameInterval);
-                    }
-                    
-                    this.gameInterval = setInterval(() => {
-                        this.createBubble();
-                    }, this.bubbleInterval);
-                },
-
-                // ゲーム再開始
-                restartGame() {
-                    // 既存のシャボン玉をクリア
-                    this.bubbles = [];
-                    this.poppedCount = 0;
-                    this.totalBubbles = 0;
-                    
-                    // ゲームを再開始
-                    this.startGame();
-                },
-
-                // ゲームクリア
-                clearGame() {
-                    this.bubbles = [];
-                    this.poppedCount = 0;
-                    this.totalBubbles = 0;
-                    this.selectedWords = [];
-                    this.successMessage = '🗑️ ゲームをリセットしました';
-                    setTimeout(() => {
-                        this.successMessage = '';
-                    }, 2000);
-                },
-
-                // 選択されたワードをクリア
-                clearSelectedWords() {
-                    this.selectedWords = [];
-                },
-
-                // シャボン玉作成
-                createBubble() {
-                    if (this.currentSuggestions.length === 0) return;
-                    
-                    const containerWidth = this.$refs.gameContainer?.clientWidth || 1200;
-                    
-                    // 検索キーワードを除外済みのサジェストからランダム選択
-                    const availableSuggestions = this.currentSuggestions.filter(suggestion => 
-                        !this.isExactSearchKeyword(suggestion)
+                    const gradient = ctx.createRadialGradient(
+                        x - radius * 0.3, y - radius * 0.3, 0,
+                        x, y, radius
                     );
+                    gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
+                    gradient.addColorStop(0.2, 'rgba(176,224,230,0.6)');
+                    gradient.addColorStop(0.6, 'rgba(135,206,235,0.4)');
+                    gradient.addColorStop(1, 'rgba(74,144,184,0.3)');
                     
-                    if (availableSuggestions.length === 0) {
-                        console.log('利用可能なサジェストがありません');
-                        return;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = 'rgba(74,144,184,0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(x + radius * 0.2, y - radius * 0.4, radius * 0.12, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.fill();
+                    
+                    const fontSize = Math.max(14, radius * 0.35);
+                    ctx.fillStyle = '#2C5F7A';
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 3;
+                    ctx.font = `bold ${fontSize}px 'Noto Sans JP', Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const maxWidth = radius * 1.2;
+                    this.drawReadableText(ctx, bubble.word, x, y, maxWidth, fontSize * 1.1);
+                    
+                    if (bubble.popping) {
+                        ctx.restore();
+                    }
+                },
+                
+                drawReadableText(ctx, text, x, y, maxWidth, lineHeight) {
+                    const chars = text.split('');
+                    let line = '';
+                    const lines = [];
+                    
+                    for (let n = 0; n < chars.length; n++) {
+                        const testLine = line + chars[n];
+                        const metrics = ctx.measureText(testLine);
+                        const testWidth = metrics.width;
+                        
+                        if (testWidth > maxWidth && n > 0) {
+                            lines.push(line);
+                            line = chars[n];
+                        } else {
+                            line = testLine;
+                        }
+                    }
+                    lines.push(line);
+                    
+                    const startY = y - (lines.length - 1) * lineHeight / 2;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const lineY = startY + i * lineHeight;
+                        ctx.strokeText(lines[i], x, lineY);
+                        ctx.fillText(lines[i], x, lineY);
+                    }
+                },
+                
+                updateBubble(bubble) {
+                    if (!bubble.active || bubble.popping) return;
+                    
+                    if (bubble.bounceTimer > 0) {
+                        bubble.bounceTimer--;
                     }
                     
-                    const word = availableSuggestions[Math.floor(Math.random() * availableSuggestions.length)];
+                    this.handleBubbleCollisions(bubble);
                     
-                    // 検索キーワードではないことを再確認
-                    if (this.isExactSearchKeyword(word)) {
-                        console.log(`"${word}"は検索キーワードと判定されたため除外`);
-                        return;
+                    bubble.x += bubble.vx;
+                    bubble.y += bubble.vy;
+                    
+                    this.handleBoundaryCollision(bubble);
+                    
+                    bubble.vx += (Math.random() - 0.5) * 0.005;
+                    bubble.vy += (Math.random() - 0.5) * 0.005;
+                    
+                    bubble.vx *= 0.9995;
+                    bubble.vy *= 0.9995;
+                    
+                    const maxSpeed = 0.5;
+                    const speed = Math.sqrt(bubble.vx ** 2 + bubble.vy ** 2);
+                    if (speed > maxSpeed) {
+                        bubble.vx = (bubble.vx / speed) * maxSpeed;
+                        bubble.vy = (bubble.vy / speed) * maxSpeed;
+                    }
+                },
+                
+                handleBubbleCollisions(bubble) {
+                    for (let other of this.bubbles) {
+                        if (other === bubble || !other.active || other.popping) continue;
+                        
+                        const dx = other.x - bubble.x;
+                        const dy = other.y - bubble.y;
+                        const distance = Math.sqrt(dx ** 2 + dy ** 2);
+                        const minDistance = bubble.radius + other.radius + 10;
+                        
+                        if (distance < minDistance) {
+                            const overlap = minDistance - distance;
+                            const separationX = (dx / distance) * overlap * 0.5;
+                            const separationY = (dy / distance) * overlap * 0.5;
+                            
+                            bubble.x -= separationX;
+                            bubble.y -= separationY;
+                            other.x += separationX;
+                            other.y += separationY;
+                            
+                            const totalMass = bubble.mass + other.mass;
+                            const relativeVx = bubble.vx - other.vx;
+                            const relativeVy = bubble.vy - other.vy;
+                            
+                            const impulse = 1.2 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass);
+                            
+                            const restitution = 0.25;
+                            bubble.vx -= impulse * other.mass * dx * restitution;
+                            bubble.vy -= impulse * other.mass * dy * restitution;
+                            other.vx += impulse * bubble.mass * dx * restitution;
+                            other.vy += impulse * bubble.mass * dy * restitution;
+                            
+                            bubble.bounceTimer = 30;
+                            other.bounceTimer = 30;
+                        }
+                    }
+                },
+                
+                handleBoundaryCollision(bubble) {
+                    const softRestitution = 0.2;
+                    const damping = 0.8;
+                    
+                    if (bubble.x - bubble.radius <= this.playableArea.left) {
+                        bubble.x = this.playableArea.left + bubble.radius;
+                        bubble.vx = Math.abs(bubble.vx) * softRestitution;
+                        bubble.bounceTimer = 60;
+                    } else if (bubble.x + bubble.radius >= this.playableArea.right) {
+                        bubble.x = this.playableArea.right - bubble.radius;
+                        bubble.vx = -Math.abs(bubble.vx) * softRestitution;
+                        bubble.bounceTimer = 60;
                     }
                     
-                    const bubble = {
-                        id: this.bubbleId++,
-                        word: word,
-                        x: Math.random() * (containerWidth - 150),
-                        y: window.innerHeight,
-                        size: Math.random() * 50 + 90,
-                        speed: Math.random() * 3 + 7,
-                        delay: Math.random() * 1
+                    if (bubble.y - bubble.radius <= this.playableArea.top) {
+                        bubble.y = this.playableArea.top + bubble.radius;
+                        bubble.vy = Math.abs(bubble.vy) * softRestitution;
+                        bubble.bounceTimer = 60;
+                    } else if (bubble.y + bubble.radius >= this.playableArea.bottom) {
+                        bubble.y = this.playableArea.bottom - bubble.radius;
+                        bubble.vy = -Math.abs(bubble.vy) * softRestitution;
+                        bubble.bounceTimer = 60;
+                    }
+                    
+                    if (bubble.bounceTimer > 0) {
+                        bubble.vx *= damping;
+                        bubble.vy *= damping;
+                    }
+                },
+                
+                drawParticle(particle) {
+                    const ctx = this.ctx;
+                    
+                    particle.life -= 0.015;
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vy += 0.05;
+                    particle.vx *= 0.99;
+                    
+                    if (particle.life <= 0) {
+                        return false;
+                    }
+                    
+                    ctx.save();
+                    ctx.globalAlpha = particle.life;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2);
+                    
+                    const gradient = ctx.createRadialGradient(
+                        particle.x, particle.y, 0,
+                        particle.x, particle.y, particle.size
+                    );
+                    gradient.addColorStop(0, 'rgba(135,206,235,0.8)');
+                    gradient.addColorStop(1, 'rgba(74,144,184,0.4)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    ctx.restore();
+                    
+                    return true;
+                },
+                
+                animate() {
+                    if (!this.ctx) return;
+                    
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    this.bubbles.forEach(bubble => {
+                        this.updateBubble(bubble);
+                        this.drawBubble(bubble);
+                    });
+                    
+                    this.particles = this.particles.filter(particle => this.drawParticle(particle));
+                    
+                    if (this.showBubbles && !this.showResults) {
+                        this.animationId = requestAnimationFrame(() => this.animate());
+                    }
+                },
+                
+                startAnimation() {
+                    this.animate();
+                },
+                
+                handleCanvasClick(event) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    for (let bubble of this.bubbles) {
+                        if (!bubble.active || bubble.popping) continue;
+                        
+                        const distance = Math.sqrt((x - bubble.x) ** 2 + (y - bubble.y) ** 2);
+                        if (distance <= bubble.radius) {
+                            this.popBubble(bubble, x, y);
+                            break;
+                        }
+                    }
+                },
+                
+                popBubble(bubble, x, y) {
+                    bubble.popping = true;
+                    bubble.popAnimation = 0;
+                    
+                    for (let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+                        const speed = Math.random() * 2.5 + 1;
+                        
+                        this.particles.push({
+                            x: bubble.x,
+                            y: bubble.y,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed - 0.5,
+                            size: Math.random() * 5 + 3,
+                            life: 1
+                        });
+                    }
+                },
+                
+                generateRelatedWords(words) {
+                    const relatedMap = {
+                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue'],
+                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材'],
+                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊'],
+                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート'],
+                        '映画': ['監督', '俳優', 'ストーリー', '撮影', '上映', 'DVD'],
+                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール']
                     };
                     
-                    this.bubbles.push(bubble);
-                    this.totalBubbles++;
-                    
-                    console.log(`シャボン玉作成: "${word}" (検索キーワード: "${this.searchKeyword}")`);
-                    
-                    // 画面外に出たシャボン玉を削除
-                    setTimeout(() => {
-                        this.bubbles = this.bubbles.filter(b => b.id !== bubble.id);
-                    }, bubble.speed * 1000 + 2000);
-                },
-
-                // シャボン玉をクリック
-                popBubble(id) {
-                    const bubbleIndex = this.bubbles.findIndex(b => b.id === id);
-                    if (bubbleIndex !== -1) {
-                        const bubble = this.bubbles[bubbleIndex];
-                        
-                        // 重複チェック
-                        if (!this.selectedWords.includes(bubble.word)) {
-                            this.selectedWords.push(bubble.word);
+                    const allRelated = [];
+                    words.forEach(word => {
+                        if (relatedMap[word]) {
+                            allRelated.push(...relatedMap[word]);
+                        } else {
+                            allRelated.push(word + '基礎', word + '応用', word + '入門');
                         }
-                        
-                        this.bubbles.splice(bubbleIndex, 1);
-                        this.poppedCount++;
-                        
-                        // エフェクト音（オプション）
-                        console.log(`🎯 "${bubble.word}" がクリックされました！`);
+                    });
+                    
+                    return allRelated;
+                },
+                
+                searchWithRemaining() {
+                    this.remainingWords = this.bubbles
+                        .filter(b => b.active)
+                        .map(b => b.word);
+                    
+                    this.searchResults = [];
+                    for (let i = 0; i < 10; i++) {
+                        this.searchResults.push({
+                            id: i,
+                            title: `${this.remainingWords.slice(0, 2).join('・')}に関する記事 ${i + 1}`,
+                            description: `${this.remainingWords.join('、')}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
+                            url: `https://example.com/search?q=${encodeURIComponent(this.remainingWords.join(' '))}&id=${i + 1}`
+                        });
                     }
-                }
-            },
-            
-            watch: {
-                // シャボン玉生成間隔が変更されたらゲームを再開始
-                bubbleInterval() {
-                    if (this.gameInterval) {
-                        this.startGame();
+                    
+                    this.showResults = true;
+                    
+                    if (this.animationId) {
+                        cancelAnimationFrame(this.animationId);
                     }
-                }
-            },
-            
-            beforeUnmount() {
-                if (this.gameInterval) {
-                    clearInterval(this.gameInterval);
-                }
-                if (this.updateInterval) {
-                    clearInterval(this.updateInterval);
+                },
+                
+                resetSearch() {
+                    if (this.animationId) {
+                        cancelAnimationFrame(this.animationId);
+                    }
+                    
+                    this.searchInput = '';
+                    this.showBubbles = false;
+                    this.showResults = false;
+                    this.bubbles = [];
+                    this.particles = [];
+                    this.searchResults = [];
+                    this.poppedCount = 0;
+                    this.totalBubbles = 0;
+                    this.originalWords = [];
+                    this.remainingWords = [];
+                    this.infoAreaHeight = 0;
                 }
             }
         }).mount('#app');
