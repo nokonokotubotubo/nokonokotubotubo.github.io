@@ -530,10 +530,8 @@
                 <div class="search-engine-selector">
                     <label>検索エンジン選択:</label>
                     <select v-model="selectedSearchEngine" @change="updateSearchResults">
-                        <option value="duckduckgo">DuckDuckGo</option>
                         <option value="bing">Bing</option>
-                        <option value="startpage">StartPage</option>
-                        <option value="yandex">Yandex</option>
+                        <option value="yahoo">Yahoo! JAPAN</option>
                     </select>
                     <button @click="resetSearch" class="back-button">← 戻る</button>
                 </div>
@@ -587,7 +585,7 @@
                     particles: [],
                     infoAreaHeight: 0,
                     playableArea: { top: 0, bottom: 0, left: 0, right: 0 },
-                    selectedSearchEngine: 'duckduckgo',
+                    selectedSearchEngine: 'bing',
                     searchTabs: [],
                     activeTabIndex: 0
                 }
@@ -598,10 +596,8 @@
                 },
                 searchEngines() {
                     return {
-                        duckduckgo: 'https://duckduckgo.com/?q=',
                         bing: 'https://www.bing.com/search?q=',
-                        startpage: 'https://www.startpage.com/sp/search?q=',
-                        yandex: 'https://yandex.com/search/?text='
+                        yahoo: 'https://search.yahoo.co.jp/search?p='
                     };
                 }
             },
@@ -1136,7 +1132,7 @@
                     // 関連キーワードタブ
                     this.remainingWords.forEach((word, index) => {
                         this.searchTabs.push({
-                            title: `関連${index + 1}`,
+                            title: word,
                             keyword: word,
                             url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(word)
                         });
