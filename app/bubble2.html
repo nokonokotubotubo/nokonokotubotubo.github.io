@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bublerch - バブル検索</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0277bd;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #0288d1;
+            line-height: 1.4;
+        }
+
+        .search-form {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border: 2px solid #81d4fa;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #b3e5fc;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #0288d1;
+            box-shadow: 0 0 15px rgba(2, 136, 209, 0.3);
+        }
+
+        .search-btn, .execute-btn {
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(45deg, #0288d1, #03a9f4);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(2, 136, 209, 0.3);
+        }
+
+        .search-btn:hover, .execute-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(2, 136, 209, 0.4);
+        }
+
+        .bubble-area {
+            position: relative;
+            min-height: 300px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 2px solid rgba(129, 212, 250, 0.5);
+        }
+
+        .bubble {
+            position: absolute;
+            background: linear-gradient(45deg, rgba(129, 212, 250, 0.8), rgba(179, 229, 252, 0.9));
+            border: 2px solid #81d4fa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            color: #0277bd;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            user-select: none;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .bubble.popping {
+            animation: pop 0.5s ease-out forwards;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .execute-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .results-area {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 2px solid #81d4fa;
+            display: none;
+        }
+
+        .results-title {
+            font-size: 1.3rem;
+            color: #0277bd;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .result-item {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #0288d1;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            background: #e3f2fd;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            color: #0277bd;
+            margin-bottom: 8px;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+
+        .result-description {
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .result-url {
+            color: #0288d1;
+            font-size: 0.8rem;
+            word-break: break-all;
+        }
+
+        .loading {
+            text-align: center;
+            color: #0288d1;
+            font-size: 1rem;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes burst {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        .burst-effect {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(129, 212, 250, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: burst 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* タブレット用 */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 768px;
+                padding: 20px;
+            }
+            
+            .form-group {
+                flex-direction: row;
+                align-items: center;
+            }
+            
+            .search-input {
+                flex: 1;
+                max-width: 400px;
+            }
+            
+            .search-btn {
+                width: auto;
+                min-width: 120px;
+            }
+            
+            .bubble-area {
+                min-height: 400px;
+            }
+        }
+
+        /* デスクトップ用 */
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1200px;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Bublerch</div>
+            <div class="subtitle">バブル検索で<br>理想の結果を見つけよう</div>
+        </div>
+
+        <div class="search-form">
+            <div class="form-group">
+                <input type="text" class="search-input" id="keywordInput" placeholder="キーワード入力">
+                <button class="search-btn" id="searchBtn">生成</button>
+            </div>
+        </div>
+
+        <div class="bubble-area" id="bubbleArea"></div>
+
+        <div class="execute-section">
+            <button class="execute-btn hidden" id="executeBtn">検索実行</button>
+        </div>
+
+        <div class="results-area" id="resultsArea">
+            <div class="results-title">検索結果</div>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // 基本的なJavaScript構造（次のステップで実装）
+        class Bublerch {
+            constructor() {
+                this.bubbles = [];
+                this.currentKeyword = '';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                document.getElementById('searchBtn').addEventListener('click', () => this.generateBubbles());
+                document.getElementById('executeBtn').addEventListener('click', () => this.executeSearch());
+                document.getElementById('keywordInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.generateBubbles();
+                });
+            }
+
+            class Bublerch {
+    constructor() {
+        this.bubbles = [];
+        this.currentKeyword = '';
+        this.relatedWords = [];
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        document.getElementById('searchBtn').addEventListener('click', () => this.generateBubbles());
+        document.getElementById('executeBtn').addEventListener('click', () => this.executeSearch());
+        document.getElementById('keywordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.generateBubbles();
+        });
+    }
+
+    async generateBubbles() {
+        const keyword = document.getElementById('keywordInput').value.trim();
+        if (!keyword) {
+            alert('キーワードを入力してください');
+            return;
+        }
+
+        this.currentKeyword = keyword;
+        this.clearBubbles();
+        
+        // ローディング表示
+        this.showLoading('関連語を生成中...');
+        
+        try {
+            // 関連語を取得（モックデータまたはAPI）
+            this.relatedWords = await this.getRelatedWords(keyword);
+            this.hideLoading();
+            this.createBubbles();
+            this.showExecuteButton();
+        } catch (error) {
+            this.hideLoading();
+            console.error('関連語生成エラー:', error);
+            alert('関連語の生成に失敗しました');
+        }
+    }
+
+    async getRelatedWords(keyword) {
+        // モックデータで関連語を生成（実際のAPIは次のステップで実装）
+        const mockRelatedWords = {
+            'JavaScript': ['プログラミング', 'Web開発', 'フロントエンド', 'React', 'Node.js', 'TypeScript', 'HTML', 'CSS'],
+            '旅行': ['観光', 'ホテル', '航空券', '海外', '国内', '温泉', 'グルメ', '写真'],
+            '料理': ['レシピ', '食材', '調理', 'グルメ', 'レストラン', '和食', '洋食', '中華'],
+            '音楽': ['アーティスト', 'コンサート', 'CD', 'ストリーミング', 'ジャズ', 'ロック', 'クラシック', 'ポップス'],
+            'スポーツ': ['サッカー', '野球', 'バスケ', 'テニス', 'ゴルフ', '水泳', 'ランニング', 'ジム']
+        };
+
+        // キーワードに関連する語を返す（なければ汎用的な関連語）
+        let related = mockRelatedWords[keyword] || ['情報', '検索', 'サイト', 'ニュース', '詳細', '最新', '人気', '話題'];
+        
+        // ランダムに5-8個選択
+        const count = Math.floor(Math.random() * 4) + 5; // 5-8個
+        return this.shuffleArray(related).slice(0, count);
+    }
+
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    createBubbles() {
+        const bubbleArea = document.getElementById('bubbleArea');
+        const areaRect = bubbleArea.getBoundingClientRect();
+        
+        this.relatedWords.forEach((word, index) => {
+            setTimeout(() => {
+                this.createBubble(word, bubbleArea, areaRect);
+            }, index * 200); // 200msずつ遅らせて生成
+        });
+    }
+
+    createBubble(word, container, containerRect) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = word;
+        
+        // サイズをランダムに設定（60-100px）
+        const size = Math.floor(Math.random() * 41) + 60;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        
+        // 位置をランダムに設定（重複を避ける）
+        const position = this.getRandomPosition(size, container);
+        bubble.style.left = position.x + 'px';
+        bubble.style.top = position.y + 'px';
+        
+        // 浮遊アニメーション
+        const animationDuration = Math.random() * 2 + 3; // 3-5秒
+        bubble.style.animation = `float ${animationDuration}s ease-in-out infinite`;
+        bubble.style.animationDelay = Math.random() * 2 + 's';
+        
+        // クリックイベント
+        bubble.addEventListener('click', () => this.popBubble(bubble, word));
+        
+        container.appendChild(bubble);
+        this.bubbles.push({ element: bubble, word: word });
+        
+        // 生成アニメーション
+        bubble.style.transform = 'scale(0)';
+        bubble.style.opacity = '0';
+        requestAnimationFrame(() => {
+            bubble.style.transition = 'all 0.5s ease-out';
+            bubble.style.transform = 'scale(1)';
+            bubble.style.opacity = '1';
+        });
+    }
+
+    getRandomPosition(size, container) {
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+        const margin = 10;
+        
+        let attempts = 0;
+        let position;
+        
+        do {
+            position = {
+                x: Math.random() * (containerWidth - size - margin * 2) + margin,
+                y: Math.random() * (containerHeight - size - margin * 2) + margin
+            };
+            attempts++;
+        } while (this.isOverlapping(position, size) && attempts < 20);
+        
+        return position;
+    }
+
+    isOverlapping(newPosition, newSize) {
+        return this.bubbles.some(bubble => {
+            const rect = bubble.element.getBoundingClientRect();
+            const bubbleArea = document.getElementById('bubbleArea').getBoundingClientRect();
+            const existingPos = {
+                x: rect.left - bubbleArea.left,
+                y: rect.top - bubbleArea.top
+            };
+            const existingSize = parseInt(bubble.element.style.width);
+            
+            const distance = Math.sqrt(
+                Math.pow(newPosition.x - existingPos.x, 2) + 
+                Math.pow(newPosition.y - existingPos.y, 2)
+            );
+            
+            return distance < (newSize + existingSize) / 2 + 10;
+        });
+    }
+
+    popBubble(bubbleElement, word) {
+        bubbleElement.classList.add('popping');
+        
+        // バブル破裂エフェクト
+        this.createPopEffect(bubbleElement);
+        
+        setTimeout(() => {
+            bubbleElement.remove();
+            this.bubbles = this.bubbles.filter(b => b.element !== bubbleElement);
+            
+            // 全てのシャボン玉がなくなった場合
+            if (this.bubbles.length === 0) {
+                this.handleAllBubblesPopped();
+            }
+        }, 500);
+    }
+
+    createPopEffect(bubble) {
+        const rect = bubble.getBoundingClientRect();
+        const bubbleArea = document.getElementById('bubbleArea');
+        const areaRect = bubbleArea.getBoundingClientRect();
+        
+        for (let i = 0; i < 5; i++) {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = '8px';
+            particle.style.height = '8px';
+            particle.style.background = '#81d4fa';
+            particle.style.borderRadius = '50%';
+            particle.style.left = (rect.left - areaRect.left + rect.width / 2) + 'px';
+            particle.style.top = (rect.top - areaRect.top + rect.height / 2) + 'px';
+            particle.style.pointerEvents = 'none';
+            
+            const angle = (i / 5) * Math.PI * 2;
+            const distance = 50;
+            const endX = Math.cos(angle) * distance;
+            const endY = Math.sin(angle) * distance;
+            
+            particle.style.transition = 'all 0.6s ease-out';
+            bubbleArea.appendChild(particle);
+            
+            requestAnimationFrame(() => {
+                particle.style.transform = `translate(${endX}px, ${endY}px)`;
+                particle.style.opacity = '0';
+            });
+            
+            setTimeout(() => particle.remove(), 600);
+        }
+    }
+
+    handleAllBubblesPopped() {
+        // 複数バーストエフェクト
+        this.createBurstEffect();
+        
+        setTimeout(() => {
+            this.resetToInitialState();
+        }, 1500);
+    }
+
+    createBurstEffect() {
+        const bubbleArea = document.getElementById('bubbleArea');
+        
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                const burst = document.createElement('div');
+                burst.className = 'burst-effect';
+                burst.style.left = Math.random() * (bubbleArea.offsetWidth - 100) + 'px';
+                burst.style.top = Math.random() * (bubbleArea.offsetHeight - 100) + 'px';
+                
+                bubbleArea.appendChild(burst);
+                
+                setTimeout(() => burst.remove(), 1000);
+            }, i * 100);
+        }
+    }
+
+    resetToInitialState() {
+        document.getElementById('keywordInput').value = '';
+        document.getElementById('executeBtn').classList.add('hidden');
+        document.getElementById('resultsArea').style.display = 'none';
+        this.currentKeyword = '';
+        this.relatedWords = [];
+        this.bubbles = [];
+    }
+
+    async executeSearch() {
+        if (this.bubbles.length === 0) {
+            alert('検索するシャボン玉がありません');
+            return;
+        }
+
+        const remainingWords = this.bubbles.map(b => b.word);
+        const searchQuery = `${this.currentKeyword} ${remainingWords.join(' ')}`;
+        
+        this.showLoading('検索中...');
+        
+        try {
+            const results = await this.performSearch(searchQuery);
+            this.hideLoading();
+            this.displayResults(results);
+        } catch (error) {
+            this.hideLoading();
+            console.error('検索エラー:', error);
+            alert('検索に失敗しました');
+        }
+    }
+
+    async performSearch(query) {
+        // モック検索結果（次のステップでBrave APIに置き換え）
+        return [
+            {
+                title: `${query}に関する詳細情報`,
+                description: `${query}について詳しく解説した包括的な情報をご提供します。最新の情報と実用的なアドバイスを含んでいます。`,
+                url: 'https://example.com/detailed-info'
+            },
+            {
+                title: `${query}の最新動向`,
+                description: `${query}に関する最新のトレンドや動向をまとめました。業界の専門家による分析も含まれています。`,
+                url: 'https://example.com/latest-trends'
+            },
+            {
+                title: `${query}の実践ガイド`,
+                description: `${query}を実際に活用するための実践的なガイドです。初心者から上級者まで役立つ情報を提供しています。`,
+                url: 'https://example.com/practical-guide'
+            }
+        ];
+    }
+
+    displayResults(results) {
+        const resultsContainer = document.getElementById('resultsContainer');
+        resultsContainer.innerHTML = '';
+        
+        results.forEach(result => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            resultItem.innerHTML = `
+                <div class="result-title">${result.title}</div>
+                <div class="result-description">${result.description}</div>
+                <div class="result-url">${result.url}</div>
+            `;
+            resultsContainer.appendChild(resultItem);
+        });
+        
+        document.getElementById('resultsArea').style.display = 'block';
+    }
+
+    showLoading(message) {
+        const bubbleArea = document.getElementById('bubbleArea');
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.id = 'loadingMessage';
+        loading.textContent = message;
+        bubbleArea.appendChild(loading);
+    }
+
+    hideLoading() {
+        const loading = document.getElementById('loadingMessage');
+        if (loading) loading.remove();
+    }
+
+    showExecuteButton() {
+        document.getElementById('executeBtn').classList.remove('hidden');
+    }
+
+    clearBubbles() {
+        this.bubbles.forEach(bubble => bubble.element.remove());
+        this.bubbles = [];
+        document.getElementById('executeBtn').classList.add('hidden');
+        document.getElementById('resultsArea').style.display = 'none';
+    }
+}
+
+
+            executeSearch() {
+                // 次のステップで実装
+                console.log('検索実行機能（実装予定）');
+            }
+        }
+
+        // アプリケーション初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            new Bublerch();
+        });
+    </script>
+</body>
+</html>
