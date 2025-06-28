@@ -478,23 +478,26 @@ createApp({
 
     const isCurrentHour = h => 0 === selectedDateIndex.value && new Date().getHours() === h;
 
-    const scrollToCurrentTime = () => {
-      if (0 !== selectedDateIndex.value) return;
-      const now = new Date();
-      const h = now.getHours();
-      if (h < 6 || h > 22 || windowWidth.value > 600) return;
-      
-      const el = document.getElementById(`mobile-hour-${h}`);
-      if (el && tableContainer.value) {
-        const c = tableContainer.value;
-        const rect = c.getBoundingClientRect();
-        const abs = el.offsetTop;
-        const vh = rect.height;
-        const rh = el.offsetHeight;
-        const target = abs - vh / 2 + rh / 2;
-        c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
-      }
-    };
+const scrollToCurrentTime = () => {
+  if (0 !== selectedDateIndex.value) return;
+  const now = new Date();
+  const h = now.getHours();
+  if (h < 6 || h > 22 || windowWidth.value > 600) return;
+  
+  // setTimeout を追加してDOM更新完了を待つ
+  setTimeout(() => {
+    const el = document.getElementById(`mobile-hour-${h}`);
+    if (el && tableContainer.value) {
+      const c = tableContainer.value;
+      const rect = c.getBoundingClientRect();
+      const abs = el.offsetTop;
+      const vh = rect.height;
+      const rh = el.offsetHeight;
+      const target = abs - vh / 2 + rh / 2;
+      c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
+    }
+  }, 50);
+};
 
     watch(hasWeatherData, v => v && scrollToCurrentTime());
 
