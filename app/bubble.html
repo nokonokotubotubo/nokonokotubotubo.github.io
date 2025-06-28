@@ -151,6 +151,28 @@
             box-shadow: none;
         }
 
+        /* 検索中表示 */
+        .searching-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            border-radius: 25px;
+        }
+
+        .searching-text {
+            font-size: 1.5rem;
+            color: #4A90B8;
+            font-weight: 600;
+            text-align: center;
+        }
+
         /* Canvasスタイル */
         #bubbleCanvas {
             position: absolute;
@@ -328,7 +350,15 @@
 
             <!-- シャボン玉セクション -->
             <div class="bubble-container" v-if="showBubbles && !showResults" ref="bubbleContainer">
-                <div class="bubble-info" ref="bubbleInfo">
+                <!-- 検索中オーバーレイ -->
+                <div class="searching-overlay" v-if="isSearching">
+                    <div class="searching-text">
+                        🔍 検索中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">DuckDuckGoから検索結果を取得しています</span>
+                    </div>
+                </div>
+
+                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching">
                     <p><strong>✨ 不要なシャボン玉をタップして消してください</strong></p>
                     <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
                     <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
@@ -341,6 +371,7 @@
                     id="bubbleCanvas" 
                     ref="canvas"
                     @click="handleCanvasClick"
+                    v-if="!isSearching"
                 ></canvas>
             </div>
 
@@ -381,6 +412,7 @@
                     searchInput: '',
                     showBubbles: false,
                     showResults: false,
+                    isSearching: false,
                     bubbles: [],
                     searchResults: [],
                     poppedCount: 0,
@@ -835,25 +867,102 @@
                     return allRelated;
                 },
                 
-                searchWithRemaining() {
+                async searchWithRemaining() {
                     this.remainingWords = this.bubbles
                         .filter(b => b.active)
                         .map(b => b.word);
                     
                     this.searchResults = [];
-                    for (let i = 0; i < 10; i++) {
-                        this.searchResults.push({
-                            id: i,
-                            title: `${this.remainingWords.slice(0, 2).join('・')}に関する記事 ${i + 1}`,
-                            description: `${this.remainingWords.join('、')}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
-                            url: `https://example.com/search?q=${encodeURIComponent(this.remainingWords.join(' '))}&id=${i + 1}`
-                        });
+                    this.isSearching = true;
+                    
+                    try {
+                        // DuckDuckGo APIを呼び出し
+                        await this.callDuckDuckGoAPI();
+                    } catch (error) {
+                        console.error('検索エラー:', error);
+                        // エラー時はフォールバック結果を表示
+                        this.generateFallbackResults();
                     }
                     
+                    this.isSearching = false;
                     this.showResults = true;
                     
                     if (this.animationId) {
                         cancelAnimationFrame(this.animationId);
+                    }
+                },
+
+                async callDuckDuckGoAPI() {
+                    const query = this.remainingWords.join(' ');
+                    const apiUrl = `https://crossorigin.me/http://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`;
+                    
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.processDuckDuckGoResponse(data);
+                },
+
+                processDuckDuckGoResponse(data) {
+                    this.searchResults = [];
+                    let resultId = 0;
+                    
+                    // Abstract情報がある場合
+                    if (data.Abstract && data.AbstractText) {
+                        this.searchResults.push({
+                            id: resultId++,
+                            title: data.Heading || '概要',
+                            description: data.AbstractText,
+                            url: data.AbstractURL || '#'
+                        });
+                    }
+                    
+                    // Related Topics から結果を生成
+                    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                        data.RelatedTopics.slice(0, 8).forEach(topic => {
+                            if (topic.Text && topic.FirstURL) {
+                                this.searchResults.push({
+                                    id: resultId++,
+                                    title: topic.Text.split(' - ')[0] || 'タイトル',
+                                    description: topic.Text,
+                                    url: topic.FirstURL
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Results から結果を生成
+                    if (data.Results && data.Results.length > 0) {
+                        data.Results.forEach(result => {
+                            if (result.Text && result.FirstURL) {
+                                this.searchResults.push({
+                                    id: resultId++,
+                                    title: result.Text.split(' - ')[0] || 'タイトル',
+                                    description: result.Text,
+                                    url: result.FirstURL
+                                });
+                            }
+                        });
+                    }
+                    
+                    // 結果が少ない場合はフォールバック結果を追加
+                    if (this.searchResults.length < 3) {
+                        this.generateFallbackResults();
+                    }
+                },
+
+                generateFallbackResults() {
+                    const fallbackCount = Math.max(3, 6 - this.searchResults.length);
+                    
+                    for (let i = 0; i < fallbackCount; i++) {
+                        this.searchResults.push({
+                            id: this.searchResults.length,
+                            title: `${this.remainingWords.slice(0, 2).join('・')}に関する記事 ${i + 1}`,
+                            description: `${this.remainingWords.join('、')}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
+                            url: `https://duckduckgo.com/?q=${encodeURIComponent(this.remainingWords.join(' '))}`
+                        });
                     }
                 },
                 
@@ -865,6 +974,7 @@
                     this.searchInput = '';
                     this.showBubbles = false;
                     this.showResults = false;
+                    this.isSearching = false;
                     this.bubbles = [];
                     this.particles = [];
                     this.searchResults = [];
