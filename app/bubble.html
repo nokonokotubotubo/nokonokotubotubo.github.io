@@ -262,6 +262,50 @@
             box-shadow: 0 4px 15px rgba(74,144,184,0.3);
         }
 
+        /* タブスタイル */
+        .tab-container {
+            margin-bottom: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #B0E0E6;
+            padding-bottom: 1rem;
+        }
+
+        .tab-button {
+            padding: 0.8rem 1.2rem;
+            background: rgba(176,224,230,0.3);
+            border: 2px solid #B0E0E6;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #2C5F7A;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
+            border-color: #4A90B8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(74,144,184,0.3);
+        }
+
+        .tab-button:hover:not(.active) {
+            background: rgba(176,224,230,0.6);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            min-height: 200px;
+        }
+
         .results-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -324,6 +368,13 @@
             color: #2C5F7A;
         }
 
+        .loading-message {
+            text-align: center;
+            color: #5BA3C7;
+            font-size: 1.1rem;
+            padding: 2rem;
+        }
+
         /* レスポンシブ対応 */
         @media (max-width: 768px) {
             .logo {
@@ -353,6 +404,15 @@
 
             .progress-bar {
                 width: 250px;
+            }
+
+            .tab-buttons {
+                justify-content: center;
+            }
+
+            .tab-button {
+                font-size: 0.8rem;
+                padding: 0.6rem 1rem;
             }
         }
 
@@ -410,7 +470,7 @@
                 <div class="searching-overlay" v-if="isSearching">
                     <div class="searching-text">
                         🔍 検索中...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">DuckDuckGoから検索結果を取得しています</span>
+                        <span style="font-size: 1rem; color: #5BA3C7;">各キーワードの検索結果を取得しています</span>
                     </div>
                 </div>
 
@@ -435,23 +495,79 @@
             <div class="results-section" v-if="showResults">
                 <div class="results-header">
                     <h2>🔍 検索結果</h2>
-                    <p style="color: #5BA3C7; font-size: 1.1rem; font-weight: 500;"><strong>選択されたキーワード:</strong> {{ remainingWords.join(', ') }}</p>
+                    <p style="color: #5BA3C7; font-size: 1.1rem; font-weight: 500;">
+                        <strong>元キーワード:</strong> {{ originalWords.join(', ') }}<br>
+                        <strong>選択されたワード:</strong> {{ remainingWords.join(', ') }}
+                    </p>
                     <button @click="resetSearch" class="reset-button">🔄 新しい検索を始める</button>
                 </div>
                 
-                <div class="results-grid">
-                    <div 
-                        v-for="result in searchResults" 
-                        :key="result.id"
-                        class="result-card"
-                    >
-                        <div class="result-image">
-                            📖 記事
+                <!-- タブ機能 -->
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button 
+                            @click="currentTab = 'original'"
+                            :class="['tab-button', { active: currentTab === 'original' }]"
+                        >
+                            📝 元キーワード
+                        </button>
+                        <button 
+                            v-for="word in remainingWords" 
+                            :key="'tab-' + word"
+                            @click="currentTab = word"
+                            :class="['tab-button', { active: currentTab === word }]"
+                        >
+                            🔍 {{ word }}
+                        </button>
+                    </div>
+
+                    <div class="tab-content">
+                        <!-- 元キーワードでの検索結果 -->
+                        <div v-if="currentTab === 'original'">
+                            <h3 style="color: #4A90B8; margin-bottom: 1.5rem; font-size: 1.4rem;">
+                                「{{ originalWords.join(' ') }}」での検索結果
+                            </h3>
+                            <div v-if="searchResults.original && searchResults.original.length > 0" class="results-grid">
+                                <div 
+                                    v-for="result in searchResults.original" 
+                                    :key="'original-' + result.id"
+                                    class="result-card"
+                                >
+                                    <div class="result-image">📖 記事</div>
+                                    <div class="result-content">
+                                        <h3 class="result-title">{{ result.title }}</h3>
+                                        <p class="result-description">{{ result.description }}</p>
+                                        <a :href="result.url" target="_blank" class="result-link">詳細を見る →</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="loading-message">
+                                検索結果を読み込み中...
+                            </div>
                         </div>
-                        <div class="result-content">
-                            <h3 class="result-title">{{ result.title }}</h3>
-                            <p class="result-description">{{ result.description }}</p>
-                            <a :href="result.url" target="_blank" class="result-link">詳細を見る →</a>
+
+                        <!-- 各関連ワードでの検索結果 -->
+                        <div v-else>
+                            <h3 style="color: #4A90B8; margin-bottom: 1.5rem; font-size: 1.4rem;">
+                                「{{ currentTab }}」での検索結果
+                            </h3>
+                            <div v-if="searchResults[currentTab] && searchResults[currentTab].length > 0" class="results-grid">
+                                <div 
+                                    v-for="result in searchResults[currentTab]" 
+                                    :key="currentTab + '-' + result.id"
+                                    class="result-card"
+                                >
+                                    <div class="result-image">📖 記事</div>
+                                    <div class="result-content">
+                                        <h3 class="result-title">{{ result.title }}</h3>
+                                        <p class="result-description">{{ result.description }}</p>
+                                        <a :href="result.url" target="_blank" class="result-link">詳細を見る →</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="loading-message">
+                                検索結果を読み込み中...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -473,7 +589,8 @@
                     keywordProgress: 0,
                     currentKeywordSource: '',
                     bubbles: [],
-                    searchResults: [],
+                    searchResults: {},
+                    currentTab: 'original',
                     poppedCount: 0,
                     totalBubbles: 0,
                     originalWords: [],
@@ -559,42 +676,34 @@
                 },
                 
                 async createBubbles() {
-                    // Googleサジェストから関連キーワード取得
+                    // 関連キーワードのみを生成（入力キーワードは含めない）
                     const relatedWords = await this.generateDynamicRelatedWords(this.originalWords);
-                    const targetCount = 3 * this.originalWords.length;
-                    let allWords = [...this.originalWords, ...relatedWords];
                     
-                    while (allWords.length < targetCount) {
-                        const fallbackWords = this.generateFallbackRelatedWords(this.originalWords);
-                        allWords.push(...fallbackWords);
-                        if (allWords.length >= targetCount) break;
-                    }
-                    
-                    allWords = allWords.slice(0, targetCount);
-                    this.bubbles = this.createNonOverlappingLayout(allWords);
+                    // 6つの関連ワードのみでシャボン玉作成
+                    const bubbleWords = relatedWords.slice(0, 6);
+                    this.bubbles = this.createNonOverlappingLayout(bubbleWords);
                     this.totalBubbles = this.bubbles.length;
                 },
 
                 // Googleサジェストから関連キーワードを動的に取得
                 async generateDynamicRelatedWords(words) {
+                    const inputText = words.join(' ');
                     const allRelated = [];
-                    const totalSteps = words.length * 8; // 各ワードにつき8つの拡張文字
+                    const totalSteps = 8; // 拡張文字数
                     let currentStep = 0;
                     
-                    for (const word of words) {
-                        this.currentKeywordSource = `「${word}」の関連キーワードを取得中...`;
+                    this.currentKeywordSource = `「${inputText}」の関連キーワードを取得中...`;
+                    
+                    try {
+                        const suggestKeywords = await this.fetchRelatedKeywordsFromGoogleSuggest(inputText, (progress) => {
+                            currentStep++;
+                            this.keywordProgress = Math.min(95, (currentStep / totalSteps) * 100);
+                        });
                         
-                        try {
-                            const suggestKeywords = await this.fetchRelatedKeywordsFromGoogleSuggest(word, (progress) => {
-                                currentStep++;
-                                this.keywordProgress = Math.min(95, (currentStep / totalSteps) * 100);
-                            });
-                            
-                            allRelated.push(...suggestKeywords);
-                            
-                        } catch (error) {
-                            console.warn(`${word}の関連キーワード取得失敗:`, error);
-                        }
+                        allRelated.push(...suggestKeywords);
+                        
+                    } catch (error) {
+                        console.warn(`${inputText}の関連キーワード取得失敗:`, error);
                     }
                     
                     this.keywordProgress = 100;
@@ -606,19 +715,19 @@
                             word && 
                             word.length > 1 && 
                             word.length < 25 &&
-                            !words.includes(word) &&
+                            !words.some(originalWord => word.includes(originalWord)) &&
                             !word.includes('http')
                         );
                     
                     console.log('Googleサジェストから取得した関連キーワード:', uniqueRelated);
                     
                     // 十分な数が取得できない場合は語尾変化で補完
-                    if (uniqueRelated.length < words.length * 2) {
+                    if (uniqueRelated.length < 6) {
                         const variationKeywords = this.generateJapaneseKeywordVariations(words);
-                        return [...uniqueRelated, ...variationKeywords].slice(0, words.length * 2);
+                        return [...uniqueRelated, ...variationKeywords].slice(0, 6);
                     }
                     
-                    return uniqueRelated.slice(0, words.length * 2);
+                    return uniqueRelated.slice(0, 6);
                 },
 
                 // Googleサジェストから関連キーワードを取得
@@ -627,8 +736,7 @@
                     
                     // 日本語拡張文字（ひらがな、カタカナ、アルファベット）
                     const extensions = [
-                        'あ', 'い', 'う', 'と', 'の', 'は', 'を',
-                        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
+                        'あ', 'い', 'う', 'と', 'の', 'は', 'を', 'a'
                     ];
                     
                     for (let i = 0; i < extensions.length; i++) {
@@ -679,53 +787,30 @@
                 // 日本語の語尾変化や助詞を活用したキーワード拡張
                 generateJapaneseKeywordVariations(originalWords) {
                     const variations = [];
-                    const particles = ['とは', 'について', 'の方法', 'のやり方', 'の使い方', 'のメリット', 'の特徴', 'の効果'];
+                    const particles = ['とは', 'について', 'の方法', 'のやり方', 'の使い方', 'のメリット'];
                     const prefixes = ['初心者向け', '簡単', '効果的な', '最新の', 'おすすめの'];
                     const suffixes = ['入門', '基礎', '応用', '活用', '比較', 'まとめ'];
                     
-                    originalWords.forEach(word => {
-                        // 助詞を付加
-                        particles.forEach(particle => {
-                            variations.push(word + particle);
-                        });
-                        
-                        // 接頭語を付加
-                        prefixes.forEach(prefix => {
-                            variations.push(prefix + word);
-                        });
-                        
-                        // 接尾語を付加
-                        suffixes.forEach(suffix => {
-                            variations.push(word + suffix);
-                        });
+                    const inputText = originalWords.join(' ');
+                    
+                    // 助詞を付加
+                    particles.forEach(particle => {
+                        variations.push(inputText + particle);
+                    });
+                    
+                    // 接頭語を付加
+                    prefixes.forEach(prefix => {
+                        variations.push(prefix + inputText);
+                    });
+                    
+                    // 接尾語を付加
+                    suffixes.forEach(suffix => {
+                        variations.push(inputText + suffix);
                     });
                     
                     return variations;
                 },
 
-                // フォールバック用の関連ワード生成
-                generateFallbackRelatedWords(words) {
-                    const relatedMap = {
-                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue', 'コーディング', '開発'],
-                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材', 'クッキング', '調味料'],
-                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊', 'ツアー', '海外'],
-                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート', 'メロディー', 'リズム'],
-                        '映画': ['監督', '俳優', 'ストーリー', '撮影', '上映', 'DVD', 'シネマ', '演技'],
-                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール', '競技', 'エクササイズ']
-                    };
-                    
-                    const allRelated = [];
-                    words.forEach(word => {
-                        if (relatedMap[word]) {
-                            allRelated.push(...relatedMap[word]);
-                        } else {
-                            allRelated.push(word + '基礎', word + '応用', word + '入門', word + '方法');
-                        }
-                    });
-                    
-                    return allRelated;
-                },
-                
                 createNonOverlappingLayout(words) {
                     const bubbles = [];
                     const padding = 20;
@@ -1080,11 +1165,16 @@
                         .filter(b => b.active)
                         .map(b => b.word);
                     
-                    this.searchResults = [];
+                    this.searchResults = {};
+                    this.currentTab = 'original';
                     this.isSearching = true;
                     
                     try {
-                        await this.callDuckDuckGoAPI();
+                        // 並列で各キーワードの検索を実行
+                        await Promise.all([
+                            this.searchForKeyword('original', this.originalWords.join(' ')),
+                            ...this.remainingWords.map(word => this.searchForKeyword(word, word))
+                        ]);
                     } catch (error) {
                         console.error('検索エラー:', error);
                         this.generateFallbackResults();
@@ -1098,25 +1188,29 @@
                     }
                 },
 
-                async callDuckDuckGoAPI() {
-                    const query = this.remainingWords.join(' ');
-                    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`http://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`)}`;
-                    
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                async searchForKeyword(key, query) {
+                    try {
+                        const apiUrl = `https://corsproxy.io/?${encodeURIComponent(`http://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1&skip_disambig=1`)}`;
+                        
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        this.searchResults[key] = this.processDuckDuckGoResponse(data, key);
+                    } catch (error) {
+                        console.warn(`${query}の検索失敗:`, error);
+                        this.searchResults[key] = this.generateFallbackResultsForKeyword(query, key);
                     }
-                    
-                    const data = await response.json();
-                    this.processDuckDuckGoResponse(data);
                 },
 
-                processDuckDuckGoResponse(data) {
-                    this.searchResults = [];
+                processDuckDuckGoResponse(data, key) {
+                    const results = [];
                     let resultId = 0;
                     
                     if (data.Abstract && data.AbstractText) {
-                        this.searchResults.push({
+                        results.push({
                             id: resultId++,
                             title: data.Heading || '概要',
                             description: data.AbstractText,
@@ -1125,9 +1219,9 @@
                     }
                     
                     if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                        data.RelatedTopics.slice(0, 8).forEach(topic => {
+                        data.RelatedTopics.slice(0, 5).forEach(topic => {
                             if (topic.Text && topic.FirstURL) {
-                                this.searchResults.push({
+                                results.push({
                                     id: resultId++,
                                     title: topic.Text.split(' - ')[0] || 'タイトル',
                                     description: topic.Text,
@@ -1138,9 +1232,9 @@
                     }
                     
                     if (data.Results && data.Results.length > 0) {
-                        data.Results.forEach(result => {
+                        data.Results.slice(0, 3).forEach(result => {
                             if (result.Text && result.FirstURL) {
-                                this.searchResults.push({
+                                results.push({
                                     id: resultId++,
                                     title: result.Text.split(' - ')[0] || 'タイトル',
                                     description: result.Text,
@@ -1150,22 +1244,35 @@
                         });
                     }
                     
-                    if (this.searchResults.length < 3) {
-                        this.generateFallbackResults();
+                    if (results.length < 3) {
+                        const fallbackResults = this.generateFallbackResultsForKeyword(key, key);
+                        results.push(...fallbackResults.slice(0, 3 - results.length));
                     }
+                    
+                    return results;
+                },
+
+                generateFallbackResultsForKeyword(query, key) {
+                    const results = [];
+                    
+                    for (let i = 0; i < 4; i++) {
+                        results.push({
+                            id: i,
+                            title: `${query}に関する記事 ${i + 1}`,
+                            description: `${query}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
+                            url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`
+                        });
+                    }
+                    
+                    return results;
                 },
 
                 generateFallbackResults() {
-                    const fallbackCount = Math.max(3, 6 - this.searchResults.length);
+                    this.searchResults['original'] = this.generateFallbackResultsForKeyword(this.originalWords.join(' '), 'original');
                     
-                    for (let i = 0; i < fallbackCount; i++) {
-                        this.searchResults.push({
-                            id: this.searchResults.length,
-                            title: `${this.remainingWords.slice(0, 2).join('・')}に関する記事 ${i + 1}`,
-                            description: `${this.remainingWords.join('、')}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
-                            url: `https://duckduckgo.com/?q=${encodeURIComponent(this.remainingWords.join(' '))}`
-                        });
-                    }
+                    this.remainingWords.forEach(word => {
+                        this.searchResults[word] = this.generateFallbackResultsForKeyword(word, word);
+                    });
                 },
                 
                 resetSearch() {
@@ -1182,7 +1289,8 @@
                     this.currentKeywordSource = '';
                     this.bubbles = [];
                     this.particles = [];
-                    this.searchResults = [];
+                    this.searchResults = {};
+                    this.currentTab = 'original';
                     this.poppedCount = 0;
                     this.totalBubbles = 0;
                     this.originalWords = [];
