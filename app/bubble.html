@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>bubblerch</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -456,7 +456,7 @@
                 <div class="generating-overlay" v-if="isGeneratingKeywords">
                     <div class="generating-text">
                         ✨ 関連キーワードを生成中...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">Googleサジェストから関連キーワードを取得しています</span>
+                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを取得しています</span>
                         <div class="progress-bar">
                             <div class="progress-fill" :style="{ width: keywordProgress + '%' }"></div>
                         </div>
@@ -578,6 +578,11 @@
     <script>
         const { createApp } = Vue;
 
+        // Vue.js開発モード警告を無効化
+        if (typeof Vue !== 'undefined' && Vue.config) {
+            Vue.config.productionTip = false;
+        }
+
         createApp({
             data() {
                 return {
@@ -685,28 +690,25 @@
                     this.totalBubbles = this.bubbles.length;
                 },
 
-                // Googleサジェストから関連キーワードを動的に取得
+                // Googleサジェストから関連キーワードを動的に取得（改善版）
                 async generateDynamicRelatedWords(words) {
                     const inputText = words.join(' ');
-                    const allRelated = [];
-                    const totalSteps = 8; // 拡張文字数
-                    let currentStep = 0;
+                    let allRelated = [];
                     
                     this.currentKeywordSource = `「${inputText}」の関連キーワードを取得中...`;
+                    this.keywordProgress = 20;
                     
                     try {
-                        const suggestKeywords = await this.fetchRelatedKeywordsFromGoogleSuggest(inputText, (progress) => {
-                            currentStep++;
-                            this.keywordProgress = Math.min(95, (currentStep / totalSteps) * 100);
-                        });
-                        
-                        allRelated.push(...suggestKeywords);
+                        // 複数の取得方法を試行
+                        const googleSuggests = await this.fetchRelatedKeywordsWithFallback(inputText);
+                        allRelated.push(...googleSuggests);
+                        this.keywordProgress = 60;
                         
                     } catch (error) {
                         console.warn(`${inputText}の関連キーワード取得失敗:`, error);
                     }
                     
-                    this.keywordProgress = 100;
+                    this.keywordProgress = 80;
                     this.currentKeywordSource = '関連キーワードの整理中...';
                     
                     // 重複除去と元ワードの除外
@@ -715,11 +717,16 @@
                             word && 
                             word.length > 1 && 
                             word.length < 25 &&
-                            !words.some(originalWord => word.includes(originalWord)) &&
+                            !words.some(originalWord => 
+                                word.toLowerCase().includes(originalWord.toLowerCase()) ||
+                                originalWord.toLowerCase().includes(word.toLowerCase())
+                            ) &&
                             !word.includes('http')
                         );
                     
-                    console.log('Googleサジェストから取得した関連キーワード:', uniqueRelated);
+                    console.log('取得した関連キーワード:', uniqueRelated);
+                    
+                    this.keywordProgress = 100;
                     
                     // 十分な数が取得できない場合は語尾変化で補完
                     if (uniqueRelated.length < 6) {
@@ -730,66 +737,120 @@
                     return uniqueRelated.slice(0, 6);
                 },
 
-                // Googleサジェストから関連キーワードを取得
-                async fetchRelatedKeywordsFromGoogleSuggest(keyword, progressCallback) {
-                    const suggestions = [];
+                // 改善されたGoogleサジェスト取得（フォールバック付き）
+                async fetchRelatedKeywordsWithFallback(keyword) {
+                    const allSuggestions = [];
                     
-                    // 日本語拡張文字（ひらがな、カタカナ、アルファベット）
-                    const extensions = [
-                        'あ', 'い', 'う', 'と', 'の', 'は', 'を', 'a'
+                    // 方法1: 複数のCORSプロキシを試行
+                    const corsProxies = [
+                        'https://corsproxy.io/?',
+                        'https://cors-anywhere.herokuapp.com/',
+                        'https://api.allorigins.win/raw?url='
                     ];
                     
-                    for (let i = 0; i < extensions.length; i++) {
-                        const ext = extensions[i];
-                        
+                    for (const proxy of corsProxies) {
                         try {
-                            const query = `${keyword} ${ext}`;
-                            const suggestUrl = `https://corsproxy.io/?${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
-                            
-                            const response = await fetch(suggestUrl);
-                            if (response.ok) {
-                                const data = await response.json();
-                                
-                                if (data && data[1] && Array.isArray(data[1])) {
-                                    // 元のキーワードを含まないサジェストのみを追加
-                                    const filteredSuggestions = data[1].filter(suggestion => 
-                                        suggestion !== keyword && 
-                                        suggestion.includes(keyword) &&
-                                        suggestion.length > keyword.length + 1
-                                    );
-                                    suggestions.push(...filteredSuggestions);
-                                }
+                            const suggestions = await this.tryGoogleSuggest(keyword, proxy);
+                            if (suggestions.length > 0) {
+                                allSuggestions.push(...suggestions);
+                                break; // 成功したら他のプロキシは試さない
                             }
-                            
-                            // プログレス更新
-                            if (progressCallback) {
-                                progressCallback((i + 1) / extensions.length * 100);
-                            }
-                            
-                            // API制限を避けるため待機
-                            await new Promise(resolve => setTimeout(resolve, 150));
-                            
                         } catch (error) {
-                            console.warn(`サジェスト取得失敗 (${keyword} ${ext}):`, error);
+                            console.warn(`プロキシ ${proxy} での取得失敗:`, error);
+                            continue;
                         }
                     }
                     
-                    // 重複除去と品質フィルタリング
-                    return [...new Set(suggestions)]
-                        .filter(suggestion => 
-                            suggestion.length < 30 &&
-                            !suggestion.includes('http') &&
-                            !suggestion.includes('www')
-                        )
-                        .slice(0, 20);
+                    // 方法2: JSONPを試行（ブラウザによっては動作する）
+                    if (allSuggestions.length < 3) {
+                        try {
+                            const jsonpSuggestions = await this.tryJsonpSuggest(keyword);
+                            allSuggestions.push(...jsonpSuggestions);
+                        } catch (error) {
+                            console.warn('JSONP取得失敗:', error);
+                        }
+                    }
+                    
+                    return allSuggestions;
                 },
 
-                // 日本語の語尾変化や助詞を活用したキーワード拡張
+                // Googleサジェスト取得の試行
+                async tryGoogleSuggest(keyword, proxy) {
+                    const suggestions = [];
+                    const extensions = ['の', 'と', 'は', 'で', 'を', 'a'];
+                    
+                    for (let i = 0; i < Math.min(3, extensions.length); i++) {
+                        const ext = extensions[i];
+                        try {
+                            const query = `${keyword} ${ext}`;
+                            const url = `${proxy}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
+                            
+                            const response = await fetch(url, {
+                                method: 'GET',
+                                headers: {
+                                    'Accept': 'application/json',
+                                },
+                                timeout: 3000
+                            });
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data && data[1] && Array.isArray(data[1])) {
+                                    const filtered = data[1]
+                                        .filter(s => s !== keyword && s.length > keyword.length + 1)
+                                        .slice(0, 5);
+                                    suggestions.push(...filtered);
+                                }
+                            }
+                            
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        } catch (error) {
+                            console.warn(`サジェスト取得エラー (${keyword} ${ext}):`, error);
+                        }
+                    }
+                    
+                    return [...new Set(suggestions)].slice(0, 10);
+                },
+
+                // JSONP方式での取得（フォールバック）
+                async tryJsonpSuggest(keyword) {
+                    return new Promise((resolve) => {
+                        const script = document.createElement('script');
+                        const callbackName = 'callback_' + Date.now();
+                        
+                        window[callbackName] = function(data) {
+                            const suggestions = data && data[1] ? data[1].slice(0, 5) : [];
+                            resolve(suggestions);
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                        };
+                        
+                        script.src = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(keyword)}&callback=${callbackName}`;
+                        script.onerror = () => {
+                            resolve([]);
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                        };
+                        
+                        document.head.appendChild(script);
+                        
+                        // タイムアウト設定
+                        setTimeout(() => {
+                            if (window[callbackName]) {
+                                resolve([]);
+                                document.head.removeChild(script);
+                                delete window[callbackName];
+                            }
+                        }, 5000);
+                    });
+                },
+
+                // 日本語の語尾変化や助詞を活用したキーワード拡張（改善版）
                 generateJapaneseKeywordVariations(originalWords) {
                     const variations = [];
                     const particles = ['とは', 'について', 'の方法', 'のやり方', 'の使い方', 'のメリット'];
-                    const prefixes = ['初心者向け', '簡単', '効果的な', '最新の', 'おすすめの'];
-                    const suffixes = ['入門', '基礎', '応用', '活用', '比較', 'まとめ'];
+                    const prefixes = ['初心者向け', '簡単', '効果的な', '最新の', 'おすすめの', '人気の'];
+                    const suffixes = ['入門', '基礎', '応用', '活用', '比較', 'まとめ', '解説', 'ガイド'];
                     
                     const inputText = originalWords.join(' ');
                     
@@ -808,7 +869,24 @@
                         variations.push(inputText + suffix);
                     });
                     
-                    return variations;
+                    // カテゴリ別の関連ワード
+                    const categoryMap = {
+                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue'],
+                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材'],
+                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊'],
+                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート'],
+                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール']
+                    };
+                    
+                    originalWords.forEach(word => {
+                        for (const [category, related] of Object.entries(categoryMap)) {
+                            if (word.includes(category) || category.includes(word)) {
+                                variations.push(...related);
+                            }
+                        }
+                    });
+                    
+                    return variations.slice(0, 12);
                 },
 
                 createNonOverlappingLayout(words) {
