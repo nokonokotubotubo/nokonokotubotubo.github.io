@@ -440,29 +440,62 @@
             });
         }
 
-        // カウントダウンタイマー開始
-        function startCountdown() {
-            if (timerInterval) clearInterval(timerInterval);
-            
-            timerInterval = setInterval(() => {
-                if (!selectedTrain) return;
-                
-                const now = new Date();
-                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                const diff = getTimeDifference(currentTime, selectedTrain.time);
-                
-                if (diff < 0) {
-                    document.getElementById('countdown-timer').textContent = '出発済み';
-                    findAndSelectNextTrain();
-                    displayTimetable();
-                } else {
-                    const hours = Math.floor(diff / 60);
-                    const minutes = diff % 60;
-                    document.getElementById('countdown-timer').textContent = 
-                        hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}` : `${minutes}分`;
-                }
-            }, 1000);
-        }
+// カウントダウンタイマー開始（修正版）
+function startCountdown() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // 初回実行
+    updateCountdownDisplay();
+    
+    timerInterval = setInterval(function() {
+        updateCountdownDisplay();
+    }, 1000);
+}
+
+// カウントダウン表示更新（修正版）
+function updateCountdownDisplay() {
+    if (!selectedTrain) {
+        document.getElementById('countdown-timer').textContent = '--:--';
+        return;
+    }
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+    
+    const [trainHour, trainMinute] = selectedTrain.time.split(':').map(Number);
+    
+    // 現在時刻を秒で計算
+    const currentTotalSeconds = (currentHour * 3600) + (currentMinute * 60) + currentSecond;
+    const trainTotalSeconds = (trainHour * 3600) + (trainMinute * 60);
+    
+    let timeDiff = trainTotalSeconds - currentTotalSeconds;
+    
+    // 翌日の電車の場合
+    if (timeDiff < 0) {
+        timeDiff += 24 * 3600;
+    }
+    
+    if (timeDiff <= 0) {
+        document.getElementById('countdown-timer').textContent = '出発済み';
+        findAndSelectNextTrain();
+        return;
+    }
+    
+    const hours = Math.floor(timeDiff / 3600);
+    const minutes = Math.floor((timeDiff % 3600) / 60);
+    const seconds = timeDiff % 60;
+    
+    let displayText = '';
+    if (hours > 0) {
+        displayText = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+        displayText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    document.getElementById('countdown-timer').textContent = displayText;
+}
     </script>
 </body>
 </html>
