@@ -18,9 +18,9 @@
         }
         
         .container {
-            max-width: 1200px;
+            width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
         }
         
         .header {
@@ -101,6 +101,20 @@
             border-radius: 4px;
             cursor: pointer;
             margin-left: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .tab-content {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
