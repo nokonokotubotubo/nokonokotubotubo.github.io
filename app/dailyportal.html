@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>通勤アシスタント</title>
+    <title>Daily Portal</title>
     <style>
         * {
             margin: 0;
@@ -44,17 +44,19 @@
         .tab-buttons {
             display: flex;
             background: #2196f3;
+            justify-content: center;
         }
         
         .tab-button {
-            flex: 1;
-            padding: 15px 20px;
+            flex: 1 1 auto;
+            padding: 10px 8px;
             background: none;
             border: none;
             color: white;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: background-color 0.3s;
+            white-space: nowrap;
         }
         
         .tab-button:hover {
@@ -105,7 +107,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>通勤アシスタント</h1>
+            <h1>Daily Portal</h1>
         </div>
         
         <div class="tab-container">
