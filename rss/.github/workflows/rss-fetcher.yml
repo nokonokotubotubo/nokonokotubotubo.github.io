@@ -1,0 +1,142 @@
+# .github/workflows/rss-fetcher.yml
+name: RSS Feed Fetcher
+
+on:
+  schedule:
+    # 1時間ごとに実行（毎時0分）
+    - cron: '0 * * * *'
+  workflow_dispatch: # 手動実行も可能
+  push:
+    branches: [ main ]
+    paths: [ 'rss-config.json' ] # 設定変更時も実行
+
+jobs:
+  fetch-rss:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # リポジトリへの書き込み権限
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create data directory
+      run: mkdir -p data
+
+    - name: Read RSS configuration
+      id: config
+      run: |
+        if [ -f "rss-config.json" ]; then
+          echo "RSS設定ファイルが見つかりました"
+          cat rss-config.json
+        else
+          echo "デフォルト設定を使用します"
+        fi
+
+    # フィード1: テックニュース
+    - name: Fetch Tech News RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      with:
+        feed_url: 'https://feeds.feedburner.com/oreilly/radar'
+        file_path: './data/tech-news.json'
+        max_entries: 5
+
+    # フィード2: ITメディア
+    - name: Fetch IT Media RSS  
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      with:
+        feed_url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml'
+        file_path: './data/it-media.json'
+        max_entries: 5
+
+    # フィード3: GIGAZINE
+    - name: Fetch GIGAZINE RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      with:
+        feed_url: 'https://gigazine.net/news/rss_2.0/'
+        file_path: './data/gigazine.json'
+        max_entries: 5
+
+    # フィード4: NHKニュース
+    - name: Fetch NHK News RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      with:
+        feed_url: 'https://www3.nhk.or.jp/rss/news/cat0.xml'
+        file_path: './data/nhk-news.json'
+        max_entries: 5
+
+    # メタデータファイル生成
+    - name: Generate feed metadata
+      run: |
+        cat > data/feeds-meta.json << 'EOF'
+        {
+          "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+          "feeds": [
+            {
+              "id": "tech-news",
+              "name": "Tech News",
+              "description": "O'Reilly Radar - 最新技術動向",
+              "file": "tech-news.json",
+              "color": "#FF6B35"
+            },
+            {
+              "id": "it-media",
+              "name": "ITメディア",
+              "description": "ITmedia ニュース",
+              "file": "it-media.json", 
+              "color": "#4A90E2"
+            },
+            {
+              "id": "gigazine",
+              "name": "GIGAZINE",
+              "description": "GIGAZINE テック記事",
+              "file": "gigazine.json",
+              "color": "#FF4081"
+            },
+            {
+              "id": "nhk-news", 
+              "name": "NHKニュース",
+              "description": "NHK 主要ニュース",
+              "file": "nhk-news.json",
+              "color": "#2E7D32"
+            }
+          ]
+        }
+        EOF
+        
+        # 実際の更新時間を設定
+        sed -i "s/\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")/$(date -u +"%Y-%m-%dT%H:%M:%SZ")/g" data/feeds-meta.json
+
+    # データ品質チェック
+    - name: Validate JSON files
+      run: |
+        echo "📊 生成されたJSONファイルの検証..."
+        for file in data/*.json; do
+          if [ -f "$file" ]; then
+            if jq empty "$file" 2>/dev/null; then
+              entries=$(jq '.entries | length' "$file" 2>/dev/null || echo "0")
+              echo "✅ $(basename "$file"): ${entries}件のエントリ"
+            else
+              echo "❌ $(basename "$file"): 無効なJSON"
+            fi
+          fi
+        done
+
+    # 変更をコミット
+    - name: Commit and push RSS data
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: '🔄 RSS feeds updated - $(date -u +"%Y-%m-%d %H:%M UTC")'
+        file_pattern: 'data/*.json'
+        commit_user_name: 'RSS Fetcher Bot'
+        commit_user_email: 'action@github.com'
+
+    # 実行結果を通知（オプション）
+    - name: Report execution status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ RSS取得が正常に完了しました"
+        else
+          echo "❌ RSS取得でエラーが発生しました"
+        fi
