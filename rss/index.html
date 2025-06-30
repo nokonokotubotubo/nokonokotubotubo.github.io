@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader - 生成AI記事フィード</title>
+    
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <style>
+        /* CSS Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f9fc 0%, #e8f4f8 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+        
+        /* Loading Styles */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #7fcdcd;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            margin-left: 10px;
+            border: 3px solid #a8e6cf;
+            border-top: 3px solid #7fcdcd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error Styles */
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            text-align: center;
+            color: #c33;
+        }
+        
+        /* Feed Filter Styles */
+        .feed-filters {
+            max-width: 1200px;
+            margin: 0 auto 2rem;
+            padding: 0 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .filter-button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .filter-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .filter-button.active {
+            background: #7fcdcd;
+            color: white;
+        }
+        
+        /* Cards Container */
+        .cards-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        
+        /* Card Styles */
+        .article-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+        
+        /* Source Badge */
+        .source-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Thumbnail Styles */
+        .thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(45deg, #f0f9ff, #e0f2fe);
+        }
+        
+        .thumbnail-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #a8e6cf, #7fcdcd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+        }
+        
+        /* Card Content */
+        .card-content {
+            padding: 1.5rem;
+        }
+        
+        .article-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .article-summary {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .article-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #888;
+            font-size: 0.85rem;
+        }
+        
+        .publish-date {
+            font-weight: 500;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .feed-filters {
+                gap: 0.5rem;
+            }
+            
+            .filter-button {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Update Info */
+        .update-info {
+            text-align: center;
+            margin: 3rem auto 2rem;
+            color: #888;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header Section -->
+        <header class="header">
+            <h1>🤖 生成AI RSS Reader</h1>
+            <p>最新の生成AI記事をまとめてチェック</p>
+        </header>
+        
+        <!-- Loading State -->
+        <div v-if="loading" class="loading">
+            フィードを読み込み中
+        </div>
+        
+        <!-- Error State -->
+        <div v-if="error" class="error">
+            <h3>❌ エラーが発生しました</h3>
+            <p>{{ error }}</p>
+            <button @click="fetchFeeds" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #7fcdcd; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                再読み込み
+            </button>
+        </div>
+        
+        <!-- Feed Filters -->
+        <div v-if="!loading && !error && feeds.length > 0" class="feed-filters">
+            <button 
+                class="filter-button" 
+                :class="{ active: activeFilter === 'all' }"
+                @click="setFilter('all')"
+            >
+                すべて ({{ filteredEntries.length }})
+            </button>
+            <button 
+                v-for="feed in feeds" 
+                :key="feed.name"
+                class="filter-button" 
+                :class="{ active: activeFilter === feed.name.toLowerCase() }"
+                :style="{ backgroundColor: activeFilter === feed.name.toLowerCase() ? feed.color : 'white', color: activeFilter === feed.name.toLowerCase() ? 'white' : '#666' }"
+                @click="setFilter(feed.name.toLowerCase())"
+            >
+                {{ feed.name }} ({{ getFilteredCount(feed.name.toLowerCase()) }})
+            </button>
+        </div>
+        
+        <!-- Articles Grid -->
+        <div v-if="!loading && !error" class="cards-container">
+            <article 
+                v-for="article in filteredEntries" 
+                :key="article.link"
+                class="article-card"
+                @click="openArticle(article.link)"
+            >
+                <!-- Source Badge -->
+                <div class="source-badge" :style="{ backgroundColor: article.sourceColor }">
+                    {{ article.source }}
+                </div>
+                
+                <!-- Thumbnail -->
+                <img 
+                    v-if="article.thumbnail" 
+                    :src="article.thumbnail" 
+                    :alt="article.title"
+                    class="thumbnail"
+                    @error="handleImageError"
+                />
+                <div v-else class="thumbnail-placeholder">
+                    📰
+                </div>
+                
+                <!-- Content -->
+                <div class="card-content">
+                    <h2 class="article-title">{{ article.title }}</h2>
+                    <p class="article-summary">{{ article.summary }}</p>
+                    <div class="article-meta">
+                        <span class="publish-date">{{ formatDate(article.published) }}</span>
+                        <span>{{ article.source }}</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+        
+        <!-- Update Info -->
+        <div v-if="!loading && !error && lastUpdated" class="update-info">
+            最終更新: {{ formatDate(lastUpdated) }}
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    loading: true,
+                    error: null,
+                    feeds: [],
+                    entries: [],
+                    activeFilter: 'all',
+                    lastUpdated: null
+                }
+            },
+            computed: {
+                filteredEntries() {
+                    if (this.activeFilter === 'all') {
+                        return this.entries;
+                    }
+                    return this.entries.filter(entry => 
+                        entry.sourceFeed === this.activeFilter
+                    );
+                }
+            },
+            methods: {
+                async fetchFeeds() {
+                    this.loading = true;
+                    this.error = null;
+                    
+                    try {
+                        const response = await fetch('./feeds.json');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        this.feeds = data.feeds || [];
+                        this.entries = data.entries || [];
+                        this.lastUpdated = data.updated;
+                        
+                        // データ前処理
+                        this.entries = this.entries.map(entry => ({
+                            ...entry,
+                            summary: this.extractSummary(entry.description || ''),
+                            thumbnail: this.extractThumbnail(entry)
+                        }));
+                        
+                        console.log(`✅ ${this.entries.length}件の記事を読み込みました`);
+                        
+                    } catch (error) {
+                        console.error('フィード取得エラー:', error);
+                        this.error = `フィードの取得に失敗しました: ${error.message}`;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                extractSummary(htmlContent) {
+                    // HTMLタグを除去してプレーンテキストに
+                    const text = htmlContent.replace(/<[^>]*>/g, '').trim();
+                    // 150文字でカット
+                    return text.length > 150 ? text.substring(0, 150) + '...' : text;
+                },
+                
+                extractThumbnail(entry) {
+                    // RSS内の画像情報を抽出（enclosure、media:content等）
+                    if (entry.enclosures && entry.enclosures.length > 0) {
+                        const imageEnclosure = entry.enclosures.find(enc => 
+                            enc.type && enc.type.startsWith('image/')
+                        );
+                        if (imageEnclosure) return imageEnclosure.url;
+                    }
+                    
+                    // media:content から画像抽出
+                    if (entry['media:content']) {
+                        return entry['media:content'].url;
+                    }
+                    
+                    // description内のimg要素から抽出を試行
+                    if (entry.description) {
+                        const imgMatch = entry.description.match(/<img[^>]+src="([^"]+)"/);
+                        if (imgMatch) return imgMatch[1];
+                    }
+                    
+                    return null;
+                },
+                
+                setFilter(filter) {
+                    this.activeFilter = filter;
+                },
+                
+                getFilteredCount(sourceFeed) {
+                    return this.entries.filter(entry => 
+                        entry.sourceFeed === sourceFeed
+                    ).length;
+                },
+                
+                openArticle(url) {
+                    window.open(url, '_blank');
+                },
+                
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('ja-JP') + ' ' + 
+                           date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                },
+                
+                handleImageError(event) {
+                    // 画像読み込みエラー時の処理
+                    event.target.style.display = 'none';
+                    const placeholder = event.target.nextElementSibling;
+                    if (placeholder && placeholder.classList.contains('thumbnail-placeholder')) {
+                        placeholder.style.display = 'flex';
+                    }
+                }
+            },
+            
+            mounted() {
+                this.fetchFeeds();
+                
+                // 30分ごとに自動更新
+                setInterval(() => {
+                    this.fetchFeeds();
+                }, 30 * 60 * 1000);
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
