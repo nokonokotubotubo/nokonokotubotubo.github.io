@@ -3,21 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSS Reader</title>
+    <title>RSS Reader - GitHub Actions Powered</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#E0F7FF">
 </head>
 <body>
     <!-- ヘッダーセクション -->
     <header class="header">
         <div class="container">
-            <h1 class="logo">RSS Reader</h1>
+            <h1 class="logo">📡 RSS Reader</h1>
             <div class="header-controls">
+                <!-- 更新時刻表示 -->
+                <div class="last-updated" id="lastUpdated">
+                    <span class="update-icon">🔄</span>
+                    <span id="updateTime">更新中...</span>
+                </div>
                 <!-- ダークモード切り替えボタン -->
                 <button id="darkModeToggle" class="dark-mode-btn" title="ダークモード切り替え">
                     <span class="icon">🌙</span>
                 </button>
-                <!-- RSS追加ボタン -->
-                <button id="addRssBtn" class="add-rss-btn">RSS追加</button>
+                <!-- 手動更新ボタン -->
+                <button id="refreshBtn" class="refresh-btn" title="手動更新">
+                    <span class="icon">🔄</span>
+                </button>
             </div>
         </div>
     </header>
@@ -25,20 +34,19 @@
     <!-- メインコンテンツセクション -->
     <main class="main-content">
         <div class="container">
-            <!-- RSS追加フォーム（初期は非表示） -->
-            <div id="rssForm" class="rss-form hidden">
-                <h2>RSS フィード追加</h2>
-                <div class="form-group">
-                    <label for="rssName">フィード名:</label>
-                    <input type="text" id="rssName" placeholder="例: テックニュース">
+            <!-- フィード統計情報 -->
+            <div id="feedStats" class="feed-stats hidden">
+                <div class="stat-item">
+                    <span class="stat-label">総記事数</span>
+                    <span class="stat-value" id="totalArticles">0</span>
                 </div>
-                <div class="form-group">
-                    <label for="rssUrl">RSS URL:</label>
-                    <input type="url" id="rssUrl" placeholder="https://example.com/rss">
+                <div class="stat-item">
+                    <span class="stat-label">フィード数</span>
+                    <span class="stat-value" id="totalFeeds">0</span>
                 </div>
-                <div class="form-actions">
-                    <button id="addFeedBtn" class="btn btn-primary">追加</button>
-                    <button id="cancelBtn" class="btn btn-secondary">キャンセル</button>
+                <div class="stat-item">
+                    <span class="stat-label">未読記事</span>
+                    <span class="stat-value" id="unreadArticles">0</span>
                 </div>
             </div>
 
@@ -48,13 +56,14 @@
             </div>
 
             <!-- ローディング表示 -->
-            <div id="loading" class="loading hidden">
+            <div id="loading" class="loading">
                 <div class="spinner"></div>
                 <p>フィードを読み込み中...</p>
             </div>
 
             <!-- エラー表示 -->
             <div id="errorMessage" class="error-message hidden">
+                <div class="error-icon">⚠️</div>
                 <p id="errorText"></p>
                 <button id="retryBtn" class="btn btn-primary">再試行</button>
             </div>
@@ -69,7 +78,11 @@
     <!-- フッターセクション -->
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 RSS Reader. シンプルで使いやすいRSSリーダー</p>
+            <p>&copy; 2025 RSS Reader - Powered by GitHub Actions</p>
+            <p class="footer-note">
+                📡 自動更新: 毎時間 | 
+                🔄 最終更新: <span id="footerUpdateTime">-</span>
+            </p>
         </div>
     </footer>
 
