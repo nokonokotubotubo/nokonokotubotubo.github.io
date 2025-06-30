@@ -1,0 +1,196 @@
+{
+  "title": "RSS Reader - 生成AI記事フィード",
+  "description": "最新の生成AI関連記事をまとめて配信",
+  "updated": "2025-06-30T22:49:37.426Z",
+  "totalEntries": 14,
+  "feeds": [
+    {
+      "name": "Qiita",
+      "color": "#55C500",
+      "description": "Qiita 生成AI記事",
+      "count": 4
+    },
+    {
+      "name": "Zenn",
+      "color": "#3EA8FF",
+      "description": "Zenn 生成AI記事",
+      "count": 5
+    },
+    {
+      "name": "CNET",
+      "color": "#C41E3A",
+      "description": "CNET Japan ニュース",
+      "count": 5
+    }
+  ],
+  "entries": [
+    {
+      "id": "5nqois-1751321100000",
+      "title": "PASMOを使える腕時計、ついにApple Watch以外にも拡大--Google Pixel Watchなど",
+      "link": "https://japan.cnet.com/article/35234907/",
+      "published": "2025-06-30T22:05:00.000Z",
+      "description": "Googleが6月30日よりWear OS搭載スマートウォッチでPASMO対応を開始。定期券の利用やチャージ方法も詳しく解説。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Googleが6月30日よりWear OS搭載スマートウォッチでPASMO対応を開始。定期券の利用やチャージ方法も詳しく解説。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqojn-1751320020000",
+      "title": "アップルが「Vision Pro」を本気で刷新します--4割軽いVision Air、スマートグラスも【噂】",
+      "link": "https://japan.cnet.com/article/35234906/",
+      "published": "2025-06-30T21:47:00.000Z",
+      "description": "Appleが2027年にAR・VRデバイスを本格展開へ。「Vision Pro M5」や新型スマートグラスなど、多層的な戦略を著名アナリストが分析。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Appleが2027年にAR・VRデバイスを本格展開へ。「Vision Pro M5」や新型スマートグラスなど、多層的な戦略を著名アナリストが分析。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
+      "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
+      "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
+      "published": "2025-06-30T15:14:00.000Z",
+      "description": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通じて感じたことをお伝えします。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
+      "title": "「あなたのインフルエンサー」 自分だけのインフルエンサーをAIで作ろう！",
+      "link": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
+      "published": "2025-06-30T14:56:16.000Z",
+      "description": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
+      "title": "マッチ売りの電卓【 お金の感覚を見える化するアプリ 】",
+      "link": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
+      "published": "2025-06-30T14:42:30.000Z",
+      "description": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリを使用することで「異なる経済階層における価格感覚の体験」を疑似的に行うことができます。 経済格差への理解を深めつつ、新たな気付きを提供するアプリケーションです。 https://youtube....",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリ",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/michan74/articles/36ef1b41d64590",
+      "title": "Bear Horizon くまの気持ちで英単語を学習【第2回 AI Agent Hackathon】",
+      "link": "https://zenn.dev/michan74/articles/36ef1b41d64590",
+      "published": "2025-06-30T14:20:45.000Z",
+      "description": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しました。 いずれも、学習のモチベーションを下げてしまう大きな要因です。 課題1....",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しま",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/coffeecupjp/articles/62ebc5f19ff819",
+      "title": "会議の障壁をなくす会議ファシリテーションwebアプリ",
+      "link": "https://zenn.dev/coffeecupjp/articles/62ebc5f19ff819",
+      "published": "2025-06-30T13:38:02.000Z",
+      "description": "概要 会議の障壁をなくす会議ファシリテーションwebアプリ https://youtu.be/pn-BfHPG_7A 「アイスブレイクがイマイチ盛り上がらない」 「意見が対立して話が進まない」 「話が脇道に逸れて結論が出ない」 「アクションアイテムを記録しそこねる」 などなど会議をする上での障壁は意外と多いもの。 そんな日頃の会議のガードレールとなるウェブアプリを生成AIで作りました。 あなたがすべきなのは、会議とともにこのwebアプリを起動するだけ。 そうすることで、AIが会議の内容を聞...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "概要 会議の障壁をなくす会議ファシリテーションwebアプリ https://youtu.be/pn-BfHPG_7A 「アイスブレイクがイマイチ盛り上がらない」 「意見が対立して話が進まない」 「話が脇道に逸れて結論が出ない」 「アクションアイテムを記録しそこねる」 などなど会議をする上での障壁は意",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047145",
+      "title": "AI投資チャレンジ #05 第三候補発見編 - 30代エンジニアが100万を一億円にする話",
+      "link": "https://qiita.com/aug/items/3fb56f792fc996641014",
+      "published": "2025-06-30T11:41:32.000Z",
+      "description": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的…",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047131",
+      "title": "AWS完全初心者がAWS Summitに参加した話(Day2)",
+      "link": "https://qiita.com/tks_1128/items/fec0f1de180fca91b4b1",
+      "published": "2025-06-30T10:56:31.000Z",
+      "description": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思いま…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思いま…",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047113",
+      "title": "「MAGI」- 3賢者AIが協調するコーディング生成AIエージェント -",
+      "link": "https://qiita.com/ukiuni@github/items/de6171bdbf3c1dca63b4",
+      "published": "2025-06-30T10:20:35.000Z",
+      "description": "1. はじめに MAGIは、生成AIにより良く仕事をしてもらうために設計された、まったく新しい次元のコーディング生成AIエージェントです。3人の賢者の名を冠した3つのAIエージェントが、それぞれの役…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "1. はじめに MAGIは、生成AIにより良く仕事をしてもらうために設計された、まったく新しい次元のコーディング生成AIエージェントです。3人の賢者の名を冠した3つのAIエージェントが、それぞれの役…",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqom8-1751273400000",
+      "title": "PayPay銀行が「50年ローン」--住宅高騰で",
+      "link": "https://japan.cnet.com/article/35234903/",
+      "published": "2025-06-30T08:50:00.000Z",
+      "description": "PayPay銀行は6月30日、住宅ローンの最長借入期間を現行の35年から50年へ拡大すると発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "PayPay銀行は6月30日、住宅ローンの最長借入期間を現行の35年から50年へ拡大すると発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047033",
+      "title": "【ChatGPT】（読み物）こちらの意図がChatGPTに伝わらないときにどうしたらいいのか。",
+      "link": "https://qiita.com/kabumira/items/5da2c2cc696c179e133f",
+      "published": "2025-06-30T08:01:12.000Z",
+      "description": "どうも、カーブミラーです。 　今回は、こちらの意図がChatGPTに伝わらないときにどうしたらいいのかを書きます。参考程度にどうぞ。 暑い日々が続きます。熱中症に ご注意を。クーラーがあっても 油…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "どうも、カーブミラーです。 　今回は、こちらの意図がChatGPTに伝わらないときにどうしたらいいのかを書きます。参考程度にどうぞ。 暑い日々が続きます。熱中症に ご注意を。クーラーがあっても 油…",
+      "thumbnail": null
+    },
+    {
+      "id": "5nr4t7-1751265780000",
+      "title": "ZOZO、マッチングアプリ参入--全身写真とキャッチコピーのみ　年収や学歴不問",
+      "link": "https://japan.cnet.com/article/35234898/",
+      "published": "2025-06-30T06:43:00.000Z",
+      "description": "ZOZOは6月30日、ファッションの「雰囲気」やスタイルを軸にユーザー同士をマッチングするスマートフォンアプリ「ZOZOマッチ」をリリースした。対象はiOSとAndroid端末で、利用にはZOZO IDが必要となる。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "ZOZOは6月30日、ファッションの「雰囲気」やスタイルを軸にユーザー同士をマッチングするスマートフォンアプリ「ZOZOマッチ」をリリースした。対象はiOSとAndroid端末で、利用にはZOZO IDが必要となる。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nr4ux-1751264100000",
+      "title": "ペルチェ素子で冷やした水が循環するウェア、4万円切りでShiftallから--暑さ対策に",
+      "link": "https://japan.cnet.com/article/35234896/",
+      "published": "2025-06-30T06:15:00.000Z",
+      "description": "Shiftallは6月30日、水を冷却して循環させる“ペルチェチラー方式”を採用した水冷ウェア「ChillerX」を発表した。価格は3万9990円（税込・送料込、バッテリー別売）で、8月上旬から順次出荷する。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Shiftallは6月30日、水を冷却して循環させる“ペルチェチラー方式”を採用した水冷ウェア「ChillerX」を発表した。価格は3万9990円（税込・送料込、バッテリー別売）で、8月上旬から順次出荷する。",
+      "thumbnail": null
+    }
+  ]
+}
