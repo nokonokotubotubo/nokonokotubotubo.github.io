@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ヘッダーセクション -->
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">RSS Reader</h1>
+            <div class="header-controls">
+                <!-- ダークモード切り替えボタン -->
+                <button id="darkModeToggle" class="dark-mode-btn" title="ダークモード切り替え">
+                    <span class="icon">🌙</span>
+                </button>
+                <!-- RSS追加ボタン -->
+                <button id="addRssBtn" class="add-rss-btn">RSS追加</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツセクション -->
+    <main class="main-content">
+        <div class="container">
+            <!-- RSS追加フォーム（初期は非表示） -->
+            <div id="rssForm" class="rss-form hidden">
+                <h2>RSS フィード追加</h2>
+                <div class="form-group">
+                    <label for="rssName">フィード名:</label>
+                    <input type="text" id="rssName" placeholder="例: テックニュース">
+                </div>
+                <div class="form-group">
+                    <label for="rssUrl">RSS URL:</label>
+                    <input type="url" id="rssUrl" placeholder="https://example.com/rss">
+                </div>
+                <div class="form-actions">
+                    <button id="addFeedBtn" class="btn btn-primary">追加</button>
+                    <button id="cancelBtn" class="btn btn-secondary">キャンセル</button>
+                </div>
+            </div>
+
+            <!-- RSS タブ -->
+            <div id="rssTabs" class="rss-tabs">
+                <!-- タブはJavaScriptで動的生成 -->
+            </div>
+
+            <!-- ローディング表示 -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>フィードを読み込み中...</p>
+            </div>
+
+            <!-- エラー表示 -->
+            <div id="errorMessage" class="error-message hidden">
+                <p id="errorText"></p>
+                <button id="retryBtn" class="btn btn-primary">再試行</button>
+            </div>
+
+            <!-- 記事一覧 -->
+            <div id="articleList" class="article-list">
+                <!-- 記事はJavaScriptで動的生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- フッターセクション -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 RSS Reader. シンプルで使いやすいRSSリーダー</p>
+        </div>
+    </footer>
+
+    <!-- JavaScriptファイル読み込み -->
+    <script src="script.js" defer></script>
+</body>
+</html>
