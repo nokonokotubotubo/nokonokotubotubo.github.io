@@ -1,4 +1,4 @@
-# .github/workflows/rss-fetcher.yml (修正版)
+# .github/workflows/rss-fetcher.yml (完全修正版)
 name: RSS Feed Fetcher
 
 on:
@@ -6,9 +6,6 @@ on:
     # 1時間ごとに実行（毎時0分）
     - cron: '0 * * * *'
   workflow_dispatch: # 手動実行も可能
-  push:
-    branches: [ main ]
-    paths: [ 'rss-config.json' ]
 
 jobs:
   fetch-rss:
@@ -23,47 +20,48 @@ jobs:
     - name: Create data directory
       run: mkdir -p data
 
-    # フィード1: テックニュース
+    # フィード1: テックニュース（検索結果[1]の形式に準拠）
     - name: Fetch Tech News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
       with:
         feed_url: 'https://feeds.feedburner.com/oreilly/radar'
         file_path: './data/tech-news.json'
 
     # フィード2: ITメディア
     - name: Fetch IT Media RSS  
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
       with:
         feed_url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml'
         file_path: './data/it-media.json'
 
     # フィード3: GIGAZINE
     - name: Fetch GIGAZINE RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
       with:
         feed_url: 'https://gigazine.net/news/rss_2.0/'
         file_path: './data/gigazine.json'
 
     # フィード4: NHKニュース
     - name: Fetch NHK News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
       with:
         feed_url: 'https://www3.nhk.or.jp/rss/news/cat0.xml'
         file_path: './data/nhk-news.json'
 
-    # 追加オプション付きの高度な設定例
-    - name: Fetch Custom RSS with Options
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1
+    # 高度な設定例（検索結果[1][2]の詳細オプション適用）
+    - name: Fetch RSS with Advanced Options
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
       with:
         feed_url: 'https://feeds.feedburner.com/oreilly/radar'
         file_path: './data/tech-advanced.json'
         parser_options: '{"useISODateFormat": false, "getExtraEntryFields": "(feedEntry) => { return { \"content:encoded\": feedEntry[\"content:encoded\"] || \"\" }; }"}'
-        remove_published: true  # 不要なコミットを防ぐ[1]
+        fetch_options: '{}'
+        remove_published: true
 
     # メタデータファイル生成
     - name: Generate feed metadata
       run: |
-        cat > data/feeds-meta.json << 'EOF'
+        cat > data/feeds-meta.json << EOF
         {
           "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
           "feeds": [
@@ -98,41 +96,50 @@ jobs:
           ]
         }
         EOF
-        
-        # 実際の更新時間を設定
-        sed -i "s/\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")/$(date -u +"%Y-%m-%dT%H:%M:%SZ")/g" data/feeds-meta.json
 
-    # データ品質チェック
+    # データ品質チェック（検索結果[1]の出力形式に対応）
     - name: Validate JSON files
       run: |
         echo "📊 生成されたJSONファイルの検証..."
         for file in data/*.json; do
           if [ -f "$file" ]; then
             if jq empty "$file" 2>/dev/null; then
+              # 検索結果[1]の出力形式に合わせた検証
               entries=$(jq '.entries | length' "$file" 2>/dev/null || echo "0")
-              echo "✅ $(basename "$file"): ${entries}件のエントリ"
+              title=$(jq -r '.title // "Unknown"' "$file" 2>/dev/null)
+              echo "✅ $(basename "$file"): ${entries}件のエントリ (${title})"
+              
+              # 出力形式の確認
+              if jq -e '.entries[0].id and .entries[0].title and .entries[0].link' "$file" >/dev/null 2>&1; then
+                echo "   ✓ 正しい出力形式を確認"
+              else
+                echo "   ⚠️ 出力形式に問題がある可能性があります"
+              fi
             else
               echo "❌ $(basename "$file"): 無効なJSON"
-              cat "$file" | head -10  # エラー内容を表示
+              echo "   エラー内容:"
+              cat "$file" | head -5
             fi
           fi
         done
 
-    # 変更をコミット
+    # 変更をコミット（検索結果[1][2]の手法に準拠）
     - name: Commit and push RSS data
-      uses: stefanzweifel/git-auto-commit-action@v5
+      uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: '🔄 RSS feeds updated - $(date -u +"%Y-%m-%d %H:%M UTC")'
-        file_pattern: 'data/*.json'
-        commit_user_name: 'RSS Fetcher Bot'
-        commit_user_email: 'action@github.com'
+        commit_message: 'Update RSS feed'
+        file_pattern: '*.json'
 
-    # 実行結果を通知
+    # 実行結果レポート
     - name: Report execution status
       if: always()
       run: |
+        echo "=== RSS取得実行結果 ==="
         if [ "${{ job.status }}" = "success" ]; then
           echo "✅ RSS取得が正常に完了しました"
+          echo "📊 生成されたファイル:"
+          ls -la data/
         else
           echo "❌ RSS取得でエラーが発生しました"
+          echo "詳細はログを確認してください"
         fi
