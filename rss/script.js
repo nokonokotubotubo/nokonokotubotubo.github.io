@@ -1,4 +1,4 @@
-// RSSリーダーアプリケーション
+// RSSリーダーアプリケーション（修正版）
 class RSSReader {
     constructor() {
         this.feeds = [];
@@ -6,7 +6,7 @@ class RSSReader {
         this.articles = [];
         this.readArticles = new Set();
         this.maxRetries = 3;
-        this.retryDelay = 500;
+        this.retryDelay = 1000; // 遅延を増加
         
         this.init();
     }
@@ -228,24 +228,57 @@ class RSSReader {
             this.renderArticles();
         } catch (error) {
             console.error('フィード読み込みエラー:', error);
-            this.showError('フィードの読み込みに失敗しました: ' + error.message);
+            this.showError(`フィードの読み込みに失敗しました: ${error.message}\n\n別のプロキシサービスを試しています...`);
+            
+            // 代替プロキシで再試行
+            try {
+                const articles = await this.fetchRSSWithFallback(feed.url);
+                this.articles = articles.map(article => ({
+                    ...article,
+                    feedName: feed.name,
+                    id: this.generateArticleId(article)
+                }));
+                this.renderArticles();
+                this.hideError();
+            } catch (fallbackError) {
+                console.error('代替プロキシも失敗:', fallbackError);
+                this.showError(`全てのプロキシサービスでフィード取得に失敗しました。\nRSSフィードのURLが正しいか確認してください。`);
+            }
         } finally {
             this.hideLoading();
         }
     }
 
-    // RSS取得（リトライ機能付き）
+    // 複数プロキシサービスを使用したRSS取得（修正版）
     async fetchRSSWithRetry(url, retryCount = 0) {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        // 複数のプロキシサービスを定義
+        const proxyServices = [
+            `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+            `https://cors-anywhere.herokuapp.com/${url}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        ];
+        
+        const currentProxy = proxyServices[retryCount % proxyServices.length];
         
         try {
-            const response = await fetch(proxyUrl, {
+            console.log(`プロキシ試行 ${retryCount + 1}: ${currentProxy}`);
+            
+            // AbortControllerでタイムアウト制御
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(currentProxy, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json',
+                    'Accept': 'application/json, text/xml, application/xml',
+                    'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)'
                 },
-                timeout: 10000
+                signal: controller.signal,
+                mode: 'cors', // CORSを明示的に指定
+                cache: 'no-cache' // キャッシュを無効化
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -253,40 +286,99 @@ class RSSReader {
 
             const data = await response.json();
             
-            if (!data.contents) {
-                throw new Error('フィードデータが見つかりません');
+            // allorigins.winの場合
+            if (data.contents) {
+                return this.parseRSS(data.contents);
             }
-
-            return this.parseRSS(data.contents);
+            // その他のプロキシの場合
+            else if (typeof data === 'string') {
+                return this.parseRSS(data);
+            }
+            else {
+                throw new Error('有効なRSSデータが見つかりません');
+            }
             
         } catch (error) {
-            console.error(`フィード取得エラー (試行 ${retryCount + 1}):`, error);
+            console.error(`プロキシ ${retryCount + 1} でエラー:`, error.message);
             
             if (retryCount < this.maxRetries) {
-                const delay = this.retryDelay * Math.pow(2, retryCount);
-                console.log(`${delay}ms後に再試行します...`);
+                const delay = this.retryDelay * Math.pow(1.5, retryCount); // 指数バックオフを緩和
+                console.log(`${delay}ms後に次のプロキシで再試行...`);
                 
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this.fetchRSSWithRetry(url, retryCount + 1);
             }
             
-            throw new Error(`${this.maxRetries + 1}回の試行後も失敗: ${error.message}`);
+            throw new Error(`全プロキシサービスで失敗: ${error.message}`);
         }
     }
 
-    // RSS解析
+    // 代替プロキシサービス
+    async fetchRSSWithFallback(url) {
+        const fallbackProxies = [
+            `https://thingproxy.freeboard.io/fetch/${url}`,
+            `https://cors.bridged.cc/${url}`
+        ];
+        
+        for (const proxy of fallbackProxies) {
+            try {
+                console.log(`代替プロキシ試行: ${proxy}`);
+                
+                const response = await fetch(proxy, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/xml, application/xml',
+                    },
+                    timeout: 10000
+                });
+
+                if (response.ok) {
+                    const text = await response.text();
+                    return this.parseRSS(text);
+                }
+            } catch (error) {
+                console.error(`代替プロキシエラー: ${error.message}`);
+                continue;
+            }
+        }
+        
+        throw new Error('全ての代替プロキシでも失敗しました');
+    }
+
+    // RSS解析（改良版）
     parseRSS(xmlString) {
         try {
+            // 空文字やnullチェック
+            if (!xmlString || typeof xmlString !== 'string') {
+                throw new Error('有効なXMLデータがありません');
+            }
+            
+            // HTMLエンティティのデコード
+            const cleanXml = xmlString
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
+            
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+            const xmlDoc = parser.parseFromString(cleanXml, 'application/xml');
             
             // パースエラーチェック
             const parserError = xmlDoc.querySelector('parsererror');
             if (parserError) {
-                throw new Error('XML解析エラー: ' + parserError.textContent);
+                console.error('XML解析エラー詳細:', parserError.textContent);
+                throw new Error(`XML解析エラー: ${parserError.textContent}`);
             }
 
+            // RSS 2.0 または Atom フィードの検出
             const items = xmlDoc.querySelectorAll('item, entry');
+            
+            if (items.length === 0) {
+                console.warn('RSS項目が見つかりません。XMLを確認:', xmlString.substring(0, 500));
+                throw new Error('RSS項目が見つかりません');
+            }
+
             const articles = [];
 
             for (let i = 0; i < Math.min(items.length, 5); i++) {
@@ -308,35 +400,35 @@ class RSSReader {
         }
     }
 
-    // 記事アイテム解析
+    // 記事アイテム解析（改良版）
     parseArticleItem(item) {
         try {
             const title = this.getTextContent(item, 'title') || 'タイトル不明';
-            const link = this.getTextContent(item, 'link, guid') || '#';
-            const description = this.getTextContent(item, 'description, summary, content') || '';
-            const publishedDate = this.getTextContent(item, 'pubDate, published, updated') || new Date().toISOString();
+            const link = this.getTextContent(item, 'link, guid, id') || '#';
+            const description = this.getTextContent(item, 'description, summary, content:encoded, content') || '';
             
-            // サムネイル画像の取得
-            let thumbnail = '';
-            const mediaContent = item.querySelector('media\\:content, content');
-            const enclosure = item.querySelector('enclosure[type^="image"]');
-            const imgRegex = /<img[^>]+src="([^">]+)"/;
-            const imgMatch = description.match(imgRegex);
-
-            if (mediaContent && mediaContent.getAttribute('url')) {
-                thumbnail = mediaContent.getAttribute('url');
-            } else if (enclosure && enclosure.getAttribute('url')) {
-                thumbnail = enclosure.getAttribute('url');
-            } else if (imgMatch) {
-                thumbnail = imgMatch[1];
+            // 日付の解析を改善
+            let publishedDate = this.getTextContent(item, 'pubDate, published, updated, dc:date');
+            if (!publishedDate) {
+                publishedDate = new Date().toISOString();
+            } else {
+                // 日付の正規化
+                try {
+                    publishedDate = new Date(publishedDate).toISOString();
+                } catch {
+                    publishedDate = new Date().toISOString();
+                }
             }
+            
+            // サムネイル画像の取得（改良版）
+            let thumbnail = this.extractThumbnail(item, description);
 
             // 説明文からHTMLタグを除去してサマリーを作成
             const summary = this.createSummary(description);
 
             return {
-                title,
-                link,
+                title: title.trim(),
+                link: link.trim(),
                 summary,
                 publishedDate,
                 thumbnail
@@ -347,22 +439,72 @@ class RSSReader {
         }
     }
 
-    // テキストコンテンツ取得
+    // サムネイル抽出（改良版）
+    extractThumbnail(item, description) {
+        let thumbnail = '';
+        
+        // メディア要素からの取得
+        const mediaContent = item.querySelector('media\\:content, content, enclosure[type^="image"]');
+        if (mediaContent) {
+            thumbnail = mediaContent.getAttribute('url') || mediaContent.getAttribute('href');
+        }
+        
+        // description内のimg要素から取得
+        if (!thumbnail) {
+            const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
+            const imgMatch = description.match(imgRegex);
+            if (imgMatch) {
+                thumbnail = imgMatch[1];
+            }
+        }
+        
+        // og:imageの取得
+        if (!thumbnail) {
+            const ogImageRegex = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i;
+            const ogMatch = description.match(ogImageRegex);
+            if (ogMatch) {
+                thumbnail = ogMatch[1];
+            }
+        }
+        
+        return thumbnail;
+    }
+
+    // テキストコンテンツ取得（改良版）
     getTextContent(element, selectors) {
         const selectorList = selectors.split(',').map(s => s.trim());
         for (const selector of selectorList) {
-            const found = element.querySelector(selector);
-            if (found) {
-                return found.textContent.trim();
+            try {
+                const found = element.querySelector(selector);
+                if (found && found.textContent.trim()) {
+                    return found.textContent.trim();
+                }
+                // CDATA対応
+                if (found && found.innerHTML) {
+                    return found.innerHTML.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+                }
+            } catch (e) {
+                // セレクターエラーを無視して続行
+                continue;
             }
         }
         return '';
     }
 
-    // サマリー作成
+    // サマリー作成（改良版）
     createSummary(description, maxLength = 120) {
-        // HTMLタグ除去
-        const text = description.replace(/<[^>]*>/g, '').trim();
+        if (!description) return '説明がありません';
+        
+        // HTMLタグとCDATAを除去
+        let text = description
+            .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+            .replace(/<[^>]*>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/\s+/g, ' ')
+            .trim();
         
         if (text.length <= maxLength) {
             return text;
