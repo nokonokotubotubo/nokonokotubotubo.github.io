@@ -1,0 +1,38 @@
+// rss-config.json
+{
+  "feeds": [
+    {
+      "id": "tech-news",
+      "name": "Tech News", 
+      "url": "https://feeds.feedburner.com/oreilly/radar",
+      "description": "O'Reilly Radar - 最新技術動向",
+      "color": "#FF6B35"
+    },
+    {
+      "id": "it-media",
+      "name": "ITメディア",
+      "url": "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml", 
+      "description": "ITmedia ニュース",
+      "color": "#4A90E2"
+    },
+    {
+      "id": "gigazine", 
+      "name": "GIGAZINE",
+      "url": "https://gigazine.net/news/rss_2.0/",
+      "description": "GIGAZINE テック記事", 
+      "color": "#FF4081"
+    },
+    {
+      "id": "nhk-news",
+      "name": "NHKニュース", 
+      "url": "https://www3.nhk.or.jp/rss/news/cat0.xml",
+      "description": "NHK 主要ニュース",
+      "color": "#2E7D32" 
+    }
+  ],
+  "settings": {
+    "maxEntries": 5,
+    "updateInterval": "hourly",
+    "timezone": "Asia/Tokyo"
+  }
+}
