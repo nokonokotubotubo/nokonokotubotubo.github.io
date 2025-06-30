@@ -1,5 +1,5 @@
-# .github/workflows/rss-fetcher.yml (正しいディレクトリ構成対応版)
-name: Custom RSS Feed Fetcher
+# .github/workflows/rss-fetcher.yml (カスタム実装版)
+name: RSS Feed Fetcher - Custom Implementation
 
 on:
   schedule:
@@ -23,396 +23,175 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install feedparser==6.0.11 requests beautifulsoup4 lxml python-dateutil
+        pip install feedparser requests beautifulsoup4 lxml
 
-    - name: Create directory structure
-      run: |
-        mkdir -p data  # ルートの data ディレクトリ
-
-    - name: Execute Custom RSS Fetcher
+    - name: Custom RSS Fetch Script
       run: |
         python3 << 'EOF'
         import feedparser
         import requests
         import json
         import os
-        from datetime import datetime, timezone
+        from datetime import datetime
         import time
-        from pathlib import Path
-        from typing import cast
-        from feedparser import FeedParserDict
-        import re
-        from dateutil import parser as date_parser
 
-        class CustomRSSFetcher:
-            def __init__(self):
-                self.headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-                    'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache',
-                    'Connection': 'keep-alive'
+        # 検索結果[2][6]に基づくUser-Agent設定
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+
+        # 動作確認済みRSSフィード一覧
+        feeds = [
+            {
+                'id': 'nhk-news',
+                'name': 'NHKニュース',
+                'url': 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                'description': 'NHK 主要ニュース',
+                'color': '#2E7D32'
+            },
+            {
+                'id': 'gigazine',
+                'name': 'GIGAZINE',
+                'url': 'https://gigazine.net/news/rss_2.0/',
+                'description': 'GIGAZINE テック記事',
+                'color': '#FF4081'
+            },
+            {
+                'id': 'yahoo-news',
+                'name': 'Yahoo!ニュース',
+                'url': 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
+                'description': 'Yahoo! 主要ニュース',
+                'color': '#6F42C1'
+            },
+            {
+                'id': 'itmedia',
+                'name': 'ITmedia',
+                'url': 'https://rss.itmedia.co.jp/rss/2.0/topstory.xml',
+                'description': 'ITmedia トップストーリー',
+                'color': '#4A90E2'
+            }
+        ]
+
+        os.makedirs('data', exist_ok=True)
+        successful_feeds = []
+
+        for feed_config in feeds:
+            try:
+                print(f"📡 取得開始: {feed_config['name']}")
+                
+                # 検索結果[2]の手法でUser-Agent付きリクエスト
+                session = requests.Session()
+                session.headers.update(headers)
+                
+                response = session.get(feed_config['url'], timeout=30)
+                response.raise_for_status()
+                
+                print(f"✅ HTTP {response.status_code}: {feed_config['name']}")
+                
+                # feedparserで解析
+                feed = feedparser.parse(response.content)
+                
+                if feed.bozo:
+                    print(f"⚠️ {feed_config['name']}: 軽微なパースエラーがありますが続行")
+                
+                # エントリ変換（検索結果[3][4]の出力形式に準拠）
+                entries = []
+                for entry in feed.entries[:5]:
+                    # 画像URL抽出
+                    thumbnail = ''
+                    if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
+                        thumbnail = entry.media_thumbnail[0].get('url', '')
+                    elif hasattr(entry, 'enclosures'):
+                        for enc in entry.enclosures:
+                            if enc.get('type', '').startswith('image/'):
+                                thumbnail = enc.get('href', '')
+                                break
+                    
+                    entry_data = {
+                        'id': getattr(entry, 'id', entry.link),
+                        'title': entry.title,
+                        'link': entry.link,
+                        'description': getattr(entry, 'summary', ''),
+                        'published': getattr(entry, 'published', datetime.now().isoformat()),
+                        'thumbnail': thumbnail
+                    }
+                    entries.append(entry_data)
+                
+                # 検索結果[3][4]の形式で出力
+                output_data = {
+                    'title': feed.feed.get('title', feed_config['name']),
+                    'link': feed.feed.get('link', ''),
+                    'description': feed.feed.get('description', feed_config['description']),
+                    'generator': feed.feed.get('generator', ''),
+                    'language': feed.feed.get('language', 'ja'),
+                    'published': datetime.now().isoformat(),
+                    'entries': entries
                 }
                 
-                self.rss_feeds = [
-                    {
-                        'id': 'nhk-news',
-                        'name': 'NHKニュース',
-                        'url': 'https://www3.nhk.or.jp/rss/news/cat0.xml',
-                        'description': 'NHK 主要ニュース',
-                        'color': '#2E7D32'
-                    },
-                    {
-                        'id': 'gigazine',
-                        'name': 'GIGAZINE',
-                        'url': 'https://gigazine.net/news/rss_2.0/',
-                        'description': 'GIGAZINE テック記事',
-                        'color': '#FF4081'
-                    },
-                    {
-                        'id': 'yahoo-news',
-                        'name': 'Yahoo!ニュース', 
-                        'url': 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
-                        'description': 'Yahoo! 主要ニュース',
-                        'color': '#6F42C1'
-                    },
-                    {
-                        'id': 'itmedia-news',
-                        'name': 'ITmedia',
-                        'url': 'https://rss.itmedia.co.jp/rss/2.0/topstory.xml',
-                        'description': 'ITmedia トップストーリー',
-                        'color': '#4A90E2'
-                    },
-                    {
-                        'id': 'reuters-tech',
-                        'name': 'Reuters Tech',
-                        'url': 'https://feeds.reuters.com/reuters/technologyNews',
-                        'description': 'Reuters テクノロジーニュース',
-                        'color': '#FF6B35'
-                    }
-                ]
+                # ファイル保存
+                output_file = f"data/{feed_config['id']}.json"
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(output_data, f, ensure_ascii=False, indent=2)
                 
-                # 修正: ルートのdataディレクトリに保存
-                self.output_dir = Path('data')
-                self.output_dir.mkdir(parents=True, exist_ok=True)
+                # メタデータ用に記録
+                successful_feeds.append({
+                    'id': feed_config['id'],
+                    'name': feed_config['name'],
+                    'description': feed_config['description'],
+                    'file': f"{feed_config['id']}.json",
+                    'color': feed_config['color']
+                })
                 
-                self.processed_links_file = self.output_dir / 'processed_links.json'
-                self.load_processed_links()
+                print(f"✅ {feed_config['name']}: {len(entries)}件取得完了")
+                
+            except requests.exceptions.RequestException as e:
+                print(f"❌ {feed_config['name']}: ネットワークエラー - {e}")
+            except Exception as e:
+                print(f"❌ {feed_config['name']}: 処理エラー - {e}")
+                
+            # レート制限対策
+            time.sleep(1)
 
-            def load_processed_links(self):
-                """処理済みリンクの読み込み"""
-                try:
-                    if self.processed_links_file.exists():
-                        with self.processed_links_file.open() as f:
-                            self.processed_links = set(json.load(f))
-                    else:
-                        self.processed_links = set()
-                except Exception as e:
-                    print(f"⚠️ 処理済みリンク読み込みエラー: {e}")
-                    self.processed_links = set()
+        # メタデータ生成
+        metadata = {
+            'lastUpdated': datetime.now().isoformat(),
+            'totalFeeds': len(successful_feeds),
+            'feeds': successful_feeds
+        }
 
-            def save_processed_links(self):
-                """処理済みリンクの保存"""
-                try:
-                    with self.processed_links_file.open('w') as f:
-                        json.dump(list(self.processed_links), f, indent=2)
-                except Exception as e:
-                    print(f"⚠️ 処理済みリンク保存エラー: {e}")
+        with open('data/feeds-meta.json', 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-            def fetch_rss_feed(self, feed_config):
-                """個別RSSフィードの取得"""
-                try:
-                    print(f"📡 取得開始: {feed_config['name']} ({feed_config['url']})")
-                    
-                    session = requests.Session()
-                    session.headers.update(self.headers)
-                    
-                    response = session.get(feed_config['url'], timeout=30)
-                    response.raise_for_status()
-                    
-                    print(f"✅ HTTP {response.status_code}: {feed_config['name']}")
-                    
-                    fpdict = cast(FeedParserDict, feedparser.parse(response.content))
-                    
-                    if fpdict.bozo:
-                        print(f"⚠️ {feed_config['name']}: 軽微なパースエラー (bozo={fpdict.bozo})")
-                        if fpdict.bozo_exception:
-                            print(f"   詳細: {fpdict.bozo_exception}")
-                    
-                    fetched_entries = cast(list[FeedParserDict], fpdict.get("entries", []))
-                    
-                    if not fetched_entries:
-                        print(f"⚠️ {feed_config['name']}: エントリが見つかりません")
-                        return None
-                    
-                    print(f"📊 {feed_config['name']}: {len(fetched_entries)}件のエントリを検出")
-                    
-                    processed_entries = []
-                    new_entries_count = 0
-                    
-                    for entry in fetched_entries[:10]:
-                        try:
-                            entry_link = entry.get('link', '')
-                            if entry_link in self.processed_links:
-                                continue
-                            
-                            processed_entry = self.process_entry(entry, feed_config)
-                            if processed_entry:
-                                processed_entries.append(processed_entry)
-                                self.processed_links.add(entry_link)
-                                new_entries_count += 1
-                                
-                        except Exception as e:
-                            print(f"⚠️ エントリ処理エラー: {e}")
-                            continue
-                    
-                    feed_data = {
-                        'title': fpdict.feed.get('title', feed_config['name']),
-                        'link': fpdict.feed.get('link', ''),
-                        'description': fpdict.feed.get('description', feed_config['description']),
-                        'generator': fpdict.feed.get('generator', ''),
-                        'language': fpdict.feed.get('language', 'ja'),
-                        'published': datetime.now(timezone.utc).isoformat(),
-                        'entries': processed_entries[:5]
-                    }
-                    
-                    print(f"✅ {feed_config['name']}: {len(processed_entries)}件処理完了 (新規: {new_entries_count}件)")
-                    return feed_data
-                    
-                except requests.exceptions.RequestException as e:
-                    print(f"❌ {feed_config['name']}: ネットワークエラー - {e}")
-                    return None
-                except Exception as e:
-                    print(f"❌ {feed_config['name']}: 処理エラー - {e}")
-                    return None
-
-            def process_entry(self, entry, feed_config):
-                """個別エントリの処理"""
-                try:
-                    title = entry.get('title', 'タイトル不明')
-                    link = entry.get('link', '')
-                    
-                    description = (
-                        entry.get('description', '') or 
-                        entry.get('summary', '') or 
-                        entry.get('content', [{}])[0].get('value', '') if entry.get('content') else ''
-                    )
-                    
-                    published_date = self.parse_date(
-                        entry.get('published', '') or 
-                        entry.get('pubDate', '') or 
-                        entry.get('updated', '')
-                    )
-                    
-                    thumbnail = self.extract_thumbnail(entry, description)
-                    entry_id = entry.get('id', '') or entry.get('guid', '') or link
-                    
-                    return {
-                        'id': entry_id,
-                        'title': self.clean_text(title),
-                        'link': link,
-                        'description': self.create_summary(description),
-                        'published': published_date,
-                        'thumbnail': thumbnail,
-                        'source': feed_config['name']
-                    }
-                    
-                except Exception as e:
-                    print(f"⚠️ エントリ処理エラー: {e}")
-                    return None
-
-            def parse_date(self, date_string):
-                """日付文字列の解析"""
-                if not date_string:
-                    return datetime.now(timezone.utc).isoformat()
-                
-                try:
-                    parsed_date = date_parser.parse(date_string)
-                    if parsed_date.tzinfo is None:
-                        parsed_date = parsed_date.replace(tzinfo=timezone.utc)
-                    return parsed_date.isoformat()
-                except Exception as e:
-                    print(f"⚠️ 日付解析エラー ({date_string}): {e}")
-                    return datetime.now(timezone.utc).isoformat()
-
-            def extract_thumbnail(self, entry, description):
-                """サムネイル画像の抽出"""
-                thumbnail = ''
-                
-                if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
-                    thumbnail = entry.media_thumbnail[0].get('url', '')
-                elif hasattr(entry, 'media_content') and entry.media_content:
-                    thumbnail = entry.media_content[0].get('url', '')
-                elif hasattr(entry, 'enclosures'):
-                    for enclosure in entry.enclosures:
-                        if enclosure.get('type', '').startswith('image/'):
-                            thumbnail = enclosure.get('href', '') or enclosure.get('url', '')
-                            break
-                
-                if not thumbnail and description:
-                    img_patterns = [
-                        r'<img[^>]+src=["\'](https?://[^"\']+)["\']/?>',
-                        r'https?://[^\s<>"]+\.(?:jpg|jpeg|png|gif|webp|svg)',
-                    ]
-                    
-                    for pattern in img_patterns:
-                        match = re.search(pattern, description, re.IGNORECASE)
-                        if match:
-                            thumbnail = match.group(1) if 'src=' in pattern else match.group(0)
-                            break
-                
-                return thumbnail
-
-            def clean_text(self, text):
-                """テキストのクリーニング"""
-                if not text:
-                    return ''
-                
-                text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
-                text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&apos;', "'")
-                text = re.sub(r'\s+', ' ', text).strip()
-                
-                return text
-
-            def create_summary(self, description, max_length=150):
-                """説明文からサマリーを作成"""
-                if not description:
-                    return '説明がありません'
-                
-                text = re.sub(r'<[^>]+>', '', description)
-                text = self.clean_text(text)
-                
-                if len(text) <= max_length:
-                    return text
-                
-                sentences = re.split(r'[。！？\.\!\?]', text)
-                result = ''
-                
-                for sentence in sentences:
-                    if len(result + sentence) <= max_length:
-                        result += sentence + ('。' if sentence and not sentence.endswith(('。', '！', '？', '.', '!', '?')) else '')
-                    else:
-                        break
-                
-                if not result:
-                    result = text[:max_length] + '...'
-                
-                return result
-
-            def run(self):
-                """メイン実行"""
-                print("🚀 カスタムRSSフェッチャー開始")
-                print(f"📂 出力ディレクトリ: {self.output_dir} (ルート/data)")
-                
-                successful_feeds = []
-                total_articles = 0
-                
-                for feed_config in self.rss_feeds:
-                    try:
-                        feed_data = self.fetch_rss_feed(feed_config)
-                        
-                        if feed_data and feed_data['entries']:
-                            # ルートのdataディレクトリに保存
-                            output_file = self.output_dir / f"{feed_config['id']}.json"
-                            
-                            with output_file.open('w', encoding='utf-8') as f:
-                                json.dump(feed_data, f, ensure_ascii=False, indent=2)
-                            
-                            successful_feeds.append({
-                                'id': feed_config['id'],
-                                'name': feed_config['name'],
-                                'description': feed_config['description'],
-                                'file': f"{feed_config['id']}.json",
-                                'color': feed_config['color'],
-                                'articleCount': len(feed_data['entries'])
-                            })
-                            
-                            total_articles += len(feed_data['entries'])
-                            print(f"💾 {feed_config['name']}: ルート/dataに保存完了")
-                        
-                    except Exception as e:
-                        print(f"❌ {feed_config['name']}: 予期しないエラー - {e}")
-                    
-                    time.sleep(2)
-                
-                self.save_processed_links()
-                self.generate_metadata(successful_feeds, total_articles)
-                
-                print(f"\n📊 実行結果サマリー:")
-                print(f"   ✅ 成功: {len(successful_feeds)}フィード")
-                print(f"   📰 総記事数: {total_articles}件")
-                print(f"   📁 処理済みリンク: {len(self.processed_links)}件")
-                print(f"   📂 保存先: data/ (ルートディレクトリ)")
-                
-                if len(successful_feeds) == 0:
-                    print("❌ 全てのフィードの取得に失敗しました")
-                    exit(1)
-                else:
-                    print("🎉 RSS取得処理が正常に完了しました")
-
-            def generate_metadata(self, successful_feeds, total_articles):
-                """メタデータファイルの生成"""
-                metadata = {
-                    'lastUpdated': datetime.now(timezone.utc).isoformat(),
-                    'totalFeeds': len(successful_feeds),
-                    'totalArticles': total_articles,
-                    'processedLinks': len(self.processed_links),
-                    'feeds': successful_feeds
-                }
-                
-                # ルートのdataディレクトリに保存
-                metadata_file = self.output_dir / 'feeds-meta.json'
-                with metadata_file.open('w', encoding='utf-8') as f:
-                    json.dump(metadata, f, ensure_ascii=False, indent=2)
-                
-                print(f"📋 メタデータファイル生成: {metadata_file}")
-
-        # 実行
-        if __name__ == '__main__':
-            fetcher = CustomRSSFetcher()
-            fetcher.run()
+        print(f"\n📊 最終結果: {len(successful_feeds)}個のフィードが正常に取得されました")
+        
+        if len(successful_feeds) == 0:
+            print("❌ 全てのフィードの取得に失敗しました")
+            exit(1)
+        
         EOF
 
     - name: Validate Generated Files
       run: |
-        echo "=== 生成ファイル検証 (data/ ディレクトリ) ==="
-        total_files=0
-        valid_files=0
-        
+        echo "=== 生成ファイル検証 ==="
         for file in data/*.json; do
           if [ -f "$file" ]; then
-            ((total_files++))
-            filename=$(basename "$file")
-            
             if jq empty "$file" 2>/dev/null; then
-              ((valid_files++))
-              
-              if [ "$filename" = "feeds-meta.json" ]; then
-                feeds_count=$(jq '.totalFeeds' "$file")
-                total_articles=$(jq '.totalArticles' "$file")
-                echo "📋 $filename: ${feeds_count}フィード, ${total_articles}記事"
-              else
-                entries=$(jq '.entries | length' "$file")
-                title=$(jq -r '.title' "$file")
-                echo "✅ $filename: ${entries}件 - $title"
-              fi
+              entries=$(jq '.entries | length' "$file")
+              title=$(jq -r '.title' "$file")
+              echo "✅ $(basename "$file"): ${entries}件 - ${title}"
             else
-              echo "❌ $filename: JSON無効"
-              head -3 "$file"
+              echo "❌ $(basename "$file"): JSON無効"
             fi
           fi
         done
-        
-        echo ""
-        echo "📊 検証結果: $valid_files/$total_files ファイルが有効"
-        echo "📂 保存場所: https://username.github.io/data/"
 
-    - name: Commit and Push Changes
+    - name: Commit and Push
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: 'RSS feeds updated via custom Python script - $(date -u +"%Y-%m-%d %H:%M UTC")'
-        file_pattern: 'data/*.json'  # ルートのdataディレクトリ
-        commit_user_name: 'Custom RSS Fetcher'
-        commit_user_email: 'action@github.com'
+        commit_message: 'RSS feeds updated via custom script - $(date -u +"%Y-%m-%d %H:%M UTC")'
+        file_pattern: 'data/*.json'
