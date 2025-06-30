@@ -1,5 +1,5 @@
-# .github/workflows/rss-fetcher.yml (エラー修正版)
-name: RSS Feed Fetcher
+# .github/workflows/rss-fetcher.yml (カスタム実装版)
+name: RSS Feed Fetcher - Custom Implementation
 
 on:
   schedule:
@@ -16,214 +16,182 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Create data directory
-      run: mkdir -p data
-
-    # 修正1: remove_publishedパラメータを削除
-    # 修正2: User-Agent設定を追加[4][5]
-    - name: Fetch Tech News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+    - name: Setup Python
+      uses: actions/setup-python@v4
       with:
-        feed_url: 'https://feeds.feedburner.com/oreilly/radar'
-        file_path: './data/tech-news.json'
-        fetch_options: '{"headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}}'
-        parser_options: '{"useISODateFormat": false}'
+        python-version: '3.11'
 
-    # より安定したNHKニュースフィード
-    - name: Fetch NHK News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://www3.nhk.or.jp/rss/news/cat0.xml'
-        file_path: './data/nhk-news.json'
-        fetch_options: '{"headers": {"User-Agent": "Mozilla/5.0 (compatible; RSS Reader Bot)"}}'
-
-    # GIGAZINE（高い安定性）
-    - name: Fetch GIGAZINE RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://gigazine.net/news/rss_2.0/'
-        file_path: './data/gigazine.json'
-        fetch_options: '{"headers": {"User-Agent": "Mozilla/5.0 (compatible; RSS Reader Bot)"}}'
-
-    # ITメディア（より安定したURL）
-    - name: Fetch IT Media RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://rss.itmedia.co.jp/rss/2.0/topstory.xml'
-        file_path: './data/it-media.json'
-        fetch_options: '{"headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}}'
-      continue-on-error: true
-
-    # 代替フィード（確実に動作するもの）
-    - name: Fetch Alternative Stable RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml'
-        file_path: './data/yahoo-news.json'
-        fetch_options: '{"headers": {"User-Agent": "Mozilla/5.0 (compatible; RSS Reader Bot)"}}'
-      continue-on-error: true
-
-    # RSS URL事前検証（検索結果[4]の手法）
-    - name: Validate RSS URLs before processing
+    - name: Install dependencies
       run: |
-        echo "📡 RSSフィードURLの事前検証..."
-        
-        urls=(
-          "https://feeds.feedburner.com/oreilly/radar"
-          "https://www3.nhk.or.jp/rss/news/cat0.xml" 
-          "https://gigazine.net/news/rss_2.0/"
-          "https://rss.itmedia.co.jp/rss/2.0/topstory.xml"
-          "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
-        )
-        
-        user_agent="Mozilla/5.0 (compatible; RSS Reader Bot)"
-        
-        for url in "${urls[@]}"; do
-          echo "検証中: $url"
-          
-          # HEAD リクエストで確認
-          response=$(curl -s -I -H "User-Agent: $user_agent" "$url" | head -1)
-          status_code=$(curl -s -o /dev/null -w "%{http_code}" -H "User-Agent: $user_agent" "$url")
-          
-          if [ "$status_code" = "200" ]; then
-            echo "✅ $url: アクセス可能 (HTTP $status_code)"
-          else
-            echo "❌ $url: アクセス不可 (HTTP $status_code)"
-            echo "   レスポンス: $response"
-          fi
-        done
+        pip install feedparser requests beautifulsoup4 lxml
 
-    # 動的メタデータ生成（成功したフィードのみ）
-    - name: Generate feed metadata
+    - name: Custom RSS Fetch Script
       run: |
-        echo "📊 メタデータファイル生成中..."
-        
-        # 基本メタデータ構造
-        cat > data/feeds-meta.json << 'EOF'
-        {
-          "lastUpdated": "",
-          "totalFeeds": 0,
-          "feeds": []
+        python3 << 'EOF'
+        import feedparser
+        import requests
+        import json
+        import os
+        from datetime import datetime
+        import time
+
+        # 検索結果[2][6]に基づくUser-Agent設定
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
         }
+
+        # 動作確認済みRSSフィード一覧
+        feeds = [
+            {
+                'id': 'nhk-news',
+                'name': 'NHKニュース',
+                'url': 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                'description': 'NHK 主要ニュース',
+                'color': '#2E7D32'
+            },
+            {
+                'id': 'gigazine',
+                'name': 'GIGAZINE',
+                'url': 'https://gigazine.net/news/rss_2.0/',
+                'description': 'GIGAZINE テック記事',
+                'color': '#FF4081'
+            },
+            {
+                'id': 'yahoo-news',
+                'name': 'Yahoo!ニュース',
+                'url': 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
+                'description': 'Yahoo! 主要ニュース',
+                'color': '#6F42C1'
+            },
+            {
+                'id': 'itmedia',
+                'name': 'ITmedia',
+                'url': 'https://rss.itmedia.co.jp/rss/2.0/topstory.xml',
+                'description': 'ITmedia トップストーリー',
+                'color': '#4A90E2'
+            }
+        ]
+
+        os.makedirs('data', exist_ok=True)
+        successful_feeds = []
+
+        for feed_config in feeds:
+            try:
+                print(f"📡 取得開始: {feed_config['name']}")
+                
+                # 検索結果[2]の手法でUser-Agent付きリクエスト
+                session = requests.Session()
+                session.headers.update(headers)
+                
+                response = session.get(feed_config['url'], timeout=30)
+                response.raise_for_status()
+                
+                print(f"✅ HTTP {response.status_code}: {feed_config['name']}")
+                
+                # feedparserで解析
+                feed = feedparser.parse(response.content)
+                
+                if feed.bozo:
+                    print(f"⚠️ {feed_config['name']}: 軽微なパースエラーがありますが続行")
+                
+                # エントリ変換（検索結果[3][4]の出力形式に準拠）
+                entries = []
+                for entry in feed.entries[:5]:
+                    # 画像URL抽出
+                    thumbnail = ''
+                    if hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
+                        thumbnail = entry.media_thumbnail[0].get('url', '')
+                    elif hasattr(entry, 'enclosures'):
+                        for enc in entry.enclosures:
+                            if enc.get('type', '').startswith('image/'):
+                                thumbnail = enc.get('href', '')
+                                break
+                    
+                    entry_data = {
+                        'id': getattr(entry, 'id', entry.link),
+                        'title': entry.title,
+                        'link': entry.link,
+                        'description': getattr(entry, 'summary', ''),
+                        'published': getattr(entry, 'published', datetime.now().isoformat()),
+                        'thumbnail': thumbnail
+                    }
+                    entries.append(entry_data)
+                
+                # 検索結果[3][4]の形式で出力
+                output_data = {
+                    'title': feed.feed.get('title', feed_config['name']),
+                    'link': feed.feed.get('link', ''),
+                    'description': feed.feed.get('description', feed_config['description']),
+                    'generator': feed.feed.get('generator', ''),
+                    'language': feed.feed.get('language', 'ja'),
+                    'published': datetime.now().isoformat(),
+                    'entries': entries
+                }
+                
+                # ファイル保存
+                output_file = f"data/{feed_config['id']}.json"
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(output_data, f, ensure_ascii=False, indent=2)
+                
+                # メタデータ用に記録
+                successful_feeds.append({
+                    'id': feed_config['id'],
+                    'name': feed_config['name'],
+                    'description': feed_config['description'],
+                    'file': f"{feed_config['id']}.json",
+                    'color': feed_config['color']
+                })
+                
+                print(f"✅ {feed_config['name']}: {len(entries)}件取得完了")
+                
+            except requests.exceptions.RequestException as e:
+                print(f"❌ {feed_config['name']}: ネットワークエラー - {e}")
+            except Exception as e:
+                print(f"❌ {feed_config['name']}: 処理エラー - {e}")
+                
+            # レート制限対策
+            time.sleep(1)
+
+        # メタデータ生成
+        metadata = {
+            'lastUpdated': datetime.now().isoformat(),
+            'totalFeeds': len(successful_feeds),
+            'feeds': successful_feeds
+        }
+
+        with open('data/feeds-meta.json', 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+        print(f"\n📊 最終結果: {len(successful_feeds)}個のフィードが正常に取得されました")
+        
+        if len(successful_feeds) == 0:
+            print("❌ 全てのフィードの取得に失敗しました")
+            exit(1)
+        
         EOF
-        
-        # 実際に生成されたJSONファイルをチェック
-        feeds_array="["
-        total_feeds=0
-        first=true
-        
-        # 各フィードファイルの存在確認と追加
-        declare -A feed_configs
-        feed_configs[tech-news.json]='{"id":"tech-news","name":"Tech News","description":"O'\''Reilly Radar","color":"#FF6B35"}'
-        feed_configs[nhk-news.json]='{"id":"nhk-news","name":"NHKニュース","description":"NHK 主要ニュース","color":"#2E7D32"}'
-        feed_configs[gigazine.json]='{"id":"gigazine","name":"GIGAZINE","description":"GIGAZINE テック記事","color":"#FF4081"}'
-        feed_configs[it-media.json]='{"id":"it-media","name":"ITメディア","description":"ITmedia ニュース","color":"#4A90E2"}'
-        feed_configs[yahoo-news.json]='{"id":"yahoo-news","name":"Yahoo!ニュース","description":"Yahoo! 主要ニュース","color":"#6F42C1"}'
-        
-        for filename in "${!feed_configs[@]}"; do
-          if [ -f "data/$filename" ] && jq empty "data/$filename" 2>/dev/null; then
-            entries=$(jq '.entries | length' "data/$filename" 2>/dev/null || echo "0")
-            if [ "$entries" -gt 0 ]; then
-              [ "$first" = false ] && feeds_array+=","
-              
-              # JSON設定に file フィールドを追加
-              feed_json=$(echo "${feed_configs[$filename]}" | jq --arg file "$filename" '. + {file: $file}')
-              feeds_array+="$feed_json"
-              
-              ((total_feeds++))
-              first=false
-              echo "✅ $filename: ${entries}件の記事を検出"
-            fi
-          fi
-        done
-        
-        feeds_array+="]"
-        
-        # メタデータファイルを更新
-        current_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        jq --argjson feeds "$feeds_array" \
-           --arg updated "$current_time" \
-           --argjson total "$total_feeds" \
-           '.feeds = $feeds | .lastUpdated = $updated | .totalFeeds = $total' \
-           data/feeds-meta.json > data/feeds-meta-tmp.json
-        
-        mv data/feeds-meta-tmp.json data/feeds-meta.json
-        
-        echo "📊 メタデータ生成完了: ${total_feeds}個のフィード"
 
-    # 詳細な検証とレポート
-    - name: Comprehensive Validation and Report
+    - name: Validate Generated Files
       run: |
-        echo "=== RSS取得結果詳細レポート ==="
-        success_count=0
-        error_count=0
-        total_articles=0
-        
+        echo "=== 生成ファイル検証 ==="
         for file in data/*.json; do
-          if [ -f "$file" ] && [ "$(basename "$file")" != "feeds-meta.json" ]; then
-            filename=$(basename "$file")
-            
+          if [ -f "$file" ]; then
             if jq empty "$file" 2>/dev/null; then
-              entries=$(jq '.entries | length' "$file" 2>/dev/null || echo "0")
-              title=$(jq -r '.title // "Unknown"' "$file" 2>/dev/null)
-              
-              if [ "$entries" -gt 0 ]; then
-                echo "✅ $filename: ${entries}件 - $title"
-                ((success_count++))
-                ((total_articles += entries))
-              else
-                echo "⚠️ $filename: 記事なし - $title"
-                ((error_count++))
-              fi
+              entries=$(jq '.entries | length' "$file")
+              title=$(jq -r '.title' "$file")
+              echo "✅ $(basename "$file"): ${entries}件 - ${title}"
             else
-              echo "❌ $filename: JSON解析エラー"
-              echo "   エラー内容（最初の3行）:"
-              head -3 "$file" | sed 's/^/   /'
-              ((error_count++))
+              echo "❌ $(basename "$file"): JSON無効"
             fi
           fi
         done
-        
-        echo ""
-        echo "📊 最終取得結果:"
-        echo "   ✅ 成功: ${success_count}フィード"
-        echo "   ❌ エラー: ${error_count}フィード" 
-        echo "   📰 総記事数: ${total_articles}件"
-        echo "   📅 実行時刻: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-        
-        # 最小限の成功条件チェック
-        if [ $success_count -gt 0 ]; then
-          echo ""
-          echo "🎉 少なくとも1つのフィードが正常に取得されました"
-        else
-          echo ""
-          echo "💥 全てのフィードの取得に失敗しました"
-          echo "ワークフローを失敗として終了します"
-          exit 1
-        fi
 
-    # 変更をコミット（検索結果[1][5]の手法）
-    - name: Commit and push RSS data
+    - name: Commit and Push
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: 'RSS feeds updated - $(date -u +"%Y-%m-%d %H:%M UTC")'
+        commit_message: 'RSS feeds updated via custom script - $(date -u +"%Y-%m-%d %H:%M UTC")'
         file_pattern: 'data/*.json'
-        commit_user_name: 'RSS Fetcher Bot'
-        commit_user_email: 'action@github.com'
-
-    # 実行結果サマリー
-    - name: Execution Summary
-      if: always()
-      run: |
-        echo "=== 実行サマリー ==="
-        if [ "${{ job.status }}" = "success" ]; then
-          echo "✅ ワークフロー実行成功"
-          echo "📂 生成されたファイル:"
-          ls -la data/ || echo "dataディレクトリが見つかりません"
-        else
-          echo "❌ ワークフロー実行失敗"
-          echo "💡 トラブルシューティング:"
-          echo "   1. RSSフィードURLが有効か確認"
-          echo "   2. サーバーがUser-Agentをブロックしていないか確認"
-          echo "   3. 一時的なネットワーク問題の可能性"
-        fi
