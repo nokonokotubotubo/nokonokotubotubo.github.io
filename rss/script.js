@@ -1,49 +1,62 @@
-// RSSリーダーアプリケーション（修正版）
-class RSSReader {
+// script.js (GitHub Actions API対応版)
+class GitHubActionsRSSReader {
     constructor() {
         this.feeds = [];
         this.currentFeedIndex = 0;
         this.articles = [];
         this.readArticles = new Set();
-        this.maxRetries = 3;
-        this.retryDelay = 1000; // 遅延を増加
+        
+        // GitHub PagesのベースURL自動判定
+        this.baseUrl = this.getBaseUrl();
+        
+        // 自動更新間隔（5分ごとにチェック）
+        this.autoUpdateInterval = 5 * 60 * 1000;
+        this.lastUpdateCheck = 0;
         
         this.init();
     }
 
+    // ベースURL自動判定
+    getBaseUrl() {
+        if (window.location.hostname.includes('github.io')) {
+            return window.location.origin + window.location.pathname.replace(/\/$/, '');
+        }
+        return window.location.origin;
+    }
+
     // 初期化
-    init() {
-        this.loadFeeds();
+    async init() {
         this.loadReadArticles();
         this.loadDarkMode();
         this.bindEvents();
+        
+        // GitHub Actionsで生成されたフィードメタデータを読み込み
+        await this.loadFeedMetadata();
         this.renderTabs();
         
-        // 初期フィードがある場合は読み込み
         if (this.feeds.length > 0) {
-            this.loadCurrentFeed();
+            await this.loadCurrentFeed();
         }
+        
+        // 統計情報を更新
+        this.updateStats();
+        
+        // 自動更新を開始
+        this.startAutoUpdate();
+        
+        this.hideLoading();
     }
 
     // イベントバインド
     bindEvents() {
-        // RSS追加ボタン
-        document.getElementById('addRssBtn').addEventListener('click', () => {
-            this.toggleRssForm();
-        });
-
-        // RSS追加フォーム
-        document.getElementById('addFeedBtn').addEventListener('click', () => {
-            this.addFeed();
-        });
-
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            this.toggleRssForm();
-        });
-
         // ダークモード切り替え
         document.getElementById('darkModeToggle').addEventListener('click', () => {
             this.toggleDarkMode();
+        });
+
+        // 手動更新ボタン
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            this.forceUpdate();
         });
 
         // 再試行ボタン
@@ -52,452 +65,120 @@ class RSSReader {
         });
     }
 
-    // ローカルストレージからフィード読み込み
-    loadFeeds() {
-        const savedFeeds = localStorage.getItem('rssFeeds');
-        if (savedFeeds) {
-            try {
-                this.feeds = JSON.parse(savedFeeds);
-            } catch (e) {
-                console.error('フィード読み込みエラー:', e);
-                this.feeds = [];
-            }
-        }
-    }
-
-    // フィードをローカルストレージに保存
-    saveFeeds() {
-        localStorage.setItem('rssFeeds', JSON.stringify(this.feeds));
-    }
-
-    // 既読記事読み込み
-    loadReadArticles() {
-        const savedReadArticles = localStorage.getItem('readArticles');
-        if (savedReadArticles) {
-            try {
-                this.readArticles = new Set(JSON.parse(savedReadArticles));
-            } catch (e) {
-                console.error('既読記事読み込みエラー:', e);
-                this.readArticles = new Set();
-            }
-        }
-    }
-
-    // 既読記事保存
-    saveReadArticles() {
-        localStorage.setItem('readArticles', JSON.stringify([...this.readArticles]));
-    }
-
-    // ダークモード読み込み
-    loadDarkMode() {
-        const darkMode = localStorage.getItem('darkMode');
-        if (darkMode === 'true') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('darkModeToggle').querySelector('.icon').textContent = '☀️';
-        }
-    }
-
-    // ダークモード切り替え
-    toggleDarkMode() {
-        document.body.classList.toggle('dark-mode');
-        const isDarkMode = document.body.classList.contains('dark-mode');
-        localStorage.setItem('darkMode', isDarkMode);
-        
-        const icon = document.getElementById('darkModeToggle').querySelector('.icon');
-        icon.textContent = isDarkMode ? '☀️' : '🌙';
-    }
-
-    // RSS追加フォーム表示切り替え
-    toggleRssForm() {
-        const form = document.getElementById('rssForm');
-        form.classList.toggle('hidden');
-        
-        if (!form.classList.contains('hidden')) {
-            document.getElementById('rssName').focus();
-        } else {
-            // フォームをクリア
-            document.getElementById('rssName').value = '';
-            document.getElementById('rssUrl').value = '';
-        }
-    }
-
-    // フィード追加
-    async addFeed() {
-        const name = document.getElementById('rssName').value.trim();
-        const url = document.getElementById('rssUrl').value.trim();
-
-        if (!name || !url) {
-            alert('フィード名とURLを入力してください');
-            return;
-        }
-
-        // URL検証
+    // フィードメタデータ読み込み
+    async loadFeedMetadata() {
         try {
-            new URL(url);
-        } catch (e) {
-            alert('有効なURLを入力してください');
-            return;
-        }
-
-        // 重複チェック
-        if (this.feeds.some(feed => feed.url === url)) {
-            alert('このフィードは既に追加されています');
-            return;
-        }
-
-        const feed = { name, url };
-        this.feeds.push(feed);
-        this.saveFeeds();
-        this.renderTabs();
-        this.toggleRssForm();
-
-        // 新しいフィードを読み込み
-        this.currentFeedIndex = this.feeds.length - 1;
-        this.loadCurrentFeed();
-    }
-
-    // タブ描画
-    renderTabs() {
-        const tabContainer = document.getElementById('rssTabs');
-        tabContainer.innerHTML = '';
-
-        this.feeds.forEach((feed, index) => {
-            const tab = document.createElement('div');
-            tab.className = `rss-tab ${index === this.currentFeedIndex ? 'active' : ''}`;
-            tab.innerHTML = `
-                <span>${feed.name}</span>
-                <button class="tab-delete" data-index="${index}">×</button>
-            `;
+            console.log('📊 フィードメタデータを読み込み中...');
             
-            // タブクリックイベント
-            tab.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('tab-delete')) {
-                    this.currentFeedIndex = index;
-                    this.renderTabs();
-                    this.loadCurrentFeed();
-                }
-            });
-
-            // 削除ボタンイベント
-            tab.querySelector('.tab-delete').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deleteFeed(index);
-            });
-
-            tabContainer.appendChild(tab);
-        });
-    }
-
-    // フィード削除
-    deleteFeed(index) {
-        if (confirm('このフィードを削除しますか？')) {
-            this.feeds.splice(index, 1);
-            this.saveFeeds();
+            const response = await fetch(`${this.baseUrl}/data/feeds-meta.json?t=${Date.now()}`);
             
-            // 現在のインデックス調整
-            if (this.currentFeedIndex >= this.feeds.length) {
-                this.currentFeedIndex = Math.max(0, this.feeds.length - 1);
+            if (!response.ok) {
+                throw new Error(`メタデータ取得エラー: ${response.status}`);
             }
             
-            this.renderTabs();
+            const metadata = await response.json();
+            this.feeds = metadata.feeds;
+            this.lastServerUpdate = metadata.lastUpdated;
             
-            if (this.feeds.length > 0) {
-                this.loadCurrentFeed();
-            } else {
-                this.articles = [];
-                this.renderArticles();
-            }
+            // 更新時刻を表示
+            this.updateTimestamp(this.lastServerUpdate);
+            
+            console.log(`✅ ${this.feeds.length}個のフィードを読み込み完了`);
+            
+        } catch (error) {
+            console.error('メタデータ読み込みエラー:', error);
+            this.feeds = []; // フォールバック用空配列
+            this.showError(`フィード設定の読み込みに失敗しました: ${error.message}`);
         }
     }
 
     // 現在のフィード読み込み
     async loadCurrentFeed() {
-        if (this.feeds.length === 0) return;
+        if (this.feeds.length === 0) {
+            this.showError('読み込み可能なフィードがありません');
+            return;
+        }
 
         const feed = this.feeds[this.currentFeedIndex];
         this.showLoading();
         this.hideError();
 
         try {
-            const articles = await this.fetchRSSWithRetry(feed.url);
-            this.articles = articles.map(article => ({
-                ...article,
-                feedName: feed.name,
-                id: this.generateArticleId(article)
-            }));
-            this.renderArticles();
-        } catch (error) {
-            console.error('フィード読み込みエラー:', error);
-            this.showError(`フィードの読み込みに失敗しました: ${error.message}\n\n別のプロキシサービスを試しています...`);
+            console.log(`📡 ${feed.name} を読み込み中...`);
             
-            // 代替プロキシで再試行
-            try {
-                const articles = await this.fetchRSSWithFallback(feed.url);
-                this.articles = articles.map(article => ({
-                    ...article,
-                    feedName: feed.name,
-                    id: this.generateArticleId(article)
-                }));
-                this.renderArticles();
-                this.hideError();
-            } catch (fallbackError) {
-                console.error('代替プロキシも失敗:', fallbackError);
-                this.showError(`全てのプロキシサービスでフィード取得に失敗しました。\nRSSフィードのURLが正しいか確認してください。`);
+            // キャッシュバスターを追加
+            const response = await fetch(`${this.baseUrl}/data/${feed.file}?t=${Date.now()}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${feed.name}のデータが見つかりません`);
             }
+            
+            const data = await response.json();
+            
+            // データ形式の検証
+            if (!data.entries || !Array.isArray(data.entries)) {
+                throw new Error(`${feed.name}: 無効なデータ形式`);
+            }
+            
+            // 記事データの変換
+            this.articles = data.entries.map(entry => ({
+                title: entry.title || 'タイトル不明',
+                link: entry.link || '#',
+                summary: this.createSummary(entry.description || entry.summary || ''),
+                publishedDate: entry.published || entry.pubDate || new Date().toISOString(),
+                thumbnail: this.extractThumbnail(entry),
+                feedName: feed.name,
+                feedColor: feed.color,
+                id: this.generateArticleId(entry)
+            }));
+            
+            // 日付順ソート
+            this.articles.sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
+            
+            this.renderArticles();
+            this.updateStats();
+            
+            console.log(`✅ ${feed.name}: ${this.articles.length}件読み込み完了`);
+            
+        } catch (error) {
+            console.error(`${feed.name} 読み込みエラー:`, error);
+            this.showError(`${feed.name}の読み込みに失敗しました: ${error.message}`);
         } finally {
             this.hideLoading();
         }
     }
 
-    // 複数プロキシサービスを使用したRSS取得（修正版）
-    async fetchRSSWithRetry(url, retryCount = 0) {
-        // 複数のプロキシサービスを定義
-        const proxyServices = [
-            `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-            `https://cors-anywhere.herokuapp.com/${url}`,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-        ];
-        
-        const currentProxy = proxyServices[retryCount % proxyServices.length];
-        
-        try {
-            console.log(`プロキシ試行 ${retryCount + 1}: ${currentProxy}`);
-            
-            // AbortControllerでタイムアウト制御
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-            
-            const response = await fetch(currentProxy, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json, text/xml, application/xml',
-                    'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)'
-                },
-                signal: controller.signal,
-                mode: 'cors', // CORSを明示的に指定
-                cache: 'no-cache' // キャッシュを無効化
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            
-            // allorigins.winの場合
-            if (data.contents) {
-                return this.parseRSS(data.contents);
-            }
-            // その他のプロキシの場合
-            else if (typeof data === 'string') {
-                return this.parseRSS(data);
-            }
-            else {
-                throw new Error('有効なRSSデータが見つかりません');
-            }
-            
-        } catch (error) {
-            console.error(`プロキシ ${retryCount + 1} でエラー:`, error.message);
-            
-            if (retryCount < this.maxRetries) {
-                const delay = this.retryDelay * Math.pow(1.5, retryCount); // 指数バックオフを緩和
-                console.log(`${delay}ms後に次のプロキシで再試行...`);
-                
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return this.fetchRSSWithRetry(url, retryCount + 1);
-            }
-            
-            throw new Error(`全プロキシサービスで失敗: ${error.message}`);
+    // サムネイル抽出
+    extractThumbnail(entry) {
+        // RSS Feed Fetch Actionが提供する形式に対応
+        if (entry.media && entry.media.thumbnail) {
+            return entry.media.thumbnail.url;
         }
-    }
-
-    // 代替プロキシサービス
-    async fetchRSSWithFallback(url) {
-        const fallbackProxies = [
-            `https://thingproxy.freeboard.io/fetch/${url}`,
-            `https://cors.bridged.cc/${url}`
-        ];
         
-        for (const proxy of fallbackProxies) {
-            try {
-                console.log(`代替プロキシ試行: ${proxy}`);
-                
-                const response = await fetch(proxy, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'text/xml, application/xml',
-                    },
-                    timeout: 10000
-                });
-
-                if (response.ok) {
-                    const text = await response.text();
-                    return this.parseRSS(text);
-                }
-            } catch (error) {
-                console.error(`代替プロキシエラー: ${error.message}`);
-                continue;
+        if (entry.enclosures && entry.enclosures.length > 0) {
+            const imageEnclosure = entry.enclosures.find(enc => 
+                enc.type && enc.type.startsWith('image/'));
+            if (imageEnclosure) {
+                return imageEnclosure.url;
             }
         }
         
-        throw new Error('全ての代替プロキシでも失敗しました');
-    }
-
-    // RSS解析（改良版）
-    parseRSS(xmlString) {
-        try {
-            // 空文字やnullチェック
-            if (!xmlString || typeof xmlString !== 'string') {
-                throw new Error('有効なXMLデータがありません');
-            }
-            
-            // HTMLエンティティのデコード
-            const cleanXml = xmlString
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'");
-            
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(cleanXml, 'application/xml');
-            
-            // パースエラーチェック
-            const parserError = xmlDoc.querySelector('parsererror');
-            if (parserError) {
-                console.error('XML解析エラー詳細:', parserError.textContent);
-                throw new Error(`XML解析エラー: ${parserError.textContent}`);
-            }
-
-            // RSS 2.0 または Atom フィードの検出
-            const items = xmlDoc.querySelectorAll('item, entry');
-            
-            if (items.length === 0) {
-                console.warn('RSS項目が見つかりません。XMLを確認:', xmlString.substring(0, 500));
-                throw new Error('RSS項目が見つかりません');
-            }
-
-            const articles = [];
-
-            for (let i = 0; i < Math.min(items.length, 5); i++) {
-                const item = items[i];
-                const article = this.parseArticleItem(item);
-                if (article) {
-                    articles.push(article);
-                }
-            }
-
-            // 日付順でソート（新しい順）
-            articles.sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
-            
-            return articles;
-            
-        } catch (error) {
-            console.error('RSS解析エラー:', error);
-            throw new Error('RSSフィードの解析に失敗しました');
-        }
-    }
-
-    // 記事アイテム解析（改良版）
-    parseArticleItem(item) {
-        try {
-            const title = this.getTextContent(item, 'title') || 'タイトル不明';
-            const link = this.getTextContent(item, 'link, guid, id') || '#';
-            const description = this.getTextContent(item, 'description, summary, content:encoded, content') || '';
-            
-            // 日付の解析を改善
-            let publishedDate = this.getTextContent(item, 'pubDate, published, updated, dc:date');
-            if (!publishedDate) {
-                publishedDate = new Date().toISOString();
-            } else {
-                // 日付の正規化
-                try {
-                    publishedDate = new Date(publishedDate).toISOString();
-                } catch {
-                    publishedDate = new Date().toISOString();
-                }
-            }
-            
-            // サムネイル画像の取得（改良版）
-            let thumbnail = this.extractThumbnail(item, description);
-
-            // 説明文からHTMLタグを除去してサマリーを作成
-            const summary = this.createSummary(description);
-
-            return {
-                title: title.trim(),
-                link: link.trim(),
-                summary,
-                publishedDate,
-                thumbnail
-            };
-        } catch (error) {
-            console.error('記事解析エラー:', error);
-            return null;
-        }
-    }
-
-    // サムネイル抽出（改良版）
-    extractThumbnail(item, description) {
-        let thumbnail = '';
-        
-        // メディア要素からの取得
-        const mediaContent = item.querySelector('media\\:content, content, enclosure[type^="image"]');
-        if (mediaContent) {
-            thumbnail = mediaContent.getAttribute('url') || mediaContent.getAttribute('href');
+        // description内の画像検索
+        const description = entry.description || entry.summary || '';
+        const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+        if (imgMatch) {
+            return imgMatch[1];
         }
         
-        // description内のimg要素から取得
-        if (!thumbnail) {
-            const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
-            const imgMatch = description.match(imgRegex);
-            if (imgMatch) {
-                thumbnail = imgMatch[1];
-            }
-        }
-        
-        // og:imageの取得
-        if (!thumbnail) {
-            const ogImageRegex = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i;
-            const ogMatch = description.match(ogImageRegex);
-            if (ogMatch) {
-                thumbnail = ogMatch[1];
-            }
-        }
-        
-        return thumbnail;
-    }
-
-    // テキストコンテンツ取得（改良版）
-    getTextContent(element, selectors) {
-        const selectorList = selectors.split(',').map(s => s.trim());
-        for (const selector of selectorList) {
-            try {
-                const found = element.querySelector(selector);
-                if (found && found.textContent.trim()) {
-                    return found.textContent.trim();
-                }
-                // CDATA対応
-                if (found && found.innerHTML) {
-                    return found.innerHTML.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-                }
-            } catch (e) {
-                // セレクターエラーを無視して続行
-                continue;
-            }
-        }
         return '';
     }
 
-    // サマリー作成（改良版）
+    // サマリー作成
     createSummary(description, maxLength = 120) {
         if (!description) return '説明がありません';
         
-        // HTMLタグとCDATAを除去
+        // HTMLタグを除去
         let text = description
-            .replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
             .replace(/<[^>]*>/g, '')
             .replace(/&nbsp;/g, ' ')
             .replace(/&lt;/g, '<')
@@ -514,42 +195,149 @@ class RSSReader {
     }
 
     // 記事ID生成
-    generateArticleId(article) {
-        return btoa(unescape(encodeURIComponent(article.title + article.link))).replace(/[^a-zA-Z0-9]/g, '');
+    generateArticleId(entry) {
+        const source = (entry.title || '') + (entry.link || '') + (entry.published || '');
+        return btoa(unescape(encodeURIComponent(source))).replace(/[^a-zA-Z0-9]/g, '');
     }
 
-    // 記事一覧描画
+    // タブ描画
+    renderTabs() {
+        const tabContainer = document.getElementById('rssTabs');
+        tabContainer.innerHTML = '';
+
+        // 全フィード表示タブ
+        const allTab = document.createElement('div');
+        allTab.className = `rss-tab ${this.currentFeedIndex === -1 ? 'active' : ''}`;
+        allTab.innerHTML = `
+            <span class="tab-icon">📰</span>
+            <span>すべて</span>
+        `;
+        allTab.addEventListener('click', () => {
+            this.currentFeedIndex = -1;
+            this.renderTabs();
+            this.loadAllFeeds();
+        });
+        tabContainer.appendChild(allTab);
+
+        // 個別フィードタブ
+        this.feeds.forEach((feed, index) => {
+            const tab = document.createElement('div');
+            tab.className = `rss-tab ${index === this.currentFeedIndex ? 'active' : ''}`;
+            tab.style.borderColor = feed.color;
+            tab.innerHTML = `
+                <span class="tab-color" style="background-color: ${feed.color}"></span>
+                <span>${feed.name}</span>
+            `;
+            
+            tab.addEventListener('click', () => {
+                this.currentFeedIndex = index;
+                this.renderTabs();
+                this.loadCurrentFeed();
+            });
+
+            tabContainer.appendChild(tab);
+        });
+    }
+
+    // 全フィード読み込み
+    async loadAllFeeds() {
+        this.showLoading();
+        this.hideError();
+        
+        try {
+            console.log('📚 全フィードを読み込み中...');
+            
+            const allArticles = [];
+            
+            for (const feed of this.feeds) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/data/${feed.file}?t=${Date.now()}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const articles = data.entries.map(entry => ({
+                            title: entry.title || 'タイトル不明',
+                            link: entry.link || '#',
+                            summary: this.createSummary(entry.description || entry.summary || ''),
+                            publishedDate: entry.published || entry.pubDate || new Date().toISOString(),
+                            thumbnail: this.extractThumbnail(entry),
+                            feedName: feed.name,
+                            feedColor: feed.color,
+                            id: this.generateArticleId(entry)
+                        }));
+                        
+                        allArticles.push(...articles);
+                    }
+                } catch (error) {
+                    console.warn(`${feed.name}の読み込みをスキップ:`, error.message);
+                }
+            }
+            
+            // 日付順ソート
+            this.articles = allArticles.sort((a, b) => 
+                new Date(b.publishedDate) - new Date(a.publishedDate));
+            
+            this.renderArticles();
+            this.updateStats();
+            
+            console.log(`✅ 全フィード読み込み完了: ${this.articles.length}件`);
+            
+        } catch (error) {
+            console.error('全フィード読み込みエラー:', error);
+            this.showError(`全フィードの読み込みに失敗しました: ${error.message}`);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    // 記事描画（改良版）
     renderArticles() {
         const articleList = document.getElementById('articleList');
         
         if (this.articles.length === 0) {
-            articleList.innerHTML = '<div class="text-center"><p>記事がありません</p></div>';
+            articleList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>記事がありません</h3>
+                    <p>フィードの更新をお待ちください</p>
+                </div>
+            `;
             return;
         }
 
         articleList.innerHTML = this.articles.map(article => {
             const isRead = this.readArticles.has(article.id);
-            const publishedDate = new Date(article.publishedDate).toLocaleDateString('ja-JP');
+            const publishedDate = new Date(article.publishedDate).toLocaleDateString('ja-JP', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             
             return `
-                <article class="article-card ${isRead ? 'read' : ''}">
+                <article class="article-card ${isRead ? 'read' : ''}" data-feed-color="${article.feedColor}">
                     ${article.thumbnail ? 
-                        `<img src="${article.thumbnail}" alt="${article.title}" class="article-thumbnail" onerror="this.style.display='none'">` : 
-                        '<div class="article-thumbnail" style="background: linear-gradient(45deg, var(--secondary-color), var(--primary-color)); display: flex; align-items: center; justify-content: center; color: var(--accent-color); font-size: 2rem;">📰</div>'
+                        `<img src="${article.thumbnail}" alt="${article.title}" class="article-thumbnail" 
+                             onerror="this.style.display='none'" loading="lazy">` : 
+                        `<div class="article-thumbnail placeholder" style="background: linear-gradient(135deg, ${article.feedColor}20, ${article.feedColor}40);">
+                            <span style="color: ${article.feedColor}; font-size: 2rem;">📰</span>
+                         </div>`
                     }
                     <div class="article-content">
+                        <div class="article-header">
+                            <span class="feed-badge" style="background-color: ${article.feedColor}">
+                                ${article.feedName}
+                            </span>
+                            <span class="article-date">${publishedDate}</span>
+                        </div>
                         <h3 class="article-title">${article.title}</h3>
                         <p class="article-summary">${article.summary}</p>
-                        <div class="article-meta">
-                            <span class="article-date">${publishedDate}</span>
-                            <span class="article-feed">${article.feedName}</span>
-                        </div>
                         <div class="article-actions">
-                            <button class="read-btn ${isRead ? 'marked' : ''}" onclick="rssReader.toggleReadStatus('${article.id}')">
-                                ${isRead ? '既読' : '未読'}
+                            <button class="read-btn ${isRead ? 'marked' : ''}" 
+                                    onclick="rssReader.toggleReadStatus('${article.id}')">
+                                ${isRead ? '✓ 既読' : '○ 未読'}
                             </button>
-                            <a href="${article.link}" target="_blank" class="btn btn-primary" style="text-decoration: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                                記事を読む
+                            <a href="${article.link}" target="_blank" rel="noopener" class="read-more-btn">
+                                記事を読む →
                             </a>
                         </div>
                     </div>
@@ -558,7 +346,107 @@ class RSSReader {
         }).join('');
     }
 
-    // 既読状態切り替え
+    // 統計情報更新
+    updateStats() {
+        const totalArticles = this.articles.length;
+        const totalFeeds = this.feeds.length;
+        const unreadArticles = this.articles.filter(article => 
+            !this.readArticles.has(article.id)).length;
+
+        document.getElementById('totalArticles').textContent = totalArticles;
+        document.getElementById('totalFeeds').textContent = totalFeeds;
+        document.getElementById('unreadArticles').textContent = unreadArticles;
+        
+        document.getElementById('feedStats').classList.remove('hidden');
+    }
+
+    // 更新時刻表示
+    updateTimestamp(timestamp) {
+        if (!timestamp) return;
+        
+        const date = new Date(timestamp);
+        const formattedTime = date.toLocaleString('ja-JP', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        document.getElementById('updateTime').textContent = `${formattedTime} 更新`;
+        document.getElementById('footerUpdateTime').textContent = formattedTime;
+    }
+
+    // 自動更新開始
+    startAutoUpdate() {
+        setInterval(async () => {
+            const now = Date.now();
+            if (now - this.lastUpdateCheck > this.autoUpdateInterval) {
+                console.log('🔄 定期更新チェック実行');
+                await this.checkForUpdates();
+                this.lastUpdateCheck = now;
+            }
+        }, this.autoUpdateInterval);
+    }
+
+    // 更新チェック
+    async checkForUpdates() {
+        try {
+            const response = await fetch(`${this.baseUrl}/data/feeds-meta.json?t=${Date.now()}`);
+            if (response.ok) {
+                const metadata = await response.json();
+                if (metadata.lastUpdated !== this.lastServerUpdate) {
+                    console.log('🆕 新しい更新を検出');
+                    this.lastServerUpdate = metadata.lastUpdated;
+                    this.updateTimestamp(this.lastServerUpdate);
+                    
+                    // 現在表示中のフィードを再読み込み
+                    if (this.currentFeedIndex === -1) {
+                        await this.loadAllFeeds();
+                    } else {
+                        await this.loadCurrentFeed();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('更新チェックエラー:', error);
+        }
+    }
+
+    // 強制更新
+    async forceUpdate() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<span class="icon spinning">🔄</span>';
+        
+        try {
+            await this.loadFeedMetadata();
+            if (this.currentFeedIndex === -1) {
+                await this.loadAllFeeds();
+            } else {
+                await this.loadCurrentFeed();
+            }
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<span class="icon">🔄</span>';
+        }
+    }
+
+    // 既読記事管理
+    loadReadArticles() {
+        const saved = localStorage.getItem('readArticles');
+        if (saved) {
+            try {
+                this.readArticles = new Set(JSON.parse(saved));
+            } catch (e) {
+                this.readArticles = new Set();
+            }
+        }
+    }
+
+    saveReadArticles() {
+        localStorage.setItem('readArticles', JSON.stringify([...this.readArticles]));
+    }
+
     toggleReadStatus(articleId) {
         if (this.readArticles.has(articleId)) {
             this.readArticles.delete(articleId);
@@ -568,25 +456,41 @@ class RSSReader {
         
         this.saveReadArticles();
         this.renderArticles();
+        this.updateStats();
     }
 
-    // ローディング表示
+    // ダークモード管理
+    loadDarkMode() {
+        const darkMode = localStorage.getItem('darkMode');
+        if (darkMode === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeToggle').querySelector('.icon').textContent = '☀️';
+        }
+    }
+
+    toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDarkMode);
+        
+        const icon = document.getElementById('darkModeToggle').querySelector('.icon');
+        icon.textContent = isDarkMode ? '☀️' : '🌙';
+    }
+
+    // UI状態管理
     showLoading() {
         document.getElementById('loading').classList.remove('hidden');
     }
 
-    // ローディング非表示
     hideLoading() {
         document.getElementById('loading').classList.add('hidden');
     }
 
-    // エラー表示
     showError(message) {
         document.getElementById('errorText').textContent = message;
         document.getElementById('errorMessage').classList.remove('hidden');
     }
 
-    // エラー非表示
     hideError() {
         document.getElementById('errorMessage').classList.add('hidden');
     }
@@ -595,5 +499,5 @@ class RSSReader {
 // アプリケーション開始
 let rssReader;
 document.addEventListener('DOMContentLoaded', () => {
-    rssReader = new RSSReader();
+    rssReader = new GitHubActionsRSSReader();
 });
