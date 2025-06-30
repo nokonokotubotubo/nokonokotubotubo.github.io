@@ -1,0 +1,246 @@
+name: Fetch RSS Feeds and Deploy
+
+# トリガー設定
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    # 毎時0分に実行（UTC時間）
+    - cron: '0 * * * *'
+  # 手動実行を可能にする
+  workflow_dispatch:
+
+# 必要な権限設定
+permissions:
+  contents: write    # ファイル書き込み権限
+  pages: write      # GitHub Pages デプロイ権限
+  id-token: write   # GitHub Pages 認証用
+
+jobs:
+  # Job 1: RSS取得とデータ生成
+  fetch-rss:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    # rssディレクトリを作成（存在しない場合）
+    - name: Create RSS directory
+      run: |
+        mkdir -p rss
+        echo "✅ rssディレクトリを作成しました"
+    
+    # Qiita RSS取得
+    - name: Fetch Qiita RSS Feed
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with:
+        feed_url: 'https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed'
+        file_path: './temp-qiita-feed.json'
+    
+    # Zenn RSS取得
+    - name: Fetch Zenn RSS Feed
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with:
+        feed_url: 'https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed'
+        file_path: './temp-zenn-feed.json'
+    
+    # CNET RSS取得
+    - name: Fetch CNET RSS Feed
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with:
+        feed_url: 'http://feeds.japan.cnet.com/cnet/rss'
+        file_path: './temp-cnet-feed.json'
+    
+    # データ統合とJSON生成
+    - name: Merge RSS Feeds and Generate JSON
+      run: |
+        node << 'EOF'
+        const fs = require('fs');
+        const path = require('path');
+        
+        console.log('🚀 RSS統合処理を開始します...');
+        
+        // フィード定義
+        const feeds = [
+          { 
+            name: 'Qiita', 
+            file: './temp-qiita-feed.json', 
+            color: '#55C500',
+            description: 'Qiita 生成AI記事'
+          },
+          { 
+            name: 'Zenn', 
+            file: './temp-zenn-feed.json', 
+            color: '#3EA8FF',
+            description: 'Zenn 生成AI記事'
+          },
+          { 
+            name: 'CNET', 
+            file: './temp-cnet-feed.json', 
+            color: '#C41E3A',
+            description: 'CNET Japan ニュース'
+          }
+        ];
+        
+        let allEntries = [];
+        let processedFeeds = [];
+        
+        // 各フィードを処理
+        feeds.forEach(feed => {
+          try {
+            console.log(`📖 ${feed.name} フィードを処理中...`);
+            
+            if (!fs.existsSync(feed.file)) {
+              console.log(`⚠️  ${feed.file} が見つかりません。スキップします。`);
+              return;
+            }
+            
+            const rawData = fs.readFileSync(feed.file, 'utf8');
+            const data = JSON.parse(rawData);
+            
+            if (data.entries && Array.isArray(data.entries)) {
+              // 最新5件を取得してメタデータを追加
+              const feedEntries = data.entries.slice(0, 5).map(entry => ({
+                ...entry,
+                source: feed.name,
+                sourceColor: feed.color,
+                sourceFeed: feed.name.toLowerCase(),
+                // 日付正規化
+                published: entry.published || entry.pubDate || new Date().toISOString(),
+                // サマリー生成
+                summary: (entry.description || entry.summary || '').replace(/<[^>]*>/g, '').substring(0, 150),
+                // サムネイル抽出試行
+                thumbnail: extractThumbnail(entry)
+              }));
+              
+              allEntries = allEntries.concat(feedEntries);
+              processedFeeds.push({
+                name: feed.name,
+                color: feed.color,
+                description: feed.description,
+                count: feedEntries.length
+              });
+              
+              console.log(`✅ ${feed.name}: ${feedEntries.length}件の記事を追加`);
+            } else {
+              console.log(`⚠️  ${feed.name}: entriesが見つからないか配列ではありません`);
+            }
+            
+          } catch (error) {
+            console.error(`❌ ${feed.name} 処理エラー:`, error.message);
+          }
+        });
+        
+        // サムネイル抽出関数
+        function extractThumbnail(entry) {
+          // enclosures から画像を抽出
+          if (entry.enclosures && Array.isArray(entry.enclosures)) {
+            const imageEnclosure = entry.enclosures.find(enc => 
+              enc.type && enc.type.startsWith('image/')
+            );
+            if (imageEnclosure && imageEnclosure.url) {
+              return imageEnclosure.url;
+            }
+          }
+          
+          // media:content から抽出
+          if (entry['media:content'] && entry['media:content'].url) {
+            return entry['media:content'].url;
+          }
+          
+          // description内のimg要素から抽出
+          if (entry.description) {
+            const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch && imgMatch[1]) {
+              return imgMatch[1];
+            }
+          }
+          
+          return null;
+        }
+        
+        // 日付順でソート（新しい順）
+        allEntries.sort((a, b) => new Date(b.published) - new Date(a.published));
+        
+        // 最終的に15件に制限
+        allEntries = allEntries.slice(0, 15);
+        
+        // 統合結果のJSONを生成
+        const result = {
+          title: 'RSS Reader - 生成AI記事フィード',
+          description: '最新の生成AI関連記事をまとめて配信',
+          updated: new Date().toISOString(),
+          totalEntries: allEntries.length,
+          feeds: processedFeeds,
+          entries: allEntries
+        };
+        
+        // JSONファイルを出力
+        const outputPath = './rss/feeds.json';
+        fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
+        
+        console.log(`🎉 統合完了: ${allEntries.length}件の記事を ${outputPath} に出力しました`);
+        
+        // サマリー表示
+        processedFeeds.forEach(feed => {
+          console.log(`   📰 ${feed.name}: ${feed.count}件`);
+        });
+        
+        // 一時ファイルを削除
+        feeds.forEach(feed => {
+          if (fs.existsSync(feed.file)) {
+            fs.unlinkSync(feed.file);
+            console.log(`🗑️  ${feed.file} を削除しました`);
+          }
+        });
+        
+        EOF
+    
+    # 変更をコミット
+    - name: Commit and push changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: '🤖 RSS feeds updated - ${{ steps.date.outputs.date }}'
+        file_pattern: 'rss/feeds.json'
+        commit_user_name: 'RSS Bot'
+        commit_user_email: 'rss-bot@github-actions.local'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    # 日付情報を出力
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+
+  # Job 2: GitHub Pagesデプロイ
+  deploy:
+    needs: fetch-rss  # fetch-rssジョブの完了を待つ
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: main  # 最新のmainブランチを取得
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './'  # リポジトリ全体をアップロード
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+    
+    - name: Display deployment URL
+      run: |
+        echo "🚀 サイトがデプロイされました!"
+        echo "📱 アクセスURL: ${{ steps.deployment.outputs.page_url }}rss/"
+        echo "📊 GitHub Pages設定を確認してください"
