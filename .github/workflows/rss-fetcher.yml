@@ -1,4 +1,4 @@
-# .github/workflows/rss-fetcher.yml
+# .github/workflows/rss-fetcher.yml (修正版)
 name: RSS Feed Fetcher
 
 on:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch: # 手動実行も可能
   push:
     branches: [ main ]
-    paths: [ 'rss-config.json' ] # 設定変更時も実行
+    paths: [ 'rss-config.json' ]
 
 jobs:
   fetch-rss:
@@ -23,47 +23,42 @@ jobs:
     - name: Create data directory
       run: mkdir -p data
 
-    - name: Read RSS configuration
-      id: config
-      run: |
-        if [ -f "rss-config.json" ]; then
-          echo "RSS設定ファイルが見つかりました"
-          cat rss-config.json
-        else
-          echo "デフォルト設定を使用します"
-        fi
-
     # フィード1: テックニュース
     - name: Fetch Tech News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
       with:
         feed_url: 'https://feeds.feedburner.com/oreilly/radar'
         file_path: './data/tech-news.json'
-        max_entries: 5
 
     # フィード2: ITメディア
     - name: Fetch IT Media RSS  
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
       with:
         feed_url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml'
         file_path: './data/it-media.json'
-        max_entries: 5
 
     # フィード3: GIGAZINE
     - name: Fetch GIGAZINE RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
       with:
         feed_url: 'https://gigazine.net/news/rss_2.0/'
         file_path: './data/gigazine.json'
-        max_entries: 5
 
     # フィード4: NHKニュース
     - name: Fetch NHK News RSS
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.0.1
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1  # v2.0.1 → v2.1 に修正
       with:
         feed_url: 'https://www3.nhk.or.jp/rss/news/cat0.xml'
         file_path: './data/nhk-news.json'
-        max_entries: 5
+
+    # 追加オプション付きの高度な設定例
+    - name: Fetch Custom RSS with Options
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2.1
+      with:
+        feed_url: 'https://feeds.feedburner.com/oreilly/radar'
+        file_path: './data/tech-advanced.json'
+        parser_options: '{"useISODateFormat": false, "getExtraEntryFields": "(feedEntry) => { return { \"content:encoded\": feedEntry[\"content:encoded\"] || \"\" }; }"}'
+        remove_published: true  # 不要なコミットを防ぐ[1]
 
     # メタデータファイル生成
     - name: Generate feed metadata
@@ -118,6 +113,7 @@ jobs:
               echo "✅ $(basename "$file"): ${entries}件のエントリ"
             else
               echo "❌ $(basename "$file"): 無効なJSON"
+              cat "$file" | head -10  # エラー内容を表示
             fi
           fi
         done
@@ -131,7 +127,7 @@ jobs:
         commit_user_name: 'RSS Fetcher Bot'
         commit_user_email: 'action@github.com'
 
-    # 実行結果を通知（オプション）
+    # 実行結果を通知
     - name: Report execution status
       if: always()
       run: |
