@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T05:18:43.703Z",
+  "updated": "2025-07-01T06:22:06.818Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047490",
+      "title": "『miibo』でコード開発もしちゃおう！～VSCodeで使える「Cline-miibo」プラグイン～",
+      "link": "https://qiita.com/hiro-matsumoto/items/2d5d89c73c3666752ee3",
+      "published": "2025-07-01T06:20:05.000Z",
+      "description": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にインストール後「Cline」の...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にインストール後「Cline」の...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqlj5-1751350200000",
+      "title": "ドコモ企業ロゴ、きょう17年ぶり変更　ぐるぐるマーク追加",
+      "link": "https://japan.cnet.com/article/35234948/",
+      "published": "2025-07-01T06:10:00.000Z",
+      "description": "NTTドコモは7月1日、コーポレートロゴを変更した。前回の変更は2008年7月1日で、ちょうど17年ぶり。新ロゴは、NTTブランドの象徴である「ダイナミックループ」（通称：ぐるぐるマーク）をあしらい、グループ一体感を強めたデザインとなった。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "NTTドコモは7月1日、コーポレートロゴを変更した。前回の変更は2008年7月1日で、ちょうど17年ぶり。新ロゴは、NTTブランドの象徴である「ダイナミックループ」（通称：ぐるぐるマーク）をあしらい、グループ一体感を強めたデザインとなった。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047472",
       "title": "雑にエクセルのマージを行うサイトを作成しました",
@@ -106,30 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "PayPayは6月30日、オンライン決済専用のバーチャルカード「PayPay残高カード」の提供をeKYC（本人確認）済みの全ユーザーに拡大したと発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqnuo-1751330100000",
-      "title": "Spotifyのおすすめ選曲「Discover Weekly」、手動でジャンル指定が可能に",
-      "link": "https://japan.cnet.com/article/35234914/",
-      "published": "2025-07-01T00:35:00.000Z",
-      "description": "音楽配信サービスのSpotifyは、おすすめの曲を提案するプレイリスト「Discover Weekly」を刷新し、音楽のジャンルを指定できるようにしたと発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "音楽配信サービスのSpotifyは、おすすめの曲を提案するプレイリスト「Discover Weekly」を刷新し、音楽のジャンルを指定できるようにしたと発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047353",
-      "title": "Claudeとペアプロしてみたら、開発体験が激変した話",
-      "link": "https://qiita.com/htanaka0828/items/9ffc7b48c6fbf7ce4f32",
-      "published": "2025-07-01T00:09:59.000Z",
-      "description": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Claude Code を中心に開発を行っています。 この記事では、Claudeとペ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Claude Code を中心に開発を行っています。 この記事では、Claudeとペ...",
       "thumbnail": null
     },
     {
