@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-06-30T23:13:30.886Z",
+  "updated": "2025-07-01T01:18:46.712Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,8 +25,68 @@
   ],
   "entries": [
     {
+      "id": "5nqn5p-1751332200000",
+      "title": "PayPayの「審査不要で即時発行できるVisaバーチャルカード」、全ユーザーに開放",
+      "link": "https://japan.cnet.com/article/35234922/",
+      "published": "2025-07-01T01:10:00.000Z",
+      "description": "PayPayは6月30日、オンライン決済専用のバーチャルカード「PayPay残高カード」の提供をeKYC（本人確認）済みの全ユーザーに拡大したと発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "PayPayは6月30日、オンライン決済専用のバーチャルカード「PayPay残高カード」の提供をeKYC（本人確認）済みの全ユーザーに拡大したと発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqnuo-1751330100000",
+      "title": "Spotifyのおすすめ選曲「Discover Weekly」、手動でジャンル指定が可能に",
+      "link": "https://japan.cnet.com/article/35234914/",
+      "published": "2025-07-01T00:35:00.000Z",
+      "description": "音楽配信サービスのSpotifyは、おすすめの曲を提案するプレイリスト「Discover Weekly」を刷新し、音楽のジャンルを指定できるようにしたと発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "音楽配信サービスのSpotifyは、おすすめの曲を提案するプレイリスト「Discover Weekly」を刷新し、音楽のジャンルを指定できるようにしたと発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047353",
+      "title": "Claudeとペアプロしてみたら、開発体験が激変した話",
+      "link": "https://qiita.com/htanaka0828/items/9ffc7b48c6fbf7ce4f32",
+      "published": "2025-07-01T00:09:59.000Z",
+      "description": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Clau…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Clau…",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqnx9-1751326800000",
+      "title": "NetflixにNASAのライブ宇宙映像が登場へ、今夏から",
+      "link": "https://japan.cnet.com/article/35234911/",
+      "published": "2025-06-30T23:40:00.000Z",
+      "description": "宇宙や星々からの眺めに興味がある人に朗報だ。米航空宇宙局（NASA）は動画配信大手Netflixとの新たな提携により、コンテンツ配信を拡大する。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "宇宙や星々からの眺めに興味がある人に朗報だ。米航空宇宙局（NASA）は動画配信大手Netflixとの新たな提携により、コンテンツ配信を拡大する。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047259",
+      "title": "半年かけて『ポリ徹』を個人開発してみた話 – 生成AI×国会議事録要約アプリ",
+      "link": "https://qiita.com/Goriwaku/items/cf2df6ed60c5032a93e6",
+      "published": "2025-06-30T23:24:30.000Z",
+      "description": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び…",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び…",
+      "thumbnail": null
+    },
+    {
       "id": "5nqois-1751321100000",
-      "title": "PASMOを使える腕時計、ついにApple Watch以外にも拡大--Google Pixel Watchなど",
+      "title": "モバイルPASMO、ついに「Pixel Watch」などWear OSデバイスで利用可能に",
       "link": "https://japan.cnet.com/article/35234907/",
       "published": "2025-06-30T22:05:00.000Z",
       "description": "Googleが6月30日よりWear OS搭載スマートウォッチでPASMO対応を開始。定期券の利用やチャージ方法も詳しく解説。",
@@ -130,66 +190,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思いま…",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047113",
-      "title": "「MAGI」- 3賢者AIが協調するコーディング生成AIエージェント -",
-      "link": "https://qiita.com/ukiuni@github/items/de6171bdbf3c1dca63b4",
-      "published": "2025-06-30T10:20:35.000Z",
-      "description": "1. はじめに MAGIは、生成AIにより良く仕事をしてもらうために設計された、まったく新しい次元のコーディング生成AIエージェントです。3人の賢者の名を冠した3つのAIエージェントが、それぞれの役…",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "1. はじめに MAGIは、生成AIにより良く仕事をしてもらうために設計された、まったく新しい次元のコーディング生成AIエージェントです。3人の賢者の名を冠した3つのAIエージェントが、それぞれの役…",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqom8-1751273400000",
-      "title": "PayPay銀行が「50年ローン」--住宅高騰で",
-      "link": "https://japan.cnet.com/article/35234903/",
-      "published": "2025-06-30T08:50:00.000Z",
-      "description": "PayPay銀行は6月30日、住宅ローンの最長借入期間を現行の35年から50年へ拡大すると発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "PayPay銀行は6月30日、住宅ローンの最長借入期間を現行の35年から50年へ拡大すると発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047033",
-      "title": "【ChatGPT】（読み物）こちらの意図がChatGPTに伝わらないときにどうしたらいいのか。",
-      "link": "https://qiita.com/kabumira/items/5da2c2cc696c179e133f",
-      "published": "2025-06-30T08:01:12.000Z",
-      "description": "どうも、カーブミラーです。 　今回は、こちらの意図がChatGPTに伝わらないときにどうしたらいいのかを書きます。参考程度にどうぞ。 暑い日々が続きます。熱中症に ご注意を。クーラーがあっても 油…",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "どうも、カーブミラーです。 　今回は、こちらの意図がChatGPTに伝わらないときにどうしたらいいのかを書きます。参考程度にどうぞ。 暑い日々が続きます。熱中症に ご注意を。クーラーがあっても 油…",
-      "thumbnail": null
-    },
-    {
-      "id": "5nr4t7-1751265780000",
-      "title": "ZOZO、マッチングアプリ参入--全身写真とキャッチコピーのみ　年収や学歴不問",
-      "link": "https://japan.cnet.com/article/35234898/",
-      "published": "2025-06-30T06:43:00.000Z",
-      "description": "ZOZOは6月30日、ファッションの「雰囲気」やスタイルを軸にユーザー同士をマッチングするスマートフォンアプリ「ZOZOマッチ」をリリースした。対象はiOSとAndroid端末で、利用にはZOZO IDが必要となる。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "ZOZOは6月30日、ファッションの「雰囲気」やスタイルを軸にユーザー同士をマッチングするスマートフォンアプリ「ZOZOマッチ」をリリースした。対象はiOSとAndroid端末で、利用にはZOZO IDが必要となる。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nr4ux-1751264100000",
-      "title": "ペルチェ素子で冷やした水が循環するウェア、4万円切りでShiftallから--暑さ対策に",
-      "link": "https://japan.cnet.com/article/35234896/",
-      "published": "2025-06-30T06:15:00.000Z",
-      "description": "Shiftallは6月30日、水を冷却して循環させる“ペルチェチラー方式”を採用した水冷ウェア「ChillerX」を発表した。価格は3万9990円（税込・送料込、バッテリー別売）で、8月上旬から順次出荷する。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "Shiftallは6月30日、水を冷却して循環させる“ペルチェチラー方式”を採用した水冷ウェア「ChillerX」を発表した。価格は3万9990円（税込・送料込、バッテリー別売）で、8月上旬から順次出荷する。",
       "thumbnail": null
     }
   ]
