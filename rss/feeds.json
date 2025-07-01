@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T04:33:37.982Z",
+  "updated": "2025-07-01T05:18:43.703Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047472",
+      "title": "雑にエクセルのマージを行うサイトを作成しました",
+      "link": "https://qiita.com/uni928/items/bab9ea03366f447fb90f",
+      "published": "2025-07-01T05:07:19.000Z",
+      "description": "はじめに 複数のエクセルファイルをまとめて1つにマージする作業、 業務の現場では意外と頻繁に発生するのではないでしょうか？ たとえば： ・複数の部署から送られてきた売上報告書 ・日ごとに分かれたCSVログファイル ・分担して記入されたアンケートの結果 などなど、「全部まと...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 複数のエクセルファイルをまとめて1つにマージする作業、 業務の現場では意外と頻繁に発生するのではないでしょうか？ たとえば： ・複数の部署から送られてきた売上報告書 ・日ごとに分かれたCSVログファイル ・分担して記入されたアンケートの結果 などなど、「全部まと...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2045010",
+      "title": "Copilot Studio × SharePointで社内ナレッジ活用！チャットボット開発の実践レポート",
+      "link": "https://qiita.com/TND_AYN/items/99328245f5024b7831ff",
+      "published": "2025-07-01T04:56:22.000Z",
+      "description": "近年、企業内に蓄積された膨大な情報を効率的に活用する方法が注目されています。 今回はMicrosoft 365のサービスの一つである、Copilot Studioを活用して、社内の問い合わせ業務を支援する「社内お問い合わせチャットボット」を開発した事例をご紹介します。 ※本...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "近年、企業内に蓄積された膨大な情報を効率的に活用する方法が注目されています。 今回はMicrosoft 365のサービスの一つである、Copilot Studioを活用して、社内の問い合わせ業務を支援する「社内お問い合わせチャットボット」を開発した事例をご紹介します。 ※本...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047461",
       "title": "指定したフォルダの中のファイルを全てクリップボードにコピーするサイトを作成しました",
@@ -109,18 +133,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047259",
-      "title": "半年かけて『ポリ徹』を個人開発してみた話 – 生成AI×国会議事録要約アプリ",
-      "link": "https://qiita.com/Goriwaku/items/cf2df6ed60c5032a93e6",
-      "published": "2025-06-30T23:24:30.000Z",
-      "description": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び個人開発の反省点についてそれぞれ書き記していきます。個人開発をしてみたいも...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び個人開発の反省点についてそれぞれ書き記していきます。個人開発をしてみたいも...",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
       "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
       "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
@@ -178,18 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "概要 会議の障壁をなくす会議ファシリテーションwebアプリ https://youtu.be/pn-BfHPG_7A 「アイスブレイクがイマイチ盛り上がらない」 「意見が対立して話が進まない」 「話が脇道に逸れて結論が出ない」 「アクションアイテムを記録しそこねる」 などなど会議をする上での障壁は意",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047145",
-      "title": "AI投資チャレンジ #05 第三候補発見編 - 30代エンジニアが100万を一億円にする話",
-      "link": "https://qiita.com/aug/items/3fb56f792fc996641014",
-      "published": "2025-06-30T11:41:32.000Z",
-      "description": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的にデータ分析する方法の実例として参考になれば幸いです。 Claude C...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的にデータ分析する方法の実例として参考になれば幸いです。 Claude C...",
       "thumbnail": null
     }
   ]
