@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T11:17:18.783Z",
+  "updated": "2025-07-01T12:41:21.719Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047675",
+      "title": "生成AIによるソフトウェア開発の業務効率化事例",
+      "link": "https://qiita.com/karakurai_rena/items/4153ed895a7ec675a34d",
+      "published": "2025-07-01T12:40:37.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを活用したソフトウェア開発の業務効率化についてご紹介しますね。ソフトウェア開発の現場では、効率化と品質向上が常に求められていますが、最近は生成AIの導入が進み、開発プロセスに大きな変化をもたらして...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを活用したソフトウェア開発の業務効率化についてご紹介しますね。ソフトウェア開発の現場では、効率化と品質向上が常に求められていますが、最近は生成AIの導入が進み、開発プロセスに大きな変化をもたらして...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047490",
       "title": "『miibo』でコード開発もしちゃおう！～VSCodeで使える「Cline-miibo」プラグイン～",
@@ -106,18 +118,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 複数のエクセルファイルをまとめて1つにマージする作業、 業務の現場では意外と頻繁に発生するのではないでしょうか？ たとえば： ・複数の部署から送られてきた売上報告書 ・日ごとに分かれたCSVログファイル ・分担して記入されたアンケートの結果 などなど、「全部まと...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2045010",
-      "title": "Copilot Studio × SharePointで社内ナレッジ活用！チャットボット開発の実践レポート",
-      "link": "https://qiita.com/TND_AYN/items/99328245f5024b7831ff",
-      "published": "2025-07-01T04:56:22.000Z",
-      "description": "近年、企業内に蓄積された膨大な情報を効率的に活用する方法が注目されています。 今回はMicrosoft 365のサービスの一つである、Copilot Studioを活用して、社内の問い合わせ業務を支援する「社内お問い合わせチャットボット」を開発した事例をご紹介します。 ※本...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "近年、企業内に蓄積された膨大な情報を効率的に活用する方法が注目されています。 今回はMicrosoft 365のサービスの一つである、Copilot Studioを活用して、社内の問い合わせ業務を支援する「社内お問い合わせチャットボット」を開発した事例をご紹介します。 ※本...",
       "thumbnail": null
     },
     {
