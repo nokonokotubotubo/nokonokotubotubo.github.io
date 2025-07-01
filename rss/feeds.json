@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T22:57:21.675Z",
+  "updated": "2025-07-01T23:18:47.865Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqiqe-1751411400000",
+      "title": "Amazon、「23時59分までの注文で翌日配送する地域」を全国展開--迅速性向上へ",
+      "link": "https://japan.cnet.com/article/35234981/",
+      "published": "2025-07-01T23:10:00.000Z",
+      "description": "Amazonは、23時59分までの注文に対して翌日配送を行うサービスを、2025年中に全国へ展開する。さらに、一部地域では、13時までに注文した商品を当日の夜間に届けるオプションも拡大する。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Amazonは、23時59分までの注文に対して翌日配送を行うサービスを、2025年中に全国へ展開する。さらに、一部地域では、13時までに注文した商品を当日の夜間に届けるオプションも拡大する。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047791",
       "title": "[速習] 米国が騒ぐ「AI週4日勤務」を、日本人は既に実現していた件",
@@ -166,18 +178,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "Kyashが7月1日、Android版Google PayでVisaタッチ決済を開始。Kyash Card/Virtualを登録するだけで国内外のVisa加盟店で非接触決済が可能に。QUICPay+は8月31日終了予定。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqlj5-1751350200000",
-      "title": "ドコモ企業ロゴ、きょう17年ぶり変更　ぐるぐるマーク追加",
-      "link": "https://japan.cnet.com/article/35234948/",
-      "published": "2025-07-01T06:10:00.000Z",
-      "description": "NTTドコモは7月1日、コーポレートロゴを変更した。前回の変更は2008年7月1日で、ちょうど17年ぶり。新ロゴは、NTTブランドの象徴である「ダイナミックループ」（通称：ぐるぐるマーク）をあしらい、グループ一体感を強めたデザインとなった。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "NTTドコモは7月1日、コーポレートロゴを変更した。前回の変更は2008年7月1日で、ちょうど17年ぶり。新ロゴは、NTTブランドの象徴である「ダイナミックループ」（通称：ぐるぐるマーク）をあしらい、グループ一体感を強めたデザインとなった。",
       "thumbnail": null
     },
     {
