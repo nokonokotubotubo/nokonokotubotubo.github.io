@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T20:22:04.603Z",
+  "updated": "2025-07-01T21:18:47.109Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
+      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "published": "2025-07-01T19:23:41.000Z",
+      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
+      "thumbnail": null
+    },
     {
       "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
       "title": "MCP クライアントをゼロから作る ── Function Calling で LLM をツール使いにする方法",
@@ -178,18 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
-      "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "published": "2025-06-30T15:14:00.000Z",
-      "description": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通じて感じたことをお伝えします。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
       "thumbnail": null
     }
   ]
