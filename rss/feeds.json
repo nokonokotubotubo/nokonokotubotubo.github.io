@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T08:28:08.274Z",
+  "updated": "2025-07-01T08:42:58.825Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqjhy-1751358900000",
+      "title": "猛暑を加速させる「ヒートドーム」とは--恐ろしい気象現象の正体",
+      "link": "https://japan.cnet.com/article/35234970/",
+      "published": "2025-07-01T08:35:00.000Z",
+      "description": "米国を襲う記録的猛暑。その背後にある「ヒートドーム」とは？仕組みや影響、気候変動との関係、対策まで徹底解説。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "米国を襲う記録的猛暑。その背後にある「ヒートドーム」とは？仕組みや影響、気候変動との関係、対策まで徹底解説。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047560",
       "title": "【AWS Strands Agents】3行でAIエージェントは作成できるのか？",
@@ -121,15 +133,15 @@
       "thumbnail": null
     },
     {
-      "id": "5nqmfv-1751335800000",
-      "title": "NTTコミュニケーションズ、きょう1日から「ドコモビジネス」に社名変更",
-      "link": "https://japan.cnet.com/article/35234931/",
-      "published": "2025-07-01T02:10:00.000Z",
-      "description": "NTTドコモグループのNTTコミュニケーションズは7月1日、社名を「NTTドコモビジネス」に変更した。同じくNTTドコモ傘下のNTTコムウェアも同日付で「NTTドコモソリューションズ」へと社名を改めている。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "NTTドコモグループのNTTコミュニケーションズは7月1日、社名を「NTTドコモビジネス」に変更した。同じくNTTドコモ傘下のNTTコムウェアも同日付で「NTTドコモソリューションズ」へと社名を改めている。",
+      "id": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
+      "title": "【RAG】大企業の「暗黙知」を、AIで自動で「形式知」に",
+      "link": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
+      "published": "2025-06-30T23:00:01.000Z",
+      "description": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
       "thumbnail": null
     },
     {
@@ -178,18 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しま",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/coffeecupjp/articles/62ebc5f19ff819",
-      "title": "会議の障壁をなくす会議ファシリテーションwebアプリ",
-      "link": "https://zenn.dev/coffeecupjp/articles/62ebc5f19ff819",
-      "published": "2025-06-30T13:38:02.000Z",
-      "description": "概要 会議の障壁をなくす会議ファシリテーションwebアプリ https://youtu.be/pn-BfHPG_7A 「アイスブレイクがイマイチ盛り上がらない」 「意見が対立して話が進まない」 「話が脇道に逸れて結論が出ない」 「アクションアイテムを記録しそこねる」 などなど会議をする上での障壁は意外と多いもの。 そんな日頃の会議のガードレールとなるウェブアプリを生成AIで作りました。 あなたがすべきなのは、会議とともにこのwebアプリを起動するだけ。 そうすることで、AIが会議の内容を聞...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "概要 会議の障壁をなくす会議ファシリテーションwebアプリ https://youtu.be/pn-BfHPG_7A 「アイスブレイクがイマイチ盛り上がらない」 「意見が対立して話が進まない」 「話が脇道に逸れて結論が出ない」 「アクションアイテムを記録しそこねる」 などなど会議をする上での障壁は意",
       "thumbnail": null
     }
   ]
