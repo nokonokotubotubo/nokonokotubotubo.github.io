@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T01:18:46.712Z",
+  "updated": "2025-07-01T03:26:05.087Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,42 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqmda-1751340000000",
+      "title": "Apple Music10周年、「全期間で最もよく聴いた曲」をリプレイ可能に",
+      "link": "https://japan.cnet.com/article/35234934/",
+      "published": "2025-07-01T03:20:00.000Z",
+      "description": "「Apple Music」が10周年を迎え、長年のリスナーに向けて懐かしいプレゼントを用意した。ユーザーがこれまでに最も多く再生した楽曲を閲覧・再生できる新機能「リプレイ：オールタイム」だ。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "「Apple Music」が10周年を迎え、長年のリスナーに向けて懐かしいプレゼントを用意した。ユーザーがこれまでに最も多く再生した楽曲を閲覧・再生できる新機能「リプレイ：オールタイム」だ。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqmfv-1751335800000",
+      "title": "NTTコミュニケーションズ、きょう1日から「ドコモビジネス」に社名変更",
+      "link": "https://japan.cnet.com/article/35234931/",
+      "published": "2025-07-01T02:10:00.000Z",
+      "description": "NTTドコモグループのNTTコミュニケーションズは7月1日、社名を「NTTドコモビジネス」に変更した。同じくNTTドコモ傘下のNTTコムウェアも同日付で「NTTドコモソリューションズ」へと社名を改めている。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "NTTドコモグループのNTTコミュニケーションズは7月1日、社名を「NTTドコモビジネス」に変更した。同じくNTTドコモ傘下のNTTコムウェアも同日付で「NTTドコモソリューションズ」へと社名を改めている。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqnqd-1751333400000",
+      "title": "アップル、iPhoneチップ搭載の低価格「MacBook」を計画か",
+      "link": "https://japan.cnet.com/article/35234919/",
+      "published": "2025-07-01T01:30:00.000Z",
+      "description": "アップルは、「iPhone」用プロセッサーを搭載した低価格の「MacBook」を発売する計画だと、TF International Securitiesの著名アナリストであるミンチー・クオ氏が「X」へ投稿した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "アップルは、「iPhone」用プロセッサーを搭載した低価格の「MacBook」を発売する計画だと、TF International Securitiesの著名アナリストであるミンチー・クオ氏が「X」へ投稿した。",
+      "thumbnail": null
+    },
     {
       "id": "5nqn5p-1751332200000",
       "title": "PayPayの「審査不要で即時発行できるVisaバーチャルカード」、全ユーザーに開放",
@@ -53,23 +89,11 @@
       "title": "Claudeとペアプロしてみたら、開発体験が激変した話",
       "link": "https://qiita.com/htanaka0828/items/9ffc7b48c6fbf7ce4f32",
       "published": "2025-07-01T00:09:59.000Z",
-      "description": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Clau…",
+      "description": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Claude Code を中心に開発を行っています。 この記事では、Claudeとペ...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Clau…",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqnx9-1751326800000",
-      "title": "NetflixにNASAのライブ宇宙映像が登場へ、今夏から",
-      "link": "https://japan.cnet.com/article/35234911/",
-      "published": "2025-06-30T23:40:00.000Z",
-      "description": "宇宙や星々からの眺めに興味がある人に朗報だ。米航空宇宙局（NASA）は動画配信大手Netflixとの新たな提携により、コンテンツ配信を拡大する。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "宇宙や星々からの眺めに興味がある人に朗報だ。米航空宇宙局（NASA）は動画配信大手Netflixとの新たな提携により、コンテンツ配信を拡大する。",
+      "summary": "こんにちは。最近は生成AIと一緒に開発するスタイルが増えてきましたね。 私もこれまでにGitHub Copilot、Cursor、Claudeなど、いろんなツールを試してきましたが、現在は Claude Code を中心に開発を行っています。 この記事では、Claudeとペ...",
       "thumbnail": null
     },
     {
@@ -77,35 +101,11 @@
       "title": "半年かけて『ポリ徹』を個人開発してみた話 – 生成AI×国会議事録要約アプリ",
       "link": "https://qiita.com/Goriwaku/items/cf2df6ed60c5032a93e6",
       "published": "2025-06-30T23:24:30.000Z",
-      "description": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び…",
+      "description": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び個人開発の反省点についてそれぞれ書き記していきます。個人開発をしてみたいも...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び…",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqois-1751321100000",
-      "title": "モバイルPASMO、ついに「Pixel Watch」などWear OSデバイスで利用可能に",
-      "link": "https://japan.cnet.com/article/35234907/",
-      "published": "2025-06-30T22:05:00.000Z",
-      "description": "Googleが6月30日よりWear OS搭載スマートウォッチでPASMO対応を開始。定期券の利用やチャージ方法も詳しく解説。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "Googleが6月30日よりWear OS搭載スマートウォッチでPASMO対応を開始。定期券の利用やチャージ方法も詳しく解説。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqojn-1751320020000",
-      "title": "アップルが「Vision Pro」を本気で刷新します--4割軽いVision Air、スマートグラスも【噂】",
-      "link": "https://japan.cnet.com/article/35234906/",
-      "published": "2025-06-30T21:47:00.000Z",
-      "description": "Appleが2027年にAR・VRデバイスを本格展開へ。「Vision Pro M5」や新型スマートグラスなど、多層的な戦略を著名アナリストが分析。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "Appleが2027年にAR・VRデバイスを本格展開へ。「Vision Pro M5」や新型スマートグラスなど、多層的な戦略を著名アナリストが分析。",
+      "summary": "はじめに 記事を開いていただきありがとうございます。この度、半年強ほど開発していたWebアプリ『ポリ徹 -政治家徹底解剖』をリリースしました。 この記事では、個人開発をしたきっかけ、開発の流れ、及び個人開発の反省点についてそれぞれ書き記していきます。個人開発をしてみたいも...",
       "thumbnail": null
     },
     {
@@ -173,11 +173,11 @@
       "title": "AI投資チャレンジ #05 第三候補発見編 - 30代エンジニアが100万を一億円にする話",
       "link": "https://qiita.com/aug/items/3fb56f792fc996641014",
       "published": "2025-06-30T11:41:32.000Z",
-      "description": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的…",
+      "description": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的にデータ分析する方法の実例として参考になれば幸いです。 Claude C...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的…",
+      "summary": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的にデータ分析する方法の実例として参考になれば幸いです。 Claude C...",
       "thumbnail": null
     },
     {
@@ -185,11 +185,11 @@
       "title": "AWS完全初心者がAWS Summitに参加した話(Day2)",
       "link": "https://qiita.com/tks_1128/items/fec0f1de180fca91b4b1",
       "published": "2025-06-30T10:56:31.000Z",
-      "description": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思いま…",
+      "description": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思います。 Day1を振り返って Day1は朝8時半に海浜幕張に到着する...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思いま…",
+      "summary": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思います。 Day1を振り返って Day1は朝8時半に海浜幕張に到着する...",
       "thumbnail": null
     }
   ]
