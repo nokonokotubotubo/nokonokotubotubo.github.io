@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>情報まとめばこ</title>
+    <title>まとめてNEWS - 生成AI記事フィード</title>
     
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -83,15 +83,17 @@
             color: #c33;
         }
         
-        /* Feed Filter Styles */
+        /* Feed Filter Styles - 修正2適用 */
         .feed-filters {
             max-width: 1200px;
             margin: 0 auto 2rem;
             padding: 0 1rem;
             display: flex;
             gap: 1rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;  /* 1行に強制 */
             justify-content: center;
+            overflow-x: auto;   /* 横スクロール対応 */
+            white-space: nowrap; /* 改行防止 */
         }
         
         .filter-button {
@@ -216,7 +218,7 @@
             font-weight: 500;
         }
         
-        /* Responsive Design */
+        /* Responsive Design - 修正2適用 */
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -229,11 +231,15 @@
             
             .feed-filters {
                 gap: 0.5rem;
+                padding: 0 0.5rem;
+                justify-content: flex-start; /* 左寄せにして横スクロールしやすく */
             }
             
             .filter-button {
                 padding: 0.6rem 1rem;
                 font-size: 0.9rem;
+                flex-shrink: 0; /* ボタンサイズ維持 */
+                min-width: auto; /* 最小幅の制限を解除 */
             }
         }
         
@@ -248,10 +254,10 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header Section -->
+        <!-- Header Section - 修正1適用 -->
         <header class="header">
-            <h1>情報まとめばこ</h1>
-            <p>ほしい情報をまとめてチェック</p>
+            <h1>📰 まとめてNEWS</h1>
+            <p>最新の生成AI記事をまとめてチェック</p>
         </header>
         
         <!-- Loading State -->
