@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T07:21:08.783Z",
+  "updated": "2025-07-01T08:28:08.274Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047560",
+      "title": "【AWS Strands Agents】3行でAIエージェントは作成できるのか？",
+      "link": "https://qiita.com/Martim500/items/2038fba1499a625fb557",
+      "published": "2025-07-01T08:04:58.000Z",
+      "description": "こんにちは！ファンリードDXP事業部AWSグループのMartimです！ 2025年5月にAWSから公開された「Strands Agents」というAIエージェント向けのSDKについて公開されたので、こちらの紹介をしていきたいと思います！ 噂ではたった3行でAIエージェントが...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは！ファンリードDXP事業部AWSグループのMartimです！ 2025年5月にAWSから公開された「Strands Agents」というAIエージェント向けのSDKについて公開されたので、こちらの紹介をしていきたいと思います！ 噂ではたった3行でAIエージェントが...",
+      "thumbnail": null
+    },
     {
       "id": "5nqktb-1751353920000",
       "title": "メルカリ、トラブル遭遇時の「全額補償」を開始--適用条件は？金額に上限なし",
@@ -94,18 +106,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "近年、企業内に蓄積された膨大な情報を効率的に活用する方法が注目されています。 今回はMicrosoft 365のサービスの一つである、Copilot Studioを活用して、社内の問い合わせ業務を支援する「社内お問い合わせチャットボット」を開発した事例をご紹介します。 ※本...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047461",
-      "title": "指定したフォルダの中のファイルを全てクリップボードにコピーするサイトを作成しました",
-      "link": "https://qiita.com/uni928/items/936c115be98b82767f9c",
-      "published": "2025-07-01T04:30:29.000Z",
-      "description": "はじめに ChatGPTなどのLLM（大規模言語モデル）を活用していると、「あるディレクトリに含まれるすべてのファイル名と中身」を一括でプロンプトに貼り付けたいという場面が意外と多くあります。 たとえば： ・コードベース全体の構成をGPTに説明したいとき ・テンプレートや...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに ChatGPTなどのLLM（大規模言語モデル）を活用していると、「あるディレクトリに含まれるすべてのファイル名と中身」を一括でプロンプトに貼り付けたいという場面が意外と多くあります。 たとえば： ・コードベース全体の構成をGPTに説明したいとき ・テンプレートや...",
       "thumbnail": null
     },
     {
