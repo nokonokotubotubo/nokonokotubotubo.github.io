@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T22:18:52.699Z",
+  "updated": "2025-07-01T22:57:21.675Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -28,12 +28,60 @@
       "id": "tag:qiita.com,2005:PublicArticle/2047791",
       "title": "[速習] 米国が騒ぐ「AI週4日勤務」を、日本人は既に実現していた件",
       "link": "https://qiita.com/ShigemoriMasato/items/a2b81b00ed2d027a8720",
-      "published": "2025-07-01T21:59:11.000Z",
-      "description": "「皆さんは週に何日働いていると思いますか？」 1年前の事でした、シリコンバレーの友人とZoomで話していた時、彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週4日勤務を実現できるかもしれない！これは革命だよ！」12 私は静かにVisual Studio...",
+      "published": "2025-07-01T22:46:39.000Z",
+      "description": "「皆さんは週に何日働いていると思いますか？」 最近また話題になっている「AI週4日勤務」12。 この記事を見た瞬間、1年前の記憶が鮮明に蘇りました。シリコンバレーの友人とZoomで話していた時のことです。彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "「皆さんは週に何日働いていると思いますか？」 1年前の事でした、シリコンバレーの友人とZoomで話していた時、彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週4日勤務を実現できるかもしれない！これは革命だよ！」12 私は静かにVisual Studio...",
+      "summary": "「皆さんは週に何日働いていると思いますか？」 最近また話題になっている「AI週4日勤務」12。 この記事を見た瞬間、1年前の記憶が鮮明に蘇りました。シリコンバレーの友人とZoomで話していた時のことです。彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nr4yd-1751409000000",
+      "title": "任天堂「スイッチ2」を2週間遊んで徹底レビュー：最高の携帯ゲーム機だが待つのも一手",
+      "link": "https://japan.cnet.com/article/35234892/",
+      "published": "2025-07-01T22:30:00.000Z",
+      "description": "任天堂の最新ゲーム機「Nintendo Switch 2」は非常に優れた携帯ゲーム機だが、現時点では改良版のSwitchだと考えた方がいい。初代Switchを持っているなら、しばらく買い控えるのもの1つの選択かもしれない。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "任天堂の最新ゲーム機「Nintendo Switch 2」は非常に優れた携帯ゲーム機だが、現時点では改良版のSwitchだと考えた方がいい。初代Switchを持っているなら、しばらく買い控えるのもの1つの選択かもしれない。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
+      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "published": "2025-07-01T19:23:41.000Z",
+      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "title": "MCP クライアントをゼロから作る ── Function Calling で LLM をツール使いにする方法",
+      "link": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "published": "2025-07-01T16:18:40.000Z",
+      "description": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事は https://zenn.dev/aki_think/articles/0177fc546ce182 作りながら学ぶMCPの活用法 続編...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "title": "ようこそ！生成AIと始めるPython冒険の書",
+      "link": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "published": "2025-07-01T15:07:41.000Z",
+      "description": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
       "thumbnail": null
     },
     {
@@ -46,6 +94,18 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
+      "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "published": "2025-07-01T13:18:13.000Z",
+      "description": "こんにちは👋 2025年7月1日に、Amazon...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "こんにちは👋 2025年7月1日に、Amazon...",
       "thumbnail": null
     },
     {
@@ -121,18 +181,6 @@
       "thumbnail": null
     },
     {
-      "id": "5nqmda-1751340000000",
-      "title": "Apple Music10周年、「全期間で最もよく聴いた曲」をリプレイ可能に",
-      "link": "https://japan.cnet.com/article/35234934/",
-      "published": "2025-07-01T03:20:00.000Z",
-      "description": "「Apple Music」が10周年を迎え、長年のリスナーに向けて懐かしいプレゼントを用意した。ユーザーがこれまでに最も多く再生した楽曲を閲覧・再生できる新機能「リプレイ：オールタイム」だ。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "「Apple Music」が10周年を迎え、長年のリスナーに向けて懐かしいプレゼントを用意した。ユーザーがこれまでに最も多く再生した楽曲を閲覧・再生できる新機能「リプレイ：オールタイム」だ。",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
       "title": "【RAG】大企業の「暗黙知」を、AIで自動で「形式知」に",
       "link": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
@@ -142,54 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
-      "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "published": "2025-06-30T15:14:00.000Z",
-      "description": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通じて感じたことをお伝えします。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
-      "title": "「あなたのインフルエンサー」 自分だけのインフルエンサーをAIで作ろう！",
-      "link": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
-      "published": "2025-06-30T14:56:16.000Z",
-      "description": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
-      "title": "マッチ売りの電卓【 お金の感覚を見える化するアプリ 】",
-      "link": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
-      "published": "2025-06-30T14:42:30.000Z",
-      "description": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリを使用することで「異なる経済階層における価格感覚の体験」を疑似的に行うことができます。 経済格差への理解を深めつつ、新たな気付きを提供するアプリケーションです。 https://youtube....",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリ",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/michan74/articles/36ef1b41d64590",
-      "title": "Bear Horizon くまの気持ちで英単語を学習【第2回 AI Agent Hackathon】",
-      "link": "https://zenn.dev/michan74/articles/36ef1b41d64590",
-      "published": "2025-06-30T14:20:45.000Z",
-      "description": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しました。 いずれも、学習のモチベーションを下げてしまう大きな要因です。 課題1....",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しま",
       "thumbnail": null
     }
   ]
