@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T15:21:30.951Z",
+  "updated": "2025-07-01T16:26:24.147Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,30 @@
   ],
   "entries": [
     {
+      "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "title": "MCP クライアントをゼロから作る ── Function Calling で LLM をツール使いにする方法",
+      "link": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "published": "2025-07-01T16:18:40.000Z",
+      "description": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事は https://zenn.dev/aki_think/articles/0177fc546ce182 作りながら学ぶMCPの活用法 続編...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "title": "ようこそ！生成AIと始めるPython冒険の書",
+      "link": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "published": "2025-07-01T15:07:41.000Z",
+      "description": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "thumbnail": null
+    },
+    {
       "id": "tag:qiita.com,2005:PublicArticle/2047722",
       "title": "StyleGANを用いた抽象画生成",
       "link": "https://qiita.com/tomto10344/items/655f2049ef52b6447841",
@@ -34,6 +58,18 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
+      "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "published": "2025-07-01T13:18:13.000Z",
+      "description": "こんにちは👋 2025年7月1日に、Amazon...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "こんにちは👋 2025年7月1日に、Amazon...",
       "thumbnail": null
     },
     {
@@ -154,42 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
-      "title": "「あなたのインフルエンサー」 自分だけのインフルエンサーをAIで作ろう！",
-      "link": "https://zenn.dev/karamiso/articles/d77beddb96aab6",
-      "published": "2025-06-30T14:56:16.000Z",
-      "description": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "「あなたのインフルエンサー」とは？ 「あなたのインフルエンサー」は、あなた専用のインフルエンサーをAIで形作るアプリです。 「あなたのインフルエンサー」は第2回 AI Agent Hackathon with Google Cloudへの応募作品です。 使い方...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
-      "title": "マッチ売りの電卓【 お金の感覚を見える化するアプリ 】",
-      "link": "https://zenn.dev/rabbitprogram/articles/6f27a2ea2d0755",
-      "published": "2025-06-30T14:42:30.000Z",
-      "description": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリを使用することで「異なる経済階層における価格感覚の体験」を疑似的に行うことができます。 経済格差への理解を深めつつ、新たな気付きを提供するアプリケーションです。 https://youtube....",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "どんなアプリ？ 「マッチ売りの電卓」は、アンデルセン童話「マッチ売りの少女」からインスピレーションを受けて開発したアプリケーションです。 年収の違いによる同一商品に対する金銭感覚の差異を、数値化して可視化する機能を提供します。 マッチ売りの少女がマッチを擦って束の間の暖かい幻想を見たように、本アプリ",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/michan74/articles/36ef1b41d64590",
-      "title": "Bear Horizon くまの気持ちで英単語を学習【第2回 AI Agent Hackathon】",
-      "link": "https://zenn.dev/michan74/articles/36ef1b41d64590",
-      "published": "2025-06-30T14:20:45.000Z",
-      "description": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しました。 いずれも、学習のモチベーションを下げてしまう大きな要因です。 課題1....",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "! この記事は、第2回 AI Agent Hackathon with Google Cloud提出用の記事です。 プロジェクトが対象とするユーザー像と課題 対象 英語学習者(年齢問わず) 特に英単語を覚える場面での利用 課題 英語学習者が英単語を覚えるときに、つまずきやすいポイントを3つに整理しま",
       "thumbnail": null
     }
   ]
