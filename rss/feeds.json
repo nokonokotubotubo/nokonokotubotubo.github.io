@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T14:19:28.190Z",
+  "updated": "2025-07-01T15:21:30.951Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,18 @@
   ],
   "entries": [
     {
+      "id": "tag:qiita.com,2005:PublicArticle/2047722",
+      "title": "StyleGANを用いた抽象画生成",
+      "link": "https://qiita.com/tomto10344/items/655f2049ef52b6447841",
+      "published": "2025-07-01T14:58:28.000Z",
+      "description": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
+      "thumbnail": null
+    },
+    {
       "id": "tag:qiita.com,2005:PublicArticle/2047678",
       "title": "生成AI時代の人材不足を解消するための具体的戦略と育成法",
       "link": "https://qiita.com/karakurai_rena/items/77251cd4493051f906c6",
@@ -46,18 +58,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを活用したソフトウェア開発の業務効率化についてご紹介しますね。ソフトウェア開発の現場では、効率化と品質向上が常に求められていますが、最近は生成AIの導入が進み、開発プロセスに大きな変化をもたらして...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047490",
-      "title": "『miibo』でコード開発もしちゃおう！～VSCodeで使える「Cline-miibo」プラグイン～",
-      "link": "https://qiita.com/hiro-matsumoto/items/2d5d89c73c3666752ee3",
-      "published": "2025-07-01T08:53:03.000Z",
-      "description": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ（簡単に利用方法も記載） v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にイン...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ（簡単に利用方法も記載） v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にイン...",
       "thumbnail": null
     },
     {
