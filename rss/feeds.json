@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T06:24:42.679Z",
+  "updated": "2025-07-01T07:21:08.783Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,15 +25,39 @@
   ],
   "entries": [
     {
+      "id": "5nqktb-1751353920000",
+      "title": "メルカリ、トラブル遭遇時の「全額補償」を開始--適用条件は？金額に上限なし",
+      "link": "https://japan.cnet.com/article/35234957/",
+      "published": "2025-07-01T07:12:00.000Z",
+      "description": "メルカリが「全額補償サポートプログラム」を開始。本人確認とメルカリ便の利用が条件で、正しく使っているユーザーに対して購入代金や販売利益を全額補償。不正対策を強化し、安心・安全な取引環境を提供へ。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "メルカリが「全額補償サポートプログラム」を開始。本人確認とメルカリ便の利用が条件で、正しく使っているユーザーに対して購入代金や販売利益を全額補償。不正対策を強化し、安心・安全な取引環境を提供へ。",
+      "thumbnail": null
+    },
+    {
       "id": "tag:qiita.com,2005:PublicArticle/2047490",
       "title": "『miibo』でコード開発もしちゃおう！～VSCodeで使える「Cline-miibo」プラグイン～",
       "link": "https://qiita.com/hiro-matsumoto/items/2d5d89c73c3666752ee3",
-      "published": "2025-07-01T06:20:05.000Z",
-      "description": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にインストール後「Cline」の...",
+      "published": "2025-07-01T06:43:39.000Z",
+      "description": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ（簡単に利用方法も記載） v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にイン...",
       "source": "Qiita",
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
-      "summary": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にインストール後「Cline」の...",
+      "summary": "GitHub「Cline-miibo」リポジトリ v0.0.1リリースページ（簡単に利用方法も記載） v0.0.1は既存「Cline」プラグインが上書きされてしまいます。。 同名の「Cline」で上書きインストールされてしまうのでご注意ください。 また逆にイン...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqkvw-1751351040000",
+      "title": "さよならQUICPay+　Kyashが「Visaのタッチ決済」へ1本化--Google Pay対応",
+      "link": "https://japan.cnet.com/article/35234954/",
+      "published": "2025-07-01T06:24:00.000Z",
+      "description": "Kyashが7月1日、Android版Google PayでVisaタッチ決済を開始。Kyash Card/Virtualを登録するだけで国内外のVisa加盟店で非接触決済が可能に。QUICPay+は8月31日終了予定。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Kyashが7月1日、Android版Google PayでVisaタッチ決済を開始。Kyash Card/Virtualを登録するだけで国内外のVisa加盟店で非接触決済が可能に。QUICPay+は8月31日終了予定。",
       "thumbnail": null
     },
     {
@@ -106,30 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "NTTドコモグループのNTTコミュニケーションズは7月1日、社名を「NTTドコモビジネス」に変更した。同じくNTTドコモ傘下のNTTコムウェアも同日付で「NTTドコモソリューションズ」へと社名を改めている。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqnqd-1751333400000",
-      "title": "アップル、iPhoneチップ搭載の低価格「MacBook」を計画か",
-      "link": "https://japan.cnet.com/article/35234919/",
-      "published": "2025-07-01T01:30:00.000Z",
-      "description": "アップルは、「iPhone」用プロセッサーを搭載した低価格の「MacBook」を発売する計画だと、TF International Securitiesの著名アナリストであるミンチー・クオ氏が「X」へ投稿した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "アップルは、「iPhone」用プロセッサーを搭載した低価格の「MacBook」を発売する計画だと、TF International Securitiesの著名アナリストであるミンチー・クオ氏が「X」へ投稿した。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqn5p-1751332200000",
-      "title": "PayPayの「審査不要で即時発行できるVisaバーチャルカード」、全ユーザーに開放",
-      "link": "https://japan.cnet.com/article/35234922/",
-      "published": "2025-07-01T01:10:00.000Z",
-      "description": "PayPayは6月30日、オンライン決済専用のバーチャルカード「PayPay残高カード」の提供をeKYC（本人確認）済みの全ユーザーに拡大したと発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "PayPayは6月30日、オンライン決済専用のバーチャルカード「PayPay残高カード」の提供をeKYC（本人確認）済みの全ユーザーに拡大したと発表した。",
       "thumbnail": null
     },
     {
