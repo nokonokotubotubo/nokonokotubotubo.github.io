@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T03:26:05.087Z",
+  "updated": "2025-07-01T04:33:37.982Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047461",
+      "title": "指定したフォルダの中のファイルを全てクリップボードにコピーするサイトを作成しました",
+      "link": "https://qiita.com/uni928/items/936c115be98b82767f9c",
+      "published": "2025-07-01T04:30:29.000Z",
+      "description": "はじめに ChatGPTなどのLLM（大規模言語モデル）を活用していると、「あるディレクトリに含まれるすべてのファイル名と中身」を一括でプロンプトに貼り付けたいという場面が意外と多くあります。 たとえば： ・コードベース全体の構成をGPTに説明したいとき ・テンプレートや...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに ChatGPTなどのLLM（大規模言語モデル）を活用していると、「あるディレクトリに含まれるすべてのファイル名と中身」を一括でプロンプトに貼り付けたいという場面が意外と多くあります。 たとえば： ・コードベース全体の構成をGPTに説明したいとき ・テンプレートや...",
+      "thumbnail": null
+    },
     {
       "id": "5nqmda-1751340000000",
       "title": "Apple Music10周年、「全期間で最もよく聴いた曲」をリプレイ可能に",
@@ -178,18 +190,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに どうも、augです。 今回も引き続き、Claude Code（Anthropic社のAI開発環境）を活用した投資調査の自動化について共有します。エンジニアの皆さんがAIツールを使って効率的にデータ分析する方法の実例として参考になれば幸いです。 Claude C...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047131",
-      "title": "AWS完全初心者がAWS Summitに参加した話(Day2)",
-      "link": "https://qiita.com/tks_1128/items/fec0f1de180fca91b4b1",
-      "published": "2025-06-30T10:56:31.000Z",
-      "description": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思います。 Day1を振り返って Day1は朝8時半に海浜幕張に到着する...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに こんにちは。Tsukasaです！ 今日は先日参加したAWS Summitの2日目について記事にしていこうと思います。 まだDay1の記事を読んでいない方は是非こちらを読んで頂けたらと思います。 Day1を振り返って Day1は朝8時半に海浜幕張に到着する...",
       "thumbnail": null
     }
   ]
