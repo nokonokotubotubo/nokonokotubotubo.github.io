@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>bubblerch - 検索を視覚化する</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>bubblerch</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -22,14 +22,14 @@
 
         .header {
             text-align: center;
-            padding: 1.5rem 1rem 1rem; /* パディングを大幅に削減 */
+            padding: 1.5rem 1rem 1rem;
             color: #2C5F7A;
         }
 
         .logo {
-            font-size: 3rem; /* サイズを少し小さく */
+            font-size: 3rem;
             font-weight: 700;
-            margin-bottom: 0; /* マージンを削除 */
+            margin-bottom: 0;
             color: #4A90B8;
             text-shadow: 0 2px 4px rgba(255,255,255,0.3);
             letter-spacing: 2px;
@@ -41,12 +41,17 @@
             margin: 0 auto;
         }
 
+        .main.full-width {
+            max-width: none;
+            padding: 0;
+        }
+
         /* 検索セクション */
         .search-section {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 75vh; /* 高さを拡大 */
+            min-height: 75vh;
         }
 
         .search-container {
@@ -100,7 +105,7 @@
         /* シャボン玉セクション */
         .bubble-container {
             position: relative;
-            height: 85vh; /* 高さを拡大 */
+            height: 85vh;
             background: rgba(255,255,255,0.2);
             border-radius: 25px;
             margin-bottom: 2rem;
@@ -115,7 +120,7 @@
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255,255,255,0.95);
-            padding: 1.2rem 2rem; /* パディングを少し削減 */
+            padding: 1.2rem 2rem;
             border-radius: 15px;
             text-align: center;
             z-index: 100;
@@ -151,41 +156,120 @@
             box-shadow: none;
         }
 
-        /* Canvasスタイル */
-        #bubbleCanvas {
+        /* 関連キーワード生成中表示 */
+        .generating-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            cursor: pointer;
-        }
-
-        /* 検索結果セクション */
-        .results-section {
             background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
             border-radius: 25px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-            border: 2px solid rgba(139,206,235,0.2);
         }
 
-        .results-header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 2px solid #B0E0E6;
-        }
-
-        .results-header h2 {
-            font-size: 2.2rem;
+        .generating-text {
+            font-size: 1.3rem;
             color: #4A90B8;
-            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 6px;
+            background: rgba(74,144,184,0.2);
+            border-radius: 3px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4A90B8, #6BB6D6);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* 検索中表示 */
+        .searching-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            border-radius: 25px;
+        }
+
+        .searching-text {
+            font-size: 1.5rem;
+            color: #4A90B8;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* エラーメッセージ */
+        .error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            border-radius: 25px;
+        }
+
+        .error-content {
+            background: rgba(255,107,157,0.1);
+            border: 2px solid rgba(255,107,157,0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            color: #C1396A;
+            font-weight: 500;
+            max-width: 500px;
+            margin: 0 2rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
             font-weight: 700;
+            margin-bottom: 1rem;
+            color: #B02A50;
+        }
+
+        .retry-button {
+            margin: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #FF6B9D 0%, #FF8FB3 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255,107,157,0.3);
         }
 
         .reset-button {
-            margin-top: 1.5rem;
+            margin: 0.5rem;
             padding: 0.8rem 1.5rem;
             background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
             color: white;
@@ -202,66 +286,105 @@
             box-shadow: 0 4px 15px rgba(74,144,184,0.3);
         }
 
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-        }
-
-        .result-card {
-            background: rgba(255,255,255,0.8);
-            border-radius: 15px;
+        /* 検索結果セクション */
+        .search-results-section {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            background: rgba(255,255,255,0.95);
+            border-radius: 0;
+            box-shadow: 0 8px 25px rgba(76,144,184,0.15);
+            border: none;
             overflow: hidden;
-            box-shadow: 0 6px 20px rgba(74,144,184,0.1);
-            transition: all 0.3s ease;
-            border: 2px solid rgba(139,206,235,0.2);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
         }
 
-        .result-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(74,144,184,0.2);
-        }
-
-        .result-image {
-            height: 180px;
-            background: linear-gradient(135deg, #E6F3FF 0%, #CCE7FF 100%);
+        .search-engine-selector {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #4A90B8 0%, #6BB6D6 100%);
+            color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #4A90B8;
-            font-size: 1.5rem;
+            gap: 1rem;
             font-weight: 500;
+            flex-shrink: 0;
         }
 
-        .result-content {
-            padding: 2rem;
+        .back-button {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Noto Sans JP', sans-serif;
+            transition: all 0.3s ease;
+            margin-left: auto;
         }
 
-        .result-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .search-tabs {
+            display: flex;
+            background: rgba(176,224,230,0.3);
+            overflow-x: auto;
+            border-bottom: 2px solid rgba(139,206,235,0.3);
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            background: rgba(255,255,255,0.5);
+            border-right: 1px solid rgba(139,206,235,0.3);
             color: #2C5F7A;
-            line-height: 1.4;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            text-align: center;
         }
 
-        .result-description {
-            color: #5BA3C7;
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
+        .tab-button:hover {
+            background: rgba(255,255,255,0.8);
         }
 
-        .result-link {
+        .tab-button.active {
+            background: white;
             color: #4A90B8;
-            text-decoration: none;
             font-weight: 600;
-            font-size: 1rem;
-            transition: color 0.3s ease;
+            border-bottom: 3px solid #4A90B8;
         }
 
-        .result-link:hover {
-            color: #2C5F7A;
+        .search-iframe-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            min-height: 0;
+        }
+
+        .search-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Canvasスタイル */
+        #bubbleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
         }
 
         /* レスポンシブ対応 */
@@ -276,11 +399,7 @@
             }
             
             .bubble-container {
-                height: 80vh; /* モバイルでも高さを拡大 */
-            }
-            
-            .results-grid {
-                grid-template-columns: 1fr;
+                height: 80vh;
             }
 
             .bubble-info {
@@ -290,11 +409,31 @@
                 font-size: 0.9rem;
                 padding: 1rem 1.5rem;
             }
+
+            .progress-bar {
+                width: 250px;
+            }
+
+            .search-engine-selector {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .back-button {
+                margin-left: 0;
+            }
+            
+            .tab-button {
+                min-width: 100px;
+                padding: 0.8rem 1rem;
+                font-size: 0.9rem;
+            }
         }
 
         @media (max-width: 480px) {
             .header {
-                padding: 1rem 1rem 0.5rem; /* さらにパディングを削減 */
+                padding: 1rem 1rem 0.5rem;
             }
             
             .logo {
@@ -309,31 +448,69 @@
             <h1 class="logo">bubblerch</h1>
         </header>
 
-        <main class="main">
+        <main :class="['main', { 'full-width': showSearchResults }]">
             <!-- 検索入力セクション -->
-            <div class="search-section" v-if="!showBubbles">
+            <div class="search-section" v-if="!showBubbles && !showSearchResults">
                 <div class="search-container">
                     <input 
                         type="text" 
                         v-model="searchInput" 
                         @keyup.enter="generateBubbles"
-                        placeholder="検索ワードをスペース区切りで入力してください（例：プログラミング 料理 旅行）"
+                        placeholder="検索ワードを入力"
                         class="search-input"
                     >
                     <button @click="generateBubbles" class="search-button">
-                        🫧 シャボン玉で検索開始
+                        🫧 検索
                     </button>
                 </div>
             </div>
 
             <!-- シャボン玉セクション -->
-            <div class="bubble-container" v-if="showBubbles && !showResults" ref="bubbleContainer">
-                <div class="bubble-info" ref="bubbleInfo">
+            <div class="bubble-container" v-if="showBubbles" ref="bubbleContainer">
+                <!-- 関連キーワード生成中オーバーレイ -->
+                <div class="generating-overlay" v-if="isGeneratingKeywords">
+                    <div class="generating-text">
+                        ✨ Googleサジェストから関連キーワードを取得中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを12個取得しています</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="{ width: keywordProgress + '%' }"></div>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #5BA3C7;">
+                            {{ currentKeywordSource }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- エラー表示 -->
+                <div class="error-overlay" v-if="hasError">
+                    <div class="error-content">
+                        <div class="error-title">⚠️ Googleサジェスト取得エラー</div>
+                        <p>申し訳ございません。Googleサジェストから関連キーワードを取得できませんでした。</p>
+                        <div style="margin-top: 1.5rem;">
+                            <button @click="retryGeneration" class="retry-button">
+                                🔄 再試行
+                            </button>
+                            <button @click="resetSearch" class="reset-button">
+                                ← 戻る
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 検索中オーバーレイ -->
+                <div class="searching-overlay" v-if="isSearching">
+                    <div class="searching-text">
+                        🔍 検索結果を準備中...<br>
+                        <span style="font-size: 1rem; color: #5BA3C7;">各キーワードの検索結果を取得しています</span>
+                    </div>
+                </div>
+
+                <div class="bubble-info" ref="bubbleInfo" v-if="!isSearching && !isGeneratingKeywords && !hasError">
                     <p><strong>✨ 不要なシャボン玉をタップして消してください</strong></p>
                     <p style="margin: 0.8rem 0;">弾けた数: <span style="color: #FF6B9D; font-weight: bold;">{{ poppedCount }}</span> / {{ totalBubbles }}</p>
                     <p>残りワード数: <span style="color: #52C4A0; font-weight: bold;">{{ activeBubblesCount }}</span>個</p>
                     <button @click="searchWithRemaining" class="proceed-button">
-                        🔍 検索実行 ({{ activeBubblesCount }}個のワードで検索)
+                        🔍 タブ検索実行 ({{ activeBubblesCount }}個のワードで検索)
                     </button>
                 </div>
                 
@@ -341,35 +518,39 @@
                     id="bubbleCanvas" 
                     ref="canvas"
                     @click="handleCanvasClick"
+                    v-show="!isSearching && !isGeneratingKeywords && !hasError"
                 ></canvas>
             </div>
+        </main>
 
-            <!-- 検索結果セクション -->
-            <div class="results-section" v-if="showResults">
-                <div class="results-header">
-                    <h2>🔍 検索結果</h2>
-                    <p style="color: #5BA3C7; font-size: 1.1rem; font-weight: 500;"><strong>選択されたキーワード:</strong> {{ remainingWords.join(', ') }}</p>
-                    <button @click="resetSearch" class="reset-button">🔄 新しい検索を始める</button>
-                </div>
-                
-                <div class="results-grid">
-                    <div 
-                        v-for="result in searchResults" 
-                        :key="result.id"
-                        class="result-card"
-                    >
-                        <div class="result-image">
-                            📖 記事
-                        </div>
-                        <div class="result-content">
-                            <h3 class="result-title">{{ result.title }}</h3>
-                            <p class="result-description">{{ result.description }}</p>
-                            <a :href="result.url" target="_blank" class="result-link">詳細を見る →</a>
-                        </div>
-                    </div>
+        <!-- 検索結果タブセクション -->
+        <div class="search-results-section" v-if="showSearchResults">
+            <div class="search-engine-selector">
+                <label>🔍 Bing検索結果</label>
+                <button @click="resetSearch" class="back-button">← 戻る</button>
+            </div>
+            
+            <div class="search-tabs">
+                <div 
+                    v-for="(tab, index) in searchTabs" 
+                    :key="index"
+                    @click="activeTabIndex = index"
+                    :class="['tab-button', { active: activeTabIndex === index }]"
+                >
+                    {{ tab.title }}
                 </div>
             </div>
-        </main>
+            
+            <div class="search-iframe-container">
+                <iframe 
+                    v-if="searchTabs[activeTabIndex]"
+                    :src="searchTabs[activeTabIndex].url"
+                    :title="searchTabs[activeTabIndex].title + ' の検索結果'"
+                    class="search-iframe"
+                    loading="lazy"
+                ></iframe>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -380,9 +561,13 @@
                 return {
                     searchInput: '',
                     showBubbles: false,
-                    showResults: false,
+                    showSearchResults: false,
+                    isSearching: false,
+                    isGeneratingKeywords: false,
+                    hasError: false,
+                    keywordProgress: 0,
+                    currentKeywordSource: '',
                     bubbles: [],
-                    searchResults: [],
                     poppedCount: 0,
                     totalBubbles: 0,
                     originalWords: [],
@@ -392,16 +577,66 @@
                     animationId: null,
                     particles: [],
                     infoAreaHeight: 0,
-                    playableArea: { top: 0, bottom: 0, left: 0, right: 0 }
+                    playableArea: { top: 0, bottom: 0, left: 0, right: 0 },
+                    selectedSearchEngine: 'bing',
+                    searchTabs: [],
+                    activeTabIndex: 0,
+                    isAllBubblesPopped: false
                 }
             },
             computed: {
                 activeBubblesCount() {
-                    return this.bubbles.filter(b => b.active).length;
+                    const count = this.bubbles.filter(b => b.active).length;
+                    if (count === 0 && this.bubbles.length > 0 && this.showBubbles && !this.isAllBubblesPopped) {
+                        this.isAllBubblesPopped = true;
+                        this.triggerCompleteAnimation();
+                    }
+                    return count;
+                },
+                searchEngines() {
+                    return {
+                        bing: 'https://www.bing.com/search?q='
+                    };
                 }
             },
             methods: {
-                generateBubbles() {
+                triggerCompleteAnimation() {
+                    const refreshColors = [
+                        'rgba(135,206,235,0.7)',
+                        'rgba(176,224,230,0.6)', 
+                        'rgba(255,255,255,0.8)',
+                        'rgba(230,230,250,0.6)',
+                        'rgba(224,255,255,0.7)'
+                    ];
+
+                    for (let i = 0; i < 30; i++) {
+                        setTimeout(() => {
+                            const x = Math.random() * this.canvas.width;
+                            const y = Math.random() * this.canvas.height;
+                            const colorIndex = Math.floor(Math.random() * refreshColors.length);
+                            
+                            this.particles.push({
+                                x: x,
+                                y: y,
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: Math.random() * -3 - 1,
+                                size: Math.random() * 8 + 4,
+                                life: 1,
+                                color: refreshColors[colorIndex],
+                                type: 'normal',
+                                rotation: 0,
+                                rotationSpeed: 0
+                            });
+
+                        }, i * 50);
+                    }
+                    
+                    setTimeout(() => {
+                        this.resetSearch();
+                    }, 1500);
+                },
+
+                async generateBubbles() {
                     if (!this.searchInput.trim()) {
                         alert('検索ワードを入力してください 😊');
                         return;
@@ -410,16 +645,40 @@
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
+                    this.hasError = false;
+                    this.keywordProgress = 0;
                     
-                    this.$nextTick(() => {
-                        this.initCanvas();
-                        this.calculatePlayableArea();
-                        this.createBubbles();
+                    await this.$nextTick();
+                    
+                    this.initCanvas();
+                    this.calculatePlayableArea();
+                    
+                    this.isGeneratingKeywords = true;
+                    
+                    try {
+                        await this.createBubbles();
                         this.startAnimation();
-                    });
+                    } catch (error) {
+                        console.error('Googleサジェスト取得エラー:', error);
+                        this.hasError = true;
+                    } finally {
+                        this.isGeneratingKeywords = false;
+                        this.keywordProgress = 0;
+                        this.currentKeywordSource = '';
+                    }
+                },
+
+                async retryGeneration() {
+                    this.hasError = false;
+                    await this.generateBubbles();
                 },
                 
                 initCanvas() {
+                    if (!this.$refs.canvas) {
+                        console.error('Canvas要素が見つかりません');
+                        return;
+                    }
+                    
                     this.canvas = this.$refs.canvas;
                     this.ctx = this.canvas.getContext('2d');
                     
@@ -429,13 +688,17 @@
                 },
                 
                 calculatePlayableArea() {
-                    const infoElement = this.$refs.bubbleInfo;
-                    if (infoElement) {
-                        const infoRect = infoElement.getBoundingClientRect();
-                        const containerRect = this.$refs.bubbleContainer.getBoundingClientRect();
-                        this.infoAreaHeight = infoRect.bottom - containerRect.top + 25;
-                    } else {
+                    if (this.isGeneratingKeywords) {
                         this.infoAreaHeight = 120;
+                    } else {
+                        const infoElement = this.$refs.bubbleInfo;
+                        if (infoElement) {
+                            const infoRect = infoElement.getBoundingClientRect();
+                            const containerRect = this.$refs.bubbleContainer.getBoundingClientRect();
+                            this.infoAreaHeight = infoRect.bottom - containerRect.top + 25;
+                        } else {
+                            this.infoAreaHeight = 120;
+                        }
                     }
                     
                     this.playableArea = {
@@ -446,30 +709,120 @@
                     };
                 },
                 
-                createBubbles() {
-                    const relatedWords = this.generateRelatedWords(this.originalWords);
-                    const targetCount = 3 * this.originalWords.length;
-                    let allWords = [...this.originalWords, ...relatedWords];
+                async createBubbles() {
+                    const relatedWords = await this.fetchGoogleSuggest(this.originalWords.join(' '));
                     
-                    while (allWords.length < targetCount) {
-                        this.originalWords.forEach(word => {
-                            if (allWords.length < targetCount) {
-                                allWords.push(word + '関連');
-                            }
-                        });
+                    if (relatedWords.length === 0) {
+                        throw new Error('Googleサジェストから関連キーワードを取得できませんでした');
                     }
                     
-                    allWords = allWords.slice(0, targetCount);
-                    this.bubbles = this.createNonOverlappingLayout(allWords);
+                    const bubbleWords = relatedWords.slice(0, 12);
+                    this.bubbles = this.createNonOverlappingLayout(bubbleWords);
                     this.totalBubbles = this.bubbles.length;
                 },
-                
-                createNonOverlappingLayout(words) {
-                    const bubbles = [];
-                    const padding = 20;
-                    const maxAttempts = 100;
+
+                async fetchGoogleSuggest(keyword) {
+                    this.currentKeywordSource = `「${keyword}」のGoogleサジェストを取得中...`;
                     
-                    words.forEach((word, index) => {
+                    const corsProxies = [
+                        'https://corsproxy.io/?',
+                        'https://cors-anywhere.herokuapp.com/',
+                        'https://api.allorigins.win/raw?url='
+                    ];
+                    
+                    const extensions = ['の', 'と', 'は', 'で', 'を', 'が', 'に', 'から', 'より', 'から', 'へ', 'まで'];
+                    let allSuggestions = [];
+                    
+                    for (let proxyIndex = 0; proxyIndex < corsProxies.length; proxyIndex++) {
+                        const proxy = corsProxies[proxyIndex];
+                        this.currentKeywordSource = `API ${proxyIndex + 1}/${corsProxies.length} でサジェスト取得中...`;
+                        
+                        try {
+                            for (let i = 0; i < extensions.length; i++) {
+                                const ext = extensions[i];
+                                this.keywordProgress = ((proxyIndex * extensions.length + i + 1) / (corsProxies.length * extensions.length)) * 100;
+                                
+                                const query = `${keyword} ${ext}`;
+                                const suggestUrl = `${proxy}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
+                                
+                                const response = await fetch(suggestUrl, {
+                                    method: 'GET',
+                                    headers: { 'Accept': 'application/json' },
+                                    signal: AbortSignal.timeout(5000)
+                                });
+                                
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    if (data && data[1] && Array.isArray(data[1])) {
+                                        const filtered = data[1]
+                                            .filter(s => s !== keyword && s.length > keyword.length + 1)
+                                            .slice(0, 3);
+                                        allSuggestions.push(...filtered);
+                                    }
+                                }
+                                
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                
+                                if (allSuggestions.length >= 15) {
+                                    break;
+                                }
+                            }
+                            
+                            if (allSuggestions.length >= 12) {
+                                break;
+                            }
+                            
+                        } catch (error) {
+                            console.warn(`プロキシ ${proxy} でのサジェスト取得失敗:`, error);
+                            continue;
+                        }
+                    }
+                    
+                    const processedSuggestions = [...new Set(allSuggestions)]
+                        .filter(suggestion => 
+                            suggestion.length < 30 &&
+                            !suggestion.includes('http') &&
+                            !suggestion.includes('www') &&
+                            !this.originalWords.some(word => suggestion.toLowerCase() === word.toLowerCase())
+                        )
+                        .map(suggestion => {
+                            // 表示用と検索用の両方を保持
+                            const searchWords = this.originalWords.join(' ').toLowerCase();
+                            const suggestionLower = suggestion.toLowerCase();
+                            
+                            let displayText = suggestion;
+                            if (suggestionLower.startsWith(searchWords)) {
+                                displayText = suggestion.substring(searchWords.length).trim();
+                            } else {
+                                // 検索ワードが含まれている場合は、それを除去
+                                this.originalWords.forEach(word => {
+                                    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                                    displayText = displayText.replace(regex, '').trim();
+                                });
+                            }
+                            
+                            return {
+                                displayText: displayText.length > 0 ? displayText : suggestion,
+                                fullSuggestion: suggestion  // 完全なサジェストを保持
+                            };
+                        })
+                        .filter(item => item.displayText.length > 0);
+                    
+                    console.log('検索ワードを除いた関連キーワード:', processedSuggestions);
+                    
+                    if (processedSuggestions.length === 0) {
+                        throw new Error('有効なGoogleサジェストが取得できませんでした');
+                    }
+                    
+                    return processedSuggestions;
+                },
+
+                createNonOverlappingLayout(processedWords) {
+                    const bubbles = [];
+                    const padding = 25;
+                    const maxAttempts = 150;
+                    
+                    processedWords.forEach((wordData, index) => {
                         const size = Math.random() * 40 + 70;
                         const radius = size / 2;
                         let x, y;
@@ -493,39 +846,41 @@
                                     break;
                                 }
                             }
-                            
                             attempts++;
                         }
                         
                         if (!validPosition) {
-                            const cols = Math.ceil(Math.sqrt(words.length));
+                            const cols = Math.ceil(Math.sqrt(processedWords.length));
+                            const rows = Math.ceil(processedWords.length / cols);
                             const col = index % cols;
                             const row = Math.floor(index / cols);
                             
-                            const availableWidth = this.playableArea.right - this.playableArea.left - 60;
-                            const availableHeight = this.playableArea.bottom - this.playableArea.top - 60;
+                            const availableWidth = this.playableArea.right - this.playableArea.left - 100;
+                            const availableHeight = this.playableArea.bottom - this.playableArea.top - 100;
                             const cellWidth = availableWidth / cols;
-                            const cellHeight = availableHeight / Math.ceil(words.length / cols);
+                            const cellHeight = availableHeight / rows;
                             
-                            x = this.playableArea.left + col * cellWidth + cellWidth / 2 + 30;
-                            y = this.playableArea.top + row * cellHeight + cellHeight / 2 + 30;
+                            x = this.playableArea.left + col * cellWidth + cellWidth / 2 + 50;
+                            y = this.playableArea.top + row * cellHeight + cellHeight / 2 + 50;
                         }
                         
                         bubbles.push({
                             id: index,
-                            word: word,
+                            word: wordData.displayText,  // 表示用（検索ワードを除去したもの）
+                            fullWord: wordData.fullSuggestion,  // 検索用（完全なサジェスト）
                             x: x,
                             y: y,
                             radius: radius,
-                            vx: (Math.random() - 0.5) * 0.15,
-                            vy: (Math.random() - 0.5) * 0.15,
+                            vx: (Math.random() - 0.5) * 0.08,
+                            vy: (Math.random() - 0.5) * 0.08,
                             active: true,
                             popping: false,
                             popAnimation: 0,
                             floatOffset: Math.random() * Math.PI * 2,
                             opacity: 1,
                             mass: radius,
-                            bounceTimer: 0
+                            bounceTimer: 0,
+                            separationTimer: 0
                         });
                     });
                     
@@ -586,7 +941,10 @@
                     ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.fill();
                     
-                    const fontSize = Math.max(14, radius * 0.35);
+                    const baseSize = radius * 0.35;
+                    const textLength = bubble.word.length;
+                    let fontSize = Math.max(12, Math.min(baseSize, baseSize * (20 / Math.max(textLength, 20))));
+                    
                     ctx.fillStyle = '#2C5F7A';
                     ctx.strokeStyle = '#FFFFFF';
                     ctx.lineWidth = 3;
@@ -594,40 +952,64 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    const maxWidth = radius * 1.2;
-                    this.drawReadableText(ctx, bubble.word, x, y, maxWidth, fontSize * 1.1);
+                    this.drawReadableText(ctx, bubble.word, x, y, radius, fontSize);
                     
                     if (bubble.popping) {
                         ctx.restore();
                     }
                 },
                 
-                drawReadableText(ctx, text, x, y, maxWidth, lineHeight) {
-                    const chars = text.split('');
-                    let line = '';
+                drawReadableText(ctx, text, x, y, radius, fontSize) {
+                    const words = text.split('');
                     const lines = [];
+                    const maxLines = Math.floor((radius * 1.4) / (fontSize * 1.2));
                     
-                    for (let n = 0; n < chars.length; n++) {
-                        const testLine = line + chars[n];
+                    let currentLine = '';
+                    
+                    for (let i = 0; i < words.length; i++) {
+                        const testLine = currentLine + words[i];
+                        const maxWidthForLine = this.getMaxWidthForCircleLine(radius, lines.length, maxLines);
                         const metrics = ctx.measureText(testLine);
-                        const testWidth = metrics.width;
                         
-                        if (testWidth > maxWidth && n > 0) {
-                            lines.push(line);
-                            line = chars[n];
+                        if (metrics.width > maxWidthForLine && currentLine.length > 0) {
+                            lines.push(currentLine);
+                            currentLine = words[i];
+                            
+                            if (lines.length >= maxLines) {
+                                if (i < words.length - 1) {
+                                    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -2) + '…';
+                                }
+                                break;
+                            }
                         } else {
-                            line = testLine;
+                            currentLine = testLine;
                         }
                     }
-                    lines.push(line);
                     
-                    const startY = y - (lines.length - 1) * lineHeight / 2;
-                    
-                    for (let i = 0; i < lines.length; i++) {
-                        const lineY = startY + i * lineHeight;
-                        ctx.strokeText(lines[i], x, lineY);
-                        ctx.fillText(lines[i], x, lineY);
+                    if (currentLine && lines.length < maxLines) {
+                        lines.push(currentLine.trim());
                     }
+                    
+                    const lineHeight = fontSize * 1.2;
+                    const totalHeight = lines.length * lineHeight;
+                    let startY = y - (totalHeight / 2) + (lineHeight / 2);
+                    
+                    lines.forEach((line, index) => {
+                        const lineY = startY + (index * lineHeight);
+                        
+                        if (Math.abs(lineY - y) <= radius * 0.7) {
+                            ctx.strokeText(line, x, lineY);
+                            ctx.fillText(line, x, lineY);
+                        }
+                    });
+                },
+
+                getMaxWidthForCircleLine(radius, lineIndex, maxLines) {
+                    const centerOffset = (lineIndex - (maxLines - 1) / 2) * (radius * 0.3 / maxLines);
+                    const distanceFromCenter = Math.abs(centerOffset);
+                    const availableRadius = Math.sqrt(Math.max(0, (radius * 0.8) ** 2 - distanceFromCenter ** 2));
+                    
+                    return Math.max(availableRadius * 1.8, radius * 0.3);
                 },
                 
                 updateBubble(bubble) {
@@ -637,6 +1019,11 @@
                         bubble.bounceTimer--;
                     }
                     
+                    if (bubble.separationTimer > 0) {
+                        bubble.separationTimer--;
+                        this.applyContinuousSeparation(bubble);
+                    }
+                    
                     this.handleBubbleCollisions(bubble);
                     
                     bubble.x += bubble.vx;
@@ -644,17 +1031,39 @@
                     
                     this.handleBoundaryCollision(bubble);
                     
-                    bubble.vx += (Math.random() - 0.5) * 0.005;
-                    bubble.vy += (Math.random() - 0.5) * 0.005;
+                    bubble.vx += (Math.random() - 0.5) * 0.002;
+                    bubble.vy += (Math.random() - 0.5) * 0.002;
                     
-                    bubble.vx *= 0.9995;
-                    bubble.vy *= 0.9995;
+                    bubble.vx *= 0.998;
+                    bubble.vy *= 0.998;
                     
-                    const maxSpeed = 0.5;
+                    const maxSpeed = 0.3;
                     const speed = Math.sqrt(bubble.vx ** 2 + bubble.vy ** 2);
                     if (speed > maxSpeed) {
                         bubble.vx = (bubble.vx / speed) * maxSpeed;
                         bubble.vy = (bubble.vy / speed) * maxSpeed;
+                    }
+                },
+
+                applyContinuousSeparation(bubble) {
+                    for (let other of this.bubbles) {
+                        if (other === bubble || !other.active || other.popping) continue;
+                        
+                        const dx = other.x - bubble.x;
+                        const dy = other.y - bubble.y;
+                        const distance = Math.sqrt(dx ** 2 + dy ** 2);
+                        const minDistance = bubble.radius + other.radius + 12;
+                        
+                        if (distance < minDistance && distance > 0) {
+                            const separationForce = 0.5;
+                            const separationX = (dx / distance) * separationForce;
+                            const separationY = (dy / distance) * separationForce;
+                            
+                            bubble.x -= separationX;
+                            bubble.y -= separationY;
+                            other.x += separationX;
+                            other.y += separationY;
+                        }
                     }
                 },
                 
@@ -665,12 +1074,13 @@
                         const dx = other.x - bubble.x;
                         const dy = other.y - bubble.y;
                         const distance = Math.sqrt(dx ** 2 + dy ** 2);
-                        const minDistance = bubble.radius + other.radius + 10;
+                        const minDistance = bubble.radius + other.radius + 8;
                         
                         if (distance < minDistance) {
                             const overlap = minDistance - distance;
-                            const separationX = (dx / distance) * overlap * 0.5;
-                            const separationY = (dy / distance) * overlap * 0.5;
+                            const separationForce = overlap * 0.002;
+                            const separationX = (dx / distance) * separationForce;
+                            const separationY = (dy / distance) * separationForce;
                             
                             bubble.x -= separationX;
                             bubble.y -= separationY;
@@ -681,79 +1091,75 @@
                             const relativeVx = bubble.vx - other.vx;
                             const relativeVy = bubble.vy - other.vy;
                             
-                            const impulse = 1.2 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass);
+                            const impulse = 0.3 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass);
                             
-                            const restitution = 0.25;
-                            bubble.vx -= impulse * other.mass * dx * restitution;
-                            bubble.vy -= impulse * other.mass * dy * restitution;
-                            other.vx += impulse * bubble.mass * dx * restitution;
-                            other.vy += impulse * bubble.mass * dy * restitution;
+                            const softRestitution = 0.08;
+                            bubble.vx -= impulse * other.mass * dx * softRestitution;
+                            bubble.vy -= impulse * other.mass * dy * softRestitution;
+                            other.vx += impulse * bubble.mass * dx * softRestitution;
+                            other.vy += impulse * bubble.mass * dy * softRestitution;
                             
-                            bubble.bounceTimer = 30;
-                            other.bounceTimer = 30;
+                            bubble.separationTimer = 20;
+                            other.separationTimer = 20;
                         }
                     }
                 },
                 
                 handleBoundaryCollision(bubble) {
-                    const softRestitution = 0.2;
-                    const damping = 0.8;
+                    const veryGentleRestitution = 0.1;
+                    const strongDamping = 0.7;
                     
                     if (bubble.x - bubble.radius <= this.playableArea.left) {
                         bubble.x = this.playableArea.left + bubble.radius;
-                        bubble.vx = Math.abs(bubble.vx) * softRestitution;
-                        bubble.bounceTimer = 60;
+                        bubble.vx = Math.abs(bubble.vx) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     } else if (bubble.x + bubble.radius >= this.playableArea.right) {
                         bubble.x = this.playableArea.right - bubble.radius;
-                        bubble.vx = -Math.abs(bubble.vx) * softRestitution;
-                        bubble.bounceTimer = 60;
+                        bubble.vx = -Math.abs(bubble.vx) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     }
                     
                     if (bubble.y - bubble.radius <= this.playableArea.top) {
                         bubble.y = this.playableArea.top + bubble.radius;
-                        bubble.vy = Math.abs(bubble.vy) * softRestitution;
-                        bubble.bounceTimer = 60;
+                        bubble.vy = Math.abs(bubble.vy) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     } else if (bubble.y + bubble.radius >= this.playableArea.bottom) {
                         bubble.y = this.playableArea.bottom - bubble.radius;
-                        bubble.vy = -Math.abs(bubble.vy) * softRestitution;
-                        bubble.bounceTimer = 60;
+                        bubble.vy = -Math.abs(bubble.vy) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     }
                     
                     if (bubble.bounceTimer > 0) {
-                        bubble.vx *= damping;
-                        bubble.vy *= damping;
+                        bubble.vx *= strongDamping;
+                        bubble.vy *= strongDamping;
                     }
                 },
                 
                 drawParticle(particle) {
                     const ctx = this.ctx;
                     
-                    particle.life -= 0.015;
+                    particle.life -= 0.008;
                     particle.x += particle.vx;
                     particle.y += particle.vy;
-                    particle.vy += 0.05;
-                    particle.vx *= 0.99;
-                    
+                    particle.vy += 0.03;
+                    particle.vx *= 0.995;
+                    particle.rotation += particle.rotationSpeed;
+
                     if (particle.life <= 0) {
                         return false;
                     }
                     
                     ctx.save();
                     ctx.globalAlpha = particle.life;
+                    ctx.translate(particle.x, particle.y);
+                    ctx.rotate(particle.rotation);
+                    
                     ctx.beginPath();
-                    ctx.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2);
-                    
-                    const gradient = ctx.createRadialGradient(
-                        particle.x, particle.y, 0,
-                        particle.x, particle.y, particle.size
-                    );
-                    gradient.addColorStop(0, 'rgba(135,206,235,0.8)');
-                    gradient.addColorStop(1, 'rgba(74,144,184,0.4)');
-                    
-                    ctx.fillStyle = gradient;
+                    ctx.arc(0, 0, particle.size * particle.life, 0, Math.PI * 2);
+                    ctx.fillStyle = particle.color || 'rgba(135,206,235,0.8)';
                     ctx.fill();
-                    ctx.restore();
                     
+                    ctx.restore();
                     return true;
                 },
                 
@@ -769,7 +1175,7 @@
                     
                     this.particles = this.particles.filter(particle => this.drawParticle(particle));
                     
-                    if (this.showBubbles && !this.showResults) {
+                    if (this.showBubbles && !this.isSearching) {
                         this.animationId = requestAnimationFrame(() => this.animate());
                     }
                 },
@@ -798,63 +1204,77 @@
                     bubble.popping = true;
                     bubble.popAnimation = 0;
                     
-                    for (let i = 0; i < 12; i++) {
-                        const angle = (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-                        const speed = Math.random() * 2.5 + 1;
+                    const popColors = [
+                        'rgba(135,206,235,0.6)',
+                        'rgba(255,255,255,0.8)',
+                        'rgba(176,224,230,0.7)',
+                        'rgba(230,230,250,0.6)'
+                    ];
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const speed = Math.random() * 2 + 0.5;
+                        const colorIndex = Math.floor(Math.random() * popColors.length);
                         
                         this.particles.push({
                             x: bubble.x,
                             y: bubble.y,
                             vx: Math.cos(angle) * speed,
-                            vy: Math.sin(angle) * speed - 0.5,
-                            size: Math.random() * 5 + 3,
-                            life: 1
+                            vy: Math.sin(angle) * speed - 0.3,
+                            size: Math.random() * 4 + 2,
+                            life: 1,
+                            color: popColors[colorIndex],
+                            type: 'normal',
+                            rotation: 0,
+                            rotationSpeed: 0
                         });
                     }
                 },
                 
-                generateRelatedWords(words) {
-                    const relatedMap = {
-                        'プログラミング': ['JavaScript', 'Python', 'HTML', 'CSS', 'React', 'Vue'],
-                        '料理': ['レシピ', '材料', '調理法', '栄養', '健康', '食材'],
-                        '旅行': ['観光', 'ホテル', '交通', '文化', '写真', '宿泊'],
-                        '音楽': ['楽器', '作曲', '歌詞', 'ライブ', 'アーティスト', 'コンサート'],
-                        '映画': ['監督', '俳優', 'ストーリー', '撮影', '上映', 'DVD'],
-                        'スポーツ': ['練習', 'トレーニング', '試合', 'チーム', '選手', 'ルール']
-                    };
-                    
-                    const allRelated = [];
-                    words.forEach(word => {
-                        if (relatedMap[word]) {
-                            allRelated.push(...relatedMap[word]);
-                        } else {
-                            allRelated.push(word + '基礎', word + '応用', word + '入門');
-                        }
-                    });
-                    
-                    return allRelated;
-                },
-                
-                searchWithRemaining() {
+                async searchWithRemaining() {
+                    // 完全なサジェストを使用して検索
                     this.remainingWords = this.bubbles
                         .filter(b => b.active)
-                        .map(b => b.word);
+                        .map(b => b.fullWord);
                     
-                    this.searchResults = [];
-                    for (let i = 0; i < 10; i++) {
-                        this.searchResults.push({
-                            id: i,
-                            title: `${this.remainingWords.slice(0, 2).join('・')}に関する記事 ${i + 1}`,
-                            description: `${this.remainingWords.join('、')}について詳しく解説している記事です。実用的な情報や最新の動向について分かりやすく紹介しています。`,
-                            url: `https://example.com/search?q=${encodeURIComponent(this.remainingWords.join(' '))}&id=${i + 1}`
-                        });
-                    }
-                    
-                    this.showResults = true;
+                    this.isSearching = true;
                     
                     if (this.animationId) {
                         cancelAnimationFrame(this.animationId);
                     }
+                    
+                    this.searchTabs = [];
+                    
+                    const originalQuery = this.originalWords.join(' ');
+                    this.searchTabs.push({
+                        title: 'メイン検索',
+                        keyword: originalQuery,
+                        url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(originalQuery)
+                    });
+                    
+                    // 完全なサジェストでタブを作成
+                    this.bubbles
+                        .filter(b => b.active)
+                        .forEach((bubble, index) => {
+                            this.searchTabs.push({
+                                title: bubble.word,  // 表示用（短いテキスト）
+                                keyword: bubble.fullWord,  // 検索用（完全なサジェスト）
+                                url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(bubble.fullWord)
+                            });
+                        });
+                    
+                    setTimeout(() => {
+                        this.activeTabIndex = 0;
+                        this.showBubbles = false;
+                        this.showSearchResults = true;
+                        this.isSearching = false;
+                    }, 1000);
+                },
+
+                updateSearchResults() {
+                    this.searchTabs.forEach(tab => {
+                        tab.url = this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(tab.keyword);
+                    });
                 },
                 
                 resetSearch() {
@@ -864,15 +1284,22 @@
                     
                     this.searchInput = '';
                     this.showBubbles = false;
-                    this.showResults = false;
+                    this.showSearchResults = false;
+                    this.isSearching = false;
+                    this.isGeneratingKeywords = false;
+                    this.hasError = false;
+                    this.keywordProgress = 0;
+                    this.currentKeywordSource = '';
                     this.bubbles = [];
                     this.particles = [];
-                    this.searchResults = [];
                     this.poppedCount = 0;
                     this.totalBubbles = 0;
                     this.originalWords = [];
                     this.remainingWords = [];
                     this.infoAreaHeight = 0;
+                    this.searchTabs = [];
+                    this.activeTabIndex = 0;
+                    this.isAllBubblesPopped = false;
                 }
             }
         }).mount('#app');
