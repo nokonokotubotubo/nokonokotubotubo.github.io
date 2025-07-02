@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T07:20:00.388Z",
+  "updated": "2025-07-02T08:27:52.825Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048013",
+      "title": "生成AIによるコード生成と自動化：開発プロセスの革新と最新事例",
+      "link": "https://qiita.com/karakurai_rena/items/9a2016bef4a25265bd3d",
+      "published": "2025-07-02T07:55:49.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIによるコード生成と自動化についてお話しします。ソフトウェア開発の現場で注目されているこの技術は、開発プロセスを大きく変革し、効率化や品質向上に役立っています。 生成AIプログラミングとは 生成A...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIによるコード生成と自動化についてお話しします。ソフトウェア開発の現場で注目されているこの技術は、開発プロセスを大きく変革し、効率化や品質向上に役立っています。 生成AIプログラミングとは 生成A...",
+      "thumbnail": null
+    },
     {
       "id": "5ncm7n-1751438700000",
       "title": "X（旧Twitter）、検索結果からユーザー名を除外と発表--メリットは？",
@@ -97,18 +109,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047903",
-      "title": "プロンプトエンジニアリング",
-      "link": "https://qiita.com/digital_amplifier_1/items/a1ead2856b17ac2d61d1",
-      "published": "2025-07-02T03:44:23.000Z",
-      "description": "If you want to really make the most of generative AI, it helps a lot to understand high school math and some college-level linear algebr...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "If you want to really make the most of generative AI, it helps a lot to understand high school math and some college-level linear algebr...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqhx4-1751420700000",
       "title": "newmo、自動運転タクシーに本格参入--大阪での事業化に着手",
       "link": "https://japan.cnet.com/article/35234994/",
@@ -130,6 +130,18 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
+      "title": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法",
+      "link": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
+      "published": "2025-07-02T00:00:01.000Z",
+      "description": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
       "thumbnail": null
     },
     {
@@ -178,18 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
-      "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
-      "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
-      "published": "2025-07-01T13:18:13.000Z",
-      "description": "こんにちは👋 2025年7月1日に、Amazon...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "こんにちは👋 2025年7月1日に、Amazon...",
       "thumbnail": null
     }
   ]
