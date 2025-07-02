@@ -8,32 +8,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *{margin:0;padding:0;box-sizing:border-box;}
 
         body{
-            font-family: 'M PLUS 1','Open Sans',sans-serif;
-            background: linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);
-            min-height: 100vh; display:flex; flex-direction:column; color:#333;
+            font-family:'M PLUS 1','Open Sans',sans-serif;
+            background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);
+            min-height:100vh;display:flex;flex-direction:column;color:#333;
         }
 
-        .container{flex:1;max-width:1200px;margin:0 auto;padding:2rem;}
+        .container{flex:1;max-width:1600px;margin:0 auto;padding:2rem;}
 
         .header{text-align:center;margin-bottom:3rem;}
-        .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;font-family:'Open Sans',sans-serif;}
+        .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
         .header p{font-size:1.1rem;color:#666;font-weight:300;}
 
-        /* --- アプリ表示 --- */
+        /* ---------- アプリカードレイアウト ---------- */
         .apps-grid{
             display:flex;
-            flex-direction:column;   /* カード幅100%に合わせ縦並び */
+            flex-wrap:wrap;
             gap:2rem;
+            justify-content:center;
         }
 
         .app-card{
             background:#fff;
             border-radius:16px;
-            padding:1rem;           /* 余白のみ残して画像を大きく */
-            width:100%;             /* 幅100% */
+            padding:1rem;
+            flex:1 1 min(30rem,32%);   /* 3列想定・カードが取り得る最大幅を確保 */
+            max-width:480px;            /* 画像の実寸と合わせ上限を 480px に */
             text-align:center;
             position:relative;
             overflow:hidden;
@@ -43,10 +45,12 @@
             text-decoration:none;
             color:inherit;
         }
+
         .app-card::before{
             content:'';
             position:absolute;
-            top:0;left:-100%;width:100%;height:100%;
+            inset:0;
+            left:-100%;
             background:linear-gradient(90deg,transparent,rgba(173,216,230,.3),transparent);
             transition:left .6s ease;
         }
@@ -57,10 +61,10 @@
             background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        /* --- 画像のみを大きく表示 --- */
+        /* ---------- 画像のみ ---------- */
         .app-icon{
-            width:100%;             /* カードいっぱい */
-            aspect-ratio:1/1;       /* 正方形を維持 */
+            width:100%;
+            aspect-ratio:1/1;          /* 正方形 */
             border-radius:12px;
             background-size:contain;
             background-position:center;
@@ -69,23 +73,29 @@
         }
         .app-card:hover .app-icon{transform:scale(1.05);}
 
-        /* 個別アイコン画像 */
         .fukunavi-icon{background-image:url('./img/fukunavi.png');}
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
-        /* フッター */
-        .footer{text-align:center;padding:2rem;color:#666;font-size:.9rem;border-top:1px solid rgba(255,255,255,.3);margin-top:3rem;}
-
-        /* --- レスポンシブ --- */
+        /* ------- モバイル ------- */
         @media(max-width:768px){
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
+
+            .apps-grid{
+                flex-direction:column;
+                gap:1.5rem;
+            }
+            .app-card{flex:0 1 100%;}
         }
+
         @media(max-width:480px){
             .header h1{font-size:1.7rem;}
             .app-card{padding:.8rem;}
         }
+
+        /* ------- フッター ------- */
+        .footer{text-align:center;padding:2rem;color:#666;font-size:.9rem;border-top:1px solid rgba(255,255,255,.3);margin-top:3rem;}
     </style>
 </head>
 <body>
