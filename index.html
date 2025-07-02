@@ -16,7 +16,7 @@
             min-height:100vh;display:flex;flex-direction:column;color:#333;
         }
 
-        .container{flex:1;max-width:1600px;margin:0 auto;padding:2rem;}
+        .container{flex:1;max-width:2000px;margin:0 auto;padding:2rem;}
 
         .header{text-align:center;margin-bottom:3rem;}
         .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
@@ -33,9 +33,7 @@
         .app-card{
             background:#fff;
             border-radius:16px;
-            padding:1rem;
-            flex:1 1 min(30rem,32%);   /* 3列想定・カードが取り得る最大幅を確保 */
-            max-width:480px;            /* 画像の実寸と合わせ上限を 480px に */
+            padding:1.5rem;
             text-align:center;
             position:relative;
             overflow:hidden;
@@ -56,29 +54,45 @@
         }
         .app-card:hover::before{left:100%;}
         .app-card:hover{
-            transform:translateY(-6px);
-            box-shadow:0 16px 32px rgba(0,0,0,.15);
+            transform:translateY(-8px);
+            box-shadow:0 20px 40px rgba(0,0,0,.2);
             background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        /* ---------- 画像のみ ---------- */
+        /* ---------- 画像のみ（480×480を最大限活用） ---------- */
         .app-icon{
             width:100%;
-            aspect-ratio:1/1;          /* 正方形 */
+            aspect-ratio:1/1;
             border-radius:12px;
             background-size:contain;
             background-position:center;
             background-repeat:no-repeat;
             transition:transform .3s ease;
         }
-        .app-card:hover .app-icon{transform:scale(1.05);}
+        .app-card:hover .app-icon{transform:scale(1.08);}
 
         .fukunavi-icon{background-image:url('./img/fukunavi.png');}
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
-        /* ------- モバイル ------- */
-        @media(max-width:768px){
+        /* ---------- 大画面（1400px以上）：3列・各600px ---------- */
+        @media(min-width:1400px){
+            .app-card{
+                flex:0 1 calc(33.333% - 1.5rem);
+                max-width:600px;
+            }
+        }
+
+        /* ---------- 中画面（768px-1399px）：2列・各500px ---------- */
+        @media(min-width:768px) and (max-width:1399px){
+            .app-card{
+                flex:0 1 calc(50% - 1rem);
+                max-width:500px;
+            }
+        }
+
+        /* ---------- 小画面（767px以下）：縦カラム ---------- */
+        @media(max-width:767px){
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
 
@@ -86,7 +100,11 @@
                 flex-direction:column;
                 gap:1.5rem;
             }
-            .app-card{flex:0 1 100%;}
+            .app-card{
+                flex:0 1 100%;
+                max-width:100%;
+                padding:1rem;
+            }
         }
 
         @media(max-width:480px){
