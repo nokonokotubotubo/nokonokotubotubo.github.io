@@ -101,15 +101,33 @@
             color: #c53030;
         }
         
-        /* Feed Filter Styles - 統一感重視 */
+        /* Feed Filter Styles - 横スクロール対応 */
         .feed-filters {
             max-width: 1200px;
             margin: 0 auto 3rem;
             padding: 0 2rem;
             display: flex;
             gap: 0.5rem;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-wrap: nowrap; /* 改行禁止 */
+            overflow-x: auto; /* 横スクロール有効 */
+            white-space: nowrap; /* テキスト改行禁止 */
+            -webkit-overflow-scrolling: touch; /* スマホでのスムーズスクロール */
+            scrollbar-width: thin; /* スクロールバーを細く */
+        }
+
+        /* スクロールバーのカスタマイズ */
+        .feed-filters::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .feed-filters::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .feed-filters::-webkit-scrollbar-thumb {
+            background: #4a90a4;
+            border-radius: 3px;
         }
         
         .filter-button {
@@ -123,6 +141,12 @@
             font-weight: 600;
             transition: all 0.2s ease;
             letter-spacing: 0.01em;
+            flex-shrink: 0; /* ボタンの縮小を防ぐ */
+            white-space: nowrap; /* ボタン内テキスト改行禁止 */
+            min-width: fit-content; /* 最小幅を内容に合わせる */
+            max-width: 120px; /* 最大幅制限 */
+            overflow: hidden; /* はみ出しを隠す */
+            text-overflow: ellipsis; /* 省略記号を表示 */
         }
         
         .filter-button:hover {
@@ -295,7 +319,6 @@
     </style>
 </head>
 <body>
-    <!-- 既存のHTML構造は変更なし -->
     <div id="app">
         <!-- Header Section -->
         <header class="header">
@@ -323,8 +346,9 @@
                 class="filter-button" 
                 :class="{ active: activeFilter === 'all' }"
                 @click="setFilter('all')"
+                :title="'すべて (' + filteredEntries.length + ')'"
             >
-                すべて ({{ filteredEntries.length }})
+                {{ truncateText('すべて (' + filteredEntries.length + ')') }}
             </button>
             <button 
                 v-for="feed in feeds" 
@@ -333,8 +357,9 @@
                 :class="{ active: activeFilter === feed.name.toLowerCase() }"
                 :style="{ backgroundColor: activeFilter === feed.name.toLowerCase() ? feed.color : 'white', color: activeFilter === feed.name.toLowerCase() ? 'white' : '#4a5568', borderColor: activeFilter === feed.name.toLowerCase() ? feed.color : '#e2e8f0' }"
                 @click="setFilter(feed.name.toLowerCase())"
+                :title="feed.name + ' (' + getFilteredCount(feed.name.toLowerCase()) + ')'"
             >
-                {{ feed.name }} ({{ getFilteredCount(feed.name.toLowerCase()) }})
+                {{ truncateText(feed.name + ' (' + getFilteredCount(feed.name.toLowerCase()) + ')') }}
             </button>
         </div>
         
@@ -381,7 +406,6 @@
         </div>
     </div>
 
-    <!-- 既存のJavaScriptは変更なし -->
     <script>
         const { createApp } = Vue;
         
@@ -448,26 +472,85 @@
                 },
                 
                 extractThumbnail(entry) {
-                    // RSS内の画像情報を抽出（enclosure、media:content等）
+                    // 1. enclosuresから画像を抽出
                     if (entry.enclosures && entry.enclosures.length > 0) {
-                        const imageEnclosure = entry.enclosures.find(enc => 
-                            enc.type && enc.type.startsWith('image/')
-                        );
-                        if (imageEnclosure) return imageEnclosure.url;
+                        for (const enclosure of entry.enclosures) {
+                            if (enclosure.type && enclosure.type.startsWith('image/')) {
+                                return enclosure.url || enclosure.href;
+                            }
+                        }
                     }
                     
-                    // media:content から画像抽出
+                    // 2. media:contentから抽出
                     if (entry['media:content']) {
-                        return entry['media:content'].url;
+                        const mediaContent = Array.isArray(entry['media:content']) 
+                            ? entry['media:content'] 
+                            : [entry['media:content']];
+                        
+                        for (const media of mediaContent) {
+                            if (media.url && (media.medium === 'image' || (media.type && media.type.startsWith('image/')))) {
+                                return media.url;
+                            }
+                        }
                     }
                     
-                    // description内のimg要素から抽出を試行
+                    // 3. media:thumbnailから抽出
+                    if (entry['media:thumbnail']) {
+                        if (typeof entry['media:thumbnail'] === 'string') {
+                            return entry['media:thumbnail'];
+                        } else if (entry['media:thumbnail'].url) {
+                            return entry['media:thumbnail'].url;
+                        }
+                    }
+                    
+                    // 4. thumbnail要素から抽出
+                    if (entry.thumbnail) {
+                        if (typeof entry.thumbnail === 'string') {
+                            return entry.thumbnail;
+                        } else if (entry.thumbnail.url) {
+                            return entry.thumbnail.url;
+                        }
+                    }
+                    
+                    // 5. content要素からimg抽出
+                    if (entry.content) {
+                        const contentText = typeof entry.content === 'object' ? 
+                            (entry.content.value || entry.content['#text'] || '') : 
+                            entry.content;
+                        const imgMatch = contentText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+                        if (imgMatch && imgMatch[1]) {
+                            return imgMatch[1];
+                        }
+                    }
+                    
+                    // 6. description内のimg要素から抽出
                     if (entry.description) {
-                        const imgMatch = entry.description.match(/<img[^>]+src="([^"]+)"/);
-                        if (imgMatch) return imgMatch[1];
+                        const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+                        if (imgMatch && imgMatch[1]) {
+                            return imgMatch[1];
+                        }
+                    }
+                    
+                    // 7. summary内のimg要素から抽出
+                    if (entry.summary) {
+                        const summaryText = typeof entry.summary === 'object' ? 
+                            (entry.summary.value || entry.summary['#text'] || '') : 
+                            entry.summary;
+                        const imgMatch = summaryText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+                        if (imgMatch && imgMatch[1]) {
+                            return imgMatch[1];
+                        }
                     }
                     
                     return null;
+                },
+                
+                // テキストを8文字で省略する関数
+                truncateText(text, maxLength = 8) {
+                    if (text.length <= maxLength) {
+                        return text;
+                    }
+                    return text.substring(0, maxLength) + '...';
                 },
                 
                 setFilter(filter) {
