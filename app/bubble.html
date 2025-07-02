@@ -778,7 +778,7 @@
                         }
                     }
                     
-                    const uniqueSuggestions = [...new Set(allSuggestions)]
+                    const processedSuggestions = [...new Set(allSuggestions)]
                         .filter(suggestion => 
                             suggestion.length < 30 &&
                             !suggestion.includes('http') &&
@@ -786,40 +786,43 @@
                             !this.originalWords.some(word => suggestion.toLowerCase() === word.toLowerCase())
                         )
                         .map(suggestion => {
-                            // 検索ワードを除いた部分のみを抽出
+                            // 表示用と検索用の両方を保持
                             const searchWords = this.originalWords.join(' ').toLowerCase();
                             const suggestionLower = suggestion.toLowerCase();
                             
+                            let displayText = suggestion;
                             if (suggestionLower.startsWith(searchWords)) {
-                                return suggestion.substring(searchWords.length).trim();
+                                displayText = suggestion.substring(searchWords.length).trim();
+                            } else {
+                                // 検索ワードが含まれている場合は、それを除去
+                                this.originalWords.forEach(word => {
+                                    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                                    displayText = displayText.replace(regex, '').trim();
+                                });
                             }
                             
-                            // 検索ワードが含まれている場合は、それを除去
-                            let cleanedSuggestion = suggestion;
-                            this.originalWords.forEach(word => {
-                                const regex = new RegExp(`\\b${word}\\b`, 'gi');
-                                cleanedSuggestion = cleanedSuggestion.replace(regex, '').trim();
-                            });
-                            
-                            return cleanedSuggestion;
+                            return {
+                                displayText: displayText.length > 0 ? displayText : suggestion,
+                                fullSuggestion: suggestion  // 完全なサジェストを保持
+                            };
                         })
-                        .filter(suggestion => suggestion.length > 0);
+                        .filter(item => item.displayText.length > 0);
                     
-                    console.log('検索ワードを除いた関連キーワード:', uniqueSuggestions);
+                    console.log('検索ワードを除いた関連キーワード:', processedSuggestions);
                     
-                    if (uniqueSuggestions.length === 0) {
+                    if (processedSuggestions.length === 0) {
                         throw new Error('有効なGoogleサジェストが取得できませんでした');
                     }
                     
-                    return uniqueSuggestions;
+                    return processedSuggestions;
                 },
 
-                createNonOverlappingLayout(words) {
+                createNonOverlappingLayout(processedWords) {
                     const bubbles = [];
                     const padding = 25;
                     const maxAttempts = 150;
                     
-                    words.forEach((word, index) => {
+                    processedWords.forEach((wordData, index) => {
                         const size = Math.random() * 40 + 70;
                         const radius = size / 2;
                         let x, y;
@@ -847,8 +850,8 @@
                         }
                         
                         if (!validPosition) {
-                            const cols = Math.ceil(Math.sqrt(words.length));
-                            const rows = Math.ceil(words.length / cols);
+                            const cols = Math.ceil(Math.sqrt(processedWords.length));
+                            const rows = Math.ceil(processedWords.length / cols);
                             const col = index % cols;
                             const row = Math.floor(index / cols);
                             
@@ -863,7 +866,8 @@
                         
                         bubbles.push({
                             id: index,
-                            word: word,
+                            word: wordData.displayText,  // 表示用（検索ワードを除去したもの）
+                            fullWord: wordData.fullSuggestion,  // 検索用（完全なサジェスト）
                             x: x,
                             y: y,
                             radius: radius,
@@ -1228,9 +1232,10 @@
                 },
                 
                 async searchWithRemaining() {
+                    // 完全なサジェストを使用して検索
                     this.remainingWords = this.bubbles
                         .filter(b => b.active)
-                        .map(b => b.word);
+                        .map(b => b.fullWord);
                     
                     this.isSearching = true;
                     
@@ -1247,13 +1252,16 @@
                         url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(originalQuery)
                     });
                     
-                    this.remainingWords.forEach((word, index) => {
-                        this.searchTabs.push({
-                            title: word,
-                            keyword: word,
-                            url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(word)
+                    // 完全なサジェストでタブを作成
+                    this.bubbles
+                        .filter(b => b.active)
+                        .forEach((bubble, index) => {
+                            this.searchTabs.push({
+                                title: bubble.word,  // 表示用（短いテキスト）
+                                keyword: bubble.fullWord,  // 検索用（完全なサジェスト）
+                                url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(bubble.fullWord)
+                            });
                         });
-                    });
                     
                     setTimeout(() => {
                         this.activeTabIndex = 0;
