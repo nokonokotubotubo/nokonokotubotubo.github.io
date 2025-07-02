@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T03:18:38.481Z",
+  "updated": "2025-07-02T04:29:52.514Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,42 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqhve-1751427900000",
+      "title": "ドット絵で遊べるNothingの個性派スマホ「Phone (3)」を写真でじっくり見る",
+      "link": "https://japan.cnet.com/article/35234996/",
+      "published": "2025-07-02T03:45:00.000Z",
+      "description": "「透明」や「光る」スマホで知られる英Nothingの新作「Phone (3)」を、写真とともに紹介する。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "「透明」や「光る」スマホで知られる英Nothingの新作「Phone (3)」を、写真とともに紹介する。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047903",
+      "title": "プロンプトエンジニアリング",
+      "link": "https://qiita.com/digital_amplifier_1/items/a1ead2856b17ac2d61d1",
+      "published": "2025-07-02T03:44:23.000Z",
+      "description": "If you want to really make the most of generative AI, it helps a lot to understand high school math and some college-level linear algebr...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "If you want to really make the most of generative AI, it helps a lot to understand high school math and some college-level linear algebr...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047900",
+      "title": "シフトレフトと生成AIで変革する！アジャイル時代のソフトウェア品質戦略",
+      "link": "https://qiita.com/karakurai_rena/items/935afae03bf124a9502e",
+      "published": "2025-07-02T03:29:58.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、アジャイル開発の時代にますます重要となっている「シフトレフト」と「生成AI」を活用したソフトウェア品質戦略について解説します。ソフトウェア開発現場では、品質の確保と開発効率の向上が常に求められています。そ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、アジャイル開発の時代にますます重要となっている「シフトレフト」と「生成AI」を活用したソフトウェア品質戦略について解説します。ソフトウェア開発現場では、品質の確保と開発効率の向上が常に求められています。そ...",
+      "thumbnail": null
+    },
     {
       "id": "5nqhx4-1751420700000",
       "title": "newmo、自動運転タクシーに本格参入--大阪での事業化に着手",
@@ -85,18 +121,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047813",
-      "title": "生成AIで業務効率化！最新事例と導入のポイント",
-      "link": "https://qiita.com/karakurai_rena/items/7945c173b071eecde4df",
-      "published": "2025-07-01T23:30:11.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを使って業務効率化を実現する最新の事例と導入のポイントについてご紹介します。生成AIの急速な普及により、多くの企業が文章作成やデータ分析、カスタマーサポートなどの分野で効果を上げているんですよ。 ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを使って業務効率化を実現する最新の事例と導入のポイントについてご紹介します。生成AIの急速な普及により、多くの企業が文章作成やデータ分析、カスタマーサポートなどの分野で効果を上げているんですよ。 ...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqiqe-1751411400000",
       "title": "Amazon、「23時59分までの注文で翌日配送する地域」を全国展開--迅速性向上へ",
       "link": "https://japan.cnet.com/article/35234981/",
@@ -106,30 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "Amazonは、23時59分までの注文に対して翌日配送を行うサービスを、2025年中に全国へ展開する。さらに、一部地域では、13時までに注文した商品を当日の夜間に届けるオプションも拡大する。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047791",
-      "title": "[速習] 米国が騒ぐ「AI週4日勤務」を、日本人は既に実現していた件",
-      "link": "https://qiita.com/ShigemoriMasato/items/a2b81b00ed2d027a8720",
-      "published": "2025-07-01T22:46:39.000Z",
-      "description": "「皆さんは週に何日働いていると思いますか？」 最近また話題になっている「AI週4日勤務」12。 この記事を見た瞬間、1年前の記憶が鮮明に蘇りました。シリコンバレーの友人とZoomで話していた時のことです。彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "「皆さんは週に何日働いていると思いますか？」 最近また話題になっている「AI週4日勤務」12。 この記事を見た瞬間、1年前の記憶が鮮明に蘇りました。シリコンバレーの友人とZoomで話していた時のことです。彼は興奮気味にこう切り出しました。 「ついに我が社もAIを活用して週...",
-      "thumbnail": null
-    },
-    {
-      "id": "5nr4yd-1751409000000",
-      "title": "任天堂「スイッチ2」を2週間遊んで徹底レビュー：最高の携帯ゲーム機だが待つのも一手",
-      "link": "https://japan.cnet.com/article/35234892/",
-      "published": "2025-07-01T22:30:00.000Z",
-      "description": "任天堂の最新ゲーム機「Nintendo Switch 2」は非常に優れた携帯ゲーム機だが、現時点では改良版のSwitchだと考えた方がいい。初代Switchを持っているなら、しばらく買い控えるのもの1つの選択かもしれない。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "任天堂の最新ゲーム機「Nintendo Switch 2」は非常に優れた携帯ゲーム機だが、現時点では改良版のSwitchだと考えた方がいい。初代Switchを持っているなら、しばらく買い控えるのもの1つの選択かもしれない。",
       "thumbnail": null
     },
     {
