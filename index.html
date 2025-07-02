@@ -6,7 +6,7 @@
     <title>Noko no Tubo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
 
@@ -19,8 +19,26 @@
         .container{flex:1;max-width:2400px;margin:0 auto;padding:2rem;}
 
         .header{text-align:center;margin-bottom:3rem;}
-        .header h1{font-size:4rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
-        .header p{font-size:1.2rem;color:#666;font-weight:300;}
+        
+        /* ---------- タイトルをセンスよくスタイリング ---------- */
+        .header h1{
+            font-size:3.5rem;
+            font-weight:900;
+            color:#0d47a1;
+            margin-bottom:1rem;
+            font-family:'Open Sans',sans-serif;
+            letter-spacing:0.05em;
+            text-shadow:3px 3px 6px rgba(0,0,0,0.15);
+            border-bottom:3px solid #1976d2;
+            padding-bottom:0.5rem;
+            display:inline-block;
+        }
+        
+        .header p{
+            font-size:1rem;
+            color:#888;
+            font-weight:300;
+        }
 
         /* ---------- デスクトップ：横1行で最大限拡大 ---------- */
         .apps-grid{
@@ -80,7 +98,11 @@
         /* ---------- モバイル：縦カラム・大きく表示 ---------- */
         @media(max-width:1200px){
             .container{padding:1.5rem;max-width:100%;}
-            .header h1{font-size:2.5rem;}
+            .header h1{
+                font-size:2.8rem;
+                letter-spacing:0.03em;
+                text-shadow:2px 2px 4px rgba(0,0,0,0.15);
+            }
             
             .apps-grid{
                 flex-direction:column;
@@ -89,25 +111,36 @@
             .app-card{
                 flex:none;
                 min-width:auto;
-                max-width:100%;             /* 幅制限を削除して最大化 */
+                max-width:100%;
                 margin:0;
-                padding:1rem;               /* paddingを削減して画像領域拡大 */
+                padding:1rem;
             }
         }
 
         @media(max-width:768px){
             .container{padding:1rem;}
-            .header h1{font-size:2rem;}
+            .header h1{
+                font-size:2.2rem;
+                letter-spacing:0.02em;
+            }
+            /* モバイルでサブタイトルを目立たなく */
+            .header p{
+                font-size:0.7rem;
+                color:#999;
+            }
             .app-card{
-                padding:0.8rem;             /* さらにpadding削減 */
+                padding:0.8rem;
             }
         }
 
         @media(max-width:480px){
-            .header h1{font-size:1.7rem;}
+            .header h1{
+                font-size:1.8rem;
+                text-shadow:2px 2px 4px rgba(0,0,0,0.1);
+            }
             .container{padding:0.5rem;}
             .app-card{
-                padding:0.5rem;             /* 最小paddingで画像を最大化 */
+                padding:0.5rem;
             }
         }
 
