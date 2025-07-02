@@ -22,9 +22,10 @@
         .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
         .header p{font-size:1.1rem;color:#666;font-weight:300;}
 
-        /* ---------- デスクトップ：3列で最大限拡大 ---------- */
+        /* ---------- デスクトップ：画像解像度480pxを最大限活用 ---------- */
         .apps-grid{
             display:flex;
+            flex-wrap:wrap;
             gap:2rem;
             justify-content:center;
         }
@@ -32,9 +33,9 @@
         .app-card{
             background:#fff;
             border-radius:16px;
-            padding:2rem;
-            flex:1;                     /* 残りスペースを等分 */
-            min-width:200px;            /* 最小幅のみ指定 */
+            padding:1.5rem;
+            flex:0 1 480px;             /* 固定幅480pxで3列表示 */
+            max-width:480px;            /* 画像解像度限界まで拡大 */
             text-align:center;
             position:relative;
             overflow:hidden;
@@ -60,12 +61,12 @@
             background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        /* ---------- 画像を最大限拡大 ---------- */
+        /* ---------- 画像をカード全体に拡大表示 ---------- */
         .app-icon{
             width:100%;
             aspect-ratio:1/1;
             border-radius:12px;
-            background-size:contain;
+            background-size:cover;      /* 画像をカード全体に拡大表示 */
             background-position:center;
             background-repeat:no-repeat;
             transition:transform .3s ease;
@@ -76,7 +77,7 @@
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
-        /* ---------- モバイル：縦カラム ---------- */
+        /* ---------- モバイル：縦カラム表示 ---------- */
         @media(max-width:768px){
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
@@ -86,7 +87,8 @@
                 gap:1.5rem;
             }
             .app-card{
-                flex:none;              /* flex:1を無効化 */
+                flex:none;              /* 固定幅を無効化 */
+                max-width:100%;
                 padding:1.5rem;
             }
         }
