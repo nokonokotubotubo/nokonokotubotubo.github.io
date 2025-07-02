@@ -131,28 +131,94 @@ jobs:
           }
         });
         
-        // サムネイル抽出関数
+        // サムネイル抽出関数（改良版）
         function extractThumbnail(entry) {
-          // enclosures から画像を抽出
+          // 1. enclosures から画像を抽出（url と href の両方をチェック）
           if (entry.enclosures && Array.isArray(entry.enclosures)) {
-            const imageEnclosure = entry.enclosures.find(enc => 
-              enc.type && enc.type.startsWith('image/')
-            );
-            if (imageEnclosure && imageEnclosure.url) {
-              return imageEnclosure.url;
+            for (const enclosure of entry.enclosures) {
+              if (enclosure.type && enclosure.type.startsWith('image/')) {
+                return enclosure.url || enclosure.href;
+              }
             }
           }
           
-          // media:content から抽出
-          if (entry['media:content'] && entry['media:content'].url) {
-            return entry['media:content'].url;
+          // 2. media:content から抽出（配列対応）
+          if (entry['media:content']) {
+            const mediaContent = Array.isArray(entry['media:content']) 
+              ? entry['media:content'] 
+              : [entry['media:content']];
+            
+            for (const media of mediaContent) {
+              if (media.url && (media.medium === 'image' || (media.type && media.type.startsWith('image/')))) {
+                return media.url;
+              }
+            }
           }
           
-          // description内のimg要素から抽出
-          if (entry.description) {
-            const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["']/i);
+          // 3. media:thumbnail から抽出
+          if (entry['media:thumbnail']) {
+            if (typeof entry['media:thumbnail'] === 'string') {
+              return entry['media:thumbnail'];
+            } else if (entry['media:thumbnail'].url) {
+              return entry['media:thumbnail'].url;
+            }
+          }
+          
+          // 4. thumbnail 要素から抽出
+          if (entry.thumbnail) {
+            if (typeof entry.thumbnail === 'string') {
+              return entry.thumbnail;
+            } else if (entry.thumbnail.url) {
+              return entry.thumbnail.url;
+            }
+          }
+          
+          // 5. content要素からimg抽出
+          if (entry.content) {
+            const contentText = typeof entry.content === 'object' ? 
+              (entry.content.value || entry.content['#text'] || '') : 
+              entry.content;
+            const imgMatch = contentText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
             if (imgMatch && imgMatch[1]) {
               return imgMatch[1];
+            }
+          }
+          
+          // 6. description内のimg要素から抽出（改良版）
+          if (entry.description) {
+            const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+            if (imgMatch && imgMatch[1]) {
+              return imgMatch[1];
+            }
+          }
+          
+          // 7. summary内のimg要素から抽出
+          if (entry.summary) {
+            const summaryText = typeof entry.summary === 'object' ? 
+              (entry.summary.value || entry.summary['#text'] || '') : 
+              entry.summary;
+            const imgMatch = summaryText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+            if (imgMatch && imgMatch[1]) {
+              return imgMatch[1];
+            }
+          }
+          
+          // 8. Qiita/Zenn特有の画像抽出
+          if (entry.link) {
+            // QiitaのOpen Graph画像を推測
+            if (entry.link.includes('qiita.com')) {
+              const match = entry.link.match(/qiita\.com\/[^\/]+\/items\/([^\/\?]+)/);
+              if (match) {
+                return `https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b`;
+              }
+            }
+            
+            // Zennの場合は専用のOGP画像を推測
+            if (entry.link.includes('zenn.dev')) {
+              const match = entry.link.match(/zenn\.dev\/[^\/]+\/articles\/([^\/\?]+)/);
+              if (match) {
+                return `https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:${encodeURIComponent(entry.title || '')},w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:${encodeURIComponent(entry.author || '')},x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png`;
+              }
             }
           }
           
