@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T22:21:40.773Z",
+  "updated": "2025-07-02T23:02:46.407Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -58,7 +58,7 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 生成AI（ChatGPT、Gemini、Claudeなど）によって「0→1」の実装や文章作成について瞬時に行えるようになり、プログラミングスキルやライティングスキルはもはや最重要ではなくなりつつあります。では、エンジニア、ひいては一般社会人にとって必要な能力とは...",
-      "thumbnail": null
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048077",
@@ -70,7 +70,7 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "生成AIが変革するシステム開発の未来と直面する課題 こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIがシステム開発の現場にどのような影響を与えているのか、またその可能性と課題についてわかりやすく解説していきます。 生成AIとは？ 生成AIは...",
-      "thumbnail": null
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048115",
@@ -82,7 +82,7 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、decoponです！ 生成AIを活用しながら、日々コーディングや記事執筆、学習に取り組んでいます。 最近つくづく感じているのが、「AIって、こっちの聞き方次第で答えの質がまるで変わるな〜」ということ。 でも最初は、 「わかりやすく教えて」→ わかりやすく…ない...",
-      "thumbnail": null
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048071",
@@ -94,7 +94,7 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに ふと以下のニュースを見かけました。 コールセンターで働く人間のオペレーターが、顧客から「AIではなく人間の担当者に代われ」と言われるケースが増えているようです。アメリカン・エキスプレスのコールセンター担当者は、「本物の人間と話したい」と言われることが増え、...",
-      "thumbnail": null
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
       "id": "5ncm7n-1751438700000",
@@ -142,7 +142,7 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "thumbnail": null
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:AWS%20Summit%202025%E3%82%BB%E3%83%83%E3%82%B7%E3%83%A7%E3%83%B3%E6%84%9F%E6%83%B3%EF%BC%9AAI%E9%A7%86%E5%8B%95%E9%96%8B%E7%99%BA%E3%82%92%E6%88%90%E5%8A%9F%E3%81%95%E3%81%9B%E3%82%8B%E3%80%8CEverything%20as%20Code%E3%80%8D%E3%81%AE%E5%AE%9F%E8%B7%B5%E6%96%B9%E6%B3%95,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
     },
     {
       "id": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
@@ -154,7 +154,7 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチ",
-      "thumbnail": null
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E3%80%90%E9%9D%9E%E3%82%A8%E3%83%B3%E3%82%B8%E3%83%8B%E3%82%A2%E5%90%91%E3%81%91%E3%80%91Claude%20Code%20Hooks%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
     },
     {
       "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
@@ -166,7 +166,7 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
-      "thumbnail": null
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E3%80%903%3A%20%E6%B3%A8%E6%84%8F%E3%81%8C%E5%BF%85%E8%A6%81%E3%80%91Hedra%20%E3%81%AE%E5%AE%89%E5%85%A8%E6%80%A7%E8%AA%BF%E6%9F%BB%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
     },
     {
       "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
@@ -178,7 +178,7 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事",
-      "thumbnail": null
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:MCP%20%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%92%E3%82%BC%E3%83%AD%E3%81%8B%E3%82%89%E4%BD%9C%E3%82%8B%20%E2%94%80%E2%94%80%20Function%20Calling%20%E3%81%A7%20LLM%20%E3%82%92%E3%83%84%E3%83%BC%E3%83%AB%E4%BD%BF%E3%81%84%E3%81%AB%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
     },
     {
       "id": "https://zenn.dev/niji2/books/dc733aba687c92",
