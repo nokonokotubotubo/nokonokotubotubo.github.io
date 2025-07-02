@@ -1,0 +1,32 @@
+{
+  "name": "Fukuなび - 天気予報アプリ",
+  "short_name": "Fukuなび",
+  "description": "服装指数付き天気予報アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e6f2ff",
+  "theme_color": "#3385ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMzM4NWZmIiByeD0iMjAiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAydjJhMTAgMTAgMCAwIDEgMTAgMTBoMnYtMmExMiAxMiAwIDAgMC0xMi0xMnoiLz4KPHN2ZyB4PSIyIiB5PSIyIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTkgMTRoLTN2LTJoM2ExIDEgMCAwIDEgMCAyem0wIDRoLTN2LTJoM2ExIDEgMCAwIDEgMCAyem0wLThoLTN2LTJoM2ExIDEgMCAwIDEgMCAyeiIvPgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMzM4NWZmIiByeD0iNDAiLz4KPHN2ZyB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTIgMnYyYTEwIDEwIDAgMCAxIDEwIDEwaDJ2LTJhMTIgMTIgMCAwIDAtMTItMTJ6Ii8+CjxzdmcgeD0iNiIgeT0iNiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjUyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IndoaXRlIj4KPHN0eWxlPmZvbnQtc2l6ZTo0OHB4PC9zdHlsZT4KPHR2eHQgeD0iMTIiIHk9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5GJPC90ZXh0Pgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzkwIiBoZWlnaHQ9IjY5NCIgdmlld0JveD0iMCAwIDM5MCA2OTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzOTAiIGhlaWdodD0iNjk0IiBmaWxsPSIjZTZmMmZmIiByeD0iMjAiLz4KPHN0eWxlPmZvbnQtZmFtaWx5OkFyaWFsO2ZvbnQtc2l6ZToyNHB4PC9zdHlsZT4KPHR2eHQgeD0iMTk1IiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzMzODVmZiI+Rkb\n",
+      "sizes": "390x694",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["weather", "utilities"],
+  "lang": "ja"
+}
