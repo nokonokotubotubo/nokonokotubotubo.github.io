@@ -587,7 +587,6 @@
             computed: {
                 activeBubblesCount() {
                     const count = this.bubbles.filter(b => b.active).length;
-                    // すべてのシャボン玉が消去された場合の処理
                     if (count === 0 && this.bubbles.length > 0 && this.showBubbles && !this.isAllBubblesPopped) {
                         this.isAllBubblesPopped = true;
                         this.triggerCompleteAnimation();
@@ -602,23 +601,20 @@
             },
             methods: {
                 triggerCompleteAnimation() {
-                    // シンプルで爽やかなアニメーション
                     const refreshColors = [
-                        'rgba(135,206,235,0.7)', // スカイブルー
-                        'rgba(176,224,230,0.6)', // パウダーブルー
-                        'rgba(255,255,255,0.8)', // 白
-                        'rgba(230,230,250,0.6)', // ラベンダー
-                        'rgba(224,255,255,0.7)'  // ライトシアン
+                        'rgba(135,206,235,0.7)',
+                        'rgba(176,224,230,0.6)', 
+                        'rgba(255,255,255,0.8)',
+                        'rgba(230,230,250,0.6)',
+                        'rgba(224,255,255,0.7)'
                     ];
 
-                    // 30個のシンプルなパーティクル（100個から大幅削減）
                     for (let i = 0; i < 30; i++) {
                         setTimeout(() => {
                             const x = Math.random() * this.canvas.width;
                             const y = Math.random() * this.canvas.height;
                             const colorIndex = Math.floor(Math.random() * refreshColors.length);
                             
-                            // シンプルな円形パーティクルのみ
                             this.particles.push({
                                 x: x,
                                 y: y,
@@ -627,15 +623,14 @@
                                 size: Math.random() * 8 + 4,
                                 life: 1,
                                 color: refreshColors[colorIndex],
-                                type: 'normal', // 円形のみ
+                                type: 'normal',
                                 rotation: 0,
                                 rotationSpeed: 0
                             });
 
-                        }, i * 50); // 間隔をゆったりと
+                        }, i * 50);
                     }
                     
-                    // 1.5秒後に初期画面に戻る（短縮）
                     setTimeout(() => {
                         this.resetSearch();
                     }, 1500);
@@ -647,6 +642,7 @@
                         return;
                     }
                     
+                    // 検索ワードは保存するが、シャボン玉には表示しない
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
@@ -796,10 +792,11 @@
                     return uniqueSuggestions;
                 },
 
+                // 強化された重なり防止システム
                 createNonOverlappingLayout(words) {
                     const bubbles = [];
-                    const padding = 25; // パディングを増加
-                    const maxAttempts = 150; // 試行回数を増加
+                    const padding = 25; // パディングを増やして余裕を持たせる
+                    const maxAttempts = 150; // 試行回数を増やす
                     
                     words.forEach((word, index) => {
                         const size = Math.random() * 40 + 70;
@@ -816,6 +813,7 @@
                             
                             validPosition = true;
                             
+                            // より厳密な重なり検証
                             for (let existing of bubbles) {
                                 const distance = Math.sqrt((x - existing.x) ** 2 + (y - existing.y) ** 2);
                                 const minDistance = radius + existing.radius + padding;
@@ -825,22 +823,23 @@
                                     break;
                                 }
                             }
-                            
                             attempts++;
                         }
                         
+                        // 配置に失敗した場合のフォールバック改善
                         if (!validPosition) {
                             const cols = Math.ceil(Math.sqrt(words.length));
+                            const rows = Math.ceil(words.length / cols);
                             const col = index % cols;
                             const row = Math.floor(index / cols);
                             
-                            const availableWidth = this.playableArea.right - this.playableArea.left - 60;
-                            const availableHeight = this.playableArea.bottom - this.playableArea.top - 60;
+                            const availableWidth = this.playableArea.right - this.playableArea.left - 100;
+                            const availableHeight = this.playableArea.bottom - this.playableArea.top - 100;
                             const cellWidth = availableWidth / cols;
-                            const cellHeight = availableHeight / Math.ceil(words.length / cols);
+                            const cellHeight = availableHeight / rows;
                             
-                            x = this.playableArea.left + col * cellWidth + cellWidth / 2 + 30;
-                            y = this.playableArea.top + row * cellHeight + cellHeight / 2 + 30;
+                            x = this.playableArea.left + col * cellWidth + cellWidth / 2 + 50;
+                            y = this.playableArea.top + row * cellHeight + cellHeight / 2 + 50;
                         }
                         
                         bubbles.push({
@@ -849,7 +848,7 @@
                             x: x,
                             y: y,
                             radius: radius,
-                            vx: (Math.random() - 0.5) * 0.08, // 初期速度を削減
+                            vx: (Math.random() - 0.5) * 0.08, // 初期速度を抑制
                             vy: (Math.random() - 0.5) * 0.08,
                             active: true,
                             popping: false,
@@ -858,7 +857,7 @@
                             opacity: 1,
                             mass: radius,
                             bounceTimer: 0,
-                            separationForce: { x: 0, y: 0 } // 分離力を追加
+                            separationTimer: 0 // 分離タイマーを追加
                         });
                     });
                     
@@ -919,7 +918,11 @@
                     ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.fill();
                     
-                    const fontSize = Math.max(14, radius * 0.35);
+                    // テキストサイズを調整（長いテキストの場合は小さく）
+                    const baseSize = radius * 0.35;
+                    const textLength = bubble.word.length;
+                    let fontSize = Math.max(12, Math.min(baseSize, baseSize * (20 / Math.max(textLength, 20))));
+                    
                     ctx.fillStyle = '#2C5F7A';
                     ctx.strokeStyle = '#FFFFFF';
                     ctx.lineWidth = 3;
@@ -927,40 +930,71 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    const maxWidth = radius * 1.2;
-                    this.drawReadableText(ctx, bubble.word, x, y, maxWidth, fontSize * 1.1);
+                    // 改良されたテキスト描画
+                    this.drawReadableText(ctx, bubble.word, x, y, radius, fontSize);
                     
                     if (bubble.popping) {
                         ctx.restore();
                     }
                 },
                 
-                drawReadableText(ctx, text, x, y, maxWidth, lineHeight) {
-                    const chars = text.split('');
-                    let line = '';
+                // 円形境界に合わせたテキスト制限
+                drawReadableText(ctx, text, x, y, radius, fontSize) {
+                    const words = text.split('');
                     const lines = [];
+                    const maxLines = Math.floor((radius * 1.4) / (fontSize * 1.2)); // 最大行数を制限
                     
-                    for (let n = 0; n < chars.length; n++) {
-                        const testLine = line + chars[n];
+                    let currentLine = '';
+                    
+                    for (let i = 0; i < words.length; i++) {
+                        const testLine = currentLine + words[i];
+                        const maxWidthForLine = this.getMaxWidthForCircleLine(radius, lines.length, maxLines);
                         const metrics = ctx.measureText(testLine);
-                        const testWidth = metrics.width;
                         
-                        if (testWidth > maxWidth && n > 0) {
-                            lines.push(line);
-                            line = chars[n];
+                        if (metrics.width > maxWidthForLine && currentLine.length > 0) {
+                            lines.push(currentLine);
+                            currentLine = words[i];
+                            
+                            // 最大行数に達したら省略表示
+                            if (lines.length >= maxLines) {
+                                if (i < words.length - 1) {
+                                    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -2) + '…';
+                                }
+                                break;
+                            }
                         } else {
-                            line = testLine;
+                            currentLine = testLine;
                         }
                     }
-                    lines.push(line);
                     
-                    const startY = y - (lines.length - 1) * lineHeight / 2;
-                    
-                    for (let i = 0; i < lines.length; i++) {
-                        const lineY = startY + i * lineHeight;
-                        ctx.strokeText(lines[i], x, lineY);
-                        ctx.fillText(lines[i], x, lineY);
+                    if (currentLine && lines.length < maxLines) {
+                        lines.push(currentLine.trim());
                     }
+                    
+                    // テキストの描画
+                    const lineHeight = fontSize * 1.2;
+                    const totalHeight = lines.length * lineHeight;
+                    let startY = y - (totalHeight / 2) + (lineHeight / 2);
+                    
+                    lines.forEach((line, index) => {
+                        const lineY = startY + (index * lineHeight);
+                        
+                        // 描画位置が円内に収まるかチェック
+                        if (Math.abs(lineY - y) <= radius * 0.7) {
+                            ctx.strokeText(line, x, lineY);
+                            ctx.fillText(line, x, lineY);
+                        }
+                    });
+                },
+
+                // 円形の各行での最大幅を計算
+                getMaxWidthForCircleLine(radius, lineIndex, maxLines) {
+                    // 円の中心からの距離に基づいて幅を調整
+                    const centerOffset = (lineIndex - (maxLines - 1) / 2) * (radius * 0.3 / maxLines);
+                    const distanceFromCenter = Math.abs(centerOffset);
+                    const availableRadius = Math.sqrt(Math.max(0, (radius * 0.8) ** 2 - distanceFromCenter ** 2));
+                    
+                    return Math.max(availableRadius * 1.8, radius * 0.3); // 最小幅を保証
                 },
                 
                 updateBubble(bubble) {
@@ -970,30 +1004,28 @@
                         bubble.bounceTimer--;
                     }
                     
-                    // 分離力をリセット
-                    bubble.separationForce.x = 0;
-                    bubble.separationForce.y = 0;
+                    if (bubble.separationTimer > 0) {
+                        bubble.separationTimer--;
+                        // 分離タイマー中は追加の分離力を適用
+                        this.applyContinuousSeparation(bubble);
+                    }
                     
                     this.handleBubbleCollisions(bubble);
-                    
-                    // 分離力を速度に適用
-                    bubble.vx += bubble.separationForce.x * 0.02;
-                    bubble.vy += bubble.separationForce.y * 0.02;
                     
                     bubble.x += bubble.vx;
                     bubble.y += bubble.vy;
                     
                     this.handleBoundaryCollision(bubble);
                     
-                    // ランダムな微小な力を削減
+                    // より穏やかなランダム要素
                     bubble.vx += (Math.random() - 0.5) * 0.002;
                     bubble.vy += (Math.random() - 0.5) * 0.002;
                     
-                    // 抵抗を増加
-                    bubble.vx *= 0.996;
-                    bubble.vy *= 0.996;
+                    // より強い減衰
+                    bubble.vx *= 0.998;
+                    bubble.vy *= 0.998;
                     
-                    // 最大速度を削減
+                    // 最大速度をさらに制限
                     const maxSpeed = 0.3;
                     const speed = Math.sqrt(bubble.vx ** 2 + bubble.vy ** 2);
                     if (speed > maxSpeed) {
@@ -1001,7 +1033,31 @@
                         bubble.vy = (bubble.vy / speed) * maxSpeed;
                     }
                 },
+
+                // 新しいメソッド：継続的な分離処理
+                applyContinuousSeparation(bubble) {
+                    for (let other of this.bubbles) {
+                        if (other === bubble || !other.active || other.popping) continue;
+                        
+                        const dx = other.x - bubble.x;
+                        const dy = other.y - bubble.y;
+                        const distance = Math.sqrt(dx ** 2 + dy ** 2);
+                        const minDistance = bubble.radius + other.radius + 12;
+                        
+                        if (distance < minDistance && distance > 0) {
+                            const separationForce = 0.5;
+                            const separationX = (dx / distance) * separationForce;
+                            const separationY = (dy / distance) * separationForce;
+                            
+                            bubble.x -= separationX;
+                            bubble.y -= separationY;
+                            other.x += separationX;
+                            other.y += separationY;
+                        }
+                    }
+                },
                 
+                // より滑らかな反発システム
                 handleBubbleCollisions(bubble) {
                     for (let other of this.bubbles) {
                         if (other === bubble || !other.active || other.popping) continue;
@@ -1009,66 +1065,68 @@
                         const dx = other.x - bubble.x;
                         const dy = other.y - bubble.y;
                         const distance = Math.sqrt(dx ** 2 + dy ** 2);
-                        const minDistance = bubble.radius + other.radius + 15; // 最小距離を増加
+                        const minDistance = bubble.radius + other.radius + 8;
                         
-                        if (distance < minDistance && distance > 0) {
-                            // 重なり解決のための分離
+                        if (distance < minDistance) {
+                            // より滑らかな分離処理
                             const overlap = minDistance - distance;
-                            const separationX = (dx / distance) * overlap * 0.4; // より滑らかな分離
-                            const separationY = (dy / distance) * overlap * 0.4;
+                            const separationForce = overlap * 0.002; // 分離力を大幅に削減
+                            const separationX = (dx / distance) * separationForce;
+                            const separationY = (dy / distance) * separationForce;
                             
-                            // 分離力を蓄積
-                            bubble.separationForce.x -= separationX;
-                            bubble.separationForce.y -= separationY;
-                            other.separationForce.x += separationX;
-                            other.separationForce.y += separationY;
+                            bubble.x -= separationX;
+                            bubble.y -= separationY;
+                            other.x += separationX;
+                            other.y += separationY;
                             
-                            // より滑らかな反発
+                            // 非常に滑らかな反発
                             const totalMass = bubble.mass + other.mass;
                             const relativeVx = bubble.vx - other.vx;
                             const relativeVy = bubble.vy - other.vy;
                             
-                            const impulse = 0.8 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass); // 衝撃を削減
+                            const impulse = 0.3 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass);
                             
-                            const restitution = 0.15; // 反発係数を削減
-                            bubble.vx -= impulse * other.mass * dx * restitution;
-                            bubble.vy -= impulse * other.mass * dy * restitution;
-                            other.vx += impulse * bubble.mass * dx * restitution;
-                            other.vy += impulse * bubble.mass * dy * restitution;
+                            const softRestitution = 0.08; // 反発係数を大幅に削減
+                            bubble.vx -= impulse * other.mass * dx * softRestitution;
+                            bubble.vy -= impulse * other.mass * dy * softRestitution;
+                            other.vx += impulse * bubble.mass * dx * softRestitution;
+                            other.vy += impulse * bubble.mass * dy * softRestitution;
                             
-                            bubble.bounceTimer = 40;
-                            other.bounceTimer = 40;
+                            // 分離タイマーを設定
+                            bubble.separationTimer = 20;
+                            other.separationTimer = 20;
                         }
                     }
                 },
                 
+                // 壁との反発もより滑らかに修正
                 handleBoundaryCollision(bubble) {
-                    const softRestitution = 0.1; // 反発係数を削減
-                    const damping = 0.85; // ダンピングを増加
+                    const veryGentleRestitution = 0.1; // 非常に穏やかな反発
+                    const strongDamping = 0.7; // より強い減衰
                     
                     if (bubble.x - bubble.radius <= this.playableArea.left) {
                         bubble.x = this.playableArea.left + bubble.radius;
-                        bubble.vx = Math.abs(bubble.vx) * softRestitution;
-                        bubble.bounceTimer = 80; // タイマーを増加
+                        bubble.vx = Math.abs(bubble.vx) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     } else if (bubble.x + bubble.radius >= this.playableArea.right) {
                         bubble.x = this.playableArea.right - bubble.radius;
-                        bubble.vx = -Math.abs(bubble.vx) * softRestitution;
-                        bubble.bounceTimer = 80;
+                        bubble.vx = -Math.abs(bubble.vx) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     }
                     
                     if (bubble.y - bubble.radius <= this.playableArea.top) {
                         bubble.y = this.playableArea.top + bubble.radius;
-                        bubble.vy = Math.abs(bubble.vy) * softRestitution;
-                        bubble.bounceTimer = 80;
+                        bubble.vy = Math.abs(bubble.vy) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     } else if (bubble.y + bubble.radius >= this.playableArea.bottom) {
                         bubble.y = this.playableArea.bottom - bubble.radius;
-                        bubble.vy = -Math.abs(bubble.vy) * softRestitution;
-                        bubble.bounceTimer = 80;
+                        bubble.vy = -Math.abs(bubble.vy) * veryGentleRestitution;
+                        bubble.bounceTimer = 40;
                     }
                     
                     if (bubble.bounceTimer > 0) {
-                        bubble.vx *= damping;
-                        bubble.vy *= damping;
+                        bubble.vx *= strongDamping;
+                        bubble.vy *= strongDamping;
                     }
                 },
                 
@@ -1186,7 +1244,7 @@
                     // タブデータの準備
                     this.searchTabs = [];
                     
-                    // 元キーワードタブ（入力した検索ワードを使用）
+                    // 元キーワードタブ
                     const originalQuery = this.originalWords.join(' ');
                     this.searchTabs.push({
                         title: 'メイン検索',
@@ -1194,7 +1252,7 @@
                         url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(originalQuery)
                     });
                     
-                    // 関連キーワードタブ（Googleサジェストのみ）
+                    // 関連キーワードタブ
                     this.remainingWords.forEach((word, index) => {
                         this.searchTabs.push({
                             title: word,
