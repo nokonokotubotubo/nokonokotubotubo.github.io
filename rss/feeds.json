@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T06:30:30.080Z",
+  "updated": "2025-07-02T07:20:00.388Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "5ncm7n-1751438700000",
+      "title": "X（旧Twitter）、検索結果からユーザー名を除外と発表--メリットは？",
+      "link": "https://japan.cnet.com/article/35235011/",
+      "published": "2025-07-02T06:45:00.000Z",
+      "description": "X（旧Twitter）は7月2日、検索結果からユーザー名を除外したと発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "X（旧Twitter）は7月2日、検索結果からユーザー名を除外したと発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047982",
+      "title": "AIとともに創るプロジェクト",
+      "link": "https://qiita.com/yniji/items/d0f853458fdae8f9e4a7",
+      "published": "2025-07-02T06:36:23.000Z",
+      "description": "久しぶりの投稿になります。 一時期、年齢的な限界を感じプログラミングから離れることも考えていましたが、生成AIの登場により再び活動に復帰しました。 特筆すべきは、その生産性の向上です。 先日、生成AIを全面的に活用することで、技術書『ようこそ！生成AIと始めるPython入...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "久しぶりの投稿になります。 一時期、年齢的な限界を感じプログラミングから離れることも考えていましたが、生成AIの登場により再び活動に復帰しました。 特筆すべきは、その生産性の向上です。 先日、生成AIを全面的に活用することで、技術書『ようこそ！生成AIと始めるPython入...",
+      "thumbnail": null
+    },
     {
       "id": "5ncmrg-1751436300000",
       "title": "家計簿アプリ「マネーフォワードME」が値上げ--8月5日から",
@@ -85,18 +109,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047900",
-      "title": "シフトレフトと生成AIで変革する！アジャイル時代のソフトウェア品質戦略",
-      "link": "https://qiita.com/karakurai_rena/items/935afae03bf124a9502e",
-      "published": "2025-07-02T03:29:58.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、アジャイル開発の時代にますます重要となっている「シフトレフト」と「生成AI」を活用したソフトウェア品質戦略について解説します。ソフトウェア開発現場では、品質の確保と開発効率の向上が常に求められています。そ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、アジャイル開発の時代にますます重要となっている「シフトレフト」と「生成AI」を活用したソフトウェア品質戦略について解説します。ソフトウェア開発現場では、品質の確保と開発効率の向上が常に求められています。そ...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqhx4-1751420700000",
       "title": "newmo、自動運転タクシーに本格参入--大阪での事業化に着手",
       "link": "https://japan.cnet.com/article/35234994/",
@@ -118,18 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqint-1751413200000",
-      "title": "アマゾンで働くロボットが100万台に到達、人より多くなる可能性も",
-      "link": "https://japan.cnet.com/article/35234984/",
-      "published": "2025-07-01T23:40:00.000Z",
-      "description": "アマゾンの倉庫用ロボットが新たな節目に到達した。同社は、100万台目のロボットを日本のフルフィルメントセンターに配備したと発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "アマゾンの倉庫用ロボットが新たな節目に到達した。同社は、100万台目のロボットを日本のフルフィルメントセンターに配備したと発表した。",
       "thumbnail": null
     },
     {
