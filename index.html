@@ -93,6 +93,7 @@
             background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
         }
 
+        /* ---------- 変更ここから ---------- */
         .app-icon {
             width: 80px;
             height: 80px;
@@ -100,22 +101,15 @@
             border-radius: 12px;
             overflow: hidden;
             transition: transform 0.3s ease;
-            background-image: url('image.png');
-            background-size: 300% 100%;
+            background-size: contain;      /* 端末サイズに追従 */
+            background-position: center;
             background-repeat: no-repeat;
         }
 
-        .fukunavi-icon {
-            background-position: 0% 50%;
-        }
-
-        .bublerch-icon {
-            background-position: 50% 50%;
-        }
-
-        .rss-icon {
-            background-position: 100% 50%;
-        }
+        .fukunavi-icon  { background-image: url('./img/fukunavi.png'); }
+        .bublerch-icon  { background-image: url('./img/buble.png');     }
+        .rss-icon       { background-image: url('./img/rss.png');       }
+        /* ---------- 変更ここまで ---------- */
 
         .app-card:hover .app-icon {
             transform: scale(1.1);
@@ -168,6 +162,12 @@
             .container {
                 padding: 1rem;
             }
+
+            /* アイコンを少し小さく */
+            .app-icon {
+                width: 70px;
+                height: 70px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -177,6 +177,12 @@
 
             .app-card {
                 padding: 1.5rem;
+            }
+
+            /* さらに縮小 */
+            .app-icon {
+                width: 60px;
+                height: 60px;
             }
         }
     </style>
@@ -205,7 +211,7 @@
 
             <a href="https://nokonokotubotubo.github.io/rss/" class="app-card" target="_blank">
                 <div class="app-icon rss-icon"></div>
-                <h2 class="app-title">まとめてNEWS</h2>
+                <h2 class="app-title">ギュギュッとNEWS</h2>
                 <p class="app-catchphrase">ほしい情報だけギュギュッとお届け</p>
                 <p class="app-description">rssリーダー</p>
             </a>
