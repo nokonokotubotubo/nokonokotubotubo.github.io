@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T23:02:46.407Z",
+  "updated": "2025-07-02T23:23:05.611Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048285",
+      "title": "LLMは\"利用\"フェーズが一番危ない。プロキシとポリシーエンジンによるイン・アウト双方の防衛術",
+      "link": "https://qiita.com/RepKuririn/items/07c1cbb4e21170c8b72c",
+      "published": "2025-07-02T23:16:07.000Z",
+      "description": "目次 Part 1: AIが直面する新たな脅威 Chapter 1: LLMの脆弱性 - プロンプトインジェクションの脅威 Section 1.1: 生成AIセキュリティの3つの柱 Section 1.2: プロンプトインジェクションとは？ Section 1....",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "目次 Part 1: AIが直面する新たな脅威 Chapter 1: LLMの脆弱性 - プロンプトインジェクションの脅威 Section 1.1: 生成AIセキュリティの3つの柱 Section 1.2: プロンプトインジェクションとは？ Section 1....",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
     {
       "id": "5nckl3-1751492100000",
       "title": "Tinder、ログイン時の顔認証を必須化へ--「写真とは別人」を排除",
@@ -82,18 +94,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、decoponです！ 生成AIを活用しながら、日々コーディングや記事執筆、学習に取り組んでいます。 最近つくづく感じているのが、「AIって、こっちの聞き方次第で答えの質がまるで変わるな〜」ということ。 でも最初は、 「わかりやすく教えて」→ わかりやすく…ない...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048071",
-      "title": "【チューリングテスト】電話の向こう側のあなたは人間？AI？",
-      "link": "https://qiita.com/ryu-ki/items/ef3bb45ba91a96ec5fbe",
-      "published": "2025-07-02T10:00:13.000Z",
-      "description": "はじめに ふと以下のニュースを見かけました。 コールセンターで働く人間のオペレーターが、顧客から「AIではなく人間の担当者に代われ」と言われるケースが増えているようです。アメリカン・エキスプレスのコールセンター担当者は、「本物の人間と話したい」と言われることが増え、...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに ふと以下のニュースを見かけました。 コールセンターで働く人間のオペレーターが、顧客から「AIではなく人間の担当者に代われ」と言われるケースが増えているようです。アメリカン・エキスプレスのコールセンター担当者は、「本物の人間と話したい」と言われることが増え、...",
       "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
