@@ -8,182 +8,83 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body{
+            font-family: 'M PLUS 1','Open Sans',sans-serif;
+            background: linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);
+            min-height: 100vh; display:flex; flex-direction:column; color:#333;
         }
 
-        body {
-            font-family: 'M PLUS 1', 'Open Sans', sans-serif;
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #333;
+        .container{flex:1;max-width:1200px;margin:0 auto;padding:2rem;}
+
+        .header{text-align:center;margin-bottom:3rem;}
+        .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;font-family:'Open Sans',sans-serif;}
+        .header p{font-size:1.1rem;color:#666;font-weight:300;}
+
+        /* --- アプリ表示 --- */
+        .apps-grid{
+            display:flex;
+            flex-direction:column;   /* カード幅100%に合わせ縦並び */
+            gap:2rem;
         }
 
-        .container {
-            flex: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
+        .app-card{
+            background:#fff;
+            border-radius:16px;
+            padding:1rem;           /* 余白のみ残して画像を大きく */
+            width:100%;             /* 幅100% */
+            text-align:center;
+            position:relative;
+            overflow:hidden;
+            cursor:pointer;
+            box-shadow:0 4px 20px rgba(0,0,0,.08);
+            transition:all .3s ease;
+            text-decoration:none;
+            color:inherit;
+        }
+        .app-card::before{
+            content:'';
+            position:absolute;
+            top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(173,216,230,.3),transparent);
+            transition:left .6s ease;
+        }
+        .app-card:hover::before{left:100%;}
+        .app-card:hover{
+            transform:translateY(-6px);
+            box-shadow:0 16px 32px rgba(0,0,0,.15);
+            background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
+        /* --- 画像のみを大きく表示 --- */
+        .app-icon{
+            width:100%;             /* カードいっぱい */
+            aspect-ratio:1/1;       /* 正方形を維持 */
+            border-radius:12px;
+            background-size:contain;
+            background-position:center;
+            background-repeat:no-repeat;
+            transition:transform .3s ease;
         }
+        .app-card:hover .app-icon{transform:scale(1.05);}
 
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1976d2;
-            margin-bottom: 1rem;
-            font-family: 'Open Sans', sans-serif;
+        /* 個別アイコン画像 */
+        .fukunavi-icon{background-image:url('./img/fukunavi.png');}
+        .bublerch-icon{background-image:url('./img/buble.png');}
+        .rss-icon     {background-image:url('./img/rss.png');}
+
+        /* フッター */
+        .footer{text-align:center;padding:2rem;color:#666;font-size:.9rem;border-top:1px solid rgba(255,255,255,.3);margin-top:3rem;}
+
+        /* --- レスポンシブ --- */
+        @media(max-width:768px){
+            .container{padding:1rem;}
+            .header h1{font-size:2rem;}
         }
-
-        .header p {
-            font-size: 1.1rem;
-            color: #666;
-            font-weight: 300;
-        }
-
-        .apps-grid {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .app-card {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            width: 300px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: inherit;
-            transform: translateY(0);
-        }
-
-        .app-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(173, 216, 230, 0.3), transparent);
-            transition: left 0.6s ease;
-        }
-
-        .app-card:hover::before {
-            left: 100%;
-        }
-
-        .app-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-        }
-
-        /* ---------- 変更ここから ---------- */
-        .app-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 1.5rem;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.3s ease;
-            background-size: contain;      /* 端末サイズに追従 */
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        .fukunavi-icon  { background-image: url('./img/fukunavi.png'); }
-        .bublerch-icon  { background-image: url('./img/buble.png');     }
-        .rss-icon       { background-image: url('./img/rss.png');       }
-        /* ---------- 変更ここまで ---------- */
-
-        .app-card:hover .app-icon {
-            transform: scale(1.1);
-        }
-
-        .app-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #1976d2;
-        }
-
-        .app-catchphrase {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 1rem;
-            line-height: 1.4;
-        }
-
-        .app-description {
-            font-size: 0.8rem;
-            color: #888;
-            font-weight: 300;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: #666;
-            font-size: 0.9rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            margin-top: 3rem;
-        }
-
-        @media (max-width: 768px) {
-            .apps-grid {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .app-card {
-                width: 100%;
-                max-width: 350px;
-            }
-
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .container {
-                padding: 1rem;
-            }
-
-            /* アイコンを少し小さく */
-            .app-icon {
-                width: 70px;
-                height: 70px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 1.7rem;
-            }
-
-            .app-card {
-                padding: 1.5rem;
-            }
-
-            /* さらに縮小 */
-            .app-icon {
-                width: 60px;
-                height: 60px;
-            }
+        @media(max-width:480px){
+            .header h1{font-size:1.7rem;}
+            .app-card{padding:.8rem;}
         }
     </style>
 </head>
@@ -195,25 +96,19 @@
         </header>
 
         <main class="apps-grid">
-            <a href="https://nokonokotubotubo.github.io/fukunavi/" class="app-card" target="_blank">
+            <a href="https://nokonokotubotubo.github.io/fukunavi/"
+               class="app-card" target="_blank" aria-label="Fukuなび">
                 <div class="app-icon fukunavi-icon"></div>
-                <h2 class="app-title">Fukuなび</h2>
-                <p class="app-catchphrase">その日なに着ていく？</p>
-                <p class="app-description">天気予報サイト</p>
             </a>
 
-            <a href="https://nokonokotubotubo.github.io/bubble/" class="app-card" target="_blank">
+            <a href="https://nokonokotubotubo.github.io/bubble/"
+               class="app-card" target="_blank" aria-label="bublerch">
                 <div class="app-icon bublerch-icon"></div>
-                <h2 class="app-title">bublerch</h2>
-                <p class="app-catchphrase">欲しい情報は泡の中から</p>
-                <p class="app-description">検索サイト</p>
             </a>
 
-            <a href="https://nokonokotubotubo.github.io/rss/" class="app-card" target="_blank">
+            <a href="https://nokonokotubotubo.github.io/rss/"
+               class="app-card" target="_blank" aria-label="ギュギュッとNEWS">
                 <div class="app-icon rss-icon"></div>
-                <h2 class="app-title">ギュギュッとNEWS</h2>
-                <p class="app-catchphrase">ほしい情報だけギュギュッとお届け</p>
-                <p class="app-description">rssリーダー</p>
             </a>
         </main>
     </div>
