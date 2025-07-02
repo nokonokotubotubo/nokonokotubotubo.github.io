@@ -20,16 +20,16 @@
 
         .header{text-align:center;margin-bottom:3rem;}
         
-        /* ---------- タイトルをセンスよくスタイリング ---------- */
+        /* ---------- タイトルを水色寄りに調整 ---------- */
         .header h1{
             font-size:3.5rem;
             font-weight:900;
-            color:#0d47a1;
+            color:#42a5f5;              /* 水色寄りに変更 */
             margin-bottom:1rem;
             font-family:'Open Sans',sans-serif;
             letter-spacing:0.05em;
             text-shadow:3px 3px 6px rgba(0,0,0,0.15);
-            border-bottom:3px solid #1976d2;
+            border-bottom:3px solid #64b5f6;   /* ボーダーも水色系に */
             padding-bottom:0.5rem;
             display:inline-block;
         }
@@ -46,6 +46,13 @@
             gap:3rem;
             justify-content:center;
             align-items:stretch;
+        }
+
+        /* ---------- デスクトップでカードを下にずらす ---------- */
+        @media(min-width:1201px){
+            .apps-grid{
+                transform:translateY(30px);     /* カードを30px下にずらす */
+            }
         }
 
         .app-card{
@@ -107,6 +114,7 @@
             .apps-grid{
                 flex-direction:column;
                 gap:2rem;
+                transform:none;             /* モバイルではずらしを無効化 */
             }
             .app-card{
                 flex:none;
@@ -123,7 +131,6 @@
                 font-size:2.2rem;
                 letter-spacing:0.02em;
             }
-            /* モバイルでサブタイトルを目立たなく */
             .header p{
                 font-size:0.7rem;
                 color:#999;
