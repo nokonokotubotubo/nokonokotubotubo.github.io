@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-01T23:18:47.865Z",
+  "updated": "2025-07-02T01:42:23.253Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,66 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047859",
+      "title": "Databricks MLflowで実現する生成AIアプリの継続的改善サイクル",
+      "link": "https://qiita.com/taka_yayoi/items/c0ae12ce358f6293a9f4",
+      "published": "2025-07-02T01:38:19.000Z",
+      "description": "DatabricksのMLflowが提供する評価・モニタリング機能を活用することで、生成AIアプリケーションの品質を定量的に測定し、継続的に改善できます。本記事では、実際のトレースデータから評価データセットを作成し、事前定義されたスコアラーで自動評価を行い、問題を特定してア...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "DatabricksのMLflowが提供する評価・モニタリング機能を活用することで、生成AIアプリケーションの品質を定量的に測定し、継続的に改善できます。本記事では、実際のトレースデータから評価データセットを作成し、事前定義されたスコアラーで自動評価を行い、問題を特定してア...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqhzp-1751418900000",
+      "title": "Nothingの「Phone (3)」が登場、さっそく実機を試して気に入った理由",
+      "link": "https://japan.cnet.com/article/35234991/",
+      "published": "2025-07-02T01:15:00.000Z",
+      "description": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047831",
+      "title": "まだ「プロンプトエンジニアリング」で消耗してるの？「プロンプト職人」からの卒業。そのLLMアプリが\"もう一歩\"垢抜けない理由と、その処方箋としての「コンテキストエンジニアリング」",
+      "link": "https://qiita.com/RepKuririn/items/83f7c5fc2bb4b6c68180",
+      "published": "2025-07-02T00:37:47.000Z",
+      "description": "AI開発の新潮流：プロンプトの先へ、「コンテキストエンジニアリング」を制覇する LLM（大規模言語モデル）を活用したアプリケーションが、単一のプロンプト応答から、より複雑で動的なエージェントシステムへと進化する中で、「プロンプトエンジニアリング」という言葉だけではその本質...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "AI開発の新潮流：プロンプトの先へ、「コンテキストエンジニアリング」を制覇する LLM（大規模言語モデル）を活用したアプリケーションが、単一のプロンプト応答から、より複雑で動的なエージェントシステムへと進化する中で、「プロンプトエンジニアリング」という言葉だけではその本質...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nqint-1751413200000",
+      "title": "アマゾンで働くロボットが100万台に到達、人より多くなる可能性も",
+      "link": "https://japan.cnet.com/article/35234984/",
+      "published": "2025-07-01T23:40:00.000Z",
+      "description": "アマゾンの倉庫用ロボットが新たな節目に到達した。同社は、100万台目のロボットを日本のフルフィルメントセンターに配備したと発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "アマゾンの倉庫用ロボットが新たな節目に到達した。同社は、100万台目のロボットを日本のフルフィルメントセンターに配備したと発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047813",
+      "title": "生成AIで業務効率化！最新事例と導入のポイント",
+      "link": "https://qiita.com/karakurai_rena/items/7945c173b071eecde4df",
+      "published": "2025-07-01T23:30:11.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを使って業務効率化を実現する最新の事例と導入のポイントについてご紹介します。生成AIの急速な普及により、多くの企業が文章作成やデータ分析、カスタマーサポートなどの分野で効果を上げているんですよ。 ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを使って業務効率化を実現する最新の事例と導入のポイントについてご紹介します。生成AIの急速な普及により、多くの企業が文章作成やデータ分析、カスタマーサポートなどの分野で効果を上げているんですよ。 ...",
+      "thumbnail": null
+    },
     {
       "id": "5nqiqe-1751411400000",
       "title": "Amazon、「23時59分までの注文で翌日配送する地域」を全国展開--迅速性向上へ",
@@ -97,18 +157,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047722",
-      "title": "StyleGANを用いた抽象画生成",
-      "link": "https://qiita.com/tomto10344/items/655f2049ef52b6447841",
-      "published": "2025-07-01T14:58:28.000Z",
-      "description": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 昨今の画像生成AIといえばStable Diffusionのような拡散モデルが主流となっており、写真と見分けがつかないほど高精度な画像を汎用的に生成できることから、さまざまな場面で活用されています。 しかし、画像生成AIは拡散モデルだけでなく、GAN（敵対的生成...",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
       "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
       "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
@@ -121,30 +169,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047678",
-      "title": "生成AI時代の人材不足を解消するための具体的戦略と育成法",
-      "link": "https://qiita.com/karakurai_rena/items/77251cd4493051f906c6",
-      "published": "2025-07-01T12:46:22.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AI時代に直面している人材不足の問題と、それを解消するための具体的な戦略や育成方法についてお話しします。 AI人材不足の現状とその背景 最近では、生成AIの技術が急速に進歩し、多くの企業が業務効率化...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AI時代に直面している人材不足の問題と、それを解消するための具体的な戦略や育成方法についてお話しします。 AI人材不足の現状とその背景 最近では、生成AIの技術が急速に進歩し、多くの企業が業務効率化...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047675",
-      "title": "生成AIによるソフトウェア開発の業務効率化事例",
-      "link": "https://qiita.com/karakurai_rena/items/4153ed895a7ec675a34d",
-      "published": "2025-07-01T12:40:37.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを活用したソフトウェア開発の業務効率化についてご紹介しますね。ソフトウェア開発の現場では、効率化と品質向上が常に求められていますが、最近は生成AIの導入が進み、開発プロセスに大きな変化をもたらして...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIを活用したソフトウェア開発の業務効率化についてご紹介しますね。ソフトウェア開発の現場では、効率化と品質向上が常に求められていますが、最近は生成AIの導入が進み、開発プロセスに大きな変化をもたらして...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqjhy-1751358900000",
       "title": "猛暑を加速させる「ヒートドーム」とは--恐ろしい気象現象の正体",
       "link": "https://japan.cnet.com/article/35234970/",
@@ -154,30 +178,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "米国を襲う記録的猛暑。その背後にある「ヒートドーム」とは？仕組みや影響、気候変動との関係、対策まで徹底解説。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqktb-1751353920000",
-      "title": "メルカリ、トラブル遭遇時の「全額補償」を開始--適用条件は？金額に上限なし",
-      "link": "https://japan.cnet.com/article/35234957/",
-      "published": "2025-07-01T07:12:00.000Z",
-      "description": "メルカリが「全額補償サポートプログラム」を開始。本人確認とメルカリ便の利用が条件で、正しく使っているユーザーに対して購入代金や販売利益を全額補償。不正対策を強化し、安心・安全な取引環境を提供へ。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "メルカリが「全額補償サポートプログラム」を開始。本人確認とメルカリ便の利用が条件で、正しく使っているユーザーに対して購入代金や販売利益を全額補償。不正対策を強化し、安心・安全な取引環境を提供へ。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqkvw-1751351040000",
-      "title": "さよならQUICPay+　Kyashが「Visaのタッチ決済」へ1本化--Google Pay対応",
-      "link": "https://japan.cnet.com/article/35234954/",
-      "published": "2025-07-01T06:24:00.000Z",
-      "description": "Kyashが7月1日、Android版Google PayでVisaタッチ決済を開始。Kyash Card/Virtualを登録するだけで国内外のVisa加盟店で非接触決済が可能に。QUICPay+は8月31日終了予定。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "Kyashが7月1日、Android版Google PayでVisaタッチ決済を開始。Kyash Card/Virtualを登録するだけで国内外のVisa加盟店で非接触決済が可能に。QUICPay+は8月31日終了予定。",
       "thumbnail": null
     },
     {
