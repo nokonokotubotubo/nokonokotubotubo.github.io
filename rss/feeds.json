@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T04:49:22.632Z",
+  "updated": "2025-07-02T05:22:50.916Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -109,18 +109,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "title": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法",
-      "link": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "published": "2025-07-02T00:00:01.000Z",
-      "description": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqint-1751413200000",
       "title": "アマゾンで働くロボットが100万台に到達、人より多くなる可能性も",
       "link": "https://japan.cnet.com/article/35234984/",
@@ -145,30 +133,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
-      "title": "【非エンジニア向け】Claude Code Hooksについて",
-      "link": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
-      "published": "2025-07-01T21:55:16.000Z",
-      "description": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。 この記事のポイント Claude Code...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチ",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
-      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
-      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
-      "published": "2025-07-01T19:23:41.000Z",
-      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
       "title": "MCP クライアントをゼロから作る ── Function Calling で LLM をツール使いにする方法",
       "link": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
@@ -182,14 +146,50 @@
     },
     {
       "id": "https://zenn.dev/niji2/books/dc733aba687c92",
-      "title": "ようこそ！生成AIと始めるPython入門",
+      "title": "ようこそ！生成AIと始めるPython冒険の書",
       "link": "https://zenn.dev/niji2/books/dc733aba687c92",
       "published": "2025-07-01T15:07:41.000Z",
-      "description": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。そんなあなたにこそ、この本をおすすめします。 生成AIとPythonを組み合わせれば、面倒だったセットアップやプログラミングのハードルを大きく下げられます。さらに、Windows 環境でも...",
+      "description": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
       "source": "Zenn",
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
-      "summary": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。",
+      "summary": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
+      "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "published": "2025-07-01T13:18:13.000Z",
+      "description": "こんにちは👋 2025年7月1日に、Amazon...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "こんにちは👋 2025年7月1日に、Amazon...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
+      "title": "【RAG】大企業の「暗黙知」を、AIで自動で「形式知」に",
+      "link": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
+      "published": "2025-06-30T23:00:01.000Z",
+      "description": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
+      "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
+      "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
+      "published": "2025-06-30T15:14:00.000Z",
+      "description": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通じて感じたことをお伝えします。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
       "thumbnail": null
     }
   ]
