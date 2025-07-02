@@ -2,8 +2,6 @@ name: Fetch RSS Feeds and Deploy
 
 # トリガー設定
 on:
-  push:
-    branches: [ main ]
   schedule:
     # 毎時0分に実行（UTC時間）
     - cron: '0 * * * *'
