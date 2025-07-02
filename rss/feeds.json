@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T20:24:09.888Z",
+  "updated": "2025-07-02T21:22:02.296Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nckly-1751490600000",
+      "title": "ChatGPTに頼りがちだと「脳が腐る」は本当か--科学者が影響を調べてみた",
+      "link": "https://japan.cnet.com/article/35235036/",
+      "published": "2025-07-02T21:10:00.000Z",
+      "description": "生成AIを使って何かの作業をするとき、脳の動き方は、自分だけでじっくり考える場合とは大きく異なっている。特に、自分が行ったことを記憶に残しづらくなってしまうのだという。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "生成AIを使って何かの作業をするとき、脳の動き方は、自分だけでじっくり考える場合とは大きく異なっている。特に、自分が行ったことを記憶に残しづらくなってしまうのだという。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048253",
       "title": "生成AIの時代、これからは思想がつよいヤツが勝つ...?!",
@@ -118,18 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "モビリティスタートアップのnewmoは7月2日、自動運転タクシー事業への本格参入を発表した。大阪での事業化に向けた取り組みを開始したという。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqhzp-1751418900000",
-      "title": "Nothingの「Phone (3)」が登場、さっそく実機を試して気に入った理由",
-      "link": "https://japan.cnet.com/article/35234991/",
-      "published": "2025-07-02T01:15:00.000Z",
-      "description": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
       "thumbnail": null
     },
     {
