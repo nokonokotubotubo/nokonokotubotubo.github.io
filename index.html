@@ -34,8 +34,8 @@
             background:#fff;
             border-radius:20px;
             padding:2rem;
-            flex:1;                     /* 画面幅を3等分して最大限拡大 */
-            min-width:400px;            /* 最小幅を大きく設定 */
+            flex:1;
+            min-width:400px;
             text-align:center;
             position:relative;
             overflow:hidden;
@@ -77,7 +77,7 @@
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
-        /* ---------- モバイル：縦カラム表示 ---------- */
+        /* ---------- モバイル：縦カラム・大きく表示 ---------- */
         @media(max-width:1200px){
             .container{padding:1.5rem;max-width:100%;}
             .header h1{font-size:2.5rem;}
@@ -89,8 +89,9 @@
             .app-card{
                 flex:none;
                 min-width:auto;
-                max-width:600px;
-                margin:0 auto;
+                max-width:100%;             /* 幅制限を削除して最大化 */
+                margin:0;
+                padding:1rem;               /* paddingを削減して画像領域拡大 */
             }
         }
 
@@ -98,14 +99,16 @@
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
             .app-card{
-                padding:1.5rem;
-                max-width:100%;
+                padding:0.8rem;             /* さらにpadding削減 */
             }
         }
 
         @media(max-width:480px){
             .header h1{font-size:1.7rem;}
-            .app-card{padding:1rem;}
+            .container{padding:0.5rem;}
+            .app-card{
+                padding:0.5rem;             /* 最小paddingで画像を最大化 */
+            }
         }
 
         /* ------- フッター ------- */
