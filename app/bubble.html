@@ -471,7 +471,7 @@
                 <div class="generating-overlay" v-if="isGeneratingKeywords">
                     <div class="generating-text">
                         ✨ Googleサジェストから関連キーワードを取得中...<br>
-                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを6つ取得しています</span>
+                        <span style="font-size: 1rem; color: #5BA3C7;">関連キーワードを12個取得しています</span>
                         <div class="progress-bar">
                             <div class="progress-fill" :style="{ width: keywordProgress + '%' }"></div>
                         </div>
@@ -642,7 +642,6 @@
                         return;
                     }
                     
-                    // 検索ワードは保存するが、シャボン玉には表示しない
                     this.originalWords = this.searchInput.trim().split(/\s+/);
                     this.poppedCount = 0;
                     this.showBubbles = true;
@@ -717,7 +716,7 @@
                         throw new Error('Googleサジェストから関連キーワードを取得できませんでした');
                     }
                     
-                    const bubbleWords = relatedWords.slice(0, 6);
+                    const bubbleWords = relatedWords.slice(0, 12);
                     this.bubbles = this.createNonOverlappingLayout(bubbleWords);
                     this.totalBubbles = this.bubbles.length;
                 },
@@ -731,7 +730,7 @@
                         'https://api.allorigins.win/raw?url='
                     ];
                     
-                    const extensions = ['の', 'と', 'は', 'で', 'を', 'が', 'に', 'から'];
+                    const extensions = ['の', 'と', 'は', 'で', 'を', 'が', 'に', 'から', 'より', 'から', 'へ', 'まで'];
                     let allSuggestions = [];
                     
                     for (let proxyIndex = 0; proxyIndex < corsProxies.length; proxyIndex++) {
@@ -763,9 +762,13 @@
                                 }
                                 
                                 await new Promise(resolve => setTimeout(resolve, 200));
+                                
+                                if (allSuggestions.length >= 15) {
+                                    break;
+                                }
                             }
                             
-                            if (allSuggestions.length >= 6) {
+                            if (allSuggestions.length >= 12) {
                                 break;
                             }
                             
@@ -781,9 +784,28 @@
                             !suggestion.includes('http') &&
                             !suggestion.includes('www') &&
                             !this.originalWords.some(word => suggestion.toLowerCase() === word.toLowerCase())
-                        );
+                        )
+                        .map(suggestion => {
+                            // 検索ワードを除いた部分のみを抽出
+                            const searchWords = this.originalWords.join(' ').toLowerCase();
+                            const suggestionLower = suggestion.toLowerCase();
+                            
+                            if (suggestionLower.startsWith(searchWords)) {
+                                return suggestion.substring(searchWords.length).trim();
+                            }
+                            
+                            // 検索ワードが含まれている場合は、それを除去
+                            let cleanedSuggestion = suggestion;
+                            this.originalWords.forEach(word => {
+                                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                                cleanedSuggestion = cleanedSuggestion.replace(regex, '').trim();
+                            });
+                            
+                            return cleanedSuggestion;
+                        })
+                        .filter(suggestion => suggestion.length > 0);
                     
-                    console.log('Googleサジェストから取得した関連キーワード:', uniqueSuggestions);
+                    console.log('検索ワードを除いた関連キーワード:', uniqueSuggestions);
                     
                     if (uniqueSuggestions.length === 0) {
                         throw new Error('有効なGoogleサジェストが取得できませんでした');
@@ -792,11 +814,10 @@
                     return uniqueSuggestions;
                 },
 
-                // 強化された重なり防止システム
                 createNonOverlappingLayout(words) {
                     const bubbles = [];
-                    const padding = 25; // パディングを増やして余裕を持たせる
-                    const maxAttempts = 150; // 試行回数を増やす
+                    const padding = 25;
+                    const maxAttempts = 150;
                     
                     words.forEach((word, index) => {
                         const size = Math.random() * 40 + 70;
@@ -813,7 +834,6 @@
                             
                             validPosition = true;
                             
-                            // より厳密な重なり検証
                             for (let existing of bubbles) {
                                 const distance = Math.sqrt((x - existing.x) ** 2 + (y - existing.y) ** 2);
                                 const minDistance = radius + existing.radius + padding;
@@ -826,7 +846,6 @@
                             attempts++;
                         }
                         
-                        // 配置に失敗した場合のフォールバック改善
                         if (!validPosition) {
                             const cols = Math.ceil(Math.sqrt(words.length));
                             const rows = Math.ceil(words.length / cols);
@@ -848,7 +867,7 @@
                             x: x,
                             y: y,
                             radius: radius,
-                            vx: (Math.random() - 0.5) * 0.08, // 初期速度を抑制
+                            vx: (Math.random() - 0.5) * 0.08,
                             vy: (Math.random() - 0.5) * 0.08,
                             active: true,
                             popping: false,
@@ -857,7 +876,7 @@
                             opacity: 1,
                             mass: radius,
                             bounceTimer: 0,
-                            separationTimer: 0 // 分離タイマーを追加
+                            separationTimer: 0
                         });
                     });
                     
@@ -918,7 +937,6 @@
                     ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.fill();
                     
-                    // テキストサイズを調整（長いテキストの場合は小さく）
                     const baseSize = radius * 0.35;
                     const textLength = bubble.word.length;
                     let fontSize = Math.max(12, Math.min(baseSize, baseSize * (20 / Math.max(textLength, 20))));
@@ -930,7 +948,6 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    // 改良されたテキスト描画
                     this.drawReadableText(ctx, bubble.word, x, y, radius, fontSize);
                     
                     if (bubble.popping) {
@@ -938,11 +955,10 @@
                     }
                 },
                 
-                // 円形境界に合わせたテキスト制限
                 drawReadableText(ctx, text, x, y, radius, fontSize) {
                     const words = text.split('');
                     const lines = [];
-                    const maxLines = Math.floor((radius * 1.4) / (fontSize * 1.2)); // 最大行数を制限
+                    const maxLines = Math.floor((radius * 1.4) / (fontSize * 1.2));
                     
                     let currentLine = '';
                     
@@ -955,7 +971,6 @@
                             lines.push(currentLine);
                             currentLine = words[i];
                             
-                            // 最大行数に達したら省略表示
                             if (lines.length >= maxLines) {
                                 if (i < words.length - 1) {
                                     lines[lines.length - 1] = lines[lines.length - 1].slice(0, -2) + '…';
@@ -971,7 +986,6 @@
                         lines.push(currentLine.trim());
                     }
                     
-                    // テキストの描画
                     const lineHeight = fontSize * 1.2;
                     const totalHeight = lines.length * lineHeight;
                     let startY = y - (totalHeight / 2) + (lineHeight / 2);
@@ -979,7 +993,6 @@
                     lines.forEach((line, index) => {
                         const lineY = startY + (index * lineHeight);
                         
-                        // 描画位置が円内に収まるかチェック
                         if (Math.abs(lineY - y) <= radius * 0.7) {
                             ctx.strokeText(line, x, lineY);
                             ctx.fillText(line, x, lineY);
@@ -987,14 +1000,12 @@
                     });
                 },
 
-                // 円形の各行での最大幅を計算
                 getMaxWidthForCircleLine(radius, lineIndex, maxLines) {
-                    // 円の中心からの距離に基づいて幅を調整
                     const centerOffset = (lineIndex - (maxLines - 1) / 2) * (radius * 0.3 / maxLines);
                     const distanceFromCenter = Math.abs(centerOffset);
                     const availableRadius = Math.sqrt(Math.max(0, (radius * 0.8) ** 2 - distanceFromCenter ** 2));
                     
-                    return Math.max(availableRadius * 1.8, radius * 0.3); // 最小幅を保証
+                    return Math.max(availableRadius * 1.8, radius * 0.3);
                 },
                 
                 updateBubble(bubble) {
@@ -1006,7 +1017,6 @@
                     
                     if (bubble.separationTimer > 0) {
                         bubble.separationTimer--;
-                        // 分離タイマー中は追加の分離力を適用
                         this.applyContinuousSeparation(bubble);
                     }
                     
@@ -1017,15 +1027,12 @@
                     
                     this.handleBoundaryCollision(bubble);
                     
-                    // より穏やかなランダム要素
                     bubble.vx += (Math.random() - 0.5) * 0.002;
                     bubble.vy += (Math.random() - 0.5) * 0.002;
                     
-                    // より強い減衰
                     bubble.vx *= 0.998;
                     bubble.vy *= 0.998;
                     
-                    // 最大速度をさらに制限
                     const maxSpeed = 0.3;
                     const speed = Math.sqrt(bubble.vx ** 2 + bubble.vy ** 2);
                     if (speed > maxSpeed) {
@@ -1034,7 +1041,6 @@
                     }
                 },
 
-                // 新しいメソッド：継続的な分離処理
                 applyContinuousSeparation(bubble) {
                     for (let other of this.bubbles) {
                         if (other === bubble || !other.active || other.popping) continue;
@@ -1057,7 +1063,6 @@
                     }
                 },
                 
-                // より滑らかな反発システム
                 handleBubbleCollisions(bubble) {
                     for (let other of this.bubbles) {
                         if (other === bubble || !other.active || other.popping) continue;
@@ -1068,9 +1073,8 @@
                         const minDistance = bubble.radius + other.radius + 8;
                         
                         if (distance < minDistance) {
-                            // より滑らかな分離処理
                             const overlap = minDistance - distance;
-                            const separationForce = overlap * 0.002; // 分離力を大幅に削減
+                            const separationForce = overlap * 0.002;
                             const separationX = (dx / distance) * separationForce;
                             const separationY = (dy / distance) * separationForce;
                             
@@ -1079,30 +1083,27 @@
                             other.x += separationX;
                             other.y += separationY;
                             
-                            // 非常に滑らかな反発
                             const totalMass = bubble.mass + other.mass;
                             const relativeVx = bubble.vx - other.vx;
                             const relativeVy = bubble.vy - other.vy;
                             
                             const impulse = 0.3 * (relativeVx * dx + relativeVy * dy) / (distance * totalMass);
                             
-                            const softRestitution = 0.08; // 反発係数を大幅に削減
+                            const softRestitution = 0.08;
                             bubble.vx -= impulse * other.mass * dx * softRestitution;
                             bubble.vy -= impulse * other.mass * dy * softRestitution;
                             other.vx += impulse * bubble.mass * dx * softRestitution;
                             other.vy += impulse * bubble.mass * dy * softRestitution;
                             
-                            // 分離タイマーを設定
                             bubble.separationTimer = 20;
                             other.separationTimer = 20;
                         }
                     }
                 },
                 
-                // 壁との反発もより滑らかに修正
                 handleBoundaryCollision(bubble) {
-                    const veryGentleRestitution = 0.1; // 非常に穏やかな反発
-                    const strongDamping = 0.7; // より強い減衰
+                    const veryGentleRestitution = 0.1;
+                    const strongDamping = 0.7;
                     
                     if (bubble.x - bubble.radius <= this.playableArea.left) {
                         bubble.x = this.playableArea.left + bubble.radius;
@@ -1139,7 +1140,7 @@
                     particle.vy += 0.03;
                     particle.vx *= 0.995;
                     particle.rotation += particle.rotationSpeed;
-                    
+
                     if (particle.life <= 0) {
                         return false;
                     }
@@ -1149,7 +1150,6 @@
                     ctx.translate(particle.x, particle.y);
                     ctx.rotate(particle.rotation);
                     
-                    // シンプルな円形パーティクルのみ
                     ctx.beginPath();
                     ctx.arc(0, 0, particle.size * particle.life, 0, Math.PI * 2);
                     ctx.fillStyle = particle.color || 'rgba(135,206,235,0.8)';
@@ -1200,18 +1200,16 @@
                     bubble.popping = true;
                     bubble.popAnimation = 0;
                     
-                    // シンプルで透明感のあるポップエフェクト
                     const popColors = [
-                        'rgba(135,206,235,0.6)', // スカイブルー
-                        'rgba(255,255,255,0.8)', // 白
-                        'rgba(176,224,230,0.7)', // パウダーブルー
-                        'rgba(230,230,250,0.6)'  // ラベンダー
+                        'rgba(135,206,235,0.6)',
+                        'rgba(255,255,255,0.8)',
+                        'rgba(176,224,230,0.7)',
+                        'rgba(230,230,250,0.6)'
                     ];
                     
-                    // パーティクル数を8個に削減（よりシンプルに）
                     for (let i = 0; i < 8; i++) {
                         const angle = (i / 8) * Math.PI * 2;
-                        const speed = Math.random() * 2 + 0.5; // 速度を抑えめに
+                        const speed = Math.random() * 2 + 0.5;
                         const colorIndex = Math.floor(Math.random() * popColors.length);
                         
                         this.particles.push({
@@ -1219,10 +1217,10 @@
                             y: bubble.y,
                             vx: Math.cos(angle) * speed,
                             vy: Math.sin(angle) * speed - 0.3,
-                            size: Math.random() * 4 + 2, // サイズを小さく
+                            size: Math.random() * 4 + 2,
                             life: 1,
                             color: popColors[colorIndex],
-                            type: 'normal', // シンプルな円形のみ
+                            type: 'normal',
                             rotation: 0,
                             rotationSpeed: 0
                         });
@@ -1236,15 +1234,12 @@
                     
                     this.isSearching = true;
                     
-                    // アニメーション停止
                     if (this.animationId) {
                         cancelAnimationFrame(this.animationId);
                     }
                     
-                    // タブデータの準備
                     this.searchTabs = [];
                     
-                    // 元キーワードタブ
                     const originalQuery = this.originalWords.join(' ');
                     this.searchTabs.push({
                         title: 'メイン検索',
@@ -1252,7 +1247,6 @@
                         url: this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(originalQuery)
                     });
                     
-                    // 関連キーワードタブ
                     this.remainingWords.forEach((word, index) => {
                         this.searchTabs.push({
                             title: word,
@@ -1261,7 +1255,6 @@
                         });
                     });
                     
-                    // 少し待ってから検索結果表示に切り替え
                     setTimeout(() => {
                         this.activeTabIndex = 0;
                         this.showBubbles = false;
@@ -1270,7 +1263,6 @@
                     }, 1000);
                 },
 
-                // 検索エンジン変更時の処理
                 updateSearchResults() {
                     this.searchTabs.forEach(tab => {
                         tab.url = this.searchEngines[this.selectedSearchEngine] + encodeURIComponent(tab.keyword);
