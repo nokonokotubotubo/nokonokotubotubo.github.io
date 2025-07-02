@@ -16,31 +16,31 @@
             min-height:100vh;display:flex;flex-direction:column;color:#333;
         }
 
-        .container{flex:1;max-width:2000px;margin:0 auto;padding:2rem;}
+        .container{flex:1;max-width:2400px;margin:0 auto;padding:2rem;}
 
         .header{text-align:center;margin-bottom:3rem;}
-        .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
-        .header p{font-size:1.1rem;color:#666;font-weight:300;}
+        .header h1{font-size:3rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
+        .header p{font-size:1.2rem;color:#666;font-weight:300;}
 
-        /* ---------- デスクトップ：画像解像度480pxを最大限活用 ---------- */
+        /* ---------- デスクトップ：横1行で最大限拡大 ---------- */
         .apps-grid{
             display:flex;
-            flex-wrap:wrap;
-            gap:2rem;
+            gap:3rem;
             justify-content:center;
+            align-items:stretch;
         }
 
         .app-card{
             background:#fff;
-            border-radius:16px;
-            padding:1.5rem;
-            flex:0 1 480px;             /* 固定幅480pxで3列表示 */
-            max-width:480px;            /* 画像解像度限界まで拡大 */
+            border-radius:20px;
+            padding:2rem;
+            flex:1;                     /* 画面幅を3等分して最大限拡大 */
+            min-width:400px;            /* 最小幅を大きく設定 */
             text-align:center;
             position:relative;
             overflow:hidden;
             cursor:pointer;
-            box-shadow:0 4px 20px rgba(0,0,0,.08);
+            box-shadow:0 8px 30px rgba(0,0,0,.12);
             transition:all .3s ease;
             text-decoration:none;
             color:inherit;
@@ -51,45 +51,55 @@
             position:absolute;
             inset:0;
             left:-100%;
-            background:linear-gradient(90deg,transparent,rgba(173,216,230,.3),transparent);
+            background:linear-gradient(90deg,transparent,rgba(173,216,230,.4),transparent);
             transition:left .6s ease;
         }
         .app-card:hover::before{left:100%;}
         .app-card:hover{
-            transform:translateY(-8px);
-            box-shadow:0 20px 40px rgba(0,0,0,.2);
+            transform:translateY(-12px);
+            box-shadow:0 25px 50px rgba(0,0,0,.25);
             background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        /* ---------- 画像をカード全体に拡大表示 ---------- */
+        /* ---------- 画像を最大限拡大表示 ---------- */
         .app-icon{
             width:100%;
             aspect-ratio:1/1;
-            border-radius:12px;
-            background-size:cover;      /* 画像をカード全体に拡大表示 */
+            border-radius:16px;
+            background-size:cover;
             background-position:center;
             background-repeat:no-repeat;
             transition:transform .3s ease;
         }
-        .app-card:hover .app-icon{transform:scale(1.08);}
+        .app-card:hover .app-icon{transform:scale(1.1);}
 
         .fukunavi-icon{background-image:url('./img/fukunavi.png');}
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
         /* ---------- モバイル：縦カラム表示 ---------- */
+        @media(max-width:1200px){
+            .container{padding:1.5rem;max-width:100%;}
+            .header h1{font-size:2.5rem;}
+            
+            .apps-grid{
+                flex-direction:column;
+                gap:2rem;
+            }
+            .app-card{
+                flex:none;
+                min-width:auto;
+                max-width:600px;
+                margin:0 auto;
+            }
+        }
+
         @media(max-width:768px){
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
-
-            .apps-grid{
-                flex-direction:column;
-                gap:1.5rem;
-            }
             .app-card{
-                flex:none;              /* 固定幅を無効化 */
-                max-width:100%;
                 padding:1.5rem;
+                max-width:100%;
             }
         }
 
@@ -99,7 +109,7 @@
         }
 
         /* ------- フッター ------- */
-        .footer{text-align:center;padding:2rem;color:#666;font-size:.9rem;border-top:1px solid rgba(255,255,255,.3);margin-top:3rem;}
+        .footer{text-align:center;padding:2rem;color:#666;font-size:1rem;border-top:1px solid rgba(255,255,255,.3);margin-top:4rem;}
     </style>
 </head>
 <body>
