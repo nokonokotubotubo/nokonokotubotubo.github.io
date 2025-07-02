@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T01:42:23.253Z",
+  "updated": "2025-07-02T03:18:38.481Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqhx4-1751420700000",
+      "title": "newmo、自動運転タクシーに本格参入--大阪での事業化に着手",
+      "link": "https://japan.cnet.com/article/35234994/",
+      "published": "2025-07-02T01:45:00.000Z",
+      "description": "モビリティスタートアップのnewmoは7月2日、自動運転タクシー事業への本格参入を発表した。大阪での事業化に向けた取り組みを開始したという。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "モビリティスタートアップのnewmoは7月2日、自動運転タクシー事業への本格参入を発表した。大阪での事業化に向けた取り組みを開始したという。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2047859",
       "title": "Databricks MLflowで実現する生成AIアプリの継続的改善サイクル",
@@ -166,18 +178,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "こんにちは👋 2025年7月1日に、Amazon...",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqjhy-1751358900000",
-      "title": "猛暑を加速させる「ヒートドーム」とは--恐ろしい気象現象の正体",
-      "link": "https://japan.cnet.com/article/35234970/",
-      "published": "2025-07-01T08:35:00.000Z",
-      "description": "米国を襲う記録的猛暑。その背後にある「ヒートドーム」とは？仕組みや影響、気候変動との関係、対策まで徹底解説。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "米国を襲う記録的猛暑。その背後にある「ヒートドーム」とは？仕組みや影響、気候変動との関係、対策まで徹底解説。",
       "thumbnail": null
     },
     {
