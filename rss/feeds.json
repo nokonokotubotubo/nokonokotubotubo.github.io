@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T05:28:55.083Z",
+  "updated": "2025-07-02T06:30:30.080Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,42 @@
     }
   ],
   "entries": [
+    {
+      "id": "5ncmrg-1751436300000",
+      "title": "家計簿アプリ「マネーフォワードME」が値上げ--8月5日から",
+      "link": "https://japan.cnet.com/article/35235009/",
+      "published": "2025-07-02T06:05:00.000Z",
+      "description": "マネーフォワードは7月2日、家計簿アプリ「マネーフォワード ME」の「スタンダードコース」について、8月5日から料金を改定すると発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "マネーフォワードは7月2日、家計簿アプリ「マネーフォワード ME」の「スタンダードコース」について、8月5日から料金を改定すると発表した。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047957",
+      "title": "ビジュアルプロンプトインジェクションについて試してみる",
+      "link": "https://qiita.com/mizu7e/items/88535552bc7caa5ff2f5",
+      "published": "2025-07-02T05:57:20.000Z",
+      "description": "はじめに 先日このようなニュースを見かけまして。 AIに与える画像は文書の中にプロンプトを紛れ込ませるこのような手法をビジュアルプロンプトインジェクションと呼ぶようです。 なんなら名前の後ろに「攻撃」と付けても良いでしょう。たかが論文の評価と思われるかもしれませんが...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 先日このようなニュースを見かけまして。 AIに与える画像は文書の中にプロンプトを紛れ込ませるこのような手法をビジュアルプロンプトインジェクションと呼ぶようです。 なんなら名前の後ろに「攻撃」と付けても良いでしょう。たかが論文の評価と思われるかもしれませんが...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2047956",
+      "title": "データベース設計とORMによるデータ管理の最適化: 正規化とデータモデリングの実践ガイド",
+      "link": "https://qiita.com/karakurai_rena/items/3ba6dbafddf28d9e5e57",
+      "published": "2025-07-02T05:56:56.000Z",
+      "description": "データベース設計とORMによるデータ管理の最適化: 正規化とデータモデリングの実践ガイド こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、システム開発でとても重要な「データベース設計」と「ORMによるデータ管理の最適化」についてお話しします。適切な設...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "データベース設計とORMによるデータ管理の最適化: 正規化とデータモデリングの実践ガイド こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、システム開発でとても重要な「データベース設計」と「ORMによるデータ管理の最適化」についてお話しします。適切な設...",
+      "thumbnail": null
+    },
     {
       "id": "5nqhve-1751427900000",
       "title": "ドット絵で遊べるNothingの個性派スマホ「Phone (3)」を写真でじっくり見る",
@@ -73,18 +109,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2047859",
-      "title": "Databricks MLflowで実現する生成AIアプリの継続的改善サイクル",
-      "link": "https://qiita.com/taka_yayoi/items/c0ae12ce358f6293a9f4",
-      "published": "2025-07-02T01:38:19.000Z",
-      "description": "DatabricksのMLflowが提供する評価・モニタリング機能を活用することで、生成AIアプリケーションの品質を定量的に測定し、継続的に改善できます。本記事では、実際のトレースデータから評価データセットを作成し、事前定義されたスコアラーで自動評価を行い、問題を特定してア...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "DatabricksのMLflowが提供する評価・モニタリング機能を活用することで、生成AIアプリケーションの品質を定量的に測定し、継続的に改善できます。本記事では、実際のトレースデータから評価データセットを作成し、事前定義されたスコアラーで自動評価を行い、問題を特定してア...",
-      "thumbnail": null
-    },
-    {
       "id": "5nqhzp-1751418900000",
       "title": "Nothingの「Phone (3)」が登場、さっそく実機を試して気に入った理由",
       "link": "https://japan.cnet.com/article/35234991/",
@@ -94,18 +118,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "英Nothingはロンドンで現地時間7月1日にイベントを開催し、「Phone (3)」を発表した。私は現地で短時間この製品を試しただけだが、かなり良い印象を受けた。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047831",
-      "title": "まだ「プロンプトエンジニアリング」で消耗してるの？「プロンプト職人」からの卒業。そのLLMアプリが\"もう一歩\"垢抜けない理由と、その処方箋としての「コンテキストエンジニアリング」",
-      "link": "https://qiita.com/RepKuririn/items/83f7c5fc2bb4b6c68180",
-      "published": "2025-07-02T00:37:47.000Z",
-      "description": "AI開発の新潮流：プロンプトの先へ、「コンテキストエンジニアリング」を制覇する LLM（大規模言語モデル）を活用したアプリケーションが、単一のプロンプト応答から、より複雑で動的なエージェントシステムへと進化する中で、「プロンプトエンジニアリング」という言葉だけではその本質...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "AI開発の新潮流：プロンプトの先へ、「コンテキストエンジニアリング」を制覇する LLM（大規模言語モデル）を活用したアプリケーションが、単一のプロンプト応答から、より複雑で動的なエージェントシステムへと進化する中で、「プロンプトエンジニアリング」という言葉だけではその本質...",
       "thumbnail": null
     },
     {
@@ -121,15 +133,27 @@
       "thumbnail": null
     },
     {
-      "id": "5nqiqe-1751411400000",
-      "title": "Amazon、「23時59分までの注文で翌日配送する地域」を全国展開--迅速性向上へ",
-      "link": "https://japan.cnet.com/article/35234981/",
-      "published": "2025-07-01T23:10:00.000Z",
-      "description": "Amazonは、23時59分までの注文に対して翌日配送を行うサービスを、2025年中に全国へ展開する。さらに、一部地域では、13時までに注文した商品を当日の夜間に届けるオプションも拡大する。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "Amazonは、23時59分までの注文に対して翌日配送を行うサービスを、2025年中に全国へ展開する。さらに、一部地域では、13時までに注文した商品を当日の夜間に届けるオプションも拡大する。",
+      "id": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
+      "title": "【非エンジニア向け】Claude Code Hooksについて",
+      "link": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
+      "published": "2025-07-01T21:55:16.000Z",
+      "description": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。 この記事のポイント Claude Code...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチ",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
+      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "published": "2025-07-01T19:23:41.000Z",
+      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
       "thumbnail": null
     },
     {
@@ -146,14 +170,14 @@
     },
     {
       "id": "https://zenn.dev/niji2/books/dc733aba687c92",
-      "title": "ようこそ！生成AIと始めるPython冒険の書",
+      "title": "ようこそ！生成AIと始めるPython入門",
       "link": "https://zenn.dev/niji2/books/dc733aba687c92",
       "published": "2025-07-01T15:07:41.000Z",
-      "description": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "description": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。そんなあなたにこそ、この本をおすすめします。 生成AIとPythonを組み合わせれば、面倒だったセットアップやプログラミングのハードルを大きく下げられます。さらに、Windows 環境でも...",
       "source": "Zenn",
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
-      "summary": "WindowsユーザーのためのPython入門：AIと始めるモダンな開発環境構築から実践まで",
+      "summary": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。",
       "thumbnail": null
     },
     {
@@ -166,30 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "こんにちは👋 2025年7月1日に、Amazon...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
-      "title": "【RAG】大企業の「暗黙知」を、AIで自動で「形式知」に",
-      "link": "https://zenn.dev/knowledgesense/articles/33a8aabff4d35c",
-      "published": "2025-06-30T23:00:01.000Z",
-      "description": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "本記事では、社内に散らばる非構造的なコミュニケーションデータ（暗黙知）を、AIを使って整理 し、RAGで活用しやすくする手法について、ざっくり理解します。 株式会社ナレッジセンスは、「エンタープライズ企業の膨大なデータを掘り起こし、活用可能にする」プロダクトを開発しているスタートアップです。...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "title": "AWS Summit Japan 2025 ：新卒2年目エンジニアの初参加レポート",
-      "link": "https://zenn.dev/saneatu4060/articles/f3eb90794dbc25",
-      "published": "2025-06-30T15:14:00.000Z",
-      "description": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通じて感じたことをお伝えします。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "2025年6月26日、幕張メッセで開催された AWS Summit Japan 2025 に参加してきました。平日開催ということもあり、1日だけの参加でしたが、結論から言うと、とにかく楽しくて学びの多い1日でした。 この記事では、会場の雰囲気、印象に残ったセッション、そしてイベントならではの体験を通",
       "thumbnail": null
     }
   ]
