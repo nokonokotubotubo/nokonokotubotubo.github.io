@@ -22,10 +22,9 @@
         .header h1{font-size:2.5rem;font-weight:700;color:#1976d2;margin-bottom:1rem;}
         .header p{font-size:1.1rem;color:#666;font-weight:300;}
 
-        /* ---------- アプリカードレイアウト ---------- */
+        /* ---------- デスクトップ：3列で最大限拡大 ---------- */
         .apps-grid{
             display:flex;
-            flex-wrap:wrap;
             gap:2rem;
             justify-content:center;
         }
@@ -33,7 +32,9 @@
         .app-card{
             background:#fff;
             border-radius:16px;
-            padding:1.5rem;
+            padding:2rem;
+            flex:1;                     /* 残りスペースを等分 */
+            min-width:200px;            /* 最小幅のみ指定 */
             text-align:center;
             position:relative;
             overflow:hidden;
@@ -59,7 +60,7 @@
             background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
         }
 
-        /* ---------- 画像のみ（480×480を最大限活用） ---------- */
+        /* ---------- 画像を最大限拡大 ---------- */
         .app-icon{
             width:100%;
             aspect-ratio:1/1;
@@ -75,24 +76,8 @@
         .bublerch-icon{background-image:url('./img/buble.png');}
         .rss-icon     {background-image:url('./img/rss.png');}
 
-        /* ---------- 大画面（1400px以上）：3列・各600px ---------- */
-        @media(min-width:1400px){
-            .app-card{
-                flex:0 1 calc(33.333% - 1.5rem);
-                max-width:600px;
-            }
-        }
-
-        /* ---------- 中画面（768px-1399px）：2列・各500px ---------- */
-        @media(min-width:768px) and (max-width:1399px){
-            .app-card{
-                flex:0 1 calc(50% - 1rem);
-                max-width:500px;
-            }
-        }
-
-        /* ---------- 小画面（767px以下）：縦カラム ---------- */
-        @media(max-width:767px){
+        /* ---------- モバイル：縦カラム ---------- */
+        @media(max-width:768px){
             .container{padding:1rem;}
             .header h1{font-size:2rem;}
 
@@ -101,15 +86,14 @@
                 gap:1.5rem;
             }
             .app-card{
-                flex:0 1 100%;
-                max-width:100%;
-                padding:1rem;
+                flex:none;              /* flex:1を無効化 */
+                padding:1.5rem;
             }
         }
 
         @media(max-width:480px){
             .header h1{font-size:1.7rem;}
-            .app-card{padding:.8rem;}
+            .app-card{padding:1rem;}
         }
 
         /* ------- フッター ------- */
