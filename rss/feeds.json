@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T21:22:02.296Z",
+  "updated": "2025-07-02T22:21:40.773Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nckl3-1751492100000",
+      "title": "Tinder、ログイン時の顔認証を必須化へ--「写真とは別人」を排除",
+      "link": "https://japan.cnet.com/article/35235037/",
+      "published": "2025-07-02T21:35:00.000Z",
+      "description": "マッチングアプリのTinderが、米国で「顔認証ログイン」を順次必須化。狙いはユーザーの信頼性向上と悪質なボット排除だ──。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "マッチングアプリのTinderが、米国で「顔認証ログイン」を順次必須化。狙いはユーザーの信頼性向上と悪質なボット排除だ──。",
+      "thumbnail": null
+    },
     {
       "id": "5nckly-1751490600000",
       "title": "ChatGPTに頼りがちだと「脳が腐る」は本当か--科学者が影響を調べてみた",
@@ -118,18 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "「透明」や「光る」スマホで知られる英Nothingの新作「Phone (3)」を、写真とともに紹介する。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqhx4-1751420700000",
-      "title": "newmo、自動運転タクシーに本格参入--大阪での事業化に着手",
-      "link": "https://japan.cnet.com/article/35234994/",
-      "published": "2025-07-02T01:45:00.000Z",
-      "description": "モビリティスタートアップのnewmoは7月2日、自動運転タクシー事業への本格参入を発表した。大阪での事業化に向けた取り組みを開始したという。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "モビリティスタートアップのnewmoは7月2日、自動運転タクシー事業への本格参入を発表した。大阪での事業化に向けた取り組みを開始したという。",
       "thumbnail": null
     },
     {
