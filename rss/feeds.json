@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T10:21:52.025Z",
+  "updated": "2025-07-02T11:17:48.072Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -133,18 +133,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "title": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法",
-      "link": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "published": "2025-07-02T00:00:01.000Z",
-      "description": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
       "title": "【非エンジニア向け】Claude Code Hooksについて",
       "link": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
@@ -190,6 +178,18 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "title": "Amazon BedrockのCitations機能を使ってテキストを引用してみよう！",
+      "link": "https://zenn.dev/tosuri13/articles/dadd09dfa613d7",
+      "published": "2025-07-01T13:18:13.000Z",
+      "description": "こんにちは👋 2025年7月1日に、Amazon...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "こんにちは👋 2025年7月1日に、Amazon...",
       "thumbnail": null
     }
   ]
