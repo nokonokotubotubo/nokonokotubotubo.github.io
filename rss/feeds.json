@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T19:13:00.729Z",
+  "updated": "2025-07-03T20:18:23.107Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048734",
+      "title": "生成AI時代のAIエージェント：新たなサイバー脅威とプライバシー管理の最前線",
+      "link": "https://qiita.com/karakurai_rena/items/1b107bbb6217430ccb26",
+      "published": "2025-07-03T19:55:54.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが急速に進化している現代におけるAIエージェントのセキュリティリスクやプライバシー管理についてお話しします。技術の発展は素晴らしい反面、私たちが注意しなければいけない新たなサイバー脅威も増えている...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが急速に進化している現代におけるAIエージェントのセキュリティリスクやプライバシー管理についてお話しします。技術の発展は素晴らしい反面、私たちが注意しなければいけない新たなサイバー脅威も増えている...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048725",
       "title": "自宅にあるWindowsを使っていつでもどこからでもClaude Codeを動かせるようにする",
@@ -70,18 +82,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048561",
-      "title": "今更Claude ArtifactsでHTMLのツール作成",
-      "link": "https://qiita.com/kongo-jun/items/6bf1d55874f16cc65233",
-      "published": "2025-07-03T10:38:29.000Z",
-      "description": "概要 ClaudeにはClaude Artifactsという、生成物を可視化して、編集できる機能があります。 ClaudeのLLMのレベルが向上していることもあり、トークン数を多めに消費してしまうHTMLであっても、精度高く生成することができます。 また、これまでLLM...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "概要 ClaudeにはClaude Artifactsという、生成物を可視化して、編集できる機能があります。 ClaudeのLLMのレベルが向上していることもあり、トークン数を多めに消費してしまうHTMLであっても、精度高く生成することができます。 また、これまでLLM...",
       "thumbnail": null
     },
     {
