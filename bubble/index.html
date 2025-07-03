@@ -72,6 +72,36 @@
             height: 100%;
         }
 
+        /* 全消し時のフェードアニメーション */
+        .fade-out {
+            animation: fadeOut 1s ease-out forwards;
+        }
+
+        .fade-in {
+            animation: fadeIn 1.5s ease-in forwards;
+        }
+
+        .scale-bounce {
+            animation: scaleBounce 2s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.95); }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes scaleBounce {
+            0% { transform: scale(1); }
+            30% { transform: scale(1.05); }
+            60% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
+
         .search-container {
             background: rgba(255,255,255,0.9);
             padding: 2.5rem;
@@ -612,6 +642,8 @@
                     backgroundAnimationId: null,
                     backgroundCanvas: null,
                     backgroundCtx: null,
+                    // 全消し時のアニメーション用
+                    isCompletingAnimation: false
                 }
             },
             computed: {
@@ -640,19 +672,20 @@
                     this.backgroundCanvas.width = window.innerWidth;
                     this.backgroundCanvas.height = window.innerHeight;
                     
-                    // 5-8個の背景泡を生成
+                    // 6-10個の背景泡を画面内に配置
                     this.backgroundBubbles = [];
-                    const bubbleCount = Math.floor(Math.random() * 4) + 5; // 5-8個
+                    const bubbleCount = Math.floor(Math.random() * 5) + 6; // 6-10個
                     
                     for (let i = 0; i < bubbleCount; i++) {
                         this.backgroundBubbles.push({
                             x: Math.random() * this.backgroundCanvas.width,
-                            y: this.backgroundCanvas.height + Math.random() * 200,
-                            radius: Math.random() * 30 + 20,
-                            speed: Math.random() * 0.5 + 0.3,
-                            opacity: Math.random() * 0.3 + 0.1,
+                            y: Math.random() * this.backgroundCanvas.height, // 最初から画面内に配置
+                            radius: Math.random() * 35 + 25,
+                            speed: Math.random() * 0.6 + 0.4,
+                            opacity: Math.random() * 0.4 + 0.1,
                             floatOffset: Math.random() * Math.PI * 2,
-                            horizontalDrift: (Math.random() - 0.5) * 0.2
+                            horizontalDrift: (Math.random() - 0.5) * 0.3,
+                            verticalDirection: Math.random() > 0.5 ? 1 : -1 // 上下ランダム
                         });
                     }
                     
@@ -665,14 +698,21 @@
                     this.backgroundCtx.clearRect(0, 0, this.backgroundCanvas.width, this.backgroundCanvas.height);
                     
                     this.backgroundBubbles.forEach((bubble, index) => {
-                        // 泡を上に移動
-                        bubble.y -= bubble.speed;
-                        bubble.x += Math.sin(Date.now() * 0.001 + bubble.floatOffset) * bubble.horizontalDrift;
+                        // ゆったりとした動き
+                        bubble.y += bubble.speed * bubble.verticalDirection;
+                        bubble.x += Math.sin(Date.now() * 0.0008 + bubble.floatOffset) * bubble.horizontalDrift;
                         
-                        // 画面上部に到達したら下部で再生成
-                        if (bubble.y + bubble.radius < 0) {
+                        // 画面外に出たら反対側から再登場
+                        if (bubble.y - bubble.radius > this.backgroundCanvas.height) {
+                            bubble.y = -bubble.radius;
+                        } else if (bubble.y + bubble.radius < 0) {
                             bubble.y = this.backgroundCanvas.height + bubble.radius;
-                            bubble.x = Math.random() * this.backgroundCanvas.width;
+                        }
+                        
+                        if (bubble.x - bubble.radius > this.backgroundCanvas.width) {
+                            bubble.x = -bubble.radius;
+                        } else if (bubble.x + bubble.radius < 0) {
+                            bubble.x = this.backgroundCanvas.width + bubble.radius;
                         }
                         
                         // 泡を描画
@@ -697,31 +737,34 @@
                         x - radius * 0.3, y - radius * 0.3, 0,
                         x, y, radius
                     );
-                    gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
-                    gradient.addColorStop(0.3, 'rgba(176,224,230,0.5)');
-                    gradient.addColorStop(0.7, 'rgba(135,206,235,0.3)');
-                    gradient.addColorStop(1, 'rgba(74,144,184,0.1)');
+                    gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
+                    gradient.addColorStop(0.3, 'rgba(176,224,230,0.6)');
+                    gradient.addColorStop(0.7, 'rgba(135,206,235,0.4)');
+                    gradient.addColorStop(1, 'rgba(74,144,184,0.2)');
                     
                     ctx.beginPath();
                     ctx.arc(x, y, radius, 0, Math.PI * 2);
                     ctx.fillStyle = gradient;
                     ctx.fill();
                     
-                    ctx.strokeStyle = 'rgba(74,144,184,0.2)';
+                    ctx.strokeStyle = 'rgba(74,144,184,0.3)';
                     ctx.lineWidth = 1;
                     ctx.stroke();
                     
                     // ハイライト
                     ctx.beginPath();
                     ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.3, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
                     ctx.fill();
                     
                     ctx.restore();
                 },
 
-                // 全部消した際のエフェクト（パーティクルサイズ1.5倍強化）
+                // 全消し時のエフェクト（パーティクル数50個、サイズ1.5倍強化、アニメーション付き遷移）
                 triggerCompleteAnimation() {
+                    if (this.isCompletingAnimation) return;
+                    this.isCompletingAnimation = true;
+                    
                     const refreshColors = [
                         'rgba(135,206,235,0.7)',
                         'rgba(176,224,230,0.6)', 
@@ -730,7 +773,8 @@
                         'rgba(224,255,255,0.7)'
                     ];
 
-                    for (let i = 0; i < 30; i++) {
+                    // 強化されたパーティクルエフェクト
+                    for (let i = 0; i < 50; i++) {
                         setTimeout(() => {
                             const x = Math.random() * this.canvas.width;
                             const y = Math.random() * this.canvas.height;
@@ -739,22 +783,48 @@
                             this.particles.push({
                                 x: x,
                                 y: y,
-                                vx: (Math.random() - 0.5) * 2,
-                                vy: Math.random() * -3 - 1,
-                                size: (Math.random() * 8 + 4) * 1.5, // サイズを1.5倍に変更
+                                vx: (Math.random() - 0.5) * 3,
+                                vy: Math.random() * -4 - 1,
+                                size: (Math.random() * 12 + 6) * 1.5, // サイズ1.5倍
                                 life: 1,
                                 color: refreshColors[colorIndex],
-                                type: 'normal',
+                                type: 'celebration',
                                 rotation: 0,
-                                rotationSpeed: 0
+                                rotationSpeed: (Math.random() - 0.5) * 0.2
                             });
 
-                        }, i * 50);
+                        }, i * 30);
+                    }
+                    
+                    // アニメーション付きの画面遷移
+                    setTimeout(() => {
+                        this.animatedResetSearch();
+                    }, 2000);
+                },
+
+                animatedResetSearch() {
+                    const bubbleContainer = this.$refs.bubbleContainer;
+                    if (bubbleContainer) {
+                        bubbleContainer.classList.add('fade-out');
                     }
                     
                     setTimeout(() => {
                         this.resetSearch();
-                    }, 1500);
+                        
+                        this.$nextTick(() => {
+                            const searchSection = document.querySelector('.search-section');
+                            if (searchSection) {
+                                searchSection.classList.add('fade-in');
+                                setTimeout(() => {
+                                    searchSection.classList.remove('fade-in');
+                                    searchSection.classList.add('scale-bounce');
+                                    setTimeout(() => {
+                                        searchSection.classList.remove('scale-bounce');
+                                    }, 2000);
+                                }, 100);
+                            }
+                        });
+                    }, 1000);
                 },
 
                 async generateBubbles() {
@@ -1426,6 +1496,13 @@
                     this.searchTabs = [];
                     this.activeTabIndex = 0;
                     this.isAllBubblesPopped = false;
+                    this.isCompletingAnimation = false;
+                    
+                    // CSSアニメーションクラスをリセット
+                    const bubbleContainer = this.$refs.bubbleContainer;
+                    if (bubbleContainer) {
+                        bubbleContainer.classList.remove('fade-out');
+                    }
                     
                     // 背景泡を再開
                     if (!this.showBubbles && !this.showSearchResults) {
