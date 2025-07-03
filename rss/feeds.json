@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T06:34:50.146Z",
+  "updated": "2025-07-03T07:22:41.712Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,18 @@
   ],
   "entries": [
     {
+      "id": "5ncm6s-1751526180000",
+      "title": "高価なスマホはもう要らない、約5万円で基本を押さえた「Galaxy A36 5G」レビュー",
+      "link": "https://japan.cnet.com/article/35235012/",
+      "published": "2025-07-03T07:03:00.000Z",
+      "description": "サムスンの最新ミッドレンジスマホ「Galaxy A36 5G」のレビューをお届けする。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "サムスンの最新ミッドレンジスマホ「Galaxy A36 5G」のレビューをお届けする。",
+      "thumbnail": null
+    },
+    {
       "id": "5nchsc-1751520660000",
       "title": "トランプ政権幹部、全国民にウェアラブル端末推奨--「アメリカを再び健康な国へ」宣言",
       "link": "https://japan.cnet.com/article/35235070/",
@@ -47,18 +59,6 @@
       "sourceFeed": "cnet",
       "summary": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
       "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/karakurai/articles/20250703110646",
-      "title": "AI時代の市民開発者：ローコード・ノーコードツールと生成AIが拓くアプリ開発の新時代",
-      "link": "https://zenn.dev/karakurai/articles/20250703110646",
-      "published": "2025-07-03T02:26:11.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AI時代における市民開発者、つまりローコード・ノーコードツールと生成AIが切り拓くアプリ開発の新しい時代についてお話しします。 はじめに 近年のテクノロジーの進化により、プログラミングの専門知識がなくてもアプリやウェブサイトを作れる環境がどんどん整ってきています。特に、ローコード・ノーコードツールと生成AIを組み合わせることで、非技術者でも高度なアプリ開発が可能になり、開発の民主化が進んでいるのです。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AI時代における市民開発者、つまりローコード・ノーコードツールと生成AIが切り拓くアプリ開発の新しい時代についてお話しします。 はじめに 近年のテクノロジーの進化により、プログラミングの専門知識がなくてもアプリやウェブサイトを作れ",
-      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:AI%E6%99%82%E4%BB%A3%E3%81%AE%E5%B8%82%E6%B0%91%E9%96%8B%E7%99%BA%E8%80%85%EF%BC%9A%E3%83%AD%E3%83%BC%E3%82%B3%E3%83%BC%E3%83%89%E3%83%BB%E3%83%8E%E3%83%BC%E3%82%B3%E3%83%BC%E3%83%89%E3%83%84%E3%83%BC%E3%83%AB%E3%81%A8%E7%94%9F%E6%88%90AI%E3%81%8C%E6%8B%93%E3%81%8F%E3%82%A2%E3%83%97%E3%83%AA%E9%96%8B%E7%99%BA%E3%81%AE%E6%96%B0%E6%99%82%E4%BB%A3,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
     },
     {
       "id": "5ncj5f-1751509200000",
@@ -133,42 +133,6 @@
       "thumbnail": null
     },
     {
-      "id": "5ncjzk-1751500920000",
-      "title": "新型ARグラス「XREAL One Pro」24日発売--視野角50→57度に拡大",
-      "link": "https://japan.cnet.com/article/35235041/",
-      "published": "2025-07-03T00:02:00.000Z",
-      "description": "XREALは7月2日、新型スマートグラス「XREAL One Pro」の予約販売を開始した。発売は7月24日で、価格は8万4980円。予約特典としてXREAL Hubをプレゼントする。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "XREALは7月2日、新型スマートグラス「XREAL One Pro」の予約販売を開始した。発売は7月24日で、価格は8万4980円。予約特典としてXREAL Hubをプレゼントする。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "title": "【非エンジニア向け】AIが書いた日本語文章を自然に表現する",
-      "link": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "published": "2025-07-02T22:54:10.000Z",
-      "description": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください",
-      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E3%80%90%E9%9D%9E%E3%82%A8%E3%83%B3%E3%82%B8%E3%83%8B%E3%82%A2%E5%90%91%E3%81%91%E3%80%91AI%E3%81%8C%E6%9B%B8%E3%81%84%E3%81%9F%E6%97%A5%E6%9C%AC%E8%AA%9E%E6%96%87%E7%AB%A0%E3%82%92%E8%87%AA%E7%84%B6%E3%81%AB%E8%A1%A8%E7%8F%BE%E3%81%99%E3%82%8B,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
-    },
-    {
-      "id": "https://zenn.dev/karakurai/articles/20250702192646",
-      "title": "未経験者でもできる！生成AIと市民開発者の協働によるアプリ開発の未来",
-      "link": "https://zenn.dev/karakurai/articles/20250702192646",
-      "published": "2025-07-02T10:26:50.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、未経験の方でもチャレンジできる生成AIと市民開発者の協働によるアプリ開発の未来についてお話ししますね。 はじめに 近年、生成AI（Generative AI）やノーコードツールの進化が目覚ましく、プログラミングの経験がない方でも簡単にアプリ開発ができる時代になりました。これらの技術は専門知識がなくても、短時間でプロトタイプを作ることが可能です。 生成AIとノーコードツールの進化...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、未経験の方でもチャレンジできる生成AIと市民開発者の協働によるアプリ開発の未来についてお話ししますね。 はじめに 近年、生成AI（Generative AI）やノーコードツールの進化が目覚ましく、プログラミングの経験がない方でも簡",
-      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E6%9C%AA%E7%B5%8C%E9%A8%93%E8%80%85%E3%81%A7%E3%82%82%E3%81%A7%E3%81%8D%E3%82%8B%EF%BC%81%E7%94%9F%E6%88%90AI%E3%81%A8%E5%B8%82%E6%B0%91%E9%96%8B%E7%99%BA%E8%80%85%E3%81%AE%E5%8D%94%E5%83%8D%E3%81%AB%E3%82%88%E3%82%8B%E3%82%A2%E3%83%97%E3%83%AA%E9%96%8B%E7%99%BA%E3%81%AE%E6%9C%AA%E6%9D%A5,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
-    },
-    {
       "id": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
       "title": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法",
       "link": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
@@ -191,6 +155,42 @@
       "sourceFeed": "zenn",
       "summary": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチ",
       "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E3%80%90%E9%9D%9E%E3%82%A8%E3%83%B3%E3%82%B8%E3%83%8B%E3%82%A2%E5%90%91%E3%81%91%E3%80%91Claude%20Code%20Hooks%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
+    },
+    {
+      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
+      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
+      "published": "2025-07-01T19:23:41.000Z",
+      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:%E3%80%903%3A%20%E6%B3%A8%E6%84%8F%E3%81%8C%E5%BF%85%E8%A6%81%E3%80%91Hedra%20%E3%81%AE%E5%AE%89%E5%85%A8%E6%80%A7%E8%AA%BF%E6%9F%BB%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
+    },
+    {
+      "id": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "title": "MCP クライアントをゼロから作る ── Function Calling で LLM をツール使いにする方法",
+      "link": "https://zenn.dev/aki_think/articles/a99f9a028951d3",
+      "published": "2025-07-01T16:18:40.000Z",
+      "description": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事は https://zenn.dev/aki_think/articles/0177fc546ce182 作りながら学ぶMCPの活用法 続編...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに MCP の解説記事は「サーバーをどう作るか」が大半ですが、クライアントを自作する方法は情報が少なめです。 クライアント側を自由に作れるようになると、 ツール一覧のフィルタリング 通信プロトコルの拡張 LLM との連携ロジックのカスタマイズ といった\"攻めた使い方\"が実現できます。 この記事",
+      "thumbnail": "https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:MCP%20%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%92%E3%82%BC%E3%83%AD%E3%81%8B%E3%82%89%E4%BD%9C%E3%82%8B%20%E2%94%80%E2%94%80%20Function%20Calling%20%E3%81%A7%20LLM%20%E3%82%92%E3%83%84%E3%83%BC%E3%83%AB%E4%BD%BF%E3%81%84%E3%81%AB%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95,w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:,x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png"
+    },
+    {
+      "id": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "title": "ようこそ！生成AIと始めるPython入門",
+      "link": "https://zenn.dev/niji2/books/dc733aba687c92",
+      "published": "2025-07-01T15:07:41.000Z",
+      "description": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。そんなあなたにこそ、この本をおすすめします。 生成AIとPythonを組み合わせれば、面倒だったセットアップやプログラミングのハードルを大きく下げられます。さらに、Windows 環境でも...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "WindowsユーザーのためのPython入門 AIと始めるモダンな開発環境構築から実践まで Windows PC で Python を始めると、最初につまずいてしまう人も多いのではないでしょうか。普段使うにはとても便利ですが、Python 開発では思わぬトラブルに悩まされることも少なくありません。",
+      "thumbnail": null
     }
   ]
 }
