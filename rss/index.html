@@ -47,9 +47,9 @@ body {
 /* ---------- Header ---------- */
 .header {
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-accent) 100%);
-  padding: 5rem 2rem;
+  padding: 2.5rem 2rem;
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
 }
@@ -221,8 +221,8 @@ body {
   margin: 0 auto;
   padding: 0 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 2.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
 }
 
 .article-card {
@@ -277,7 +277,7 @@ body {
 .thumbnail-container {
   position: relative;
   width: 100%;
-  height: 240px;
+  height: 160px;
   overflow: hidden;
   background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-medium) 100%);
 }
@@ -393,9 +393,15 @@ body {
 }
 
 /* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .cards-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .header {
-    padding: 4rem 1rem;
+    padding: 2rem 1rem;
   }
   
   .header h1 {
@@ -404,7 +410,7 @@ body {
   
   .cards-container {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 1.5rem;
     padding: 0 1rem;
   }
   
@@ -423,7 +429,7 @@ body {
   }
   
   .thumbnail-container {
-    height: 200px;
+    height: 140px;
   }
 }
 
@@ -446,15 +452,14 @@ body {
     max-width: 120px;
   }
   
-  .cards-container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
   .source-badge {
     top: 1rem;
     right: 1rem;
     padding: 0.5rem 1rem;
+  }
+  
+  .thumbnail-container {
+    height: 120px;
   }
 }
 
@@ -488,7 +493,7 @@ body {
 <div id="app">
   <!-- Header -->
   <header class="header">
-    <h1>🗂ぎゅぎゅっとNEWS</h1>
+    <h1>🌊 ぎゅぎゅっとNEWS</h1>
     <p>ほしい情報ぎゅぎゅっとお届け</p>
   </header>
 
