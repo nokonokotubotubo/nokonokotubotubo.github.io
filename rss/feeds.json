@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T09:25:38.345Z",
+  "updated": "2025-07-03T10:25:53.265Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,30 @@
   ],
   "entries": [
     {
+      "id": "tag:qiita.com,2005:PublicArticle/2048554",
+      "title": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築",
+      "link": "https://qiita.com/81yishikawa/items/58463b9dff6f349ea73c",
+      "published": "2025-07-03T10:24:46.000Z",
+      "description": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築の仕方 ＡＩエージェントとは？ ワークフローを設計し、利用可能なツールを活用すること、またユーザーに代わってタスクを自動的に実行できるシステムの事。 ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築の仕方 ＡＩエージェントとは？ ワークフローを設計し、利用可能なツールを活用すること、またユーザーに代わってタスクを自動的に実行できるシステムの事。 ...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048541",
+      "title": "AIが生成したコードのリスク(CSETレポートまとめ)",
+      "link": "https://qiita.com/hokutoh/items/5119872f45845dee78bf",
+      "published": "2025-07-03T09:37:21.000Z",
+      "description": "半年ほど前の記事にはなりますがCSETが\"Cybersecurity Risks of AI-Generated Code\"というレポートを出していたので自分用にメモです。 セキュリティリスクの文脈ではありますが、単純にコード生成させた時の品質リスクとしても興味深いレ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "半年ほど前の記事にはなりますがCSETが\"Cybersecurity Risks of AI-Generated Code\"というレポートを出していたので自分用にメモです。 セキュリティリスクの文脈ではありますが、単純にコード生成させた時の品質リスクとしても興味深いレ...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
       "id": "5ncgxc-1751533800000",
       "title": "JR東日本、指定席券売機を刷新--「わかりにくい」の声に対応",
       "link": "https://japan.cnet.com/article/35235085/",
@@ -35,18 +59,6 @@
       "sourceFeed": "cnet",
       "summary": "JR東日本は7月3日、新型の指定席券売機の新型機を7月から順次導入すると発表した。普段あまり指定席券売機を使わない利用者でも直感的に操作できるよう、インターフェースを大幅に刷新した。",
       "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048315",
-      "title": "MCP を使って Yellowfin 資料の要約を作成",
-      "link": "https://qiita.com/ExtremeCarvFJ/items/f0aca3dc28a2b7654fac",
-      "published": "2025-07-03T08:27:02.000Z",
-      "description": "MCP MCP とは MCP とは Model Context Protocol の略称で、AI アシスタントが、ローカルファイルや社内データベースなど、様々なリソースにアクセスするための標準規格です。 セキュリティを担保しながら、非公開データを含む様々なリソースを A...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "MCP MCP とは MCP とは Model Context Protocol の略称で、AI アシスタントが、ローカルファイルや社内データベースなど、様々なリソースにアクセスするための標準規格です。 セキュリティを担保しながら、非公開データを含む様々なリソースを A...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2045457",
@@ -130,18 +142,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "話題のUI生成AIv0.devを触ってみたら、開発の未来が垣間見えたのでメモ。まさに「Vibe Coding」を体現したようなツール。 v0.devは、Next.jsなどで知られるVercel社が開発した、生成AIを活用したUI開発ツール。自然言語（プロンプト）や画像を元...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048340",
-      "title": "製造業の未来を切り拓く！生成AIとデジタルツインによるシミュレーション活用の最前線",
-      "link": "https://qiita.com/karakurai_rena/items/5dfc36dbb288fc9293a7",
-      "published": "2025-07-03T01:56:00.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は製造業の未来を切り拓くキーテクノロジーとして、生成AIとデジタルツインによるシミュレーション活用についてご紹介します。これらの先進技術がどのように製造業の課題を解決し、効率化や品質向上、コスト削減に役立って...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は製造業の未来を切り拓くキーテクノロジーとして、生成AIとデジタルツインによるシミュレーション活用についてご紹介します。これらの先進技術がどのように製造業の課題を解決し、効率化や品質向上、コスト削減に役立って...",
       "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
     },
     {
