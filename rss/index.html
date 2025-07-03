@@ -1,598 +1,228 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ぎゅぎゅっとNEWS</title>
-    
-    <!-- Vue 3 CDN -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    
-    <style>
-        /* CSS Reset & Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8fafb;
-            color: #1a202c;
-            line-height: 1.7;
-            min-height: 100vh;
-            font-weight: 400;
-        }
-        
-        /* Header Styles - モダンフラットデザイン */
-        .header {
-            background: #4a90a4;
-            padding: 4rem 2rem;
-            text-align: center;
-            margin-bottom: 3rem;
-            position: relative;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-        }
-        
-        .header h1 {
-            color: white;
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 1rem;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .header p {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.2rem;
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
-            letter-spacing: 0.01em;
-        }
-        
-        /* Loading Styles */
-        .loading {
-            text-align: center;
-            padding: 4rem;
-            font-size: 1.1rem;
-            color: #4a90a4;
-            font-weight: 500;
-        }
-        
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-left: 12px;
-            border: 2px solid #e2e8f0;
-            border-top: 2px solid #4a90a4;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Error Styles */
-        .error {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-radius: 12px;
-            padding: 2rem;
-            margin: 2rem auto;
-            max-width: 600px;
-            text-align: center;
-            color: #c53030;
-        }
-        
-        /* Feed Filter Styles - 横スクロール対応 */
-        .feed-filters {
-            max-width: 1200px;
-            margin: 0 auto 3rem;
-            padding: 0 2rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: nowrap; /* 改行禁止 */
-            overflow-x: auto; /* 横スクロール有効 */
-            white-space: nowrap; /* テキスト改行禁止 */
-            -webkit-overflow-scrolling: touch; /* スマホでのスムーズスクロール */
-            scrollbar-width: thin; /* スクロールバーを細く */
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>ぎゅぎゅっとNEWS</title>
 
-        /* スクロールバーのカスタマイズ */
-        .feed-filters::-webkit-scrollbar {
-            height: 6px;
-        }
+<!-- Vue 3 本番ビルド CDN -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 
-        .feed-filters::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
+<style>
+/* ---------- Base ---------- */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#f8fafb;color:#1a202c;line-height:1.7;min-height:100vh
+}
 
-        .feed-filters::-webkit-scrollbar-thumb {
-            background: #4a90a4;
-            border-radius: 3px;
-        }
-        
-        .filter-button {
-            padding: 0.75rem 1.5rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            background: white;
-            color: #4a5568;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            letter-spacing: 0.01em;
-            flex-shrink: 0; /* ボタンの縮小を防ぐ */
-            white-space: nowrap; /* ボタン内テキスト改行禁止 */
-            min-width: fit-content; /* 最小幅を内容に合わせる */
-            max-width: 120px; /* 最大幅制限 */
-            overflow: hidden; /* はみ出しを隠す */
-            text-overflow: ellipsis; /* 省略記号を表示 */
-        }
-        
-        .filter-button:hover {
-            border-color: #4a90a4;
-            color: #4a90a4;
-        }
-        
-        .filter-button.active {
-            background: #4a90a4;
-            border-color: #4a90a4;
-            color: white;
-        }
-        
-        /* Cards Container - グリッド最適化 */
-        .cards-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-            gap: 2rem;
-        }
-        
-        /* Card Styles - フラットデザイン */
-        .article-card {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .article-card:hover {
-            border-color: #4a90a4;
-            transform: translateY(-2px);
-        }
-        
-        /* Source Badge - フラットスタイル */
-        .source-badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: white;
-            z-index: 2;
-            letter-spacing: 0.02em;
-        }
-        
-        /* Thumbnail Styles */
-        .thumbnail {
-            width: 100%;
-            height: 220px;
-            object-fit: cover;
-            background: #f7fafc;
-        }
-        
-        .thumbnail-placeholder {
-            width: 100%;
-            height: 220px;
-            background: #4a90a4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            color: white;
-        }
-        
-        /* Card Content - タイポグラフィ改良 */
-        .card-content {
-            padding: 2rem;
-        }
-        
-        .article-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 1rem;
-            line-height: 1.5;
-            letter-spacing: -0.01em;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .article-summary {
-            color: #4a5568;
-            font-size: 1rem;
-            line-height: 1.7;
-            margin-bottom: 1.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .article-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #718096;
-            font-size: 0.9rem;
-            border-top: 1px solid #f7fafc;
-            padding-top: 1rem;
-        }
-        
-        .publish-date {
-            font-weight: 600;
-        }
-        
-        /* Update Info */
-        .update-info {
-            text-align: center;
-            margin: 4rem auto 3rem;
-            color: #718096;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        
-        /* Responsive Design - バランス重視 */
-        @media (max-width: 768px) {
-            .header {
-                padding: 3rem 1rem;
-            }
-            
-            .header h1 {
-                font-size: 2.5rem;
-            }
-            
-            .cards-container {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-                padding: 0 1rem;
-            }
-            
-            .feed-filters {
-                padding: 0 1rem;
-                gap: 0.5rem;
-            }
-            
-            .filter-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
-            }
-            
-            .card-content {
-                padding: 1.5rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .article-title {
-                font-size: 1.2rem;
-            }
-            
-            .filter-button {
-                font-size: 0.85rem;
-                padding: 0.5rem 1rem;
-            }
-        }
-    </style>
+/* ---------- Header ---------- */
+.header{background:#4a90a4;padding:4rem 2rem;text-align:center;margin-bottom:3rem;position:relative}
+.header::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1)0%,rgba(255,255,255,0)100%)}
+.header h1{color:#fff;font-size:3rem;font-weight:800;letter-spacing:-.02em;margin-bottom:1rem;position:relative;z-index:1}
+.header p{color:rgba(255,255,255,.9);font-size:1.2rem;font-weight:500;letter-spacing:.01em;position:relative;z-index:1}
+
+/* ---------- Loading ---------- */
+.loading{text-align:center;padding:4rem;font-size:1.1rem;color:#4a90a4;font-weight:500}
+.loading::after{content:'';display:inline-block;width:20px;height:20px;margin-left:12px;border:2px solid #e2e8f0;border-top:2px solid #4a90a4;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+
+/* ---------- Error ---------- */
+.error{background:#fff5f5;border:1px solid #fed7d7;border-radius:12px;padding:2rem;margin:2rem auto;max-width:600px;text-align:center;color:#c53030}
+
+/* ---------- Filter Tabs ---------- */
+.feed-filters{
+  max-width:1200px;margin:0 auto 3rem;padding:0 2rem;display:flex;gap:.5rem;
+  flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:thin
+}
+.feed-filters::-webkit-scrollbar{height:6px}
+.feed-filters::-webkit-scrollbar-track{background:#f1f1f1;border-radius:3px}
+.feed-filters::-webkit-scrollbar-thumb{background:#4a90a4;border-radius:3px}
+.filter-button{
+  padding:.75rem 1.5rem;border:2px solid #e2e8f0;border-radius:8px;background:#fff;color:#4a5568;
+  cursor:pointer;font-size:.95rem;font-weight:600;transition:.2s;letter-spacing:.01em;
+  flex-shrink:0;white-space:nowrap;min-width:fit-content;max-width:120px;overflow:hidden;text-overflow:ellipsis
+}
+.filter-button:hover{border-color:#4a90a4;color:#4a90a4}
+.filter-button.active{background:#4a90a4;border-color:#4a90a4;color:#fff}
+
+/* ---------- Cards ---------- */
+.cards-container{max-width:1200px;margin:0 auto;padding:0 2rem;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:2rem}
+.article-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;cursor:pointer;transition:.2s;position:relative}
+.article-card:hover{border-color:#4a90a4;transform:translateY(-2px)}
+.source-badge{position:absolute;top:1rem;right:1rem;padding:.5rem 1rem;border-radius:6px;font-size:.8rem;font-weight:700;color:#fff;z-index:2}
+
+/* --- Thumbnail Container --- */
+.thumbnail-container{position:relative;width:100%;height:220px;overflow:hidden;background:#f7fafc}
+.thumbnail{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .3s}
+.thumbnail.error{display:none}
+.thumbnail-placeholder{position:absolute;inset:0;background:#4a90a4;display:none;align-items:center;justify-content:center;font-size:2.5rem;color:#fff}
+.thumbnail-placeholder.show{display:flex}
+
+/* --- Card Content --- */
+.card-content{padding:2rem}
+.article-title{font-size:1.4rem;font-weight:700;color:#1a202c;margin-bottom:1rem;line-height:1.5;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.article-summary{color:#4a5568;font-size:1rem;line-height:1.7;margin-bottom:1.5rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.article-meta{display:flex;justify-content:space-between;align-items:center;color:#718096;font-size:.9rem;border-top:1px solid #f7fafc;padding-top:1rem}
+.publish-date{font-weight:600}
+
+/* ---------- Info ---------- */
+.update-info{text-align:center;margin:4rem auto 3rem;color:#718096;font-size:.9rem;font-weight:500}
+
+/* ---------- Responsive ---------- */
+@media(max-width:768px){
+  .header{padding:3rem 1rem}.header h1{font-size:2.5rem}
+  .cards-container{grid-template-columns:1fr;gap:1.5rem;padding:0 1rem}
+  .feed-filters{padding:0 1rem;gap:.5rem}.filter-button{padding:.6rem 1.2rem;font-size:.9rem}
+  .card-content{padding:1.5rem}
+}
+@media(max-width:480px){
+  .header h1{font-size:2rem}.article-title{font-size:1.2rem}
+  .filter-button{font-size:.85rem;padding:.5rem 1rem}
+}
+</style>
 </head>
-<body>
-    <div id="app">
-        <!-- Header Section -->
-        <header class="header">
-            <h1>📰 ぎゅぎゅっとNEWS</h1>
-            <p>ほしい情報ぎゅぎゅっとお届け</p>
-        </header>
-        
-        <!-- Loading State -->
-        <div v-if="loading" class="loading">
-            フィードを読み込み中
-        </div>
-        
-        <!-- Error State -->
-        <div v-if="error" class="error">
-            <h3>❌ エラーが発生しました</h3>
-            <p>{{ error }}</p>
-            <button @click="fetchFeeds" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: #4a90a4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                再読み込み
-            </button>
-        </div>
-        
-        <!-- Feed Filters -->
-        <div v-if="!loading && !error && feeds.length > 0" class="feed-filters">
-            <button 
-                class="filter-button" 
-                :class="{ active: activeFilter === 'all' }"
-                @click="setFilter('all')"
-                :title="'すべて (' + filteredEntries.length + ')'"
-            >
-                {{ truncateText('すべて (' + filteredEntries.length + ')') }}
-            </button>
-            <button 
-                v-for="feed in feeds" 
-                :key="feed.name"
-                class="filter-button" 
-                :class="{ active: activeFilter === feed.name.toLowerCase() }"
-                :style="{ backgroundColor: activeFilter === feed.name.toLowerCase() ? feed.color : 'white', color: activeFilter === feed.name.toLowerCase() ? 'white' : '#4a5568', borderColor: activeFilter === feed.name.toLowerCase() ? feed.color : '#e2e8f0' }"
-                @click="setFilter(feed.name.toLowerCase())"
-                :title="feed.name + ' (' + getFilteredCount(feed.name.toLowerCase()) + ')'"
-            >
-                {{ truncateText(feed.name + ' (' + getFilteredCount(feed.name.toLowerCase()) + ')') }}
-            </button>
-        </div>
-        
-        <!-- Articles Grid -->
-        <div v-if="!loading && !error" class="cards-container">
-            <article 
-                v-for="article in filteredEntries" 
-                :key="article.link"
-                class="article-card"
-                @click="openArticle(article.link)"
-            >
-                <!-- Source Badge -->
-                <div class="source-badge" :style="{ backgroundColor: article.sourceColor }">
-                    {{ article.source }}
-                </div>
-                
-                <!-- Thumbnail -->
-                <img 
-                    v-if="article.thumbnail" 
-                    :src="article.thumbnail" 
-                    :alt="article.title"
-                    class="thumbnail"
-                    @error="handleImageError"
-                />
-                <div v-else class="thumbnail-placeholder">
-                    📰
-                </div>
-                
-                <!-- Content -->
-                <div class="card-content">
-                    <h2 class="article-title">{{ article.title }}</h2>
-                    <p class="article-summary">{{ article.summary }}</p>
-                    <div class="article-meta">
-                        <span class="publish-date">{{ formatDate(article.published) }}</span>
-                        <span>{{ article.source }}</span>
-                    </div>
-                </div>
-            </article>
-        </div>
-        
-        <!-- Update Info -->
-        <div v-if="!loading && !error && lastUpdated" class="update-info">
-            最終更新: {{ formatDate(lastUpdated) }}
-        </div>
-    </div>
 
-    <script>
-        const { createApp } = Vue;
-        
-        createApp({
-            data() {
-                return {
-                    loading: true,
-                    error: null,
-                    feeds: [],
-                    entries: [],
-                    activeFilter: 'all',
-                    lastUpdated: null
-                }
-            },
-            computed: {
-                filteredEntries() {
-                    if (this.activeFilter === 'all') {
-                        return this.entries;
-                    }
-                    return this.entries.filter(entry => 
-                        entry.sourceFeed === this.activeFilter
-                    );
-                }
-            },
-            methods: {
-                async fetchFeeds() {
-                    this.loading = true;
-                    this.error = null;
-                    
-                    try {
-                        const response = await fetch('./feeds.json');
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        
-                        this.feeds = data.feeds || [];
-                        this.entries = data.entries || [];
-                        this.lastUpdated = data.updated;
-                        
-                        // データ前処理
-                        this.entries = this.entries.map(entry => ({
-                            ...entry,
-                            summary: this.extractSummary(entry.description || ''),
-                            thumbnail: this.extractThumbnail(entry)
-                        }));
-                        
-                        console.log(`✅ ${this.entries.length}件の記事を読み込みました`);
-                        
-                    } catch (error) {
-                        console.error('フィード取得エラー:', error);
-                        this.error = `フィードの取得に失敗しました: ${error.message}`;
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-                
-                extractSummary(htmlContent) {
-                    // HTMLタグを除去してプレーンテキストに
-                    const text = htmlContent.replace(/<[^>]*>/g, '').trim();
-                    // 150文字でカット
-                    return text.length > 150 ? text.substring(0, 150) + '...' : text;
-                },
-                
-                extractThumbnail(entry) {
-                    // 1. enclosuresから画像を抽出
-                    if (entry.enclosures && entry.enclosures.length > 0) {
-                        for (const enclosure of entry.enclosures) {
-                            if (enclosure.type && enclosure.type.startsWith('image/')) {
-                                return enclosure.url || enclosure.href;
-                            }
-                        }
-                    }
-                    
-                    // 2. media:contentから抽出
-                    if (entry['media:content']) {
-                        const mediaContent = Array.isArray(entry['media:content']) 
-                            ? entry['media:content'] 
-                            : [entry['media:content']];
-                        
-                        for (const media of mediaContent) {
-                            if (media.url && (media.medium === 'image' || (media.type && media.type.startsWith('image/')))) {
-                                return media.url;
-                            }
-                        }
-                    }
-                    
-                    // 3. media:thumbnailから抽出
-                    if (entry['media:thumbnail']) {
-                        if (typeof entry['media:thumbnail'] === 'string') {
-                            return entry['media:thumbnail'];
-                        } else if (entry['media:thumbnail'].url) {
-                            return entry['media:thumbnail'].url;
-                        }
-                    }
-                    
-                    // 4. thumbnail要素から抽出
-                    if (entry.thumbnail) {
-                        if (typeof entry.thumbnail === 'string') {
-                            return entry.thumbnail;
-                        } else if (entry.thumbnail.url) {
-                            return entry.thumbnail.url;
-                        }
-                    }
-                    
-                    // 5. content要素からimg抽出
-                    if (entry.content) {
-                        const contentText = typeof entry.content === 'object' ? 
-                            (entry.content.value || entry.content['#text'] || '') : 
-                            entry.content;
-                        const imgMatch = contentText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-                        if (imgMatch && imgMatch[1]) {
-                            return imgMatch[1];
-                        }
-                    }
-                    
-                    // 6. description内のimg要素から抽出
-                    if (entry.description) {
-                        const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-                        if (imgMatch && imgMatch[1]) {
-                            return imgMatch[1];
-                        }
-                    }
-                    
-                    // 7. summary内のimg要素から抽出
-                    if (entry.summary) {
-                        const summaryText = typeof entry.summary === 'object' ? 
-                            (entry.summary.value || entry.summary['#text'] || '') : 
-                            entry.summary;
-                        const imgMatch = summaryText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-                        if (imgMatch && imgMatch[1]) {
-                            return imgMatch[1];
-                        }
-                    }
-                    
-                    return null;
-                },
-                
-                // テキストを8文字で省略する関数
-                truncateText(text, maxLength = 8) {
-                    if (text.length <= maxLength) {
-                        return text;
-                    }
-                    return text.substring(0, maxLength) + '...';
-                },
-                
-                setFilter(filter) {
-                    this.activeFilter = filter;
-                },
-                
-                getFilteredCount(sourceFeed) {
-                    return this.entries.filter(entry => 
-                        entry.sourceFeed === sourceFeed
-                    ).length;
-                },
-                
-                openArticle(url) {
-                    window.open(url, '_blank');
-                },
-                
-                formatDate(dateString) {
-                    if (!dateString) return '';
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString('ja-JP') + ' ' + 
-                           date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-                },
-                
-                handleImageError(event) {
-                    // 画像読み込みエラー時の処理
-                    event.target.style.display = 'none';
-                    const placeholder = event.target.nextElementSibling;
-                    if (placeholder && placeholder.classList.contains('thumbnail-placeholder')) {
-                        placeholder.style.display = 'flex';
-                    }
-                }
-            },
-            
-            mounted() {
-                this.fetchFeeds();
-                
-                // 30分ごとに自動更新
-                setInterval(() => {
-                    this.fetchFeeds();
-                }, 30 * 60 * 1000);
-            }
-        }).mount('#app');
-    </script>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header class="header">
+    <h1>📰 ぎゅぎゅっとNEWS</h1><p>ほしい情報ぎゅぎゅっとお届け</p>
+  </header>
+
+  <!-- Loading -->
+  <div v-if="loading" class="loading">フィードを読み込み中</div>
+
+  <!-- Error -->
+  <div v-if="error" class="error">
+    <h3>❌ エラーが発生しました</h3><p>{{ error }}</p>
+    <button @click="fetchFeeds" style="margin-top:1rem;padding:.75rem 1.5rem;background:#4a90a4;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+      再読み込み
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div v-if="!loading && !error && feeds.length" class="feed-filters">
+    <button class="filter-button" :class="{active:activeFilter==='all'}"
+      @click="setFilter('all')" :title="'すべて('+filteredEntries.length+')'">
+      {{ truncateText('すべて ('+filteredEntries.length+')') }}
+    </button>
+    <button v-for="feed in feeds" :key="feed.name" class="filter-button"
+      :class="{active:activeFilter===feed.name.toLowerCase()}"
+      :style="{backgroundColor:activeFilter===feed.name.toLowerCase()?feed.color:'white',
+               color:activeFilter===feed.name.toLowerCase()?'white':'#4a5568',
+               borderColor:activeFilter===feed.name.toLowerCase()?feed.color:'#e2e8f0'}"
+      @click="setFilter(feed.name.toLowerCase())"
+      :title="feed.name+' ('+getFilteredCount(feed.name.toLowerCase())+')'">
+      {{ truncateText(feed.name+' ('+getFilteredCount(feed.name.toLowerCase())+')') }}
+    </button>
+  </div>
+
+  <!-- Articles -->
+  <div v-if="!loading && !error" class="cards-container">
+    <article v-for="article in filteredEntries" :key="article.link" class="article-card" @click="openArticle(article.link)">
+      <div class="source-badge" :style="{backgroundColor:article.sourceColor}">{{ article.source }}</div>
+
+      <div class="thumbnail-container">
+        <img v-if="article.thumbnail" :src="article.thumbnail" :alt="article.title"
+             class="thumbnail" @error="handleImageError($event,article)" @load="handleImageLoad" />
+        <div :class="['thumbnail-placeholder',{'show':!article.thumbnail || article.thumbnailError}]">📰</div>
+      </div>
+
+      <div class="card-content">
+        <h2 class="article-title">{{ article.title }}</h2>
+        <p class="article-summary">{{ article.summary }}</p>
+        <div class="article-meta">
+          <span class="publish-date">{{ formatDate(article.published) }}</span>
+          <span>{{ article.source }}</span>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div v-if="!loading && !error && lastUpdated" class="update-info">
+    最終更新: {{ formatDate(lastUpdated) }}
+  </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+createApp({
+  data(){return{loading:true,error:null,feeds:[],entries:[],activeFilter:'all',lastUpdated:null}},
+  computed:{
+    filteredEntries(){return this.activeFilter==='all'?this.entries:this.entries.filter(e=>e.sourceFeed===this.activeFilter)}
+  },
+  methods:{
+    async fetchFeeds(){
+      this.loading=true;this.error=null;
+      try{
+        const res=await fetch('./feeds.json');
+        if(!res.ok)throw new Error('HTTP '+res.status);
+        const data=await res.json();
+        this.feeds=data.feeds||[];this.entries=data.entries||[];this.lastUpdated=data.updated;
+        this.entries=this.entries.map(e=>({...e,
+          summary:this.extractSummary(e.description||e.summary||''),
+          thumbnail:this.extractThumbnail(e),
+          thumbnailError:false}));
+        console.log('✅',this.entries.length,'件の記事を読み込みました');
+      }catch(err){console.error('取得エラー',err);this.error='フィード取得失敗: '+err.message}
+      finally{this.loading=false;}
+    },
+    extractSummary(html){const t=html.replace(/<[^>]*>/g,'').trim();return t.length>150?t.slice(0,150)+'…':t},
+    /* ---- 改良版サムネイル抽出 ---- */
+    extractThumbnail(entry){
+      let url=null;
+      if(entry.thumbnail)url=typeof entry.thumbnail==='string'?entry.thumbnail:entry.thumbnail.url;
+      if(!url && entry.enclosures?.length){
+        const enc=entry.enclosures.find(e=>e.type?.startsWith('image/')&&(e.url||e.href));
+        if(enc)url=enc.url||enc.href;
+      }
+      if(!url && entry['media:content']){
+        const arr=Array.isArray(entry['media:content'])?entry['media:content']:[entry['media:content']];
+        for(const m of arr){if(m.url&&(m.medium==='image'||m.type?.startsWith('image/'))){url=m.url;break}}
+      }
+      if(!url && entry['media:thumbnail'])
+        url=typeof entry['media:thumbnail']==='string'?entry['media:thumbnail']:entry['media:thumbnail'].url;
+      if(!url && entry.description){
+        const m=entry.description.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)url=m[1];
+      }
+      if(!url && entry.content){
+        const c=typeof entry.content==='object'?(entry.content.value||entry.content['#text']||''):entry.content;
+        const m=c.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)url=m[1];
+      }
+      /* URL検証 & 制限パス除外 */
+      if(url){
+        try{
+          const u=new URL(url);
+          if(u.protocol!=='https:')return null;
+          const ng=['ogp.png','/admin/','/private/','/protected/','basic-auth','unauthorized'];
+          if(ng.some(p=>url.toLowerCase().includes(p)))return null;
+          return url;
+        }catch(e){return null;}
+      }
+      return null;
+    },
+    /* ---- 画像ハンドラ ---- */
+    handleImageError(ev,article){
+      console.warn('画像読み込み失敗',ev.target.src);this.$set(article,'thumbnailError',true);
+      ev.target.classList.add('error');
+      ev.target.parentElement.querySelector('.thumbnail-placeholder')?.classList.add('show');
+    },
+    handleImageLoad(ev){ev.target.style.opacity='1'},
+    truncateText(t,len=8){return t.length<=len?t:t.slice(0,len)+'…'},
+    setFilter(f){this.activeFilter=f},
+    getFilteredCount(s){return this.entries.filter(e=>e.sourceFeed===s).length},
+    openArticle(u){window.open(u,'_blank')},
+    formatDate(d){if(!d)return'';const dt=new Date(d);
+      return dt.toLocaleDateString('ja-JP')+' '+dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
+  },
+  mounted(){
+    this.fetchFeeds();
+    setInterval(()=>this.fetchFeeds(),30*60*1e3);
+  }
+}).mount('#app');
+</script>
 </body>
 </html>
