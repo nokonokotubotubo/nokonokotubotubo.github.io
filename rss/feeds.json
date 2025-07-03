@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T01:55:44.738Z",
+  "updated": "2025-07-03T03:22:37.613Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,54 @@
     }
   ],
   "entries": [
+    {
+      "id": "5ncj4k-1751509860000",
+      "title": "わずか半年で500近いスターリンク衛星が燃焼、有害物質の影響に科学者らが警鐘",
+      "link": "https://japan.cnet.com/article/35235056/",
+      "published": "2025-07-03T02:31:00.000Z",
+      "description": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
+      "thumbnail": null
+    },
+    {
+      "id": "5ncj5f-1751509200000",
+      "title": "Amazon、飲料セールを7月7日まで開催中--「まとめ買い」で猛暑に備え",
+      "link": "https://japan.cnet.com/article/35235055/",
+      "published": "2025-07-03T02:20:00.000Z",
+      "description": "アマゾンジャパンは、プライム会員限定の「飲料サマーSALE」を7月7日午後11時59分まで開始している。11日から始まる年次大型セール「プライムデー」に先駆け、飲料カテゴリの商品を最大42％オフで販売する。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "アマゾンジャパンは、プライム会員限定の「飲料サマーSALE」を7月7日午後11時59分まで開始している。11日から始まる年次大型セール「プライムデー」に先駆け、飲料カテゴリの商品を最大42％オフで販売する。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048342",
+      "title": "🚀 爆速UI開発の新時代！VercelのAI「v0.dev」がすごい",
+      "link": "https://qiita.com/yosei_ikegami/items/a609f3eefacee6700333",
+      "published": "2025-07-03T01:58:06.000Z",
+      "description": "話題のUI生成AIv0.devを触ってみたら、開発の未来が垣間見えたのでメモ。まさに「Vibe Coding」を体現したようなツール。 v0.devは、Next.jsなどで知られるVercel社が開発した、生成AIを活用したUI開発ツール。自然言語（プロンプト）や画像を元...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "話題のUI生成AIv0.devを触ってみたら、開発の未来が垣間見えたのでメモ。まさに「Vibe Coding」を体現したようなツール。 v0.devは、Next.jsなどで知られるVercel社が開発した、生成AIを活用したUI開発ツール。自然言語（プロンプト）や画像を元...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048340",
+      "title": "製造業の未来を切り拓く！生成AIとデジタルツインによるシミュレーション活用の最前線",
+      "link": "https://qiita.com/karakurai_rena/items/5dfc36dbb288fc9293a7",
+      "published": "2025-07-03T01:56:00.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は製造業の未来を切り拓くキーテクノロジーとして、生成AIとデジタルツインによるシミュレーション活用についてご紹介します。これらの先進技術がどのように製造業の課題を解決し、効率化や品質向上、コスト削減に役立って...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は製造業の未来を切り拓くキーテクノロジーとして、生成AIとデジタルツインによるシミュレーション活用についてご紹介します。これらの先進技術がどのように製造業の課題を解決し、効率化や品質向上、コスト削減に役立って...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048315",
       "title": "MCP を使って Yellowfin 資料の要約を作成",
@@ -61,18 +109,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048302",
-      "title": "生成AIチャットアプリで使うServer-Sent Events (SSE)の実装方法まとめ",
-      "link": "https://qiita.com/TsuchiyaK/items/38cb546c266ae8f3a521",
-      "published": "2025-07-03T00:20:02.000Z",
-      "description": "はじめまして、花王株式会社の @TsuchiyaK です。 生成AIチャットアプリなどで「AIの回答をリアルタイムに順次表示したい」という要件はよくあるかと思います。 その際によく使われるのが Server-Sent Events (SSE) です。 本記事では、SSEの概...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめまして、花王株式会社の @TsuchiyaK です。 生成AIチャットアプリなどで「AIの回答をリアルタイムに順次表示したい」という要件はよくあるかと思います。 その際によく使われるのが Server-Sent Events (SSE) です。 本記事では、SSEの概...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
       "id": "5ncjzk-1751500920000",
       "title": "新型ARグラス「XREAL One Pro」24日発売--視野角50→57度に拡大",
       "link": "https://japan.cnet.com/article/35235041/",
@@ -85,18 +121,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048285",
-      "title": "LLMは\"利用\"フェーズが一番危ない。プロキシとポリシーエンジンによるイン・アウト双方の防衛術",
-      "link": "https://qiita.com/RepKuririn/items/07c1cbb4e21170c8b72c",
-      "published": "2025-07-02T23:16:07.000Z",
-      "description": "目次 Part 1: AIが直面する新たな脅威 Chapter 1: LLMの脆弱性 - プロンプトインジェクションの脅威 Section 1.1: 生成AIセキュリティの3つの柱 Section 1.2: プロンプトインジェクションとは？ Section 1....",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "目次 Part 1: AIが直面する新たな脅威 Chapter 1: LLMの脆弱性 - プロンプトインジェクションの脅威 Section 1.1: 生成AIセキュリティの3つの柱 Section 1.2: プロンプトインジェクションとは？ Section 1....",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
       "id": "5nckl3-1751492100000",
       "title": "Tinder、ログイン時の顔認証を必須化へ--「写真とは別人」を排除",
       "link": "https://japan.cnet.com/article/35235037/",
@@ -106,30 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "マッチングアプリのTinderが、米国で「顔認証ログイン」を順次必須化。狙いはユーザーの信頼性向上と悪質なボット排除だ──。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nckly-1751490600000",
-      "title": "ChatGPTに頼りがちだと「脳が腐る」は本当か--科学者が影響を調べてみた",
-      "link": "https://japan.cnet.com/article/35235036/",
-      "published": "2025-07-02T21:10:00.000Z",
-      "description": "生成AIを使って何かの作業をするとき、脳の動き方は、自分だけでじっくり考える場合とは大きく異なっている。特に、自分が行ったことを記憶に残しづらくなってしまうのだという。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "生成AIを使って何かの作業をするとき、脳の動き方は、自分だけでじっくり考える場合とは大きく異なっている。特に、自分が行ったことを記憶に残しづらくなってしまうのだという。",
-      "thumbnail": null
-    },
-    {
-      "id": "5ncm7n-1751438700000",
-      "title": "X（旧Twitter）、検索結果からユーザー名を除外と発表--メリットは？",
-      "link": "https://japan.cnet.com/article/35235011/",
-      "published": "2025-07-02T06:45:00.000Z",
-      "description": "X（旧Twitter）は7月2日、検索結果からユーザー名を除外したと発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "X（旧Twitter）は7月2日、検索結果からユーザー名を除外したと発表した。",
       "thumbnail": null
     },
     {
