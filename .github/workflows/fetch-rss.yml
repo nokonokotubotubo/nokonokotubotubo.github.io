@@ -1,310 +1,125 @@
 name: Fetch RSS Feeds and Deploy
-
-# トリガー設定
 on:
   schedule:
-    # 毎時0分に実行（UTC時間）
     - cron: '0 * * * *'
-  # 手動実行を可能にする
   workflow_dispatch:
-
-# 必要な権限設定
 permissions:
-  contents: write    # ファイル書き込み権限
-  pages: write      # GitHub Pages デプロイ権限
-  id-token: write   # GitHub Pages 認証用
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  # Job 1: RSS取得とデータ生成
   fetch-rss:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    # rssディレクトリを作成（存在しない場合）
+    - uses: actions/checkout@v4
+      with: { token: ${{ secrets.GITHUB_TOKEN }} }
+
     - name: Create RSS directory
+      run: mkdir -p rss && echo "✅ rss ディレクトリ作成"
+
+    - name: Fetch Qiita RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with: { feed_url: 'https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed', file_path: './temp-qiita.json' }
+
+    - name: Fetch Zenn RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with: { feed_url: 'https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed', file_path: './temp-zenn.json' }
+
+    - name: Fetch CNET RSS
+      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
+      with: { feed_url: 'http://feeds.japan.cnet.com/cnet/rss', file_path: './temp-cnet.json' }
+
+    - name: Merge & Generate JSON
       run: |
-        mkdir -p rss
-        echo "✅ rssディレクトリを作成しました"
-    
-    # Qiita RSS取得
-    - name: Fetch Qiita RSS Feed
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed'
-        file_path: './temp-qiita-feed.json'
-    
-    # Zenn RSS取得
-    - name: Fetch Zenn RSS Feed
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed'
-        file_path: './temp-zenn-feed.json'
-    
-    # CNET RSS取得
-    - name: Fetch CNET RSS Feed
-      uses: Promptly-Technologies-LLC/rss-fetch-action@v2
-      with:
-        feed_url: 'http://feeds.japan.cnet.com/cnet/rss'
-        file_path: './temp-cnet-feed.json'
-    
-    # データ統合とJSON生成
-    - name: Merge RSS Feeds and Generate JSON
-      run: |
-        node << 'EOF'
-        const fs = require('fs');
-        const path = require('path');
-        
-        console.log('🚀 RSS統合処理を開始します...');
-        
-        // フィード定義
-        const feeds = [
-          { 
-            name: 'Qiita', 
-            file: './temp-qiita-feed.json', 
-            color: '#55C500',
-            description: 'Qiita 生成AI記事'
-          },
-          { 
-            name: 'Zenn', 
-            file: './temp-zenn-feed.json', 
-            color: '#3EA8FF',
-            description: 'Zenn 生成AI記事'
-          },
-          { 
-            name: 'CNET', 
-            file: './temp-cnet-feed.json', 
-            color: '#C41E3A',
-            description: 'CNET Japan ニュース'
-          }
+        node <<'EOF'
+        const fs=require('fs');
+        const feeds=[
+          {name:'Qiita',file:'./temp-qiita.json',color:'#55C500',desc:'Qiita 生成AI'},
+          {name:'Zenn', file:'./temp-zenn.json', color:'#3EA8FF',desc:'Zenn 生成AI'},
+          {name:'CNET', file:'./temp-cnet.json', color:'#C41E3A',desc:'CNET Japan'}
         ];
-        
-        let allEntries = [];
-        let processedFeeds = [];
-        
-        // 各フィードを処理
-        feeds.forEach(feed => {
-          try {
-            console.log(`📖 ${feed.name} フィードを処理中...`);
-            
-            if (!fs.existsSync(feed.file)) {
-              console.log(`⚠️  ${feed.file} が見つかりません。スキップします。`);
-              return;
-            }
-            
-            const rawData = fs.readFileSync(feed.file, 'utf8');
-            const data = JSON.parse(rawData);
-            
-            if (data.entries && Array.isArray(data.entries)) {
-              // 最新5件を取得してメタデータを追加
-              const feedEntries = data.entries.slice(0, 5).map(entry => ({
-                ...entry,
-                source: feed.name,
-                sourceColor: feed.color,
-                sourceFeed: feed.name.toLowerCase(),
-                // 日付正規化
-                published: entry.published || entry.pubDate || new Date().toISOString(),
-                // サマリー生成
-                summary: (entry.description || entry.summary || '').replace(/<[^>]*>/g, '').substring(0, 150),
-                // サムネイル抽出試行
-                thumbnail: extractThumbnail(entry)
-              }));
-              
-              allEntries = allEntries.concat(feedEntries);
-              processedFeeds.push({
-                name: feed.name,
-                color: feed.color,
-                description: feed.description,
-                count: feedEntries.length
-              });
-              
-              console.log(`✅ ${feed.name}: ${feedEntries.length}件の記事を追加`);
-            } else {
-              console.log(`⚠️  ${feed.name}: entriesが見つからないか配列ではありません`);
-            }
-            
-          } catch (error) {
-            console.error(`❌ ${feed.name} 処理エラー:`, error.message);
-          }
+        let all=[], meta=[];
+        feeds.forEach(f=>{
+          if(!fs.existsSync(f.file)){console.log('❌ missing',f.file);return;}
+          const d=JSON.parse(fs.readFileSync(f.file,'utf8'));
+          const ent=(d.entries||[]).slice(0,5).map(e=>({
+            ...e,
+            source:f.name, sourceColor:f.color, sourceFeed:f.name.toLowerCase(),
+            published:e.published||e.pubDate||new Date().toISOString(),
+            summary:(e.description||e.summary||'').replace(/<[^>]*>/g,'').slice(0,150),
+            thumbnail:extractThumbnail(e)
+          }));
+          all=all.concat(ent);
+          meta.push({name:f.name,color:f.color,description:f.desc,count:ent.length});
         });
-        
-        // サムネイル抽出関数（改良版）
-        function extractThumbnail(entry) {
-          // 1. enclosures から画像を抽出（url と href の両方をチェック）
-          if (entry.enclosures && Array.isArray(entry.enclosures)) {
-            for (const enclosure of entry.enclosures) {
-              if (enclosure.type && enclosure.type.startsWith('image/')) {
-                return enclosure.url || enclosure.href;
-              }
-            }
+
+        /* ---- extractThumbnail (401 対策版) ---- */
+        function extractThumbnail(e){
+          let u=null;
+          if(e.thumbnail)u=typeof e.thumbnail==='string'?e.thumbnail:e.thumbnail.url;
+          if(!u && e.enclosures?.length){
+            const enc=e.enclosures.find(v=>v.type?.startsWith('image/')&&(v.url||v.href));
+            if(enc)u=enc.url||enc.href;
           }
-          
-          // 2. media:content から抽出（配列対応）
-          if (entry['media:content']) {
-            const mediaContent = Array.isArray(entry['media:content']) 
-              ? entry['media:content'] 
-              : [entry['media:content']];
-            
-            for (const media of mediaContent) {
-              if (media.url && (media.medium === 'image' || (media.type && media.type.startsWith('image/')))) {
-                return media.url;
-              }
-            }
+          if(!u && e['media:content']){
+            const arr=Array.isArray(e['media:content'])?e['media:content']:[e['media:content']];
+            for(const m of arr){if(m.url&&(m.medium==='image'||m.type?.startsWith('image/'))){u=m.url;break}}
           }
-          
-          // 3. media:thumbnail から抽出
-          if (entry['media:thumbnail']) {
-            if (typeof entry['media:thumbnail'] === 'string') {
-              return entry['media:thumbnail'];
-            } else if (entry['media:thumbnail'].url) {
-              return entry['media:thumbnail'].url;
-            }
+          if(!u && e['media:thumbnail'])u=typeof e['media:thumbnail']==='string'?e['media:thumbnail']:e['media:thumbnail'].url;
+          if(!u && e.description){
+            const m=e.description.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)u=m[1];
           }
-          
-          // 4. thumbnail 要素から抽出
-          if (entry.thumbnail) {
-            if (typeof entry.thumbnail === 'string') {
-              return entry.thumbnail;
-            } else if (entry.thumbnail.url) {
-              return entry.thumbnail.url;
-            }
+          if(!u && e.content){
+            const txt=typeof e.content==='object'?(e.content.value||e.content['#text']||''):e.content;
+            const m=txt.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)u=m[1];
           }
-          
-          // 5. content要素からimg抽出
-          if (entry.content) {
-            const contentText = typeof entry.content === 'object' ? 
-              (entry.content.value || entry.content['#text'] || '') : 
-              entry.content;
-            const imgMatch = contentText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-            if (imgMatch && imgMatch[1]) {
-              return imgMatch[1];
-            }
+          if(u){
+            try{
+              const url=new URL(u);
+              if(url.protocol!=='https:')return null;
+              const ng=['ogp.png','/admin/','/private/','/protected/','basic-auth','unauthorized'];
+              if(ng.some(p=>u.toLowerCase().includes(p)))return null;
+              return u;
+            }catch{ return null;}
           }
-          
-          // 6. description内のimg要素から抽出（改良版）
-          if (entry.description) {
-            const imgMatch = entry.description.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-            if (imgMatch && imgMatch[1]) {
-              return imgMatch[1];
-            }
-          }
-          
-          // 7. summary内のimg要素から抽出
-          if (entry.summary) {
-            const summaryText = typeof entry.summary === 'object' ? 
-              (entry.summary.value || entry.summary['#text'] || '') : 
-              entry.summary;
-            const imgMatch = summaryText.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
-            if (imgMatch && imgMatch[1]) {
-              return imgMatch[1];
-            }
-          }
-          
-          // 8. Qiita/Zenn特有の画像抽出
-          if (entry.link) {
-            // QiitaのOpen Graph画像を推測
-            if (entry.link.includes('qiita.com')) {
-              const match = entry.link.match(/qiita\.com\/[^\/]+\/items\/([^\/\?]+)/);
-              if (match) {
-                return `https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b`;
-              }
-            }
-            
-            // Zennの場合は専用のOGP画像を推測
-            if (entry.link.includes('zenn.dev')) {
-              const match = entry.link.match(/zenn\.dev\/[^\/]+\/articles\/([^\/\?]+)/);
-              if (match) {
-                return `https://res.cloudinary.com/zenn/image/fetch/s--xkALKaFj--/c_fit,g_north_west,l_text:notosanscjkjp-medium.otf_55_bold:${encodeURIComponent(entry.title || '')},w_1010,h_380,c_fit/g_south_west,l_text:notosanscjkjp-medium.otf_37:${encodeURIComponent(entry.author || '')},x_203,y_121/g_south_west,w_203,h_121,x_0,y_0,c_fit/v1627283836/default/ogp.png`;
-              }
-            }
-          }
-          
           return null;
         }
-        
-        // 日付順でソート（新しい順）
-        allEntries.sort((a, b) => new Date(b.published) - new Date(a.published));
-        
-        // 最終的に15件に制限
-        allEntries = allEntries.slice(0, 15);
-        
-        // 統合結果のJSONを生成
-        const result = {
-          title: 'RSS Reader - 生成AI記事フィード',
-          description: '最新の生成AI関連記事をまとめて配信',
-          updated: new Date().toISOString(),
-          totalEntries: allEntries.length,
-          feeds: processedFeeds,
-          entries: allEntries
-        };
-        
-        // JSONファイルを出力
-        const outputPath = './rss/feeds.json';
-        fs.writeFileSync(outputPath, JSON.stringify(result, null, 2), 'utf8');
-        
-        console.log(`🎉 統合完了: ${allEntries.length}件の記事を ${outputPath} に出力しました`);
-        
-        // サマリー表示
-        processedFeeds.forEach(feed => {
-          console.log(`   📰 ${feed.name}: ${feed.count}件`);
-        });
-        
-        // 一時ファイルを削除
-        feeds.forEach(feed => {
-          if (fs.existsSync(feed.file)) {
-            fs.unlinkSync(feed.file);
-            console.log(`🗑️  ${feed.file} を削除しました`);
-          }
-        });
-        
-        EOF
-    
-    # 変更をコミット
-    - name: Commit and push changes
-      uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        commit_message: '🤖 RSS feeds updated - ${{ steps.date.outputs.date }}'
-        file_pattern: 'rss/feeds.json'
-        commit_user_name: 'RSS Bot'
-        commit_user_email: 'rss-bot@github-actions.local'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    # 日付情報を出力
-    - name: Get current date
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
 
-  # Job 2: GitHub Pagesデプロイ
+        all.sort((a,b)=>new Date(b.published)-new Date(a.published));
+        all=all.slice(0,15);
+        fs.writeFileSync('./rss/feeds.json',JSON.stringify({
+          title:'RSS Reader - 生成AIフィード',
+          description:'最新の生成AI関連記事',
+          updated:new Date().toISOString(),
+          totalEntries:all.length,
+          feeds:meta,
+          entries:all
+        },null,2));
+        feeds.forEach(f=>fs.existsSync(f.file)&&fs.unlinkSync(f.file));
+        EOF
+
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: '🤖 RSS feeds updated'
+        file_pattern: 'rss/feeds.json'
+        commit_user_name: RSS Bot
+        commit_user_email: rss-bot@github-actions.local
+      env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+
   deploy:
-    needs: fetch-rss  # fetch-rssジョブの完了を待つ
+    needs: fetch-rss
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        ref: main  # 最新のmainブランチを取得
-    
-    - name: Setup Pages
-      uses: actions/configure-pages@v5
-    
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: './'  # リポジトリ全体をアップロード
-    
-    - name: Deploy to GitHub Pages
-      id: deployment
+    - uses: actions/checkout@v4
+      with: { ref: main }
+    - uses: actions/configure-pages@v5
+    - uses: actions/upload-pages-artifact@v3
+      with: { path: './' }
+    - id: deployment
       uses: actions/deploy-pages@v4
-    
-    - name: Display deployment URL
-      run: |
-        echo "🚀 サイトがデプロイされました!"
-        echo "📱 アクセスURL: ${{ steps.deployment.outputs.page_url }}rss/"
-        echo "📊 GitHub Pages設定を確認してください"
+    - name: Show URL
+      run: echo "🚀 ${{ steps.deployment.outputs.page_url }}"
