@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T18:23:12.472Z",
+  "updated": "2025-07-03T19:13:00.729Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048725",
+      "title": "自宅にあるWindowsを使っていつでもどこからでもClaude Codeを動かせるようにする",
+      "link": "https://qiita.com/ryutarom128/items/2aeb8721ac4c9bd6023d",
+      "published": "2025-07-03T18:50:59.000Z",
+      "description": "はじめに Claude Codeを使い始めました。 普段はMacを持ち運び、家ではWindowsを使っています。 移動中にもClaude Codeにタスクをさせたいと思いましたが、Macは持ち運びをするのでネットワークが切断されてしまい、タスクが途中で終わってしまいます。...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに Claude Codeを使い始めました。 普段はMacを持ち運び、家ではWindowsを使っています。 移動中にもClaude Codeにタスクをさせたいと思いましたが、Macは持ち運びをするのでネットワークが切断されてしまい、タスクが途中で終わってしまいます。...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048699",
       "title": "AIエージェントによる業務プロセス自動化の最前線：成功事例と実装ステップを徹底解説",
@@ -49,6 +61,18 @@
       "thumbnail": null
     },
     {
+      "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
+      "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "published": "2025-07-03T15:17:44.000Z",
+      "description": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
+      "thumbnail": null
+    },
+    {
       "id": "tag:qiita.com,2005:PublicArticle/2048561",
       "title": "今更Claude ArtifactsでHTMLのツール作成",
       "link": "https://qiita.com/kongo-jun/items/6bf1d55874f16cc65233",
@@ -61,15 +85,15 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048554",
-      "title": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築",
-      "link": "https://qiita.com/81yishikawa/items/58463b9dff6f349ea73c",
-      "published": "2025-07-03T10:24:46.000Z",
-      "description": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築の仕方 ＡＩエージェントとは？ ワークフローを設計し、利用可能なツールを活用すること、またユーザーに代わってタスクを自動的に実行できるシステムの事。 ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "LangChainを使いＡＩエージェント(Webサーチ)をELYZA-japanese-Llama-2-7bで構築の仕方 ＡＩエージェントとは？ ワークフローを設計し、利用可能なツールを活用すること、またユーザーに代わってタスクを自動的に実行できるシステムの事。 ...",
+      "id": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
+      "title": "Gemini CLI から Claude Code に戻した件について",
+      "link": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
+      "published": "2025-07-03T09:55:38.000Z",
+      "description": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツールとも同じ内容のCLAUDE.mdとGEMINI.mdを使用してメモリ管理を行っている。つまりコンテキストの差はなく純粋な処理能力の違いを比較している。 Gemini...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツール",
       "thumbnail": null
     },
     {
@@ -82,6 +106,30 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "JR東日本は7月3日、新型の指定席券売機の新型機を7月から順次導入すると発表した。普段あまり指定席券売機を使わない利用者でも直感的に操作できるよう、インターフェースを大幅に刷新した。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/decopon1476052/articles/55023bf135250f",
+      "title": "プロンプトが変わると、AIが変わる｜生成AI活用の失敗談と改善テンプレまとめ",
+      "link": "https://zenn.dev/decopon1476052/articles/55023bf135250f",
+      "published": "2025-07-03T09:00:01.000Z",
+      "description": "最近はChatGPTやCopilotを活用して、技術の学習や記事執筆、ちょっとした発想メモまで、いろんなことに生成AIを使っています。 でも最初は、うまく伝えられなくて… 「コード直して」→ ん？どこをどう直したの…？ 「わかりやすく説明して」→ いや、それがわからんのよ… こんな“通じてない会話”をたくさん重ねてきました（笑） この記事では、そんな私の失敗から学んだことと、改善のためのプロンプト構文テンプレをまとめています。 👀 通じないプロンプト、たとえばこんな感じ ❌...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "最近はChatGPTやCopilotを活用して、技術の学習や記事執筆、ちょっとした発想メモまで、いろんなことに生成AIを使っています。 でも最初は、うまく伝えられなくて… 「コード直して」→ ん？どこをどう直したの…？ 「わかりやすく説明して」→ いや、それがわからんのよ… こんな“通じてない会話”",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/sun_asterisk/articles/aws_summit_2025",
+      "title": "[AWS Summit Japan 2025 現地レポ]生成AIのための実践的なデータ活用について学んできた",
+      "link": "https://zenn.dev/sun_asterisk/articles/aws_summit_2025",
+      "published": "2025-07-03T08:40:38.000Z",
+      "description": "当日の動き 昨年も雨でしたが、今年も雨模様でした...☔️ 8:45 海浜幕張駅到着☔️ 9:00 改札前のパン屋さんで朝食☕️ 9:15 会場到着（基調講演の指定席券はなくなっていたのでサテライト会場で待機） 10:00〜11:00 基調講演（途中で離席し、自社のブースへ） 11:30 弁当引き換え 11:50〜12:30 セッション『実践的な生成 AI 活用の推進: PoC から価値創出へ』 12:50〜13:30 セッション『生成 AI...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "当日の動き 昨年も雨でしたが、今年も雨模様でした...☔️ 8:45 海浜幕張駅到着☔️ 9:00 改札前のパン屋さんで朝食☕️ 9:15 会場到着（基調講演の指定席券はなくなっていたのでサテライト会場で待機） 10:00〜11:00 基調講演（途中で離席し、自社のブースへ） 11:30 弁当引き換",
       "thumbnail": null
     },
     {
@@ -142,54 +190,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "title": "【非エンジニア向け】AIが書いた日本語文章を自然に表現する",
-      "link": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "published": "2025-07-02T22:54:10.000Z",
-      "description": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "title": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法",
-      "link": "https://zenn.dev/hia1969/articles/20250701_aws57_eachia",
-      "published": "2025-07-02T00:00:01.000Z",
-      "description": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "AWS Summit 2025セッション感想：AI駆動開発を成功させる「Everything as Code」の実践方法 はじめに AWS Summit 2025のセッション「AI駆動開発とEverything as...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
-      "title": "【非エンジニア向け】Claude Code Hooksについて",
-      "link": "https://zenn.dev/nouchinho/articles/ec54aa08fb8687",
-      "published": "2025-07-01T21:55:16.000Z",
-      "description": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。 この記事のポイント Claude Code...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ 今回は、「Claude Code Hooks（フック）」という、AIに“自動でやってほしいこと”をお願いできる便利な仕組みについて、プログラミング未経験の方にも分かりやすく解説します！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチ",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
-      "title": "【3: 注意が必要】Hedra の安全性調査レポート",
-      "link": "https://zenn.dev/n_hiraoka/articles/zenn-hedra-250702",
-      "published": "2025-07-01T19:23:41.000Z",
-      "description": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用制限の精査が必要 技術判定：クラウド専用アーキテクチャ、米国企業運営で技術的安全性は中程度 厚黒学的リスク評価：軽度（6項目/18項目）-...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "【3: 注意が必要】Hedra の安全性調査レポート 対象AIサービス: Hedra (Character-3モデル) 公式URL: https://www.hedra.com/ 安全性レベル: 3 (5段階中) - 注意が必要 エグゼクティブ・サマリー 法務判定：条件付き導入可 - 契約条項と利用",
       "thumbnail": null
     }
   ]
