@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-02T23:23:05.611Z",
+  "updated": "2025-07-03T01:55:44.738Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,66 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048315",
+      "title": "MCP を使って Yellowfin 資料の要約を作成",
+      "link": "https://qiita.com/ExtremeCarvFJ/items/f0aca3dc28a2b7654fac",
+      "published": "2025-07-03T00:43:31.000Z",
+      "description": "MCP MCP とは MCP とは Model Context Protocol の略称で、AI アシスタントが、ローカルファイルや社内データベースなど、様々なリソースにアクセスするための標準規格です。 セキュリティを担保しながら、非公開データを含む様々なリソースを A...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "MCP MCP とは MCP とは Model Context Protocol の略称で、AI アシスタントが、ローカルファイルや社内データベースなど、様々なリソースにアクセスするための標準規格です。 セキュリティを担保しながら、非公開データを含む様々なリソースを A...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048313",
+      "title": "「全部\"o3\"や\"Gemini 2.5 Pro\"に任せればOK」という思考停止、卒業しませんか？AIもTPOで使い分ける、LLMとSLMの賢い付き合い方 - なぜ今、巨大LLMよりも小規模なSLMがアツいのか？",
+      "link": "https://qiita.com/RepKuririn/items/59833208ecbeb1b12cca",
+      "published": "2025-07-03T00:37:09.000Z",
+      "description": "近年、AI技術の進化は目覚ましく、特に大規模言語モデル（LLM）はその中心的な役割を担ってきました。しかし、最近ではその対極とも言える小規模言語モデル（SLM）が注目を集めています。本記事では、LLMとSLMの基本的な違いから、それぞれの特性を活かした応用、そしてAIエージ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "近年、AI技術の進化は目覚ましく、特に大規模言語モデル（LLM）はその中心的な役割を担ってきました。しかし、最近ではその対極とも言える小規模言語モデル（SLM）が注目を集めています。本記事では、LLMとSLMの基本的な違いから、それぞれの特性を活かした応用、そしてAIエージ...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
+      "id": "5ncjv9-1751502900000",
+      "title": "マイクロソフトが約9000人を解雇へ、複数のXboxゲームが開発中止に",
+      "link": "https://japan.cnet.com/article/35235046/",
+      "published": "2025-07-03T00:35:00.000Z",
+      "description": "マイクロソフトは大規模な人員削減を進めており、全従業員の4％弱に当たる約9000人を解雇する。その結果、Xbox Game Studiosで進められていた複数のゲームの開発が中止された。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "マイクロソフトは大規模な人員削減を進めており、全従業員の4％弱に当たる約9000人を解雇する。その結果、Xbox Game Studiosで進められていた複数のゲームの開発が中止された。",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048302",
+      "title": "生成AIチャットアプリで使うServer-Sent Events (SSE)の実装方法まとめ",
+      "link": "https://qiita.com/TsuchiyaK/items/38cb546c266ae8f3a521",
+      "published": "2025-07-03T00:20:02.000Z",
+      "description": "はじめまして、花王株式会社の @TsuchiyaK です。 生成AIチャットアプリなどで「AIの回答をリアルタイムに順次表示したい」という要件はよくあるかと思います。 その際によく使われるのが Server-Sent Events (SSE) です。 本記事では、SSEの概...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめまして、花王株式会社の @TsuchiyaK です。 生成AIチャットアプリなどで「AIの回答をリアルタイムに順次表示したい」という要件はよくあるかと思います。 その際によく使われるのが Server-Sent Events (SSE) です。 本記事では、SSEの概...",
+      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
+    },
+    {
+      "id": "5ncjzk-1751500920000",
+      "title": "新型ARグラス「XREAL One Pro」24日発売--視野角50→57度に拡大",
+      "link": "https://japan.cnet.com/article/35235041/",
+      "published": "2025-07-03T00:02:00.000Z",
+      "description": "XREALは7月2日、新型スマートグラス「XREAL One Pro」の予約販売を開始した。発売は7月24日で、価格は8万4980円。予約特典としてXREAL Hubをプレゼントする。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "XREALは7月2日、新型スマートグラス「XREAL One Pro」の予約販売を開始した。発売は7月24日で、価格は8万4980円。予約特典としてXREAL Hubをプレゼントする。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048285",
       "title": "LLMは\"利用\"フェーズが一番危ない。プロキシとポリシーエンジンによるイン・アウト双方の防衛術",
@@ -61,42 +121,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048253",
-      "title": "生成AIの時代、これからは思想がつよいヤツが勝つ...?!",
-      "link": "https://qiita.com/arila/items/992f14b99aa4ecde65d3",
-      "published": "2025-07-02T18:15:17.000Z",
-      "description": "はじめに 生成AI（ChatGPT、Gemini、Claudeなど）によって「0→1」の実装や文章作成について瞬時に行えるようになり、プログラミングスキルやライティングスキルはもはや最重要ではなくなりつつあります。では、エンジニア、ひいては一般社会人にとって必要な能力とは...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 生成AI（ChatGPT、Gemini、Claudeなど）によって「0→1」の実装や文章作成について瞬時に行えるようになり、プログラミングスキルやライティングスキルはもはや最重要ではなくなりつつあります。では、エンジニア、ひいては一般社会人にとって必要な能力とは...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048077",
-      "title": "生成AIが変革するシステム開発の未来と直面する課題",
-      "link": "https://qiita.com/karakurai_rena/items/74b385ba7bfe69138c9e",
-      "published": "2025-07-02T12:20:51.000Z",
-      "description": "生成AIが変革するシステム開発の未来と直面する課題 こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIがシステム開発の現場にどのような影響を与えているのか、またその可能性と課題についてわかりやすく解説していきます。 生成AIとは？ 生成AIは...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "生成AIが変革するシステム開発の未来と直面する課題 こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIがシステム開発の現場にどのような影響を与えているのか、またその可能性と課題についてわかりやすく解説していきます。 生成AIとは？ 生成AIは...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048115",
-      "title": "その聞き方、もったいないかも？生成AIを使い倒す“プロンプト力”の育て方【実用テンプレ付き】",
-      "link": "https://qiita.com/decopon1476052/items/38063b3a08233d175f9e",
-      "published": "2025-07-02T11:28:52.000Z",
-      "description": "こんにちは、decoponです！ 生成AIを活用しながら、日々コーディングや記事執筆、学習に取り組んでいます。 最近つくづく感じているのが、「AIって、こっちの聞き方次第で答えの質がまるで変わるな〜」ということ。 でも最初は、 「わかりやすく教えて」→ わかりやすく…ない...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、decoponです！ 生成AIを活用しながら、日々コーディングや記事執筆、学習に取り組んでいます。 最近つくづく感じているのが、「AIって、こっちの聞き方次第で答えの質がまるで変わるな〜」ということ。 でも最初は、 「わかりやすく教えて」→ わかりやすく…ない...",
-      "thumbnail": "https://qiita-user-contents.imgix.net/https%3A%2F%2Fcdn.qiita.com%2Fassets%2Fpublic%2Farticle-ogp-background-9f5428127621718a910c8b63951390ad.png?ixlib=rb-4.0.0&w=1200&mark64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTkxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwYUkmY29sb3I9JTIzMjEzYTQwJnR4dC1zaXplPTU2JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2Jmg9MzM2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&mark-x=142&mark-y=112&blend64=aHR0cHM6Ly9xaWl0YS11c2VyLWNvbnRlbnRzLmltZ2l4Lm5ldC9-dGV4dD9peGxpYj1yYi00LjAuMCZ3PTYxNiZ0eHQ9JUU3JTk0JTlGJUU2JTg4JTkwQUkmY29sb3I9JTIzMmU0MDRiJnR4dC1zaXplPTQ4JnR4dC1mb250PUhpcmFnaW5vJTIwU2FucyUyMFc2JnR4dC1hbGlnbj1sZWZ0JTJDbWlkZGxl&blend-x=142&blend-y=491&blend-mode=normal&s=951e07b616e45674290e6b0bdebe357b"
-    },
-    {
       "id": "5ncm7n-1751438700000",
       "title": "X（旧Twitter）、検索結果からユーザー名を除外と発表--メリットは？",
       "link": "https://japan.cnet.com/article/35235011/",
@@ -106,30 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "X（旧Twitter）は7月2日、検索結果からユーザー名を除外したと発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "5ncmrg-1751436300000",
-      "title": "家計簿アプリ「マネーフォワードME」が値上げ--8月5日から",
-      "link": "https://japan.cnet.com/article/35235009/",
-      "published": "2025-07-02T06:05:00.000Z",
-      "description": "マネーフォワードは7月2日、家計簿アプリ「マネーフォワード ME」の「スタンダードコース」について、8月5日から料金を改定すると発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "マネーフォワードは7月2日、家計簿アプリ「マネーフォワード ME」の「スタンダードコース」について、8月5日から料金を改定すると発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nqhve-1751427900000",
-      "title": "ドット絵で遊べるNothingの個性派スマホ「Phone (3)」を写真でじっくり見る",
-      "link": "https://japan.cnet.com/article/35234996/",
-      "published": "2025-07-02T03:45:00.000Z",
-      "description": "「透明」や「光る」スマホで知られる英Nothingの新作「Phone (3)」を、写真とともに紹介する。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "「透明」や「光る」スマホで知られる英Nothingの新作「Phone (3)」を、写真とともに紹介する。",
       "thumbnail": null
     },
     {
