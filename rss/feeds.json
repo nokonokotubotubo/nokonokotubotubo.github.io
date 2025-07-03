@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T21:15:10.945Z",
+  "updated": "2025-07-03T22:15:45.736Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048749",
+      "title": "キュリオシティシステムプロンプトくん ver1",
+      "link": "https://qiita.com/nami_fumi/items/940bb4db8b86da43d895",
+      "published": "2025-07-03T22:02:26.000Z",
+      "description": "はじめに 最近現場の方から、「キュリオシティ・ドリブンを知っているか？」という話題がありました。 これをざっと見てみると、なんか自分っぽいなぁ・・・と感じるように。 この「キュリオシティ・ドリブン」を知るためには、「キュリオシティ」つまり、好奇心から知らなきゃなと感じまし...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 最近現場の方から、「キュリオシティ・ドリブンを知っているか？」という話題がありました。 これをざっと見てみると、なんか自分っぽいなぁ・・・と感じるように。 この「キュリオシティ・ドリブン」を知るためには、「キュリオシティ」つまり、好奇心から知らなきゃなと感じまし...",
+      "thumbnail": null
+    },
+    {
+      "id": "5ncg98-1751578320000",
+      "title": "サムスンから三つ折りスマホ「Galaxy G Fold」登場間近か",
+      "link": "https://japan.cnet.com/article/35235092/",
+      "published": "2025-07-03T21:32:00.000Z",
+      "description": "流出したUIアニメーションは、3つ折りの「Galaxy G Fold」が登場間近であることを示唆している──。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "流出したUIアニメーションは、3つ折りの「Galaxy G Fold」が登場間近であることを示唆している──。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048734",
       "title": "生成AI時代のAIエージェント：新たなサイバー脅威とプライバシー管理の最前線",
@@ -58,30 +82,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AIエージェントによる業務プロセス自動化の最前線について、成功事例や実装のステップを詳しくご紹介しますね。 AIエージェントって何？ AIエージェントは、設定した目標を達成するために自ら計画を立てて、情...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048691",
-      "title": "生成AIに文字数を指定した際に全く違う文字数で出力される理由と解決策について",
-      "link": "https://qiita.com/ouQVZUDx/items/91f40893322a95fc413e",
-      "published": "2025-07-03T15:28:49.000Z",
-      "description": "はじめに ChatGPTなどの生成AIを使い、「○○文字で文章を作成して」と指示しても、指定した文字数通りに出力されないことがよくあります。なぜこのような現象が起こるのか、またどうすればより正確に文字数をコントロールできるのか、最新の知見をもとに解説します。 なぜ文字数...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに ChatGPTなどの生成AIを使い、「○○文字で文章を作成して」と指示しても、指定した文字数通りに出力されないことがよくあります。なぜこのような現象が起こるのか、またどうすればより正確に文字数をコントロールできるのか、最新の知見をもとに解説します。 なぜ文字数...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
-      "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
-      "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
-      "published": "2025-07-03T15:17:44.000Z",
-      "description": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
       "thumbnail": null
     },
     {
@@ -181,15 +181,15 @@
       "thumbnail": null
     },
     {
-      "id": "5ncj4k-1751509860000",
-      "title": "わずか半年で500近いスターリンク衛星が燃焼、有害物質の影響に科学者らが警鐘",
-      "link": "https://japan.cnet.com/article/35235056/",
-      "published": "2025-07-03T02:31:00.000Z",
-      "description": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "SpaceXが米連邦通信委員会（FCC）に7月1日付で提出した書類によると、2024年12月から2025年5月の間に472機の「Starlink」（スターリンク）衛星が大気圏で燃え尽きたという。",
+      "id": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
+      "title": "【非エンジニア向け】AIが書いた日本語文章を自然に表現する",
+      "link": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
+      "published": "2025-07-02T22:54:10.000Z",
+      "description": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください",
       "thumbnail": null
     }
   ]
