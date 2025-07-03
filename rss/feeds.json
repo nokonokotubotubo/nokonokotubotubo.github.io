@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T22:15:45.736Z",
+  "updated": "2025-07-03T23:15:52.012Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -82,6 +82,18 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AIエージェントによる業務プロセス自動化の最前線について、成功事例や実装のステップを詳しくご紹介しますね。 AIエージェントって何？ AIエージェントは、設定した目標を達成するために自ら計画を立てて、情...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
+      "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "published": "2025-07-03T15:17:44.000Z",
+      "description": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
       "thumbnail": null
     },
     {
@@ -178,18 +190,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "米トランプ政権で保健福祉長官を務めるロバート・F・ケネディ・ジュニア長官は6月24日、ウェアラブルデバイスで全国民が自身の健康を常時モニターできる社会を目指し、同省最大のキャンペーンを実施すると発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "title": "【非エンジニア向け】AIが書いた日本語文章を自然に表現する",
-      "link": "https://zenn.dev/nouchinho/articles/895ffc44841e47",
-      "published": "2025-07-02T22:54:10.000Z",
-      "description": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください。...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ 今回は、「@textlint-ja/textlint-rule-preset-ai-writing」を、非エンジニアや初心者の方にも分かりやすく解説していきます！ ※この記事は現時点での情報です。技術の進歩はとても速いので、最新情報は公式サイトもチェックしてみてください",
       "thumbnail": null
     }
   ]
