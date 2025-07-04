@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T05:20:02.178Z",
+  "updated": "2025-07-04T06:25:23.958Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,66 @@
   ],
   "entries": [
     {
+      "id": "tag:qiita.com,2005:PublicArticle/2048840",
+      "title": "Notion AIで「ふりかえり」はここまで進化する！──内省の沼から抜け出す実践ガイド",
+      "link": "https://qiita.com/m-saito_nes/items/da5cdbc5175939f0b191",
+      "published": "2025-07-04T06:21:57.000Z",
+      "description": "はじめに 「業務のふりかえりは大事」と分かっていても、いざ一人でやってみると時間ばかりかかり、結局モヤモヤが残る──そんな経験はありませんか？ 私自身、これまで様々なふりかえり手法を試してきましたが、最近はNotion AIを活用することで、効率的かつ深い内省ができるよう...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 「業務のふりかえりは大事」と分かっていても、いざ一人でやってみると時間ばかりかかり、結局モヤモヤが残る──そんな経験はありませんか？ 私自身、これまで様々なふりかえり手法を試してきましたが、最近はNotion AIを活用することで、効率的かつ深い内省ができるよう...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048928",
+      "title": "【生成AI】AIによるWebブラウザの自動操作を実現するには",
+      "link": "https://qiita.com/ymd65536/items/1497a60c11ebe1d8dda5",
+      "published": "2025-07-04T06:07:23.000Z",
+      "description": "自分の言葉で書いています。 この記事で伝えたいこと（ポイント） ブラウザを操作する方法はたくさんある Microsoftの製品だけ生成AIによるブラウザ操作ができる 生成AIを使ったWebブラウザの自動操作はいろんな技術で可能 MCPやA2Aでも作り方次第でWe...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "自分の言葉で書いています。 この記事で伝えたいこと（ポイント） ブラウザを操作する方法はたくさんある Microsoftの製品だけ生成AIによるブラウザ操作ができる 生成AIを使ったWebブラウザの自動操作はいろんな技術で可能 MCPやA2Aでも作り方次第でWe...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048913",
+      "title": "【Dify + Streamlit】チャットボットのRAGからの回答に関連画像も表示させてみた",
+      "link": "https://qiita.com/dnp-yasunobe/items/919fc907b00af78a96fa",
+      "published": "2025-07-04T05:57:12.000Z",
+      "description": "1.はじめに 本記事では、当社「DNPドキュメント構造化AI（※1）」で生成された構造化データを活用する方法の一例として、Difyのチャットボット機能をバックエンドで活用し、関連画像をフロントエンドで表示させる簡易的なアプリの実装内容について共有したいとします。 ※1...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "1.はじめに 本記事では、当社「DNPドキュメント構造化AI（※1）」で生成された構造化データを活用する方法の一例として、Difyのチャットボット機能をバックエンドで活用し、関連画像をフロントエンドで表示させる簡易的なアプリの実装内容について共有したいとします。 ※1...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048930",
+      "title": "生成AIとメタバースが加速するデジタルツイン活用によるアジャイル開発の未来展望",
+      "link": "https://qiita.com/karakurai_rena/items/ef0b04df51fde5520e2a",
+      "published": "2025-07-04T05:55:57.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、デジタルツイン技術がさまざまな業界で注目されています。デジタルツインとは、物理的な対象やシステムの正確な仮想モデルを作成し、リアルタイムで監視・分析・最適化を行う技術です。 さらに、生成AIやメタバースとい...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、デジタルツイン技術がさまざまな業界で注目されています。デジタルツインとは、物理的な対象やシステムの正確な仮想モデルを作成し、リアルタイムで監視・分析・最適化を行う技術です。 さらに、生成AIやメタバースとい...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nbz4o-1751606460000",
+      "title": "あなたは知っている？ arrowsとモトローラの新スマホが「なんだか似ている」背景",
+      "link": "https://japan.cnet.com/article/35235115/",
+      "published": "2025-07-04T05:21:00.000Z",
+      "description": "2025年5月から6月にかけて、夏のスマートフォン新商品が相次いで発表されたが、その中でもFCNTが発表した「arrows Alpha」と、モトローラ・モビリティが発表した「motorola edge 60 pro」は、機能・性能などで似通っている部分が多い。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "2025年5月から6月にかけて、夏のスマートフォン新商品が相次いで発表されたが、その中でもFCNTが発表した「arrows Alpha」と、モトローラ・モビリティが発表した「motorola edge 60 pro」は、機能・性能などで似通っている部分が多い。",
+      "thumbnail": null
+    },
+    {
       "id": "5nqjbx-1751605020000",
       "title": "【写真】大阪万博のオススメは「幻想的すぎる」大屋根リングの夜景--パナ最新の照明技術を体感",
       "link": "https://japan.cnet.com/article/35234977/",
@@ -37,18 +97,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048859",
-      "title": "独自の AI 導入プロセスを加速",
-      "link": "https://qiita.com/Intel_Developer/items/8a228e467b78397e34be",
-      "published": "2025-07-04T03:32:54.000Z",
-      "description": "AI は今、チャットボットから予測分析やプロセスの自動化まで、組織がこれまで築いてきたクラウドとデジタル化の取り組みを基盤に、働き方を大きく変えています。大規模企業の多くは、過去にインターネットやクラウド・コンピューティングを導入してきたよりも速いペースで AI...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "AI は今、チャットボットから予測分析やプロセスの自動化まで、組織がこれまで築いてきたクラウドとデジタル化の取り組みを基盤に、働き方を大きく変えています。大規模企業の多くは、過去にインターネットやクラウド・コンピューティングを導入してきたよりも速いペースで AI...",
-      "thumbnail": null
-    },
-    {
       "id": "5nbydz-1751599800000",
       "title": "AIボットよ、金を払え--訓練用コンテンツの「タダ乗り」にCloudflareが突きつけたメッセージ",
       "link": "https://japan.cnet.com/article/35235125/",
@@ -58,18 +106,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "AI開発企業は、大規模言語モデル（LLM）の学習のためにウェブ全体にアクセスすることが、これまでより難しくなるかもしれない。ネットインフラを提供するCloudflareが今週、AIのデータクローラーをデフォルトでブロックすると発表したからだ。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2026116",
-      "title": "Pentaho(ETL)でバイナリデータを扱ってみる",
-      "link": "https://qiita.com/Tomohiko_Takeuchi/items/7f3afdf4bf759ab8637d",
-      "published": "2025-07-04T02:53:10.000Z",
-      "description": "はじめに Pentahoはテキストデータを扱うことが多いですが、バイナリデータも扱えます。 本記事ではPentahoでバイナリデータ(画像)を読み取り、生成AIと組み合わせて画像処理をさせてみました。 やってみたこと Pentahoで領収書の画像を読み取り、生成AIに登...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに Pentahoはテキストデータを扱うことが多いですが、バイナリデータも扱えます。 本記事ではPentahoでバイナリデータ(画像)を読み取り、生成AIと組み合わせて画像処理をさせてみました。 やってみたこと Pentahoで領収書の画像を読み取り、生成AIに登...",
       "thumbnail": null
     },
     {
@@ -94,42 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "DeepLは7月3日、東京都教育委員会が都立高校15校に「DeepL」を導入し、計1万人以上の生徒と教職員が英語学習や業務支援に活用を開始したと発表した。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048768",
-      "title": "Gemini CLI から Claude Code に戻した件について",
-      "link": "https://qiita.com/zukizukizukizuki/items/79c69007e2ace256499c",
-      "published": "2025-07-03T23:32:21.000Z",
-      "description": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048749",
-      "title": "キュリオシティシステムプロンプトくん ver1",
-      "link": "https://qiita.com/nami_fumi/items/940bb4db8b86da43d895",
-      "published": "2025-07-03T22:02:26.000Z",
-      "description": "はじめに 最近現場の方から、「キュリオシティ・ドリブンを知っているか？」という話題がありました。 これをざっと見てみると、なんか自分っぽいなぁ・・・と感じるように。 この「キュリオシティ・ドリブン」を知るためには、「キュリオシティ」つまり、好奇心から知らなきゃなと感じまし...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 最近現場の方から、「キュリオシティ・ドリブンを知っているか？」という話題がありました。 これをざっと見てみると、なんか自分っぽいなぁ・・・と感じるように。 この「キュリオシティ・ドリブン」を知るためには、「キュリオシティ」つまり、好奇心から知らなきゃなと感じまし...",
-      "thumbnail": null
-    },
-    {
-      "id": "5ncg98-1751578320000",
-      "title": "サムスンから三つ折りスマホ「Galaxy G Fold」登場間近か",
-      "link": "https://japan.cnet.com/article/35235092/",
-      "published": "2025-07-03T21:32:00.000Z",
-      "description": "流出したUIアニメーションは、3つ折りの「Galaxy G Fold」が登場間近であることを示唆している──。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "流出したUIアニメーションは、3つ折りの「Galaxy G Fold」が登場間近であることを示唆している──。",
       "thumbnail": null
     },
     {
