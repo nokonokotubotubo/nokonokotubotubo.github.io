@@ -20,7 +20,6 @@ class DashboardGenerator {
       
       const html = this.generateHTMLContent(articles, categories, articlesByPreference);
       
-      // 出力ディレクトリ作成
       if (!fs.existsSync('ai-rss-temp')) {
         fs.mkdirSync('ai-rss-temp', { recursive: true });
       }
@@ -47,7 +46,6 @@ class DashboardGenerator {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🤖 AI RSS ダッシュボード</title>
     
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -107,7 +105,6 @@ class DashboardGenerator {
 
   getCSS() {
     return `
-        /* CSS Variables */
         :root {
           --primary-light: #E0F7FF;
           --primary-medium: #B8E6FF;
@@ -133,12 +130,11 @@ class DashboardGenerator {
         }
 
         body {
-          font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Noto Sans JP', sans-serif;
           background: var(--background-gradient);
           color: var(--text-primary);
           line-height: 1.7;
           min-height: 100vh;
-          font-feature-settings: "palt";
         }
 
         .header {
@@ -146,15 +142,12 @@ class DashboardGenerator {
           padding: 2rem;
           text-align: center;
           margin-bottom: 3rem;
-          position: relative;
-          overflow: hidden;
         }
 
         .header h1 {
           color: #fff;
           font-size: 3.5rem;
           font-weight: 900;
-          letter-spacing: -0.03em;
           margin-bottom: 1rem;
           text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
@@ -162,9 +155,6 @@ class DashboardGenerator {
         .header p {
           color: rgba(255, 255, 255, 0.95);
           font-size: 1.3rem;
-          font-weight: 400;
-          letter-spacing: 0.02em;
-          text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
           margin-bottom: 1rem;
         }
 
@@ -203,11 +193,6 @@ class DashboardGenerator {
           box-shadow: var(--card-shadow);
         }
 
-        .category-filter:hover {
-          border-color: var(--border-hover);
-          transform: translateY(-2px);
-        }
-
         .stats-tabs {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -222,71 +207,11 @@ class DashboardGenerator {
           padding: 2rem;
           text-align: center;
           box-shadow: var(--card-shadow);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.4s ease;
           position: relative;
           overflow: hidden;
           cursor: pointer;
           user-select: none;
-        }
-
-        .stat-tab-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          transform: scaleX(0);
-          transition: transform 0.3s ease;
-        }
-
-        .stat-tab-card.interested::before {
-          background: linear-gradient(90deg, var(--interested-color), #059669);
-        }
-
-        .stat-tab-card.neutral::before {
-          background: linear-gradient(90deg, var(--neutral-color), #D97706);
-        }
-
-        .stat-tab-card.not-interested::before {
-          background: linear-gradient(90deg, var(--not-interested-color), #DC2626);
-        }
-
-        .stat-tab-card.all::before {
-          background: linear-gradient(90deg, var(--primary-accent), var(--primary-dark));
-        }
-
-        .stat-tab-card:hover::before {
-          transform: scaleX(1);
-        }
-
-        .stat-tab-card:hover {
-          transform: translateY(-8px) scale(1.05);
-          box-shadow: var(--card-shadow-hover);
-          border-color: var(--border-hover);
-        }
-
-        .stat-tab-card.active {
-          transform: translateY(-8px) scale(1.05);
-          box-shadow: var(--card-shadow-hover);
-        }
-
-        .stat-tab-card.active.interested {
-          background: linear-gradient(135deg, var(--interested-color) 0%, #059669 100%);
-          border-color: var(--interested-color);
-          color: #fff;
-        }
-
-        .stat-tab-card.active.neutral {
-          background: linear-gradient(135deg, var(--neutral-color) 0%, #D97706 100%);
-          border-color: var(--neutral-color);
-          color: #fff;
-        }
-
-        .stat-tab-card.active.not-interested {
-          background: linear-gradient(135deg, var(--not-interested-color) 0%, #DC2626 100%);
-          border-color: var(--not-interested-color);
-          color: #fff;
         }
 
         .stat-tab-card.active.all {
@@ -295,37 +220,15 @@ class DashboardGenerator {
           color: #fff;
         }
 
-        .stat-tab-card.active::before {
-          transform: scaleX(1);
-        }
-
         .stat-number {
           font-size: 3rem;
           font-weight: 900;
           margin-bottom: 0.5rem;
-          background: linear-gradient(45deg, var(--primary-accent), var(--primary-dark));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          transition: all 0.3s ease;
-        }
-
-        .stat-tab-card.active .stat-number {
-          background: #fff;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
         }
 
         .stat-label {
           font-size: 1rem;
-          color: var(--text-secondary);
           font-weight: 600;
-          transition: color 0.3s ease;
-        }
-
-        .stat-tab-card.active .stat-label {
-          color: rgba(255, 255, 255, 0.95);
         }
 
         .articles-container {
@@ -346,39 +249,10 @@ class DashboardGenerator {
           border: 2px solid var(--border-color);
           border-radius: 24px;
           overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.4s ease;
           position: relative;
           box-shadow: var(--card-shadow);
-          backdrop-filter: blur(10px);
-          animation: fadeInUp 0.6s ease-out;
           width: 100%;
-        }
-
-        .article-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          transform: scaleX(0);
-          transition: transform 0.3s ease;
-        }
-
-        .article-card.interested::before {
-          background: linear-gradient(90deg, var(--interested-color), #059669);
-        }
-
-        .article-card.neutral::before {
-          background: linear-gradient(90deg, var(--neutral-color), #D97706);
-        }
-
-        .article-card.not-interested::before {
-          background: linear-gradient(90deg, var(--not-interested-color), #DC2626);
-        }
-
-        .article-card:hover::before {
-          transform: scaleX(1);
         }
 
         .article-card:hover {
@@ -397,7 +271,6 @@ class DashboardGenerator {
           color: var(--text-primary);
           margin-bottom: 1rem;
           line-height: 1.4;
-          letter-spacing: -0.02em;
           cursor: pointer;
           transition: color 0.3s ease;
         }
@@ -453,17 +326,6 @@ class DashboardGenerator {
           justify-content: space-between;
           padding-top: 1.5rem;
           border-top: 2px solid var(--border-color);
-          position: relative;
-        }
-
-        .rating-section::before {
-          content: '';
-          position: absolute;
-          top: -2px;
-          left: 0;
-          width: 60px;
-          height: 2px;
-          background: linear-gradient(90deg, var(--primary-accent), var(--primary-dark));
         }
 
         .rating-stars {
@@ -476,7 +338,6 @@ class DashboardGenerator {
           font-size: 1.8rem;
           color: #E5E7EB;
           transition: all 0.3s ease;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .star.filled {
@@ -503,32 +364,10 @@ class DashboardGenerator {
           margin-top: 4rem;
         }
 
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.08); }
-          100% { transform: scale(1.05); }
-        }
-
-        .stat-tab-card.clicked {
-          animation: pulse 0.3s ease;
-        }
-
         @media (max-width: 1024px) {
           .stats-tabs {
             grid-template-columns: repeat(2, 1fr);
           }
-          
           .articles-container {
             grid-template-columns: repeat(2, 1fr);
           }
@@ -538,55 +377,31 @@ class DashboardGenerator {
           .header h1 {
             font-size: 2.8rem;
           }
-          
           .header-stats {
             flex-direction: column;
             gap: 0.5rem;
           }
-          
           .stats-tabs {
             grid-template-columns: 1fr;
             gap: 1rem;
             margin-top: 2rem;
           }
-          
           .articles-container {
             grid-template-columns: 1fr;
             padding: 0 1rem;
             width: 100%;
           }
-          
           .stats-section {
             padding: 0 1rem;
           }
-          
           .category-filter-wrapper {
             position: relative;
             left: 0;
             margin-bottom: 1rem;
           }
-          
           .article-card {
             width: 100%;
             max-width: none;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .header h1 {
-            font-size: 2.2rem;
-          }
-          
-          .stat-tab-card {
-            padding: 1.5rem;
-          }
-          
-          .stat-number {
-            font-size: 2.5rem;
-          }
-          
-          .article-content {
-            padding: 2rem;
           }
         }
     `;
@@ -685,14 +500,8 @@ class DashboardGenerator {
         
         document.querySelectorAll('.stat-tab-card').forEach(card => {
             card.addEventListener('click', () => {
-                card.classList.add('clicked');
-                setTimeout(() => card.classList.remove('clicked'), 300);
-                
                 const tabType = card.dataset.tab;
                 switchTab(tabType);
-                
-                const labelText = card.querySelector('.stat-label').textContent;
-                showNotification(\`\${labelText} タブに切り替えました\`);
             });
         });
         
@@ -706,70 +515,19 @@ class DashboardGenerator {
                     card.style.display = 'none';
                 }
             });
-            
-            showNotification(\`カテゴリ: \${selectedCategory === 'all' ? 'すべて' : selectedCategory} に絞り込みました\`);
         });
         
         function setRating(articleId, rating) {
-            const stars = document.querySelectorAll(\`[data-article-id="\${articleId}"] .star\`);
+            const stars = document.querySelectorAll('[data-article-id="' + articleId + '"] .star');
             stars.forEach((star, index) => {
                 star.classList.toggle('filled', index < rating);
             });
             
-            const card = document.querySelector(\`[data-article-id="\${articleId}"]\`);
+            const card = document.querySelector('[data-article-id="' + articleId + '"]');
             card.style.transform = 'scale(1.05)';
             setTimeout(() => {
                 card.style.transform = '';
             }, 200);
-            
-            submitRating(articleId, rating);
-        }
-        
-        async function submitRating(articleId, rating) {
-            try {
-                const article = articles.find(a => a.id === articleId);
-                const ratingData = {
-                    articleId,
-                    rating,
-                    title: article.title,
-                    url: article.link,
-                    timestamp: new Date().toISOString(),
-                    preference: article.preference
-                };
-                
-                console.log('評価データ:', ratingData);
-                showNotification(\`評価 \${rating}/5 を記録しました ⭐\`);
-                
-            } catch (error) {
-                console.error('評価送信エラー:', error);
-                showNotification('評価の送信に失敗しました ❌', 'error');
-            }
-        }
-        
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.style.cssText = \`
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 1rem 2rem;
-                border-radius: 12px;
-                color: white;
-                font-weight: 600;
-                z-index: 9999;
-                background: \${type === 'success' ? 'linear-gradient(135deg, var(--interested-color), #059669)' : 'linear-gradient(135deg, var(--not-interested-color), #DC2626)'};
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                animation: slideIn 0.3s ease;
-                max-width: 300px;
-                word-wrap: break-word;
-            \`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
         }
         
         document.querySelectorAll('.star').forEach(star => {
@@ -778,24 +536,6 @@ class DashboardGenerator {
                 const rating = parseInt(star.dataset.rating);
                 setRating(articleId, rating);
             });
-        });
-        
-        const style = document.createElement('style');
-        style.textContent = \`
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        \`;
-        document.head.appendChild(style);
-        
-        // 初期化時にアニメーションを追加
-        document.addEventListener('DOMContentLoaded', () => {
-            showNotification('AI RSS ダッシュボードへようこそ！ 🎉');
         });
     `;
   }
@@ -807,4 +547,3 @@ if (require.main === module) {
 }
 
 module.exports = { DashboardGenerator };
-`;
