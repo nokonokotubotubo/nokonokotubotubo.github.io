@@ -1,4 +1,4 @@
-name: AI RSS Feed Processing - Module Execution Fix
+name: AI RSS Feed Processing - 8+ Char Password
 
 on:
   schedule:
@@ -39,7 +39,6 @@ jobs:
         echo "🤖 AI分析開始"
         node src/ai-analyzer.js
         
-    # ✅ 修正：直接実行でメインモジュールとして認識
     - name: Generate HTML dashboard
       run: |
         echo "🎨 HTML生成開始"
@@ -49,24 +48,111 @@ jobs:
           echo "✅ dashboard.html 生成成功 ($(wc -c < ai-rss-temp/dashboard.html) bytes)"
         else
           echo "❌ dashboard.html 生成失敗"
-          echo "📁 ai-rss-temp 内容:"
-          find ai-rss-temp -type f 2>/dev/null || echo "ai-rss-temp が空"
+          exit 1
         fi
         
-    - name: Encrypt with StaticCrypt
+    # ✅ 修正：8文字以上パスワード対応版StaticCrypt暗号化
+    - name: Encrypt with StaticCrypt (8+ chars password)
       run: |
         if [ -f ai-rss-temp/dashboard.html ]; then
           echo "🔒 StaticCrypt暗号化開始"
           npm install -g staticrypt
-          staticrypt ai-rss-temp/dashboard.html -p "${{ secrets.STATICCRYPT_PASSWORD }}" -o ai-rss/index.html
-          echo "✅ 暗号化完了 ($(wc -c < ai-rss/index.html) bytes)"
-          ls -la ai-rss/
+          
+          # パスワード長チェック
+          PASSWORD_LENGTH=${#STATICCRYPT_PASSWORD}
+          echo "📏 パスワード長: $PASSWORD_LENGTH 文字"
+          
+          # パスワード長による処理分岐
+          if [ $PASSWORD_LENGTH -lt 8 ]; then
+            echo "❌ エラー: パスワードは8文字以上である必要があります"
+            echo "💡 現在: $PASSWORD_LENGTH 文字 (最小要件: 8文字)"
+            exit 1
+          elif [ $PASSWORD_LENGTH -lt 14 ]; then
+            echo "⚠️ パスワードが14文字未満です ($PASSWORD_LENGTH 文字)"
+            echo "💡 StaticCryptの警告を--shortフラグで無効化します"
+            # 8-13文字: --shortフラグで警告無効化 + 非対話的実行
+            echo "y" | staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" --short -o ai-rss/index.html
+          else
+            echo "✅ パスワード長が推奨値です ($PASSWORD_LENGTH 文字)"
+            # 14文字以上: 通常実行
+            staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" -o ai-rss/index.html
+          fi
+          
+          # 暗号化結果の詳細検証
+          if [ -f ai-rss/index.html ]; then
+            FILE_SIZE=$(wc -c < ai-rss/index.html)
+            echo "✅ 暗号化完了 ($FILE_SIZE bytes)"
+            
+            # ファイルサイズの妥当性チェック
+            if [ $FILE_SIZE -gt 1000 ]; then
+              echo "✅ ファイルサイズ適切 ($FILE_SIZE bytes)"
+            else
+              echo "❌ ファイルサイズが小さすぎます ($FILE_SIZE bytes)"
+              echo "💡 暗号化が正常に完了していない可能性があります"
+              exit 1
+            fi
+            
+            echo "📄 ai-rss/ 内容:"
+            ls -la ai-rss/
+            
+            # 暗号化ファイルの内容確認（先頭部分）
+            echo "📄 暗号化ファイル先頭100文字:"
+            head -c 100 ai-rss/index.html
+            echo ""
+            
+            # StaticCryptの暗号化マーカー確認
+            if grep -q "StaticCrypt" ai-rss/index.html; then
+              echo "✅ StaticCrypt暗号化マーカー確認"
+            else
+              echo "⚠️ StaticCrypt暗号化マーカーが見つかりません"
+            fi
+            
+          else
+            echo "❌ 暗号化失敗: ai-rss/index.html が生成されませんでした"
+            echo "🔍 StaticCrypt実行ログ:"
+            echo "🔍 ai-rss/ ディレクトリ内容:"
+            ls -la ai-rss/ || echo "ai-rss/ ディレクトリが存在しません"
+            echo "🔍 カレントディレクトリ内容:"
+            ls -la . | grep -E "(ai-rss|dashboard)"
+            exit 1
+          fi
         else
           echo "❌ dashboard.html が存在しないため暗号化失敗"
           exit 1
         fi
       env:
         STATICCRYPT_PASSWORD: ${{ secrets.STATICCRYPT_PASSWORD }}
+        
+    # ✅ デプロイ前の最終検証
+    - name: Pre-deploy verification
+      run: |
+        echo "🔍 デプロイ前最終検証:"
+        if [ -f ai-rss/index.html ]; then
+          FILE_SIZE=$(wc -c < ai-rss/index.html)
+          echo "✅ index.html 存在確認 ($FILE_SIZE bytes)"
+          
+          # ファイルが空でないことを確認
+          if [ $FILE_SIZE -gt 1000 ]; then
+            echo "✅ ファイルサイズ適切"
+          else
+            echo "❌ ファイルサイズが小さすぎます ($FILE_SIZE bytes)"
+            exit 1
+          fi
+          
+          # 暗号化されたHTMLの基本構造確認
+          if grep -q "<!DOCTYPE html>" ai-rss/index.html && grep -q "StaticCrypt" ai-rss/index.html; then
+            echo "✅ 暗号化HTML構造確認完了"
+          else
+            echo "⚠️ HTML構造に問題がある可能性があります"
+            echo "📄 ファイル内容サンプル:"
+            head -n 5 ai-rss/index.html
+          fi
+        else
+          echo "❌ index.html が存在しません"
+          echo "📁 ai-rss/ ディレクトリ確認:"
+          ls -la ai-rss/ || echo "ai-rss/ ディレクトリが存在しません"
+          exit 1
+        fi
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
@@ -80,3 +166,4 @@ jobs:
       run: |
         echo "🎉 AI RSS Dashboard deployed successfully!"
         echo "🔗 Access: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo "🔐 Password protected by StaticCrypt"
