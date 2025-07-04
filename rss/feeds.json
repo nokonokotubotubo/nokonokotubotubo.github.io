@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T06:25:23.958Z",
+  "updated": "2025-07-04T07:17:07.087Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nbxpv-1751610300000",
+      "title": "ChatGPTの略称「チャッピー」は定着するのか",
+      "link": "https://japan.cnet.com/article/35235132/",
+      "published": "2025-07-04T06:25:00.000Z",
+      "description": "「最近の若い子はChatGPTを『チャッピー』と呼んでいる」──。業界仲間との飲み会でふと耳にした一言が気になり、さっそくSNSを検索してみたところ、確かに「チャッピー」という略称がじわじわと広がりつつあるようだ。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "「最近の若い子はChatGPTを『チャッピー』と呼んでいる」──。業界仲間との飲み会でふと耳にした一言が気になり、さっそくSNSを検索してみたところ、確かに「チャッピー」という略称がじわじわと広がりつつあるようだ。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048840",
       "title": "Notion AIで「ふりかえり」はここまで進化する！──内省の沼から抜け出す実践ガイド",
@@ -118,18 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nbzx3-1751592900000",
-      "title": "高校の英語学習にAI翻訳「DeepL」導入--東京都教育委",
-      "link": "https://japan.cnet.com/article/35235103/",
-      "published": "2025-07-04T01:35:00.000Z",
-      "description": "DeepLは7月3日、東京都教育委員会が都立高校15校に「DeepL」を導入し、計1万人以上の生徒と教職員が英語学習や業務支援に活用を開始したと発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "DeepLは7月3日、東京都教育委員会が都立高校15校に「DeepL」を導入し、計1万人以上の生徒と教職員が英語学習や業務支援に活用を開始したと発表した。",
       "thumbnail": null
     },
     {
