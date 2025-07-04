@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T09:18:17.577Z",
+  "updated": "2025-07-04T10:18:06.128Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,15 +25,15 @@
   ],
   "entries": [
     {
-      "id": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
-      "title": "【マケデコ】投資戦略を量産せよ！！！(2025/7/3まとめ)",
-      "link": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
-      "published": "2025-07-04T08:02:11.000Z",
-      "description": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1ito) 株価予測の最強アーキテクチャはどれだ？AIエージェントによる探索 from...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1",
+      "id": "tag:qiita.com,2005:PublicArticle/2049067",
+      "title": "🎬 第1回：【導入編】動画分割ツールをC#と生成AI(copilot)で作った話",
+      "link": "https://qiita.com/Fujita_Kousuke/items/7f6d13fcbbbbb63ccdf5",
+      "published": "2025-07-04T09:51:27.000Z",
+      "description": "はじめに：何気ない会話から生まれたツール 「長い動画を任意の区間で簡単に分割して出力できるツールがほしい」 知り合いのYouTuberから、そんな一言を受けこのプロジェクトは始まりました。 自分はもともとプログラミング知識はありましたが、今回使う言語は「C#」、あまり開発...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに：何気ない会話から生まれたツール 「長い動画を任意の区間で簡単に分割して出力できるツールがほしい」 知り合いのYouTuberから、そんな一言を受けこのプロジェクトは始まりました。 自分はもともとプログラミング知識はありましたが、今回使う言語は「C#」、あまり開発...",
       "thumbnail": null
     },
     {
@@ -46,18 +46,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 本記事は、AWS Summit 2025で開催されたセッション「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」の内容をベースに、生成AIアプリケーションの評価手法とリスク管理に関する実践的なアプローチを紹介します。セッションを視聴でき...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/arnk/articles/3411bf716087c3",
-      "title": "AIをコーディングに活用するタイミングについて考えてみた【2025年6月時点メモ】",
-      "link": "https://zenn.dev/arnk/articles/3411bf716087c3",
-      "published": "2025-07-04T06:25:24.000Z",
-      "description": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Visual Studio Code（VS Code） HTMLでAIを活用するタイミング タグの使い方が適切かどうかを確認 →...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Vis",
       "thumbnail": null
     },
     {
@@ -85,18 +73,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/progdence/articles/54790b2b85486a",
-      "title": "AWS 生成AIコンテスト参加レポート@2025/06/30",
-      "link": "https://zenn.dev/progdence/articles/54790b2b85486a",
-      "published": "2025-07-04T06:12:41.000Z",
-      "description": "AWS「\"ビジネスをグロースする\"生成 AI コンテスト」第 2 回参加レポート はじめに プログデンス新卒 9 期生の大村龍雪です。 6/30（月）、AWS が主催する「\"ビジネスをグロースする\"生成 AI コンテスト 第 2 回」に参加してきました。 このコンテストは全 3 回構成の実践的なプログラムで、生成 AI を活用したビジネス価値創出を目指す企業向けの取り組みです。 第 1 回 (6/9) : プログラム・サービス・事例のご紹介と、実施ユースケースの検討 第 2 回...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "AWS「\"ビジネスをグロースする\"生成 AI コンテスト」第 2 回参加レポート はじめに プログデンス新卒 9 期生の大村龍雪です。 6/30（月）、AWS が主催する「\"ビジネスをグロースする\"生成 AI コンテスト 第 2 回」に参加してきました。 このコンテストは全 3 回構成の実践的なプロ",
-      "thumbnail": null
-    },
-    {
       "id": "tag:qiita.com,2005:PublicArticle/2048913",
       "title": "【Dify + Streamlit】チャットボットのRAGからの回答に関連画像も表示させてみた",
       "link": "https://qiita.com/dnp-yasunobe/items/919fc907b00af78a96fa",
@@ -106,18 +82,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "1.はじめに 本記事では、当社「DNPドキュメント構造化AI（※1）」で生成された構造化データを活用する方法の一例として、Difyのチャットボット機能をバックエンドで活用し、関連画像をフロントエンドで表示させる簡易的なアプリの実装内容について共有したいとします。 ※1...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048930",
-      "title": "生成AIとメタバースが加速するデジタルツイン活用によるアジャイル開発の未来展望",
-      "link": "https://qiita.com/karakurai_rena/items/ef0b04df51fde5520e2a",
-      "published": "2025-07-04T05:55:57.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、デジタルツイン技術がさまざまな業界で注目されています。デジタルツインとは、物理的な対象やシステムの正確な仮想モデルを作成し、リアルタイムで監視・分析・最適化を行う技術です。 さらに、生成AIやメタバースとい...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、デジタルツイン技術がさまざまな業界で注目されています。デジタルツインとは、物理的な対象やシステムの正確な仮想モデルを作成し、リアルタイムで監視・分析・最適化を行う技術です。 さらに、生成AIやメタバースとい...",
       "thumbnail": null
     },
     {
@@ -190,6 +154,42 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
+      "title": "ツクリンクにおける生成AIツールの活用事例",
+      "link": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
+      "published": "2025-07-04T00:39:24.000Z",
+      "description": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01時点で利用可能なツールです。 新しく試したいツールが出た際は安全性を確認し、すぐに利用できる体制が整っています。 Claude Code Gemini CLI Cline Cursor...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
+      "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
+      "published": "2025-07-03T15:17:44.000Z",
+      "description": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
+      "title": "Gemini CLI から Claude Code に戻した件について",
+      "link": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
+      "published": "2025-07-03T09:55:38.000Z",
+      "description": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツールとも同じ内容のCLAUDE.mdとGEMINI.mdを使用してメモリ管理を行っている。つまりコンテキストの差はなく純粋な処理能力の違いを比較している。 Gemini...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツール",
       "thumbnail": null
     }
   ]
