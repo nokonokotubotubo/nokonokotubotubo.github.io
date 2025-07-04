@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T07:17:07.087Z",
+  "updated": "2025-07-04T08:22:34.600Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -25,6 +25,18 @@
   ],
   "entries": [
     {
+      "id": "tag:qiita.com,2005:PublicArticle/2047524",
+      "title": "AWS Summit 2025-セッションレポート : 「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」",
+      "link": "https://qiita.com/shiba-kc/items/9a4f2bb49176dc5c0d17",
+      "published": "2025-07-04T07:35:33.000Z",
+      "description": "はじめに 本記事は、AWS Summit 2025で開催されたセッション「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」の内容をベースに、生成AIアプリケーションの評価手法とリスク管理に関する実践的なアプローチを紹介します。セッションを視聴でき...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 本記事は、AWS Summit 2025で開催されたセッション「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」の内容をベースに、生成AIアプリケーションの評価手法とリスク管理に関する実践的なアプローチを紹介します。セッションを視聴でき...",
+      "thumbnail": null
+    },
+    {
       "id": "5nbxpv-1751610300000",
       "title": "ChatGPTの略称「チャッピー」は定着するのか",
       "link": "https://japan.cnet.com/article/35235132/",
@@ -46,18 +58,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに 「業務のふりかえりは大事」と分かっていても、いざ一人でやってみると時間ばかりかかり、結局モヤモヤが残る──そんな経験はありませんか？ 私自身、これまで様々なふりかえり手法を試してきましたが、最近はNotion AIを活用することで、効率的かつ深い内省ができるよう...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048928",
-      "title": "【生成AI】AIによるWebブラウザの自動操作を実現するには",
-      "link": "https://qiita.com/ymd65536/items/1497a60c11ebe1d8dda5",
-      "published": "2025-07-04T06:07:23.000Z",
-      "description": "自分の言葉で書いています。 この記事で伝えたいこと（ポイント） ブラウザを操作する方法はたくさんある Microsoftの製品だけ生成AIによるブラウザ操作ができる 生成AIを使ったWebブラウザの自動操作はいろんな技術で可能 MCPやA2Aでも作り方次第でWe...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "自分の言葉で書いています。 この記事で伝えたいこと（ポイント） ブラウザを操作する方法はたくさんある Microsoftの製品だけ生成AIによるブラウザ操作ができる 生成AIを使ったWebブラウザの自動操作はいろんな技術で可能 MCPやA2Aでも作り方次第でWe...",
       "thumbnail": null
     },
     {
@@ -97,6 +97,18 @@
       "thumbnail": null
     },
     {
+      "id": "https://zenn.dev/govtechtokyo/articles/be81294e64ff95",
+      "title": "あなたのコンテンツはAI-Ready? 生成AIにスルーされない自治体ウェブサイトのつくりかた",
+      "link": "https://zenn.dev/govtechtokyo/articles/be81294e64ff95",
+      "published": "2025-07-04T05:00:05.000Z",
+      "description": "はじめに もはや生成AIなしの生活や仕事は考えられない、そんな方も増えてきているのではないでしょうか。私もまさにその一人です。 私はGovTech東京の業務を通じて、都庁や都内自治体皆さんのDX支援をしておりますが、様々な行政サービスや業務において生成AIの積極活用が進んでいます。 このように「生成AIの活用」は今や誰もが注目するテーマですが、自治体ウェブサイト（以降、自治体サイト）の運用や改善を伴走支援している立場としては、生成AIが自治体のコンテンツを正しく引用しているかどうかも、最近...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに もはや生成AIなしの生活や仕事は考えられない、そんな方も増えてきているのではないでしょうか。私もまさにその一人です。 私はGovTech東京の業務を通じて、都庁や都内自治体皆さんのDX支援をしておりますが、様々な行政サービスや業務において生成AIの積極活用が進んでいます。 このように「生成",
+      "thumbnail": null
+    },
+    {
       "id": "5nqjbx-1751605020000",
       "title": "【写真】大阪万博のオススメは「幻想的すぎる」大屋根リングの夜景--パナ最新の照明技術を体感",
       "link": "https://japan.cnet.com/article/35234977/",
@@ -106,6 +118,18 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "大阪・関西万博のシンボル「大屋根リング」の光の演出が幻想的と話題。最新の照明制御技術にも注目",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/naomine_egawa/articles/zenn_expo2025_ai_report",
+      "title": "広告クリエイティブ・マーケティングEXPO 2025レポート",
+      "link": "https://zenn.dev/naomine_egawa/articles/zenn_expo2025_ai_report",
+      "published": "2025-07-04T04:35:09.000Z",
+      "description": "🎪 はじめに：Content Tokyoの広告クリエイティブ・マーケティングEXPOへ行ってきた ※本記事は実際の展示会参加体験に基づき、文章作成にAIを活用して執筆しています。 2025年7月2日〜4日に東京ビッグサイトで開催中の 広告クリエイティブ・マーケティングEXPO に参加してきました。 この展示会は日本最大のコンテンツビジネス総合展「CONTENT TOKYO 2025」の一部として開催されており、6つの展示会と1つの特設エリアで構成されています： ライセンシング...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "🎪 はじめに：Content Tokyoの広告クリエイティブ・マーケティングEXPOへ行ってきた ※本記事は実際の展示会参加体験に基づき、文章作成にAIを活用して執筆しています。 2025年7月2日〜4日に東京ビッグサイトで開催中の 広告クリエイティブ・マーケティングEXPO に参加してきました。",
       "thumbnail": null
     },
     {
@@ -133,6 +157,18 @@
       "thumbnail": null
     },
     {
+      "id": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
+      "title": "ツクリンクにおける生成AIツールの活用事例",
+      "link": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
+      "published": "2025-07-04T00:39:24.000Z",
+      "description": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01時点で利用可能なツールです。 新しく試したいツールが出た際は安全性を確認し、すぐに利用できる体制が整っています。 Claude Code Gemini CLI Cline Cursor...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01",
+      "thumbnail": null
+    },
+    {
       "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
       "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
       "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
@@ -154,42 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツール",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/decopon1476052/articles/55023bf135250f",
-      "title": "プロンプトが変わると、AIが変わる｜生成AI活用の失敗談と改善テンプレまとめ",
-      "link": "https://zenn.dev/decopon1476052/articles/55023bf135250f",
-      "published": "2025-07-03T09:00:01.000Z",
-      "description": "最近はChatGPTやCopilotを活用して、技術の学習や記事執筆、ちょっとした発想メモまで、いろんなことに生成AIを使っています。 でも最初は、うまく伝えられなくて… 「コード直して」→ ん？どこをどう直したの…？ 「わかりやすく説明して」→ いや、それがわからんのよ… こんな“通じてない会話”をたくさん重ねてきました（笑） この記事では、そんな私の失敗から学んだことと、改善のためのプロンプト構文テンプレをまとめています。 👀 通じないプロンプト、たとえばこんな感じ ❌...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "最近はChatGPTやCopilotを活用して、技術の学習や記事執筆、ちょっとした発想メモまで、いろんなことに生成AIを使っています。 でも最初は、うまく伝えられなくて… 「コード直して」→ ん？どこをどう直したの…？ 「わかりやすく説明して」→ いや、それがわからんのよ… こんな“通じてない会話”",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/sun_asterisk/articles/aws_summit_2025",
-      "title": "[AWS Summit Japan 2025 現地レポ]生成AIのための実践的なデータ活用について学んできた",
-      "link": "https://zenn.dev/sun_asterisk/articles/aws_summit_2025",
-      "published": "2025-07-03T08:40:38.000Z",
-      "description": "当日の動き 昨年も雨でしたが、今年も雨模様でした...☔️ 8:45 海浜幕張駅到着☔️ 9:00 改札前のパン屋さんで朝食☕️ 9:15 会場到着（基調講演の指定席券はなくなっていたのでサテライト会場で待機） 10:00〜11:00 基調講演（途中で離席し、自社のブースへ） 11:30 弁当引き換え 11:50〜12:30 セッション『実践的な生成 AI 活用の推進: PoC から価値創出へ』 12:50〜13:30 セッション『生成 AI...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "当日の動き 昨年も雨でしたが、今年も雨模様でした...☔️ 8:45 海浜幕張駅到着☔️ 9:00 改札前のパン屋さんで朝食☕️ 9:15 会場到着（基調講演の指定席券はなくなっていたのでサテライト会場で待機） 10:00〜11:00 基調講演（途中で離席し、自社のブースへ） 11:30 弁当引き換",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/artistics_blog/articles/20250702-gemini-cli",
-      "title": "Gemini CLI と Claude Code でペアプログラミングさせてみた",
-      "link": "https://zenn.dev/artistics_blog/articles/20250702-gemini-cli",
-      "published": "2025-07-03T06:47:02.000Z",
-      "description": "はじめに 2025年は「AIエージェント」の年。 今年の初め、AI関連の情報を閲覧しているとよくそう言われていました。 そしてその通り、今年に入りいろんなエージェントが出てきました。特に最近では AI エージェント搭載のブラウザまで発表され、その期待は鰻登りです。 エージェントが盛り上がる中で「vibe coding」という言葉も出てくるようになりました。 ! vibe coding...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに 2025年は「AIエージェント」の年。 今年の初め、AI関連の情報を閲覧しているとよくそう言われていました。 そしてその通り、今年に入りいろんなエージェントが出てきました。特に最近では AI エージェント搭載のブラウザまで発表され、その期待は鰻登りです。 エージェントが盛り上がる中で「vi",
       "thumbnail": null
     }
   ]
