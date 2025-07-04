@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T15:16:43.431Z",
+  "updated": "2025-07-04T16:20:09.653Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -73,6 +73,18 @@
       "thumbnail": null
     },
     {
+      "id": "https://zenn.dev/arnk/articles/3411bf716087c3",
+      "title": "AIをコーディングに活用するタイミングについて考えてみた【2025年6月時点メモ】",
+      "link": "https://zenn.dev/arnk/articles/3411bf716087c3",
+      "published": "2025-07-04T06:25:24.000Z",
+      "description": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Visual Studio Code（VS Code） HTMLでAIを活用するタイミング タグの使い方が適切かどうかを確認 →...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Vis",
+      "thumbnail": null
+    },
+    {
       "id": "5nbxpv-1751610300000",
       "title": "ChatGPTの略称「チャッピー」は定着するのか",
       "link": "https://japan.cnet.com/article/35235132/",
@@ -82,6 +94,18 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "「最近の若い子はChatGPTを『チャッピー』と呼んでいる」──。業界仲間との飲み会でふと耳にした一言が気になり、さっそくSNSを検索してみたところ、確かに「チャッピー」という略称がじわじわと広がりつつあるようだ。",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/progdence/articles/54790b2b85486a",
+      "title": "AWS 生成AIコンテスト参加レポート@2025/06/30",
+      "link": "https://zenn.dev/progdence/articles/54790b2b85486a",
+      "published": "2025-07-04T06:12:41.000Z",
+      "description": "AWS「\"ビジネスをグロースする\"生成 AI コンテスト」第 2 回参加レポート はじめに プログデンス新卒 9 期生の大村龍雪です。 6/30（月）、AWS が主催する「\"ビジネスをグロースする\"生成 AI コンテスト 第 2 回」に参加してきました。 このコンテストは全 3 回構成の実践的なプログラムで、生成 AI を活用したビジネス価値創出を目指す企業向けの取り組みです。 第 1 回 (6/9) : プログラム・サービス・事例のご紹介と、実施ユースケースの検討 第 2 回...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "AWS「\"ビジネスをグロースする\"生成 AI コンテスト」第 2 回参加レポート はじめに プログデンス新卒 9 期生の大村龍雪です。 6/30（月）、AWS が主催する「\"ビジネスをグロースする\"生成 AI コンテスト 第 2 回」に参加してきました。 このコンテストは全 3 回構成の実践的なプロ",
       "thumbnail": null
     },
     {
@@ -166,30 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
-      "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
-      "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
-      "published": "2025-07-03T15:17:44.000Z",
-      "description": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "Figma Make 最初のプロンプトで詳細を詰め込む Figma Makeとは？ Figma...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
-      "title": "Gemini CLI から Claude Code に戻した件について",
-      "link": "https://zenn.dev/zuzuzu/articles/gemini_cli_vs_claude_code",
-      "published": "2025-07-03T09:55:38.000Z",
-      "description": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツールとも同じ内容のCLAUDE.mdとGEMINI.mdを使用してメモリ管理を行っている。つまりコンテキストの差はなく純粋な処理能力の違いを比較している。 Gemini...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツール",
       "thumbnail": null
     }
   ]
