@@ -3,14 +3,20 @@ const fs = require('fs');
 class DashboardGenerator {
   constructor() {
     this.currentDate = new Date().toISOString();
+    console.log('🔧 DashboardGenerator インスタンス作成完了');
   }
 
   generateHTML() {
+    console.log('🎨 generateHTML() 関数開始');
+    
     try {
-      console.log('🎨 HTMLダッシュボード生成開始...');
+      console.log('📂 記事データ読み込み開始...');
       
       const articles = JSON.parse(fs.readFileSync('ai-rss-temp/data/articles.json', 'utf8'));
+      console.log(`✅ 記事データ読み込み完了: ${articles.length}件`);
+      
       const categories = [...new Set(articles.map(article => article.category))];
+      console.log(`📊 カテゴリ検出: ${categories.join(', ')}`);
       
       const articlesByPreference = {
         interested: articles.filter(a => a.preference === 'interested'),
@@ -18,28 +24,73 @@ class DashboardGenerator {
         'not-interested': articles.filter(a => a.preference === 'not-interested')
       };
       
-      const html = this.generateHTMLContent(articles, categories, articlesByPreference);
+      console.log(`📊 嗜好分類: 興味${articlesByPreference.interested.length}件, 普通${articlesByPreference.neutral.length}件, 興味なし${articlesByPreference['not-interested'].length}件`);
       
+      console.log('🔄 HTML生成開始...');
+      const html = this.generateHTMLContent(articles, categories, articlesByPreference);
+      console.log(`✅ HTML生成完了: ${html.length}文字`);
+      
+      // ✅ 強制的にディレクトリ作成とログ出力
+      console.log('📁 出力ディレクトリ確認...');
       if (!fs.existsSync('ai-rss-temp')) {
+        console.log('📁 ai-rss-temp ディレクトリ作成中...');
         fs.mkdirSync('ai-rss-temp', { recursive: true });
+        console.log('✅ ai-rss-temp ディレクトリ作成完了');
+      } else {
+        console.log('✅ ai-rss-temp ディレクトリ既存確認');
       }
       
-      fs.writeFileSync('ai-rss-temp/dashboard.html', html);
+      console.log('💾 dashboard.html ファイル書き込み開始...');
+      const filePath = 'ai-rss-temp/dashboard.html';
       
-      console.log('✅ HTMLダッシュボード生成完了');
-      console.log(`📊 記事統計:`);
+      // ファイル書き込み前の最終確認
+      console.log(`📍 書き込み先: ${filePath}`);
+      console.log(`📏 データサイズ: ${html.length} 文字`);
+      
+      fs.writeFileSync(filePath, html, 'utf8');
+      console.log('✅ dashboard.html ファイル書き込み完了');
+      
+      // ✅ 書き込み後の検証
+      if (fs.existsSync(filePath)) {
+        const fileSize = fs.statSync(filePath).size;
+        console.log(`✅ ファイル存在確認: ${filePath} (${fileSize} bytes)`);
+      } else {
+        console.error(`❌ ファイル書き込み検証失敗: ${filePath}`);
+        throw new Error('File write verification failed');
+      }
+      
+      console.log(`📊 統計情報:`);
       console.log(`  😍 興味あり: ${articlesByPreference.interested.length}件`);
       console.log(`  😐 普通: ${articlesByPreference.neutral.length}件`);
       console.log(`  😕 興味なし: ${articlesByPreference['not-interested'].length}件`);
+      console.log('🎉 HTML生成処理完全終了');
       
     } catch (error) {
-      console.error('💥 HTML生成失敗:', error.message);
+      console.error('💥 HTML生成でエラー発生:');
+      console.error(`エラー名: ${error.name}`);
+      console.error(`エラーメッセージ: ${error.message}`);
+      console.error(`スタックトレース: ${error.stack}`);
+      
+      // ディレクトリ状況の診断出力
+      console.log('🔍 エラー発生時のディレクトリ状況:');
+      try {
+        console.log('📁 カレントディレクトリ:', process.cwd());
+        console.log('📁 ai-rss-temp 存在:', fs.existsSync('ai-rss-temp'));
+        if (fs.existsSync('ai-rss-temp')) {
+          console.log('📁 ai-rss-temp 内容:', fs.readdirSync('ai-rss-temp'));
+        }
+      } catch (diagError) {
+        console.error('📁 ディレクトリ診断エラー:', diagError.message);
+      }
+      
       process.exit(1);
     }
   }
 
   generateHTMLContent(articles, categories, articlesByPreference) {
-    return `<!DOCTYPE html>
+    console.log('🔧 HTMLコンテンツ生成開始...');
+    
+    const html = `<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -101,6 +152,9 @@ class DashboardGenerator {
     </script>
 </body>
 </html>`;
+
+    console.log(`✅ HTMLコンテンツ生成完了: ${html.length}文字`);
+    return html;
   }
 
   getCSS() {
@@ -408,7 +462,9 @@ class DashboardGenerator {
   }
 
   generateArticleContainers(articles, articlesByPreference) {
-    return `
+    console.log('🔧 記事コンテナ生成開始...');
+    
+    const result = `
     <div id="articles-all" class="articles-container">
         ${articles.map(article => this.generateArticleCard(article)).join('')}
     </div>
@@ -424,6 +480,9 @@ class DashboardGenerator {
     <div id="articles-not-interested" class="articles-container hidden">
         ${articlesByPreference['not-interested'].map(article => this.generateArticleCard(article)).join('')}
     </div>`;
+
+    console.log('✅ 記事コンテナ生成完了');
+    return result;
   }
 
   generateArticleCard(article) {
@@ -541,9 +600,17 @@ class DashboardGenerator {
   }
 }
 
+// ✅ 強制実行確認
+console.log('🚀 ai-data-generator.js 読み込み開始');
+console.log('📍 require.main === module:', require.main === module);
+console.log('📍 module.filename:', module.filename);
+
 if (require.main === module) {
+  console.log('✅ メインモジュールとして実行されています');
   const generator = new DashboardGenerator();
   generator.generateHTML();
+} else {
+  console.log('⚠️ メインモジュールとして実行されていません');
 }
 
 module.exports = { DashboardGenerator };
