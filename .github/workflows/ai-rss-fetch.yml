@@ -5,21 +5,20 @@ on:
     - cron: '0 * * * *'  # 毎時実行
   workflow_dispatch:     # 手動実行可能
 
-env:
-  NODE_VERSION: '20'
-  TIMEOUT_MINUTES: 10
-
 jobs:
   ai-rss-processing:
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ env.TIMEOUT_MINUTES }}
+    timeout-minutes: 10  # ✅ 直接値を指定
+    
+    env:
+      NODE_VERSION: '20'
     
     steps:
     # リポジトリチェックアウト
     - name: 📥 Checkout repository
       uses: actions/checkout@v4
       
-    # Node.js環境設定[3]
+    # Node.js環境設定
     - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -45,7 +44,7 @@ jobs:
     - name: 🎨 Generate HTML dashboard
       run: node src/ai-data-generator.js
       
-    # StaticCrypt暗号化（セキュア版）[6]
+    # StaticCrypt暗号化（セキュア版）
     - name: 🔒 Encrypt with StaticCrypt
       run: |
         staticrypt ai-rss-temp/dashboard.html -p "${{ secrets.STATICCRYPT_PASSWORD }}" -o ai-rss/index.html
@@ -53,7 +52,7 @@ jobs:
       env:
         STATICCRYPT_PASSWORD: ${{ secrets.STATICCRYPT_PASSWORD }}
         
-    # GitHub Pagesデプロイ[8]
+    # GitHub Pagesデプロイ
     - name: 🚀 Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
