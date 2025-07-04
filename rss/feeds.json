@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T16:20:09.653Z",
+  "updated": "2025-07-04T17:14:11.366Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -49,6 +49,18 @@
       "thumbnail": null
     },
     {
+      "id": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
+      "title": "Google Prompting Essentials（全4回シリーズ｜#1）",
+      "link": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
+      "published": "2025-07-04T09:58:01.000Z",
+      "description": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリーズの 第1回 として、プロンプト設計の核心である TCREI フレームワーク を解説します。 シリーズ構成 プロフェッショナルなプロンプトを書くには ←...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリー",
+      "thumbnail": null
+    },
+    {
       "id": "tag:qiita.com,2005:PublicArticle/2049067",
       "title": "🎬 第1回：【導入編】動画分割ツールをC#と生成AI(copilot)で作った話",
       "link": "https://qiita.com/Fujita_Kousuke/items/7f6d13fcbbbbb63ccdf5",
@@ -58,6 +70,18 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに：何気ない会話から生まれたツール 「長い動画を任意の区間で簡単に分割して出力できるツールがほしい」 知り合いのYouTuberから、そんな一言を受けこのプロジェクトは始まりました。 自分はもともとプログラミング知識はありましたが、今回使う言語は「C#」、あまり開発...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
+      "title": "【マケデコ】投資戦略を量産せよ！！！(2025/7/3まとめ)",
+      "link": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
+      "published": "2025-07-04T08:02:11.000Z",
+      "description": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1ito) 株価予測の最強アーキテクチャはどれだ？AIエージェントによる探索 from...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1",
       "thumbnail": null
     },
     {
@@ -145,18 +169,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/naomine_egawa/articles/zenn_expo2025_ai_report",
-      "title": "広告クリエイティブ・マーケティングEXPO 2025レポート",
-      "link": "https://zenn.dev/naomine_egawa/articles/zenn_expo2025_ai_report",
-      "published": "2025-07-04T04:35:09.000Z",
-      "description": "🎪 はじめに：Content Tokyoの広告クリエイティブ・マーケティングEXPOへ行ってきた ※本記事は実際の展示会参加体験に基づき、文章作成にAIを活用して執筆しています。 2025年7月2日〜4日に東京ビッグサイトで開催中の 広告クリエイティブ・マーケティングEXPO に参加してきました。 この展示会は日本最大のコンテンツビジネス総合展「CONTENT TOKYO 2025」の一部として開催されており、6つの展示会と1つの特設エリアで構成されています： ライセンシング...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "🎪 はじめに：Content Tokyoの広告クリエイティブ・マーケティングEXPOへ行ってきた ※本記事は実際の展示会参加体験に基づき、文章作成にAIを活用して執筆しています。 2025年7月2日〜4日に東京ビッグサイトで開催中の 広告クリエイティブ・マーケティングEXPO に参加してきました。",
-      "thumbnail": null
-    },
-    {
       "id": "5nbydz-1751599800000",
       "title": "AIボットよ、金を払え--訓練用コンテンツの「タダ乗り」にCloudflareが突きつけたメッセージ",
       "link": "https://japan.cnet.com/article/35235125/",
@@ -178,18 +190,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
-      "title": "ツクリンクにおける生成AIツールの活用事例",
-      "link": "https://zenn.dev/tsukulink/articles/2025-07-gen-ai-tools",
-      "published": "2025-07-04T00:39:24.000Z",
-      "description": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01時点で利用可能なツールです。 新しく試したいツールが出た際は安全性を確認し、すぐに利用できる体制が整っています。 Claude Code Gemini CLI Cline Cursor...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "ごきげんよう🙋‍♀️あっきー(@kuronekopunk)です。 ツクリンクでは、開発業務の効率化や新しい技術のキャッチアップのために、様々な生成AIサービスを導入しています。この記事では、AIツールを具体的にどのように活用しているのか、その事例を紹介します。 利用可能ツール 2025/07/01",
       "thumbnail": null
     }
   ]
