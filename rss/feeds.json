@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-03T23:15:52.012Z",
+  "updated": "2025-07-04T01:20:18.697Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048768",
+      "title": "Gemini CLI から Claude Code に戻した件について",
+      "link": "https://qiita.com/zukizukizukizuki/items/79c69007e2ace256499c",
+      "published": "2025-07-03T23:32:21.000Z",
+      "description": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048749",
       "title": "キュリオシティシステムプロンプトくん ver1",
@@ -70,18 +82,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "はじめに Claude Codeを使い始めました。 普段はMacを持ち運び、家ではWindowsを使っています。 移動中にもClaude Codeにタスクをさせたいと思いましたが、Macは持ち運びをするのでネットワークが切断されてしまい、タスクが途中で終わってしまいます。...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048699",
-      "title": "AIエージェントによる業務プロセス自動化の最前線：成功事例と実装ステップを徹底解説",
-      "link": "https://qiita.com/karakurai_rena/items/cff32d570894b4318f9c",
-      "published": "2025-07-03T15:55:59.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AIエージェントによる業務プロセス自動化の最前線について、成功事例や実装のステップを詳しくご紹介しますね。 AIエージェントって何？ AIエージェントは、設定した目標を達成するために自ら計画を立てて、情...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、AIエージェントによる業務プロセス自動化の最前線について、成功事例や実装のステップを詳しくご紹介しますね。 AIエージェントって何？ AIエージェントは、設定した目標を達成するために自ら計画を立てて、情...",
       "thumbnail": null
     },
     {
