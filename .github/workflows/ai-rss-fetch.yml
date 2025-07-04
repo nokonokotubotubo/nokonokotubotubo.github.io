@@ -1,12 +1,10 @@
-name: AI RSS Feed Processing with Debug
+name: AI RSS Debug - HTML Generation Issue
 
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
-  ai-rss-processing:
+  debug-html-generation:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     
@@ -19,119 +17,140 @@ jobs:
       with:
         node-version: '20'
         
-    # 📊 実行環境の詳細確認
-    - name: Debug - Environment check
-      run: |
-        echo "🔍 実行環境確認:"
-        echo "PWD: $(pwd)"
-        echo "HOME: $HOME"
-        echo "USER: $USER"
-        echo "📁 ディレクトリ構造:"
-        ls -la
-        echo "📁 リポジトリファイル:"
-        find . -type f -name "*.js" -o -name "*.json" | head -20
-        
     - name: Install dependencies
       run: |
         npm init -y
         npm install rss-parser
         
-    # 📊 プロジェクトファイル確認
-    - name: Debug - Project files check
-      run: |
-        echo "📋 プロジェクトファイル確認:"
-        echo "src/ exists: $([ -d src ] && echo 'YES' || echo 'NO')"
-        echo "config/ exists: $([ -d config ] && echo 'YES' || echo 'NO')"
-        if [ -d src ]; then
-          echo "📄 src/ contents:"
-          ls -la src/
-        fi
-        if [ -d config ]; then
-          echo "📄 config/ contents:"
-          ls -la config/
-        fi
-        
     - name: Create output directories
       run: |
         mkdir -p ai-rss-temp/data
         mkdir -p ai-rss
-        echo "📁 出力ディレクトリ作成完了"
-        ls -la ai-rss-temp/
         
     - name: Process RSS feeds
       run: |
-        echo "🚀 RSS処理開始 - PWD: $(pwd)"
+        echo "🚀 RSS処理開始"
         node src/ai-rss-processor.js
-        echo "📄 RSS処理後のファイル確認:"
-        ls -la ai-rss-temp/data/ || echo "ai-rss-temp/data/ が存在しません"
+        
+    # 🔍 RSS処理後の詳細確認
+    - name: Debug - Post RSS processing
+      run: |
+        echo "📊 RSS処理後のファイル状況:"
+        if [ -f ai-rss-temp/data/articles.json ]; then
+          echo "✅ articles.json 存在 ($(wc -c < ai-rss-temp/data/articles.json) bytes)"
+          echo "📄 記事数: $(jq length ai-rss-temp/data/articles.json)"
+          echo "📋 最初の記事サンプル:"
+          jq '.[0] | {title, category, preference}' ai-rss-temp/data/articles.json || echo "JSONパースエラー"
+        else
+          echo "❌ articles.json が存在しません"
+          ls -la ai-rss-temp/data/ || echo "ai-rss-temp/data/ ディレクトリ不存在"
+        fi
         
     - name: Analyze articles with AI
       run: |
-        echo "🤖 AI分析開始 - PWD: $(pwd)"
+        echo "🤖 AI分析開始"
         node src/ai-analyzer.js
-        echo "📄 AI分析後のファイル確認:"
-        ls -la ai-rss-temp/data/ || echo "ai-rss-temp/data/ が存在しません"
         
-    - name: Generate HTML dashboard
+    # 🔍 AI分析後の詳細確認
+    - name: Debug - Post AI analysis
       run: |
-        echo "🎨 HTML生成開始 - PWD: $(pwd)"
-        node src/ai-data-generator.js
-        echo "📄 HTML生成後のファイル確認:"
-        ls -la ai-rss-temp/ || echo "ai-rss-temp/ が存在しません"
+        echo "📊 AI分析後のファイル状況:"
+        if [ -f ai-rss-temp/data/articles.json ]; then
+          echo "✅ articles.json 更新確認 ($(wc -c < ai-rss-temp/data/articles.json) bytes)"
+          echo "📄 preference分布:"
+          jq 'group_by(.preference) | map({preference: .[0].preference, count: length})' ai-rss-temp/data/articles.json || echo "JSONパースエラー"
+          
+          echo "📋 サンプル記事（嗜好付き）:"
+          jq '.[0] | {title, preference, preferenceScore}' ai-rss-temp/data/articles.json || echo "JSONパースエラー"
+        else
+          echo "❌ articles.json が存在しません"
+        fi
+        
+        echo "📁 ai-rss-temp/data/ 全体:"
+        ls -la ai-rss-temp/data/ || echo "ディレクトリ不存在"
+        
+    # 🔍 HTML生成前の事前チェック
+    - name: Debug - Pre HTML generation check
+      run: |
+        echo "🔍 HTML生成前チェック:"
+        echo "📄 Node.js バージョン: $(node --version)"
+        echo "📄 利用可能メモリ: $(free -h)"
+        echo "📄 ディスク容量: $(df -h .)"
+        
+        # JSON構文チェック
+        if [ -f ai-rss-temp/data/articles.json ]; then
+          echo "🔍 JSON構文チェック:"
+          jq empty ai-rss-temp/data/articles.json && echo "✅ JSON構文正常" || echo "❌ JSON構文エラー"
+          
+          # ファイルサイズチェック
+          SIZE=$(wc -c < ai-rss-temp/data/articles.json)
+          echo "📊 articles.json サイズ: $SIZE bytes"
+          if [ $SIZE -gt 1000000 ]; then
+            echo "⚠️ ファイルサイズが大きい可能性"
+          fi
+        fi
+        
+    # 🔍 HTML生成をtry-catchで実行
+    - name: Generate HTML dashboard with error handling
+      run: |
+        echo "🎨 HTML生成開始（エラーハンドリング強化版）"
+        
+        # JavaScript実行前のメモリ使用量
+        echo "📊 実行前メモリ: $(free -h | grep Mem)"
+        
+        # Node.jsでエラーをキャッチ
+        node -e "
+        try {
+          console.log('🔄 HTML生成スクリプト実行開始');
+          require('./src/ai-data-generator.js');
+          console.log('✅ HTML生成スクリプト正常終了');
+        } catch (error) {
+          console.error('❌ HTML生成エラー詳細:');
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+          process.exit(1);
+        }
+        " 2>&1 | tee html_generation.log
+        
+        # 実行後のメモリ使用量
+        echo "📊 実行後メモリ: $(free -h | grep Mem)"
+        
+    # 🔍 HTML生成後の詳細確認
+    - name: Debug - Post HTML generation
+      run: |
+        echo "📊 HTML生成後の状況:"
+        
+        # 生成ファイル確認
         if [ -f ai-rss-temp/dashboard.html ]; then
           echo "✅ dashboard.html 生成成功 ($(wc -c < ai-rss-temp/dashboard.html) bytes)"
+          echo "📄 HTMLファイル先頭100文字:"
+          head -c 100 ai-rss-temp/dashboard.html
+          echo ""
+          echo "📄 HTMLファイル末尾100文字:"
+          tail -c 100 ai-rss-temp/dashboard.html
         else
           echo "❌ dashboard.html 生成失敗"
         fi
         
-    # 📊 暗号化前の最終確認
-    - name: Debug - Pre-encryption check
-      run: |
-        echo "🔍 暗号化前ファイル確認:"
-        echo "📁 全体構造:"
-        find . -name "*.html" -o -name "*.json" | grep -E "(ai-rss|dashboard)" || echo "関連ファイルが見つかりません"
-        echo "📊 ディスク使用量:"
-        du -sh ai-rss-temp/ ai-rss/ 2>/dev/null || echo "ディレクトリが存在しません"
+        # ディレクトリ全体確認
+        echo "📁 ai-rss-temp/ 全体構造:"
+        find ai-rss-temp -type f -exec ls -lh {} \; 2>/dev/null || echo "ファイル不存在"
         
-    - name: Encrypt with StaticCrypt
+        # エラーログ確認
+        if [ -f html_generation.log ]; then
+          echo "📄 生成ログ:"
+          cat html_generation.log
+        fi
+        
+    - name: Test encryption (conditional)
       run: |
         if [ -f ai-rss-temp/dashboard.html ]; then
-          echo "🔒 StaticCrypt暗号化開始"
+          echo "🔒 暗号化テスト"
           npm install -g staticrypt
-          staticrypt ai-rss-temp/dashboard.html -p "${{ secrets.STATICCRYPT_PASSWORD }}" -o ai-rss/index.html
-          echo "✅ 暗号化完了"
+          staticrypt ai-rss-temp/dashboard.html -p "test123" -o ai-rss/index.html
+          echo "✅ 暗号化テスト成功"
           ls -la ai-rss/
         else
-          echo "❌ dashboard.html が存在しないため暗号化をスキップ"
-          exit 1
+          echo "⏭️ dashboard.html不存在のため暗号化スキップ"
         fi
-      env:
-        STATICCRYPT_PASSWORD: ${{ secrets.STATICCRYPT_PASSWORD }}
-        
-    # 📊 デプロイ前の最終確認
-    - name: Debug - Pre-deploy check
-      run: |
-        echo "🚀 デプロイ前最終確認:"
-        if [ -f ai-rss/index.html ]; then
-          echo "✅ index.html exists ($(wc -c < ai-rss/index.html) bytes)"
-          echo "📄 ai-rss/ contents:"
-          ls -la ai-rss/
-        else
-          echo "❌ index.html が存在しません"
-          echo "📁 現在のディレクトリ構造:"
-          find . -type f | grep -v node_modules | sort
-          exit 1
-        fi
-        
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./ai-rss
-        force_orphan: true
-        enable_jekyll: false
-        
-    - name: Deployment complete
-      run: |
-        echo "🎉 AI RSS Dashboard deployed successfully!"
-        echo "🔗 Access: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
