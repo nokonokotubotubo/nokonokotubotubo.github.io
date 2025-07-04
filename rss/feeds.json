@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T04:27:17.012Z",
+  "updated": "2025-07-04T05:20:02.178Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nqjbx-1751605020000",
+      "title": "【写真】大阪万博のオススメは「幻想的すぎる」大屋根リングの夜景--パナ最新の照明技術を体感",
+      "link": "https://japan.cnet.com/article/35234977/",
+      "published": "2025-07-04T04:57:00.000Z",
+      "description": "大阪・関西万博のシンボル「大屋根リング」の光の演出が幻想的と話題。最新の照明制御技術にも注目",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "大阪・関西万博のシンボル「大屋根リング」の光の演出が幻想的と話題。最新の照明制御技術にも注目",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048859",
       "title": "独自の AI 導入プロセスを加速",
@@ -142,18 +154,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "はじめに Claude Code maxプランを使っていたがコスト削減のためにGemini CLIに乗り換えた。 しかし結局Claude Code maxプランに戻すことになった。 この記事では実際に発生した問題と、なぜClaude Codeが優れた選択肢なのかを詳しく解説する。 前提条件 両ツール",
-      "thumbnail": null
-    },
-    {
-      "id": "5ncgxc-1751533800000",
-      "title": "JR東日本、指定席券売機を刷新--「わかりにくい」の声に対応",
-      "link": "https://japan.cnet.com/article/35235085/",
-      "published": "2025-07-03T09:10:00.000Z",
-      "description": "JR東日本は7月3日、新型の指定席券売機の新型機を7月から順次導入すると発表した。普段あまり指定席券売機を使わない利用者でも直感的に操作できるよう、インターフェースを大幅に刷新した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "JR東日本は7月3日、新型の指定席券売機の新型機を7月から順次導入すると発表した。普段あまり指定席券売機を使わない利用者でも直感的に操作できるよう、インターフェースを大幅に刷新した。",
       "thumbnail": null
     },
     {
