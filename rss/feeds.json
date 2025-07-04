@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T03:15:53.544Z",
+  "updated": "2025-07-04T04:27:17.012Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2048859",
+      "title": "独自の AI 導入プロセスを加速",
+      "link": "https://qiita.com/Intel_Developer/items/8a228e467b78397e34be",
+      "published": "2025-07-04T03:32:54.000Z",
+      "description": "AI は今、チャットボットから予測分析やプロセスの自動化まで、組織がこれまで築いてきたクラウドとデジタル化の取り組みを基盤に、働き方を大きく変えています。大規模企業の多くは、過去にインターネットやクラウド・コンピューティングを導入してきたよりも速いペースで AI...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "AI は今、チャットボットから予測分析やプロセスの自動化まで、組織がこれまで築いてきたクラウドとデジタル化の取り組みを基盤に、働き方を大きく変えています。大規模企業の多くは、過去にインターネットやクラウド・コンピューティングを導入してきたよりも速いペースで AI...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nbydz-1751599800000",
+      "title": "AIボットよ、金を払え--訓練用コンテンツの「タダ乗り」にCloudflareが突きつけたメッセージ",
+      "link": "https://japan.cnet.com/article/35235125/",
+      "published": "2025-07-04T03:30:00.000Z",
+      "description": "AI開発企業は、大規模言語モデル（LLM）の学習のためにウェブ全体にアクセスすることが、これまでより難しくなるかもしれない。ネットインフラを提供するCloudflareが今週、AIのデータクローラーをデフォルトでブロックすると発表したからだ。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "AI開発企業は、大規模言語モデル（LLM）の学習のためにウェブ全体にアクセスすることが、これまでより難しくなるかもしれない。ネットインフラを提供するCloudflareが今週、AIのデータクローラーをデフォルトでブロックすると発表したからだ。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2026116",
       "title": "Pentaho(ETL)でバイナリデータを扱ってみる",
@@ -97,18 +121,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2048734",
-      "title": "生成AI時代のAIエージェント：新たなサイバー脅威とプライバシー管理の最前線",
-      "link": "https://qiita.com/karakurai_rena/items/1b107bbb6217430ccb26",
-      "published": "2025-07-03T19:55:54.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが急速に進化している現代におけるAIエージェントのセキュリティリスクやプライバシー管理についてお話しします。技術の発展は素晴らしい反面、私たちが注意しなければいけない新たなサイバー脅威も増えている...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが急速に進化している現代におけるAIエージェントのセキュリティリスクやプライバシー管理についてお話しします。技術の発展は素晴らしい反面、私たちが注意しなければいけない新たなサイバー脅威も増えている...",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
       "title": "【Figma Make】最初のプロンプトで詳細を詰め込む（生成AI,プロンプト設計,UIデザイン）",
       "link": "https://zenn.dev/hott3/articles/figma-make-trial-first-prompt-with-details",
@@ -166,18 +178,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "当日の動き 昨年も雨でしたが、今年も雨模様でした...☔️ 8:45 海浜幕張駅到着☔️ 9:00 改札前のパン屋さんで朝食☕️ 9:15 会場到着（基調講演の指定席券はなくなっていたのでサテライト会場で待機） 10:00〜11:00 基調講演（途中で離席し、自社のブースへ） 11:30 弁当引き換",
-      "thumbnail": null
-    },
-    {
-      "id": "5nchlg-1751528820000",
-      "title": "シャオミ、3万円台の「27インチ4Kモニタ」発売--90W充電器としても利用可能",
-      "link": "https://japan.cnet.com/article/35235078/",
-      "published": "2025-07-03T07:47:00.000Z",
-      "description": "シャオミ・ジャパンは7月3日、USB Type-C対応の27インチ4Kモニター「Xiaomi 4Kモニター A27Ui」を発売した。市場想定価格は3万9800円。直販では、7月14日まで早割価格で3万4800円となる。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "シャオミ・ジャパンは7月3日、USB Type-C対応の27インチ4Kモニター「Xiaomi 4Kモニター A27Ui」を発売した。市場想定価格は3万9800円。直販では、7月14日まで早割価格で3万4800円となる。",
       "thumbnail": null
     },
     {
