@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T22:15:55.585Z",
+  "updated": "2025-07-04T23:15:35.233Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "5nbwyb-1751668200000",
+      "title": "え、これがChromebook？--気づけばWindowsやMacを凌ぐ「AI全部入りPC」になってた話",
+      "link": "https://japan.cnet.com/article/35235143/",
+      "published": "2025-07-04T22:30:00.000Z",
+      "description": "Googleとレノボが共同開発した「Lenovo Chromebook Plus 14」は、小型で軽量ながら、AIタスクを丸一日ストレスなくこなせる性能を備えている。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "Googleとレノボが共同開発した「Lenovo Chromebook Plus 14」は、小型で軽量ながら、AIタスクを丸一日ストレスなくこなせる性能を備えている。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2049164",
       "title": "AIが論文を書く時代へ：Tempest論文・Zochi・ACL2025まとめ",
@@ -178,18 +190,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "AI開発企業は、大規模言語モデル（LLM）の学習のためにウェブ全体にアクセスすることが、これまでより難しくなるかもしれない。ネットインフラを提供するCloudflareが今週、AIのデータクローラーをデフォルトでブロックすると発表したからだ。",
-      "thumbnail": null
-    },
-    {
-      "id": "5nbyfp-1751596800000",
-      "title": "dアカウントのログイン画面を模した詐欺発生--「自分を過信しないで」とドコモ",
-      "link": "https://japan.cnet.com/article/35235123/",
-      "published": "2025-07-04T02:40:00.000Z",
-      "description": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
       "thumbnail": null
     }
   ]
