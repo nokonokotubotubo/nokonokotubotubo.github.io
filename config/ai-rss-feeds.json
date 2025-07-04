@@ -1,0 +1,44 @@
+{
+  "feeds": [
+    {
+      "name": "Qiita トレンド",
+      "url": "https://qiita.com/popular-items/feed",
+      "category": "tech"
+    },
+    {
+      "name": "Zenn トレンド",
+      "url": "https://zenn.dev/feed",
+      "category": "tech"
+    },
+    {
+      "name": "TechCrunch Japan",
+      "url": "https://jp.techcrunch.com/feed/",
+      "category": "tech"
+    },
+    {
+      "name": "GitHub Blog",
+      "url": "https://github.blog/feed/",
+      "category": "tech"
+    },
+    {
+      "name": "日経新聞 テクノロジー",
+      "url": "https://www.nikkei.com/rss/",
+      "category": "business"
+    },
+    {
+      "name": "ITmedia NEWS",
+      "url": "https://www.itmedia.co.jp/rss/2.0/news_technology.xml",
+      "category": "tech"
+    },
+    {
+      "name": "CNET Japan",
+      "url": "https://japan.cnet.com/rss/",
+      "category": "tech"
+    },
+    {
+      "name": "Publickey",
+      "url": "https://www.publickey1.jp/atom.xml",
+      "category": "tech"
+    }
+  ]
+}
