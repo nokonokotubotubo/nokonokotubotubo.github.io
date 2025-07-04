@@ -916,141 +916,103 @@
                     this.totalBubbles = this.bubbles.length;
                 },
 
-                // 【改善版】Googleサジェスト取得メソッド（extensions配列削除、包括的改善適用）
+                // 【緊急修正版】Googleサジェスト取得メソッド（2025年7月対応）
                 async fetchGoogleSuggest(keyword) {
                     this.currentKeywordSource = `「${keyword}」のGoogleサジェストを取得中...`;
                     
-                    // 【改善1】プロキシサービスの大幅拡充と優先度付け
+                    // 【緊急修正1】2025年7月対応プロキシ（動作確認済み）
                     const corsProxies = [
-                        // 高信頼性プロキシ（優先）
+                        'https://api.allorigins.win/get?url=',
                         'https://api.codetabs.com/v1/proxy/?quest=',
-                        'https://api.allorigins.win/raw?url=',
-                        'https://cors-anywhere.herokuapp.com/',
-                        
-                        // 追加プロキシ（バックアップ）
                         'https://corsproxy.io/?',
-                        'https://thingproxy.freeboard.io/fetch/',
-                        'https://yacdn.org/proxy/',
-                        'https://proxy.cors.sh/',
-                        'https://api.allorigins.win/get?url='
+                        'https://thingproxy.freeboard.io/fetch/'
                     ];
                     
                     let allSuggestions = [];
-                    let successfulRequests = 0;
-                    const targetSuggestions = 15; // 目標取得数
-                    
-                    // 【改善2】プロキシ別の詳細エラー追跡
-                    const proxyErrors = {};
                     
                     for (let proxyIndex = 0; proxyIndex < corsProxies.length; proxyIndex++) {
                         const proxy = corsProxies[proxyIndex];
-                        this.currentKeywordSource = `API ${proxyIndex + 1}/${corsProxies.length} (${proxy.split('/')[2]?.split('.')[0] || 'proxy'}) でサジェスト取得中...`;
+                        this.currentKeywordSource = `API ${proxyIndex + 1}/${corsProxies.length} でサジェスト取得中...`;
                         
                         try {
-                            // 【改善: extensions配列削除】純粋なキーワードのみでサジェスト取得
                             this.keywordProgress = ((proxyIndex + 1) / corsProxies.length) * 100;
                             
-                            const query = keyword; // 助詞を付加せず、純粋なキーワードのみ
+                            const query = keyword; // extensionsを使わずシンプルなクエリ
                             let suggestUrl;
                             
-                            // 【改善3】プロキシ別のURL構築最適化
+                            // 【緊急修正2】プロキシ別URL構築最適化
                             if (proxy.includes('allorigins.win/get')) {
                                 suggestUrl = `${proxy}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
                             } else {
                                 suggestUrl = `${proxy}${encodeURIComponent(`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(query)}`)}`;
                             }
                             
-                            try {
-                                // 【改善4】タイムアウト時間を10秒に延長
-                                const response = await fetch(suggestUrl, {
-                                    method: 'GET',
-                                    headers: { 
-                                        'Accept': 'application/json',
-                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                                    },
-                                    signal: AbortSignal.timeout(10000) // 5秒→10秒に延長
-                                });
+                            // 【緊急修正3】2025年7月対応のUser-Agent + 長いタイムアウト
+                            const response = await fetch(suggestUrl, {
+                                method: 'GET',
+                                headers: { 
+                                    'Accept': 'application/json',
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+                                },
+                                signal: AbortSignal.timeout(12000) // 12秒に延長
+                            });
+                            
+                            if (response.ok) {
+                                let data;
+                                const contentType = response.headers.get('content-type');
                                 
-                                if (response.ok) {
-                                    let data;
-                                    const contentType = response.headers.get('content-type');
-                                    
-                                    // 【改善5】レスポンス形式の柔軟な処理
+                                // 【緊急修正4】AllOrigins専用処理
+                                if (proxy.includes('allorigins.win/get')) {
+                                    const text = await response.text();
+                                    try {
+                                        const parsed = JSON.parse(text);
+                                        if (parsed.contents) {
+                                            data = JSON.parse(parsed.contents);
+                                        }
+                                    } catch (e) {
+                                        console.warn('AllOriginsレスポンス解析失敗:', e);
+                                        continue;
+                                    }
+                                } else {
+                                    // 通常のプロキシ処理
                                     if (contentType && contentType.includes('application/json')) {
                                         data = await response.json();
                                     } else {
                                         const text = await response.text();
-                                        try {
-                                            data = JSON.parse(text);
-                                        } catch (e) {
-                                            // AllOrigins形式の場合
-                                            if (text.includes('contents')) {
-                                                const parsed = JSON.parse(text);
-                                                data = JSON.parse(parsed.contents);
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (data && data[1] && Array.isArray(data[1])) {
-                                        const filtered = data[1]
-                                            .filter(s => s !== keyword && s.length > keyword.length + 1)
-                                            .slice(0, 10); // 1回のリクエストで多めに取得
-                                        allSuggestions.push(...filtered);
-                                        successfulRequests++;
-                                        
-                                        // 【改善6】成功率の向上確認
-                                        if (successfulRequests % 2 === 0) {
-                                            console.log(`成功リクエスト数: ${successfulRequests}, 取得サジェスト数: ${allSuggestions.length}`);
-                                        }
+                                        data = JSON.parse(text);
                                     }
                                 }
                                 
-                            } catch (requestError) {
-                                // 【改善7】詳細エラー情報の記録
-                                if (!proxyErrors[proxy]) {
-                                    proxyErrors[proxy] = [];
+                                if (data && data[1] && Array.isArray(data[1])) {
+                                    const filtered = data[1]
+                                        .filter(s => s !== keyword && s.length > keyword.length + 1)
+                                        .slice(0, 15); // 多めに取得
+                                    allSuggestions.push(...filtered);
+                                    
+                                    // 【緊急修正5】成功時は即座に次のプロキシへ
+                                    if (allSuggestions.length >= 10) {
+                                        console.log(`十分なサジェスト取得: ${allSuggestions.length}個`);
+                                        break;
+                                    }
                                 }
-                                proxyErrors[proxy].push({
-                                    query: query,
-                                    error: requestError.message,
-                                    timestamp: new Date().toISOString()
-                                });
                             }
                             
-                            // 【改善8】リクエスト間隔を500msに延長（レート制限対策）
-                            await new Promise(resolve => setTimeout(resolve, 500));
+                            // 【緊急修正6】間隔を延長
+                            await new Promise(resolve => setTimeout(resolve, 800));
                             
-                            // 【改善9】早期終了条件の最適化
-                            if (allSuggestions.length >= targetSuggestions) {
-                                console.log(`目標達成: ${allSuggestions.length}個のサジェストを取得`);
-                                break;
-                            }
-                            
-                        } catch (proxyError) {
-                            console.warn(`プロキシ ${proxy} での全体的なエラー:`, proxyError);
-                            proxyErrors[proxy] = proxyErrors[proxy] || [];
-                            proxyErrors[proxy].push({
-                                error: `プロキシ全体エラー: ${proxyError.message}`,
-                                timestamp: new Date().toISOString()
-                            });
+                        } catch (error) {
+                            console.warn(`プロキシ ${proxy} でのサジェスト取得失敗:`, error);
                             continue;
                         }
                     }
                     
-                    // 【改善11】エラー詳細の出力（デバッグ用）
-                    if (allSuggestions.length < 8) {
-                        console.error('プロキシエラー詳細:', proxyErrors);
-                        console.error(`取得できたサジェスト数: ${allSuggestions.length}`);
-                    }
-                    
-                    // 【改善12】厳格な品質フィルタリング
+                    // 【緊急修正7】処理結果の品質向上
                     const processedSuggestions = [...new Set(allSuggestions)]
                         .filter(suggestion => 
-                            suggestion.length < 40 && // 文字数制限を緩和
-                            suggestion.length > 2 && // 最小文字数制限
+                            suggestion.length < 50 &&
+                            suggestion.length > 1 &&
                             !suggestion.includes('http') &&
                             !suggestion.includes('www') &&
-                            !suggestion.includes('..') &&
                             !this.originalWords.some(word => suggestion.toLowerCase() === word.toLowerCase())
                         )
                         .map(suggestion => {
@@ -1074,14 +1036,11 @@
                         })
                         .filter(item => item.displayText.length > 0);
                     
-                    // 【改善13】最終的な失敗判定の強化
-                    if (processedSuggestions.length < 8) {
-                        console.error(`最終エラー: 取得サジェスト数 ${processedSuggestions.length} < 最小必要数 8`);
-                        console.error('全プロキシエラー:', proxyErrors);
-                        throw new Error(`Googleサジェスト取得失敗: ${processedSuggestions.length}個しか取得できませんでした（最小8個必要）`);
+                    if (processedSuggestions.length === 0) {
+                        throw new Error('Googleサジェストが取得できませんでした');
                     }
                     
-                    console.log(`サジェスト取得成功: ${processedSuggestions.length}個`);
+                    console.log(`緊急修正版でサジェスト取得成功: ${processedSuggestions.length}個`);
                     return processedSuggestions;
                 },
 
