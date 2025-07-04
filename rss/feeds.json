@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-04T01:20:18.697Z",
+  "updated": "2025-07-04T03:15:53.544Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,42 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2026116",
+      "title": "Pentaho(ETL)でバイナリデータを扱ってみる",
+      "link": "https://qiita.com/Tomohiko_Takeuchi/items/7f3afdf4bf759ab8637d",
+      "published": "2025-07-04T02:53:10.000Z",
+      "description": "はじめに Pentahoはテキストデータを扱うことが多いですが、バイナリデータも扱えます。 本記事ではPentahoでバイナリデータ(画像)を読み取り、生成AIと組み合わせて画像処理をさせてみました。 やってみたこと Pentahoで領収書の画像を読み取り、生成AIに登...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに Pentahoはテキストデータを扱うことが多いですが、バイナリデータも扱えます。 本記事ではPentahoでバイナリデータ(画像)を読み取り、生成AIと組み合わせて画像処理をさせてみました。 やってみたこと Pentahoで領収書の画像を読み取り、生成AIに登...",
+      "thumbnail": null
+    },
+    {
+      "id": "5nbyfp-1751596800000",
+      "title": "dアカウントのログイン画面を模した詐欺発生--「自分を過信しないで」とドコモ",
+      "link": "https://japan.cnet.com/article/35235123/",
+      "published": "2025-07-04T02:40:00.000Z",
+      "description": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "NTTドコモはdアカウントの偽ログイン画面によるフィッシング被害が発生していると注意喚起。不審メールやURLに要注意。",
+      "thumbnail": null
+    },
+    {
+      "id": "5nbzx3-1751592900000",
+      "title": "高校の英語学習にAI翻訳「DeepL」導入--東京都教育委",
+      "link": "https://japan.cnet.com/article/35235103/",
+      "published": "2025-07-04T01:35:00.000Z",
+      "description": "DeepLは7月3日、東京都教育委員会が都立高校15校に「DeepL」を導入し、計1万人以上の生徒と教職員が英語学習や業務支援に活用を開始したと発表した。",
+      "source": "CNET",
+      "sourceColor": "#C41E3A",
+      "sourceFeed": "cnet",
+      "summary": "DeepLは7月3日、東京都教育委員会が都立高校15校に「DeepL」を導入し、計1万人以上の生徒と教職員が英語学習や業務支援に活用を開始したと発表した。",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2048768",
       "title": "Gemini CLI から Claude Code に戻した件について",
@@ -70,18 +106,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが急速に進化している現代におけるAIエージェントのセキュリティリスクやプライバシー管理についてお話しします。技術の発展は素晴らしい反面、私たちが注意しなければいけない新たなサイバー脅威も増えている...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2048725",
-      "title": "自宅にあるWindowsを使っていつでもどこからでもClaude Codeを動かせるようにする",
-      "link": "https://qiita.com/ryutarom128/items/2aeb8721ac4c9bd6023d",
-      "published": "2025-07-03T18:50:59.000Z",
-      "description": "はじめに Claude Codeを使い始めました。 普段はMacを持ち運び、家ではWindowsを使っています。 移動中にもClaude Codeにタスクをさせたいと思いましたが、Macは持ち運びをするのでネットワークが切断されてしまい、タスクが途中で終わってしまいます。...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに Claude Codeを使い始めました。 普段はMacを持ち運び、家ではWindowsを使っています。 移動中にもClaude Codeにタスクをさせたいと思いましたが、Macは持ち運びをするのでネットワークが切断されてしまい、タスクが途中で終わってしまいます。...",
       "thumbnail": null
     },
     {
@@ -157,18 +181,6 @@
       "thumbnail": null
     },
     {
-      "id": "5ncm6s-1751526180000",
-      "title": "高価なスマホはもう要らない、約5万円で基本を押さえた「Galaxy A36 5G」レビュー",
-      "link": "https://japan.cnet.com/article/35235012/",
-      "published": "2025-07-03T07:03:00.000Z",
-      "description": "サムスンの最新ミッドレンジスマホ「Galaxy A36 5G」のレビューをお届けする。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "サムスンの最新ミッドレンジスマホ「Galaxy A36 5G」のレビューをお届けする。",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/artistics_blog/articles/20250702-gemini-cli",
       "title": "Gemini CLI と Claude Code でペアプログラミングさせてみた",
       "link": "https://zenn.dev/artistics_blog/articles/20250702-gemini-cli",
@@ -178,18 +190,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "はじめに 2025年は「AIエージェント」の年。 今年の初め、AI関連の情報を閲覧しているとよくそう言われていました。 そしてその通り、今年に入りいろんなエージェントが出てきました。特に最近では AI エージェント搭載のブラウザまで発表され、その期待は鰻登りです。 エージェントが盛り上がる中で「vi",
-      "thumbnail": null
-    },
-    {
-      "id": "5nchsc-1751520660000",
-      "title": "トランプ政権幹部、全国民にウェアラブル端末推奨--「アメリカを再び健康な国へ」宣言",
-      "link": "https://japan.cnet.com/article/35235070/",
-      "published": "2025-07-03T05:31:00.000Z",
-      "description": "米トランプ政権で保健福祉長官を務めるロバート・F・ケネディ・ジュニア長官は6月24日、ウェアラブルデバイスで全国民が自身の健康を常時モニターできる社会を目指し、同省最大のキャンペーンを実施すると発表した。",
-      "source": "CNET",
-      "sourceColor": "#C41E3A",
-      "sourceFeed": "cnet",
-      "summary": "米トランプ政権で保健福祉長官を務めるロバート・F・ケネディ・ジュニア長官は6月24日、ウェアラブルデバイスで全国民が自身の健康を常時モニターできる社会を目指し、同省最大のキャンペーンを実施すると発表した。",
       "thumbnail": null
     }
   ]
