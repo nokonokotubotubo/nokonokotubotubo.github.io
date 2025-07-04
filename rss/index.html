@@ -26,6 +26,10 @@
   --text-light: #8FA0B3;
   --border-color: #E8F4F8;
   --border-hover: #B8E6FF;
+  --danger-color: #E74C3C;
+  --success-color: #27AE60;
+  --warning-color: #F39C12;
+  --admin-bg: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
 }
 
 /* ---------- Base ---------- */
@@ -95,6 +99,398 @@ body {
   position: relative;
   z-index: 1;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+.admin-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 2rem;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.8rem 1.5rem;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.admin-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ---------- Admin Panel ---------- */
+.admin-panel {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  padding: 0 2rem;
+}
+
+.admin-container {
+  background: var(--admin-bg);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-title {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-close {
+  background: var(--danger-color);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.admin-close:hover {
+  background: #C0392B;
+  transform: translateY(-2px);
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-tab {
+  padding: 0.8rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.admin-tab.active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.admin-tab:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.admin-content {
+  color: #fff;
+}
+
+/* ---------- Login Form ---------- */
+.login-form {
+  max-width: 500px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.login-form h3 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.auth-status {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-accent);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.form-group select option {
+  background: var(--text-primary);
+  color: #fff;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 1rem;
+  background: var(--primary-accent);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--success-color);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #229954;
+  transform: translateY(-1px);
+}
+
+.login-error {
+  background: rgba(231, 76, 60, 0.2);
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.user-registration {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-list {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.user-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-danger {
+  background: var(--danger-color);
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.8rem;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: #C0392B;
+}
+
+/* ---------- Feed Management ---------- */
+.feed-manager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.feed-list {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.feed-form {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.feed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feed-info {
+  flex: 1;
+}
+
+.feed-name {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.feed-url {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  word-break: break-all;
+}
+
+.feed-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-edit {
+  background: var(--warning-color);
+  color: #fff;
+}
+
+.btn-edit:hover {
+  background: #E67E22;
+}
+
+.btn-delete {
+  background: var(--danger-color);
+  color: #fff;
+}
+
+.btn-delete:hover {
+  background: #C0392B;
+}
+
+/* ---------- Statistics ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.error-log {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.error-item {
+  padding: 0.8rem;
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--danger-color);
+}
+
+.error-time {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.error-message {
+  color: #fff;
+  font-weight: 600;
 }
 
 /* ---------- Loading ---------- */
@@ -397,6 +793,14 @@ body {
   .cards-container {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .feed-manager {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -406,6 +810,13 @@ body {
   
   .header h1 {
     font-size: 2.8rem;
+  }
+  
+  .admin-toggle {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-top: 1rem;
   }
   
   .cards-container {
@@ -430,6 +841,15 @@ body {
   
   .thumbnail-container {
     height: 140px;
+  }
+  
+  .admin-tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -461,6 +881,14 @@ body {
   .thumbnail-container {
     height: 120px;
   }
+  
+  .admin-panel {
+    padding: 0 1rem;
+  }
+  
+  .admin-container {
+    padding: 1.5rem;
+  }
 }
 
 /* ---------- Animations ---------- */
@@ -486,6 +914,10 @@ body {
 .article-card:nth-child(3n) {
   animation-delay: 0.2s;
 }
+
+.admin-panel {
+  animation: fadeInUp 0.4s ease-out;
+}
 </style>
 </head>
 
@@ -495,7 +927,204 @@ body {
   <header class="header">
     <h1>🗂 ぎゅぎゅっとNEWS</h1>
     <p>ほしい情報ぎゅぎゅっとお届け</p>
+    <button class="admin-toggle" @click="showAdminPanel = !showAdminPanel">
+      {{ showAdminPanel ? '🔒 管理終了' : '⚙️ 管理画面' }}
+    </button>
   </header>
+
+  <!-- Admin Panel -->
+  <div v-if="showAdminPanel" class="admin-panel">
+    <div class="admin-container">
+      <!-- Login Form -->
+      <div v-if="!isAuthenticated" class="login-form">
+        <h3>🔐 管理者ログイン</h3>
+        
+        <!-- WebAuthn Support Status -->
+        <div class="auth-status">
+          <div v-if="isWebAuthnSupported" style="color: #27AE60;">
+            ✅ 生体認証対応（指紋・顔認証利用可能）
+          </div>
+          <div v-else style="color: #F39C12;">
+            ⚠️ 生体認証非対応（パスワード認証を使用）
+          </div>
+        </div>
+        
+        <div v-if="loginError" class="login-error">{{ loginError }}</div>
+        
+        <!-- User Selection -->
+        <div v-if="registeredUsers.length > 0" class="form-group">
+          <label>ユーザー選択:</label>
+          <select v-model="selectedUser">
+            <option value="">ユーザーを選択してください</option>
+            <option v-for="user in registeredUsers" :key="user" :value="user">{{ user }}</option>
+          </select>
+        </div>
+        
+        <!-- Authentication Button -->
+        <button v-if="registeredUsers.length > 0" @click="authenticateUser" class="btn-primary" style="margin-bottom: 1rem;">
+          {{ isWebAuthnSupported ? '🔓 生体認証でログイン' : '🔑 パスワード認証' }}
+        </button>
+        
+        <!-- User Registration Toggle -->
+        <div style="text-align: center; margin-top: 1rem;">
+          <button @click="showUserRegistration = !showUserRegistration" class="btn-secondary">
+            {{ showUserRegistration ? '登録をキャンセル' : '➕ 新規ユーザー登録' }}
+          </button>
+        </div>
+        
+        <!-- User Registration Form -->
+        <div v-if="showUserRegistration" class="user-registration">
+          <div class="form-group">
+            <label>新しいユーザー名:</label>
+            <input type="text" v-model="newUsername" placeholder="ユーザー名を入力">
+          </div>
+          <button @click="registerNewUser" class="btn-primary">
+            {{ isWebAuthnSupported ? '👆 生体認証で登録' : '🔑 パスワードで登録' }}
+          </button>
+        </div>
+        
+        <!-- First Time Setup -->
+        <div v-if="registeredUsers.length === 0" style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.8);">
+          <p style="margin-bottom: 1rem;">初回利用です。管理者ユーザーを登録してください。</p>
+          <button @click="showUserRegistration = true" class="btn-primary">
+            🎯 管理者ユーザーを登録
+          </button>
+        </div>
+        
+        <!-- Registered Users List -->
+        <div v-if="registeredUsers.length > 0 && showUserRegistration" class="user-list">
+          <h4 style="margin-bottom: 1rem; color: #fff;">登録済みユーザー</h4>
+          <div v-for="user in registeredUsers" :key="user" class="user-item">
+            <span class="user-name">{{ user }}</span>
+            <button @click="removeUser(user)" class="btn-danger">削除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Authenticated Admin Panel -->
+      <div v-else>
+        <div class="admin-header">
+          <h2 class="admin-title">⚙️ 管理画面</h2>
+          <button class="admin-close" @click="logout">ログアウト</button>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="admin-tab" :class="{active: activeTab === 'feeds'}" 
+                  @click="activeTab = 'feeds'">📰 フィード管理</button>
+          <button class="admin-tab" :class="{active: activeTab === 'stats'}" 
+                  @click="activeTab = 'stats'">📊 統計情報</button>
+          <button class="admin-tab" :class="{active: activeTab === 'users'}" 
+                  @click="activeTab = 'users'">👥 ユーザー管理</button>
+        </div>
+
+        <div class="admin-content">
+          <!-- Feed Management -->
+          <div v-if="activeTab === 'feeds'" class="feed-manager">
+            <div class="feed-list">
+              <h3>📄 登録済みフィード</h3>
+              <div v-if="feeds.length === 0" style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.6);">
+                フィードが登録されていません
+              </div>
+              <div v-for="feed in feeds" :key="feed.name" class="feed-item">
+                <div class="feed-info">
+                  <div class="feed-name">{{ feed.name }}</div>
+                  <div class="feed-url">{{ feed.url }}</div>
+                </div>
+                <div class="feed-actions">
+                  <button class="btn-small btn-edit" @click="editFeed(feed)">編集</button>
+                  <button class="btn-small btn-delete" @click="deleteFeed(feed)">削除</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="feed-form">
+              <h3>{{ editingFeed ? '📝 フィード編集' : '➕ フィード追加' }}</h3>
+              <form @submit.prevent="saveFeed">
+                <div class="form-group">
+                  <label>フィード名:</label>
+                  <input type="text" v-model="feedForm.name" 
+                         placeholder="例: 技術ニュース" required>
+                </div>
+                <div class="form-group">
+                  <label>RSS URL:</label>
+                  <input type="url" v-model="feedForm.url" 
+                         placeholder="https://example.com/feed.xml" required>
+                </div>
+                <div class="form-group">
+                  <label>表示色:</label>
+                  <input type="color" v-model="feedForm.color" required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                  <button type="submit" class="btn-primary" style="flex: 1;">
+                    {{ editingFeed ? '更新' : '追加' }}
+                  </button>
+                  <button v-if="editingFeed" type="button" class="btn-primary" 
+                          style="background: var(--text-light); flex: 1;" @click="cancelEdit">
+                    キャンセル
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Statistics -->
+          <div v-if="activeTab === 'stats'">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ feeds.length }}</div>
+                <div class="stat-label">登録フィード数</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ entries.length }}</div>
+                <div class="stat-label">記事数</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ successRate }}%</div>
+                <div class="stat-label">取得成功率</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ failedFeeds }}</div>
+                <div class="stat-label">エラーフィード</div>
+              </div>
+            </div>
+
+            <div class="error-log">
+              <h3>🚨 エラーログ (直近24時間)</h3>
+              <div v-if="errorLogs.length === 0" style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.6);">
+                エラーはありません
+              </div>
+              <div v-for="error in errorLogs" :key="error.id" class="error-item">
+                <div class="error-time">{{ formatDate(error.timestamp) }}</div>
+                <div class="error-message">{{ error.message }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Management -->
+          <div v-if="activeTab === 'users'">
+            <div class="user-list">
+              <h3>👥 登録済みユーザー</h3>
+              <div v-for="user in registeredUsers" :key="user" class="user-item">
+                <span class="user-name">{{ user }}</span>
+                <button @click="removeUser(user)" class="btn-danger">削除</button>
+              </div>
+            </div>
+            
+            <div class="user-registration" style="margin-top: 2rem;">
+              <h3>➕ 新規ユーザー追加</h3>
+              <div class="form-group">
+                <label>ユーザー名:</label>
+                <input type="text" v-model="newUsername" placeholder="新しいユーザー名">
+              </div>
+              <button @click="registerNewUser" class="btn-primary">
+                {{ isWebAuthnSupported ? '👆 生体認証で登録' : '🔑 パスワードで登録' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Loading -->
   <div v-if="loading" class="loading">フィードを読み込み中</div>
@@ -556,76 +1185,653 @@ body {
 </div>
 
 <script>
+// WebAuthn + Web Crypto API Authentication System
+class ModernAuthSystem {
+  constructor() {
+    this.isWebAuthnSupported = window.PublicKeyCredential !== undefined;
+    this.credentials = new Map();
+    this.loadCredentials();
+  }
+  
+  async register(username) {
+    if (this.isWebAuthnSupported) {
+      return await this.webAuthnRegister(username);
+    } else {
+      return await this.fallbackRegister(username);
+    }
+  }
+  
+  async authenticate(username) {
+    if (this.isWebAuthnSupported) {
+      return await this.webAuthnAuthenticate(username);
+    } else {
+      return await this.fallbackAuthenticate(username);
+    }
+  }
+  
+  async webAuthnRegister(username) {
+    try {
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const userId = new TextEncoder().encode(username);
+      
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: {
+            name: "ぎゅぎゅっとNEWS",
+            id: window.location.hostname
+          },
+          user: {
+            id: userId,
+            name: username,
+            displayName: `${username} (ぎゅぎゅっとNEWS)`
+          },
+          pubKeyCredParams: [
+            { alg: -7, type: "public-key" },  // ES256
+            { alg: -257, type: "public-key" } // RS256
+          ],
+          timeout: 60000,
+          attestation: 'none',
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'preferred'
+          }
+        }
+      });
+      
+      const credentialData = {
+        id: credential.id,
+        rawId: Array.from(new Uint8Array(credential.rawId)),
+        type: credential.type,
+        username: username,
+        method: 'webauthn',
+        created: new Date().toISOString()
+      };
+      
+      this.credentials.set(username, credentialData);
+      this.saveCredentials();
+      
+      return { success: true, method: 'webauthn' };
+    } catch (error) {
+      console.error('WebAuthn登録エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  async webAuthnAuthenticate(username) {
+    try {
+      const storedCredential = this.credentials.get(username);
+      if (!storedCredential) {
+        throw new Error('ユーザーが登録されていません');
+      }
+      
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          allowCredentials: [{
+            id: new Uint8Array(storedCredential.rawId),
+            type: 'public-key'
+          }],
+          timeout: 60000,
+          userVerification: 'preferred'
+        }
+      });
+      
+      return { success: true, method: 'webauthn', username: username };
+    } catch (error) {
+      console.error('WebAuthn認証エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  async fallbackRegister(username) {
+    const password = prompt(`${username}のパスワードを設定してください:`);
+    if (!password) return { success: false, error: 'パスワードが入力されていません' };
+    
+    const hashedPassword = await this.createSecureHash(password);
+    const credentialData = {
+      username: username,
+      password: hashedPassword,
+      method: 'password',
+      created: new Date().toISOString()
+    };
+    
+    this.credentials.set(username, credentialData);
+    this.saveCredentials();
+    
+    return { success: true, method: 'password' };
+  }
+  
+  async fallbackAuthenticate(username) {
+    const storedCredential = this.credentials.get(username);
+    if (!storedCredential) {
+      return { success: false, error: 'ユーザーが登録されていません' };
+    }
+    
+    const password = prompt(`${username}のパスワードを入力してください:`);
+    if (!password) return { success: false, error: 'パスワードが入力されていません' };
+    
+    const hashedPassword = await this.createSecureHash(password);
+    if (hashedPassword === storedCredential.password) {
+      return { success: true, method: 'password', username: username };
+    } else {
+      return { success: false, error: 'パスワードが間違っています' };
+    }
+  }
+  
+  async createSecureHash(password) {
+    const encoder = new TextEncoder();
+    const salt = 'gyugyu_news_secure_salt_2025';
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  saveCredentials() {
+    const credentialsObj = Object.fromEntries(this.credentials);
+    localStorage.setItem('webauthn_credentials', JSON.stringify(credentialsObj));
+  }
+  
+  loadCredentials() {
+    try {
+      const stored = localStorage.getItem('webauthn_credentials');
+      if (stored) {
+        const credentialsObj = JSON.parse(stored);
+        this.credentials = new Map(Object.entries(credentialsObj));
+      }
+    } catch (error) {
+      console.error('認証情報読み込みエラー:', error);
+      this.credentials = new Map();
+    }
+  }
+  
+  getRegisteredUsers() {
+    return Array.from(this.credentials.keys());
+  }
+  
+  removeUser(username) {
+    this.credentials.delete(username);
+    this.saveCredentials();
+  }
+}
+
+// Vue.js Application
 const { createApp } = Vue;
 createApp({
-  data(){return{loading:true,error:null,feeds:[],entries:[],activeFilter:'all',lastUpdated:null}},
-  computed:{
-    filteredEntries(){return this.activeFilter==='all'?this.entries:this.entries.filter(e=>e.sourceFeed===this.activeFilter)}
+  data() {
+    return {
+      // Core data
+      loading: true,
+      error: null,
+      feeds: [],
+      entries: [],
+      activeFilter: 'all',
+      lastUpdated: null,
+      
+      // Admin panel
+      showAdminPanel: false,
+      isAuthenticated: false,
+      activeTab: 'feeds',
+      loginError: null,
+      feedForm: {
+        name: '',
+        url: '',
+        color: '#5BA8C4'
+      },
+      editingFeed: null,
+      
+      // Statistics
+      errorLogs: [],
+      successRate: 0,
+      failedFeeds: 0,
+      
+      // WebAuthn Authentication
+      authSystem: null,
+      registeredUsers: [],
+      selectedUser: '',
+      showUserRegistration: false,
+      newUsername: '',
+      
+      // Security settings
+      loginAttempts: 0,
+      lastLoginAttempt: null,
+      maxLoginAttempts: 8,
+      lockoutTime: 3 * 60 * 1000,
+      lockedUntil: null,
+      
+      // GitHub API
+      githubToken: null,
+      repoOwner: null,
+      repoName: null
+    }
   },
-  methods:{
-    async fetchFeeds(){
-      this.loading=true;this.error=null;
-      try{
-        const res=await fetch('./feeds.json');
-        if(!res.ok)throw new Error('HTTP '+res.status);
-        const data=await res.json();
-        this.feeds=data.feeds||[];this.entries=data.entries||[];this.lastUpdated=data.updated;
-        this.entries=this.entries.map(e=>({...e,
-          summary:this.extractSummary(e.description||e.summary||''),
-          thumbnail:this.extractThumbnail(e),
-          thumbnailError:false}));
-        console.log('✅',this.entries.length,'件の記事を読み込みました');
-      }catch(err){console.error('取得エラー',err);this.error='フィード取得失敗: '+err.message}
-      finally{this.loading=false;}
+  
+  computed: {
+    filteredEntries() {
+      return this.activeFilter === 'all' 
+        ? this.entries 
+        : this.entries.filter(e => e.sourceFeed === this.activeFilter)
     },
-    extractSummary(html){const t=html.replace(/<[^>]*>/g,'').trim();return t.length>150?t.slice(0,150)+'…':t},
-    extractThumbnail(entry){
-      let url=null;
-      if(entry.thumbnail)url=typeof entry.thumbnail==='string'?entry.thumbnail:entry.thumbnail.url;
-      if(!url && entry.enclosures?.length){
-        const enc=entry.enclosures.find(e=>e.type?.startsWith('image/')&&(e.url||e.href));
-        if(enc)url=enc.url||enc.href;
+    
+    isWebAuthnSupported() {
+      return window.PublicKeyCredential !== undefined;
+    }
+  },
+  
+  methods: {
+    // Feed management
+    async fetchFeeds() {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const res = await fetch('./feeds.json');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        
+        const data = await res.json();
+        this.feeds = data.feeds || [];
+        this.entries = data.entries || [];
+        this.lastUpdated = data.updated;
+        
+        this.entries = this.entries.map(e => ({
+          ...e,
+          summary: this.extractSummary(e.description || e.summary || ''),
+          thumbnail: this.extractThumbnail(e),
+          thumbnailError: false
+        }));
+        
+        this.updateStatistics();
+        console.log('✅', this.entries.length, '件の記事を読み込みました');
+        
+      } catch (err) {
+        console.error('取得エラー', err);
+        this.error = 'フィード取得失敗: ' + err.message;
+        this.logError('フィード取得失敗', err.message);
+      } finally {
+        this.loading = false;
       }
-      if(!url && entry['media:content']){
-        const arr=Array.isArray(entry['media:content'])?entry['media:content']:[entry['media:content']];
-        for(const m of arr){if(m.url&&(m.medium==='image'||m.type?.startsWith('image/'))){url=m.url;break}}
+    },
+    
+    extractSummary(html) {
+      const text = html.replace(/<[^>]*>/g, '').trim();
+      return text.length > 150 ? text.slice(0, 150) + '…' : text;
+    },
+    
+    extractThumbnail(entry) {
+      let url = null;
+      
+      if (entry.thumbnail) {
+        url = typeof entry.thumbnail === 'string' ? entry.thumbnail : entry.thumbnail.url;
       }
-      if(!url && entry['media:thumbnail'])
-        url=typeof entry['media:thumbnail']==='string'?entry['media:thumbnail']:entry['media:thumbnail'].url;
-      if(!url && entry.description){
-        const m=entry.description.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)url=m[1];
+      
+      if (!url && entry.enclosures?.length) {
+        const enc = entry.enclosures.find(e => e.type?.startsWith('image/') && (e.url || e.href));
+        if (enc) url = enc.url || enc.href;
       }
-      if(!url && entry.content){
-        const c=typeof entry.content==='object'?(entry.content.value||entry.content['#text']||''):entry.content;
-        const m=c.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)url=m[1];
+      
+      if (!url && entry['media:content']) {
+        const arr = Array.isArray(entry['media:content']) ? entry['media:content'] : [entry['media:content']];
+        for (const m of arr) {
+          if (m.url && (m.medium === 'image' || m.type?.startsWith('image/'))) {
+            url = m.url;
+            break;
+          }
+        }
       }
-      if(url){
-        try{
-          const u=new URL(url);
-          if(u.protocol!=='https:')return null;
-          const ng=['ogp.png','/admin/','/private/','/protected/','basic-auth','unauthorized'];
-          if(ng.some(p=>url.toLowerCase().includes(p)))return null;
+      
+      if (!url && entry['media:thumbnail']) {
+        url = typeof entry['media:thumbnail'] === 'string' ? entry['media:thumbnail'] : entry['media:thumbnail'].url;
+      }
+      
+      if (!url && entry.description) {
+        const match = entry.description.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (match) url = match[1];
+      }
+      
+      if (!url && entry.content) {
+        const content = typeof entry.content === 'object' ? (entry.content.value || entry.content['#text'] || '') : entry.content;
+        const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (match) url = match[1];
+      }
+      
+      if (url) {
+        try {
+          const urlObj = new URL(url);
+          if (urlObj.protocol !== 'https:') return null;
+          
+          const ngPatterns = ['ogp.png', '/admin/', '/private/', '/protected/', 'basic-auth', 'unauthorized'];
+          if (ngPatterns.some(pattern => url.toLowerCase().includes(pattern))) {
+            return null;
+          }
+          
           return url;
-        }catch(e){return null;}
+        } catch (e) {
+          return null;
+        }
       }
+      
       return null;
     },
-    handleImageError(ev,article){
-      console.warn('画像読み込み失敗',ev.target.src);this.$set(article,'thumbnailError',true);
-      ev.target.classList.add('error');
-      ev.target.parentElement.querySelector('.thumbnail-placeholder')?.classList.add('show');
+    
+    handleImageError(event, article) {
+      console.warn('画像読み込み失敗', event.target.src);
+      article.thumbnailError = true;
+      event.target.classList.add('error');
+      event.target.parentElement.querySelector('.thumbnail-placeholder')?.classList.add('show');
     },
-    handleImageLoad(ev){ev.target.style.opacity='1'},
-    truncateText(t,len=12){return t.length<=len?t:t.slice(0,len)+'…'},
-    setFilter(f){this.activeFilter=f},
-    getFilteredCount(s){return this.entries.filter(e=>e.sourceFeed===s).length},
-    openArticle(u){window.open(u,'_blank')},
-    formatDate(d){if(!d)return'';const dt=new Date(d);
-      return dt.toLocaleDateString('ja-JP')+' '+dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
+    
+    handleImageLoad(event) {
+      event.target.style.opacity = '1';
+    },
+    
+    truncateText(text, maxLength = 12) {
+      return text.length <= maxLength ? text : text.slice(0, maxLength) + '…';
+    },
+    
+    setFilter(filter) {
+      this.activeFilter = filter;
+    },
+    
+    getFilteredCount(sourceFeed) {
+      return this.entries.filter(e => e.sourceFeed === sourceFeed).length;
+    },
+    
+    openArticle(url) {
+      window.open(url, '_blank');
+    },
+    
+    formatDate(date) {
+      if (!date) return '';
+      const dt = new Date(date);
+      return dt.toLocaleDateString('ja-JP') + ' ' + dt.toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+    
+    // Authentication
+    async initializeAuth() {
+      this.authSystem = new ModernAuthSystem();
+      this.registeredUsers = this.authSystem.getRegisteredUsers();
+    },
+    
+    async registerNewUser() {
+      if (!this.newUsername.trim()) {
+        this.loginError = 'ユーザー名を入力してください';
+        return;
+      }
+      
+      if (this.registeredUsers.includes(this.newUsername)) {
+        this.loginError = 'そのユーザー名は既に登録されています';
+        return;
+      }
+      
+      try {
+        const result = await this.authSystem.register(this.newUsername);
+        
+        if (result.success) {
+          this.registeredUsers = this.authSystem.getRegisteredUsers();
+          const username = this.newUsername;
+          this.newUsername = '';
+          this.showUserRegistration = false;
+          this.loginError = null;
+          
+          alert(`✅ ユーザー「${username}」を登録しました（${result.method}）`);
+        } else {
+          this.loginError = `登録失敗: ${result.error}`;
+        }
+      } catch (error) {
+        this.loginError = `登録エラー: ${error.message}`;
+      }
+    },
+    
+    async authenticateUser() {
+      if (!this.selectedUser) {
+        this.loginError = 'ユーザーを選択してください';
+        return;
+      }
+      
+      if (this.isAccountLocked()) {
+        const remainingTime = Math.ceil((this.lockedUntil - Date.now()) / 1000 / 60);
+        this.loginError = `アカウントがロックされています。${remainingTime}分後に再試行してください。`;
+        return;
+      }
+      
+      const now = Date.now();
+      if (this.lastLoginAttempt && now - this.lastLoginAttempt < 5000) {
+        this.loginAttempts++;
+        if (this.loginAttempts >= this.maxLoginAttempts) {
+          this.lockedUntil = now + this.lockoutTime;
+          this.loginError = 'アカウントがロックされました。3分後に再試行してください。';
+          this.logSecurityEvent('account_locked', {
+            username: this.selectedUser,
+            attempts: this.loginAttempts
+          });
+          return;
+        }
+      } else {
+        this.loginAttempts = 1;
+      }
+      
+      this.lastLoginAttempt = now;
+      
+      try {
+        const result = await this.authSystem.authenticate(this.selectedUser);
+        
+        if (result.success) {
+          this.isAuthenticated = true;
+          this.selectedUser = '';
+          this.loginError = null;
+          this.loginAttempts = 0;
+          this.lockedUntil = null;
+          
+          this.logSecurityEvent('login_success', {
+            username: result.username,
+            method: result.method
+          });
+          
+          console.log(`✅ 認証成功: ${result.username} (${result.method})`);
+        } else {
+          this.loginError = `認証失敗: ${result.error}`;
+          this.logSecurityEvent('login_failure', {
+            username: this.selectedUser,
+            error: result.error,
+            attempts: this.loginAttempts
+          });
+        }
+      } catch (error) {
+        this.loginError = `認証エラー: ${error.message}`;
+        this.logSecurityEvent('login_error', {
+          username: this.selectedUser,
+          error: error.message
+        });
+      }
+    },
+    
+    logout() {
+      this.isAuthenticated = false;
+      this.showAdminPanel = false;
+      this.selectedUser = '';
+      this.loginError = null;
+    },
+    
+    removeUser(username) {
+      if (confirm(`ユーザー「${username}」を削除しますか？`)) {
+        this.authSystem.removeUser(username);
+        this.registeredUsers = this.authSystem.getRegisteredUsers();
+        console.log(`✅ ユーザー削除: ${username}`);
+      }
+    },
+    
+    isAccountLocked() {
+      return this.lockedUntil && Date.now() < this.lockedUntil;
+    },
+    
+    // Feed management
+    editFeed(feed) {
+      this.editingFeed = { ...feed };
+      this.feedForm = { ...feed };
+    },
+    
+    cancelEdit() {
+      this.editingFeed = null;
+      this.feedForm = {
+        name: '',
+        url: '',
+        color: '#5BA8C4'
+      };
+    },
+    
+    async saveFeed() {
+      try {
+        if (this.editingFeed) {
+          const index = this.feeds.findIndex(f => f.name === this.editingFeed.name);
+          if (index !== -1) {
+            this.feeds[index] = { ...this.feedForm };
+          }
+        } else {
+          this.feeds.push({ ...this.feedForm });
+        }
+        
+        await this.triggerGitHubActions('feed_updated', {
+          action: this.editingFeed ? 'update' : 'add',
+          feed: this.feedForm
+        });
+        
+        this.cancelEdit();
+        console.log('✅ フィードを保存しました');
+        
+      } catch (err) {
+        console.error('フィード保存エラー:', err);
+        this.logError('フィード保存失敗', err.message);
+      }
+    },
+    
+    async deleteFeed(feed) {
+      if (!confirm(`「${feed.name}」を削除しますか？`)) return;
+      
+      try {
+        this.feeds = this.feeds.filter(f => f.name !== feed.name);
+        
+        await this.triggerGitHubActions('feed_deleted', {
+          action: 'delete',
+          feed: feed
+        });
+        
+        console.log('✅ フィードを削除しました');
+        
+      } catch (err) {
+        console.error('フィード削除エラー:', err);
+        this.logError('フィード削除失敗', err.message);
+      }
+    },
+    
+    // GitHub Actions
+    async triggerGitHubActions(eventType, payload) {
+      if (!this.githubToken || !this.repoOwner || !this.repoName) {
+        console.warn('GitHub API設定が不完全です');
+        return;
+      }
+      
+      const url = `https://api.github.com/repos/${this.repoOwner}/${this.repoName}/dispatches`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${this.githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          event_type: eventType,
+          client_payload: payload
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GitHub API Error: ${response.status}`);
+      }
+      
+      console.log('✅ GitHub Actions トリガー成功');
+    },
+    
+    // Statistics and monitoring
+    updateStatistics() {
+      const total = this.feeds.length;
+      const failed = this.feeds.filter(f => f.status === 'error').length;
+      this.failedFeeds = failed;
+      this.successRate = total > 0 ? Math.round(((total - failed) / total) * 100) : 0;
+    },
+    
+    logError(type, message) {
+      const error = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        type: type,
+        message: message
+      };
+      
+      this.errorLogs.unshift(error);
+      
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      this.errorLogs = this.errorLogs.filter(log => new Date(log.timestamp) > oneDayAgo);
+      
+      localStorage.setItem('error_logs', JSON.stringify(this.errorLogs));
+    },
+    
+    loadErrorLogs() {
+      try {
+        const logs = localStorage.getItem('error_logs');
+        if (logs) {
+          this.errorLogs = JSON.parse(logs);
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          this.errorLogs = this.errorLogs.filter(log => new Date(log.timestamp) > oneDayAgo);
+        }
+      } catch (err) {
+        console.error('エラーログ読み込み失敗:', err);
+      }
+    },
+    
+    logSecurityEvent(eventType, details) {
+      const event = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        type: eventType,
+        details: details,
+        userAgent: navigator.userAgent
+      };
+      
+      const existingLogs = JSON.parse(localStorage.getItem('security_logs') || '[]');
+      existingLogs.unshift(event);
+      
+      if (existingLogs.length > 100) {
+        existingLogs.splice(100);
+      }
+      
+      localStorage.setItem('security_logs', JSON.stringify(existingLogs));
+      
+      if (['account_locked', 'login_error'].includes(eventType)) {
+        console.warn('🚨 セキュリティアラート:', eventType, details);
+      }
+    },
+    
+    loadConfig() {
+      this.githubToken = localStorage.getItem('github_token');
+      this.repoOwner = localStorage.getItem('repo_owner');
+      this.repoName = localStorage.getItem('repo_name');
+    }
   },
-  mounted(){
+  
+  async mounted() {
+    await this.initializeAuth();
+    this.loadErrorLogs();
+    this.loadConfig();
     this.fetchFeeds();
-    setInterval(()=>this.fetchFeeds(),30*60*1e3);
+    
+    setInterval(() => this.fetchFeeds(), 30 * 60 * 1000);
   }
 }).mount('#app');
 </script>
