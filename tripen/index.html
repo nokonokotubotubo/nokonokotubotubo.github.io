@@ -112,6 +112,7 @@
             display: flex;
             height: 80vh;
             min-height: 600px;
+            overflow: hidden;
         }
         
         .time-axis {
@@ -119,6 +120,7 @@
             background: var(--time-grid-color);
             border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
+            overflow: hidden;
         }
         
         .time-slot {
@@ -136,6 +138,7 @@
             flex: 1;
             position: relative;
             overflow-y: auto;
+            overflow-x: hidden;
         }
         
         .schedule-grid {
@@ -196,8 +199,10 @@
         }
         
         .event-block.dragging {
-            opacity: 0.7;
-            transform: rotate(5deg);
+            opacity: 0.8;
+            /* 傾きを削除 */
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            z-index: 100;
         }
         
         .event-block.resizing {
@@ -231,9 +236,9 @@
             position: absolute;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 6px;
             cursor: ns-resize;
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.5);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -461,7 +466,7 @@
                              draggable="true"
                              @dragstart="handleDragStart($event, event)"
                              @dragend="handleDragEnd"
-                             @click="openEventModal(event)">
+                             @click="handleEventClick($event, event)">
                             
                             <div class="resize-handle top" @mousedown="startResize($event, event, 'top')"></div>
                             
@@ -600,6 +605,7 @@
                     draggedEvent: null,
                     resizingEvent: null,
                     resizeDirection: null,
+                    isResizing: false,
                     
                     // フォーム
                     eventForm: {
@@ -669,18 +675,23 @@
                     return this.events.filter(event => event.dayIndex === this.activeDay);
                 },
                 
-                // 時間・位置計算
+                // 時間・位置計算（修正版）
                 timeToPixels(time) {
                     const [hours, minutes] = time.split(':').map(Number);
                     const totalMinutes = (hours - 4) * 60 + minutes; // 4時を基準点に
-                    return totalMinutes; // 1分 = 1pixel
+                    return totalMinutes * 1; // 1分 = 1pixel
                 },
                 
                 pixelsToTime(pixels) {
                     const totalMinutes = Math.round(pixels / 15) * 15; // 15分間隔にスナップ
                     const hours = Math.floor(totalMinutes / 60) + 4; // 4時を基準点に
                     const minutes = totalMinutes % 60;
-                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    
+                    // 時間範囲の制限（4時〜24時）
+                    const clampedHours = Math.max(4, Math.min(23, hours));
+                    const clampedMinutes = clampedHours === 23 && minutes > 45 ? 45 : minutes;
+                    
+                    return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
                 },
                 
                 getEventStyle(event) {
@@ -690,7 +701,7 @@
                     
                     return {
                         top: `${startPixels}px`,
-                        height: `${duration}px`,
+                        height: `${Math.max(duration, 30)}px`,
                         minHeight: '30px'
                     };
                 },
@@ -714,6 +725,26 @@
                     
                     const modal = new bootstrap.Modal(document.getElementById('eventModal'));
                     modal.show();
+                },
+                
+                // イベントクリック処理（修正版）
+                handleEventClick(event, eventData) {
+                    // リサイズ中の場合はモーダルを開かない
+                    if (this.isResizing) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                    }
+                    
+                    // リサイズハンドルをクリックした場合はモーダルを開かない
+                    if (event.target.classList.contains('resize-handle')) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                    }
+                    
+                    // 通常のクリック処理
+                    this.openEventModal(eventData);
                 },
                 
                 saveEvent() {
@@ -772,10 +803,11 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // ドラッグ&ドロップ
+                // ドラッグ&ドロップ（修正版）
                 handleDragStart(event, eventData) {
                     this.draggedEvent = eventData;
                     event.dataTransfer.setData('text/plain', '');
+                    event.dataTransfer.effectAllowed = 'move';
                 },
                 
                 handleDragEnd() {
@@ -809,11 +841,12 @@
                     }
                 },
                 
-                // リサイズ機能
+                // リサイズ機能（修正版）
                 startResize(event, eventData, direction) {
                     event.preventDefault();
                     event.stopPropagation();
                     
+                    this.isResizing = true;
                     this.resizingEvent = eventData;
                     this.resizeDirection = direction;
                     
@@ -842,16 +875,32 @@
                         this.resizingEvent = null;
                         this.resizeDirection = null;
                         this.saveData();
+                        
+                        // リサイズ完了後、少し待ってからフラグをクリア
+                        setTimeout(() => {
+                            this.isResizing = false;
+                        }, 100);
                     };
                     
                     document.addEventListener('mousemove', moveHandler);
                     document.addEventListener('mouseup', upHandler);
                 },
                 
-                // スケジュールエリアクリック
+                // スケジュールエリアクリック（修正版）
                 handleScheduleClick(event) {
+                    // リサイズ中の場合は何もしない
+                    if (this.isResizing) {
+                        return;
+                    }
+                    
+                    // 予定ブロックをクリックした場合は何もしない
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
                     if (event.target.classList.contains('schedule-area') || 
-                        event.target.classList.contains('grid-line')) {
+                        event.target.classList.contains('grid-line') ||
+                        event.target.classList.contains('quarter-line')) {
                         const rect = event.currentTarget.getBoundingClientRect();
                         const y = event.clientY - rect.top;
                         const clickTime = this.pixelsToTime(y);
