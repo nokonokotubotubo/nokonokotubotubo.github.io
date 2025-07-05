@@ -261,6 +261,16 @@
           100% { transform: scale(1); opacity: 1; }
         }
 
+        /* 軽量なスケールアニメーション（同じカテゴリ時） */
+        .article-card.light-scale {
+          animation: lightScale 0.2s ease;
+        }
+
+        @keyframes lightScale {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.01); }
+        }
+
         /* カテゴリ変更時のハイライト */
         .category-highlight {
           animation: categoryPulse 1s ease-in-out;
@@ -546,13 +556,75 @@
             return 'neutral';
         }
 
-        // ✅ 星評価による即座カテゴリ分け画面更新
+        // ✅ 現在のカテゴリを取得する関数
+        function getCurrentPreference(articleId) {
+            // currentDataから現在の嗜好を取得
+            if (currentData && currentData.articles) {
+                const article = currentData.articles.find(a => a.id === articleId);
+                if (article) {
+                    return article.preference;
+                }
+            }
+            
+            // フォールバック: DOMから取得
+            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (articleCard) {
+                if (articleCard.classList.contains('interested')) return 'interested';
+                if (articleCard.classList.contains('neutral')) return 'neutral';
+                if (articleCard.classList.contains('not-interested')) return 'not-interested';
+            }
+            
+            // デフォルト
+            return 'neutral';
+        }
+
+        // ✅ ユーザー評価マークのみ更新（軽量処理）
+        function updateUserRatingMark(articleId, rating) {
+            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
+            
+            cards.forEach(card => {
+                // ユーザー評価マークを追加
+                let userMark = card.querySelector('.user-rated-mark');
+                if (!userMark) {
+                    userMark = document.createElement('span');
+                    userMark.className = 'user-rated-mark';
+                    userMark.textContent = '✓ ユーザー評価';
+                    card.appendChild(userMark);
+                }
+                
+                // 評価情報を更新
+                let ratingInfo = card.querySelector('.article-info[data-rating]');
+                if (!ratingInfo) {
+                    // 評価情報がない場合は追加
+                    const metaDiv = card.querySelector('.article-meta');
+                    ratingInfo = document.createElement('span');
+                    ratingInfo.className = 'article-info';
+                    ratingInfo.setAttribute('data-rating', 'true');
+                    metaDiv.appendChild(ratingInfo);
+                }
+                ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
+                
+                // 軽量なスケールアニメーション
+                card.classList.add('light-scale');
+                setTimeout(() => {
+                    card.classList.remove('light-scale');
+                }, 200);
+            });
+        }
+
+        // ✅ 星評価による最適化されたカテゴリ分け
         function setRating(articleId, rating) {
             let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
             
             if (!userFeedback[articleId]) {
                 userFeedback[articleId] = {};
             }
+            
+            // ✅ 現在のカテゴリを取得
+            const currentPreference = getCurrentPreference(articleId);
+            
+            // ✅ 新しいカテゴリを計算
+            const newPreference = calculatePreferenceFromRating(rating);
             
             // 記事情報も保存（AI学習用）
             const article = currentData.articles.find(a => a.id === articleId);
@@ -568,15 +640,26 @@
             
             localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
             
-            // 星の表示を更新
+            // 星の表示を更新（常に実行）
             const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
             stars.forEach((star, index) => {
                 star.classList.toggle('filled', index < rating);
             });
             
-            // ✅ 新しい嗜好カテゴリを計算
-            const newPreference = calculatePreferenceFromRating(rating);
-            const oldPreference = article ? article.preference : 'neutral';
+            // ✅ カテゴリが同じ場合は移動処理をスキップ
+            if (currentPreference === newPreference) {
+                console.log('📊 カテゴリ変更なし:', currentPreference, '→', newPreference, '処理スキップ');
+                
+                // 評価マークのみ更新
+                updateUserRatingMark(articleId, rating);
+                
+                // 軽量なフィードバックメッセージ
+                showFeedbackMessage(`評価を保存しました（${rating}/5）`);
+                
+                return; // ✅ 早期リターンで不要な処理をスキップ
+            }
+            
+            console.log('📊 カテゴリ変更あり:', currentPreference, '→', newPreference, '移動処理実行');
             
             // ✅ currentDataを更新
             if (currentData && currentData.articles) {
@@ -588,17 +671,17 @@
                 }
             }
             
-            // ✅ 記事を適切なカテゴリコンテナに移動
-            moveArticleToNewCategory(articleId, oldPreference, newPreference, rating);
+            // ✅ カテゴリが変わった場合のみ移動処理を実行
+            moveArticleToNewCategory(articleId, currentPreference, newPreference, rating);
             
             // ✅ タブカウントを更新
             updateTabCountsFromCurrentData();
             
-            // 視覚的フィードバック
+            // 視覚的フィードバック（カテゴリ変更時のみ）
             showCategoryChangeAnimation(articleId, newPreference);
             showFeedbackMessage(`評価を保存し、「${getPreferenceName(newPreference)}」に移動しました！`);
             
-            console.log('評価保存・カテゴリ移動:', articleId, rating, `${oldPreference} → ${newPreference}`);
+            console.log('評価保存・カテゴリ移動:', articleId, rating, `${currentPreference} → ${newPreference}`);
         }
 
         // ✅ 記事を新しいカテゴリコンテナに移動
@@ -696,17 +779,16 @@
             }
             
             // 評価情報を更新
-            const ratingInfo = card.querySelector('.article-info:last-child');
-            if (ratingInfo && ratingInfo.textContent.includes('⭐')) {
-                ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-            } else {
+            let ratingInfo = card.querySelector('.article-info[data-rating]');
+            if (!ratingInfo) {
                 // 評価情報がない場合は追加
                 const metaDiv = card.querySelector('.article-meta');
-                const newRatingInfo = document.createElement('span');
-                newRatingInfo.className = 'article-info';
-                newRatingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-                metaDiv.appendChild(newRatingInfo);
+                ratingInfo = document.createElement('span');
+                ratingInfo.className = 'article-info';
+                ratingInfo.setAttribute('data-rating', 'true');
+                metaDiv.appendChild(ratingInfo);
             }
+            ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
         }
 
         // ✅ カードのイベントリスナーを設定
@@ -916,7 +998,7 @@
                         <span class="article-info">⏰ ${relativeTime}</span>
                         <span class="article-info">📰 ${article.feedName}</span>
                         <span class="article-info">🏷️ ${article.category}</span>
-                        ${isUserRated ? `<span class="article-info">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
+                        ${isUserRated ? `<span class="article-info" data-rating="true">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
                     </div>
                     <div class="article-description">
                         ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
@@ -930,7 +1012,7 @@
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
-                        <div class="rating-label">この記事を評価（即座にカテゴリ移動）</div>
+                        <div class="rating-label">この記事を評価（最適化済み）</div>
                     </div>
                 </div>
             </div>`;
