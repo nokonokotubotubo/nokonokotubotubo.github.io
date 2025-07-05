@@ -13,23 +13,26 @@
     <style>
         /* カスタムCSS - 淡い水色基調デザイン */
         :root {
-            --primary-color: #87CEEB;    /* 淡い水色 */
-            --secondary-color: #B0E0E6;  /* より淡い水色 */
-            --accent-color: #4682B4;     /* 濃い水色 */
-            --text-color: #2F4F4F;       /* 暗いスレート */
-            --bg-color: #F0F8FF;         /* アリスブルー */
+            --primary-color: #87CEEB;
+            --secondary-color: #B0E0E6;
+            --accent-color: #4682B4;
+            --text-color: #2F4F4F;
+            --bg-color: #F0F8FF;
+            --time-grid-color: #E6F3FF;
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
         }
         
         .header {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 20px 0;
+            padding: 15px 0;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
@@ -39,97 +42,166 @@
             margin-right: 10px;
         }
         
-        .calendar-container {
+        .github-config {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .github-config h6 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .github-config small {
+            color: #6c757d;
+        }
+        
+        .day-tabs {
             background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 15px 15px 0 0;
+            padding: 0;
+            margin: 20px 0 0 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
         }
         
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .calendar-nav {
-            background: var(--primary-color);
-            color: white;
+        .day-tabs .nav-link {
             border: none;
-            padding: 8px 15px;
-            border-radius: 20px;
-            cursor: pointer;
+            color: var(--text-color);
+            padding: 12px 20px;
+            border-radius: 15px 15px 0 0;
+            white-space: nowrap;
+            text-align: center;
+            min-width: 120px;
             transition: all 0.3s ease;
         }
         
-        .calendar-nav:hover {
-            background: var(--accent-color);
-            transform: translateY(-2px);
-        }
-        
-        .calendar-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .calendar-table th,
-        .calendar-table td {
-            padding: 15px 5px;
-            text-align: center;
-            border: 1px solid #e0e0e0;
-            vertical-align: top;
-            position: relative;
-        }
-        
-        .calendar-table th {
-            background: var(--secondary-color);
-            color: var(--text-color);
-            font-weight: bold;
-        }
-        
-        .calendar-table td {
-            height: 100px;
-            background: white;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        
-        .calendar-table td:hover {
-            background: #f8f9fa;
-        }
-        
-        .calendar-table td.other-month {
-            background: #f5f5f5;
-            color: #ccc;
-        }
-        
-        .calendar-table td.today {
-            background: var(--secondary-color);
-            font-weight: bold;
-        }
-        
-        .event-item {
+        .day-tabs .nav-link.active {
             background: var(--primary-color);
             color: white;
-            padding: 2px 5px;
-            margin: 1px 0;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            cursor: grab;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .day-tabs .nav-link:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        .timeline-container {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            padding: 0;
+            margin: 0 0 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .timeline-header {
+            background: var(--secondary-color);
+            padding: 15px 20px;
+            border-radius: 0 0 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .timeline-content {
+            display: flex;
+            height: 80vh;
+            min-height: 600px;
+        }
+        
+        .time-axis {
+            width: 80px;
+            background: var(--time-grid-color);
+            border-right: 2px solid var(--secondary-color);
+            flex-shrink: 0;
+        }
+        
+        .time-slot {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-color);
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .schedule-area {
+            flex: 1;
             position: relative;
-            word-wrap: break-word;
+            overflow-y: auto;
+        }
+        
+        .schedule-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1200px; /* 20時間 × 60px */
+        }
+        
+        .grid-line {
+            height: 60px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .grid-line:nth-child(odd) {
+            background: rgba(135, 206, 235, 0.05);
+        }
+        
+        .quarter-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #f0f0f0;
+        }
+        
+        .quarter-line:nth-child(2) {
+            top: 30px;
+        }
+        
+        .quarter-line:nth-child(3) {
+            top: 45px;
+        }
+        
+        .event-block {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: move;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            z-index: 10;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
         
-        .event-item:active {
-            cursor: grabbing;
+        .event-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: var(--accent-color);
         }
         
-        .event-item.dragging {
-            opacity: 0.5;
+        .event-block.dragging {
+            opacity: 0.7;
+            transform: rotate(5deg);
+        }
+        
+        .event-block.resizing {
+            border-color: var(--accent-color);
         }
         
         .event-category-travel { background: #FF6B6B; }
@@ -137,6 +209,48 @@
         .event-category-sightseeing { background: #45B7D1; }
         .event-category-accommodation { background: #96CEB4; }
         .event-category-custom { background: #FECA57; }
+        
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .event-time {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .event-description {
+            font-size: 0.75rem;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            cursor: ns-resize;
+            background: rgba(255,255,255,0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .resize-handle.top {
+            top: 0;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .resize-handle.bottom {
+            bottom: 0;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .event-block:hover .resize-handle {
+            opacity: 1;
+        }
         
         .modal-content {
             border-radius: 15px;
@@ -174,41 +288,69 @@
             box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
         }
         
-        .share-section {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .add-event-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
         }
         
-        .share-url {
-            background: var(--bg-color);
-            border: 2px solid var(--primary-color);
-            border-radius: 10px;
-            padding: 10px;
-            word-break: break-all;
+        .add-event-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-color);
         }
         
         .drop-zone {
+            background: rgba(135, 206, 235, 0.2);
             border: 2px dashed var(--primary-color);
-            background: rgba(135, 206, 235, 0.1);
         }
         
         /* レスポンシブデザイン */
         @media (max-width: 768px) {
-            .calendar-table td {
-                height: 80px;
-                padding: 5px 2px;
+            .time-axis {
+                width: 60px;
             }
             
-            .event-item {
+            .time-slot {
+                height: 50px;
+                font-size: 0.8rem;
+            }
+            
+            .grid-line {
+                height: 50px;
+            }
+            
+            .schedule-grid {
+                height: 1000px;
+            }
+            
+            .event-block {
+                padding: 6px 8px;
+            }
+            
+            .event-title {
+                font-size: 0.8rem;
+            }
+            
+            .event-time {
                 font-size: 0.7rem;
-                padding: 1px 3px;
             }
             
-            .penguin-icon {
-                font-size: 1.5rem;
+            .add-event-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -227,88 +369,121 @@
         </header>
         
         <!-- メインコンテンツ -->
-        <div class="container">
-            <!-- 共有機能 -->
-            <div class="share-section">
-                <h5><i class="fas fa-share-alt"></i> 共有機能</h5>
+        <div class="container-fluid">
+            <!-- GitHub設定案内 -->
+            <div class="github-config" v-if="!isGitHubConfigured">
+                <h6><i class="fab fa-github"></i> GitHub設定が必要です</h6>
                 <div class="row">
-                    <div class="col-md-8">
-                        <div class="share-url">
-                            {{ shareUrl }}
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label">リポジトリ名</label>
+                        <input type="text" class="form-control" v-model="gitHubConfig.repo" placeholder="例: trippen-data">
+                        <small>プライベートリポジトリを作成してください</small>
                     </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-primary w-100" @click="copyShareUrl">
-                            <i class="fas fa-copy"></i> URLをコピー
-                        </button>
+                    <div class="col-md-6">
+                        <label class="form-label">Personal Access Token</label>
+                        <input type="password" class="form-control" v-model="gitHubConfig.token" placeholder="ghp_xxxxxxxxxxxxxxxx">
+                        <small>repo権限付きのトークンを作成してください</small>
                     </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" @click="testGitHubConnection">
+                        <i class="fas fa-link"></i> 接続テスト
+                    </button>
+                    <button class="btn btn-secondary ms-2" @click="useLocalStorage">
+                        <i class="fas fa-save"></i> とりあえずローカル保存で開始
+                    </button>
                 </div>
             </div>
             
-            <!-- カレンダー -->
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button class="calendar-nav" @click="previousMonth">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <h3>{{ currentYear }}年 {{ currentMonth }}月</h3>
-                    <button class="calendar-nav" @click="nextMonth">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+            <!-- 日付タブ -->
+            <ul class="nav nav-tabs day-tabs">
+                <li class="nav-item" v-for="(day, index) in tripDays" :key="index">
+                    <a class="nav-link" 
+                       :class="{ active: activeDay === index }"
+                       @click="activeDay = index"
+                       href="#">
+                        <div>{{ day.dayNumber }}日目</div>
+                        <small>{{ day.date }}</small>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" @click="addNewDay" href="#">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- タイムライン -->
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h5>
+                        <i class="fas fa-calendar-day"></i>
+                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
+                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" @click="openEventModal()">
+                            <i class="fas fa-plus"></i> 予定追加
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="calendar-table">
-                        <thead>
-                            <tr>
-                                <th>日</th>
-                                <th>月</th>
-                                <th>火</th>
-                                <th>水</th>
-                                <th>木</th>
-                                <th>金</th>
-                                <th>土</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="week in calendarWeeks" :key="week.weekIndex">
-                                <td v-for="day in week.days" :key="day.date"
-                                    :class="[
-                                        day.isOtherMonth ? 'other-month' : '',
-                                        day.isToday ? 'today' : '',
-                                        dragOverDay === day.date ? 'drop-zone' : ''
-                                    ]"
-                                    @click="openEventModal(day.date)"
-                                    @dragover.prevent="dragOverDay = day.date"
-                                    @dragleave="dragOverDay = null"
-                                    @drop="handleDrop($event, day.date)">
-                                    
-                                    <div class="fw-bold">{{ day.day }}</div>
-                                    
-                                    <div class="event-item"
-                                         v-for="event in getEventsForDay(day.date)"
-                                         :key="event.id"
-                                         :class="'event-category-' + event.category"
-                                         draggable="true"
-                                         @dragstart="handleDragStart($event, event)"
-                                         @dragend="handleDragEnd"
-                                         @click.stop="openEventModal(day.date, event)">
-                                        
-                                        <i :class="getCategoryIcon(event.category)"></i>
-                                        {{ event.title }}
-                                        <small class="d-block">
-                                            {{ event.startTime }} - {{ event.endTime }}
-                                        </small>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="timeline-content">
+                    <!-- 時間軸 -->
+                    <div class="time-axis">
+                        <div class="time-slot" v-for="hour in timeSlots" :key="hour">
+                            {{ hour }}:00
+                        </div>
+                    </div>
+                    
+                    <!-- スケジュール表示エリア -->
+                    <div class="schedule-area" 
+                         @click="handleScheduleClick"
+                         @dragover.prevent
+                         @drop="handleDrop">
+                        <div class="schedule-grid">
+                            <div class="grid-line" v-for="hour in timeSlots" :key="hour">
+                                <div class="quarter-line"></div>
+                                <div class="quarter-line"></div>
+                                <div class="quarter-line"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 予定ブロック -->
+                        <div class="event-block" 
+                             v-for="event in getCurrentDayEvents()" 
+                             :key="event.id"
+                             :class="[
+                                 'event-category-' + event.category,
+                                 { 'dragging': draggedEvent && draggedEvent.id === event.id }
+                             ]"
+                             :style="getEventStyle(event)"
+                             draggable="true"
+                             @dragstart="handleDragStart($event, event)"
+                             @dragend="handleDragEnd"
+                             @click="openEventModal(event)">
+                            
+                            <div class="resize-handle top" @mousedown="startResize($event, event, 'top')"></div>
+                            
+                            <div class="event-title">
+                                <i :class="getCategoryIcon(event.category)"></i>
+                                {{ event.title }}
+                            </div>
+                            <div class="event-time">
+                                {{ event.startTime }} - {{ event.endTime }}
+                            </div>
+                            <div class="event-description" v-if="event.description">
+                                {{ event.description }}
+                            </div>
+                            
+                            <div class="resize-handle bottom" @mousedown="startResize($event, event, 'bottom')"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- 予定編集モーダル -->
+        <!-- 予定追加/編集モーダル -->
         <div class="modal fade" id="eventModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -328,7 +503,11 @@
                             
                             <div class="mb-3">
                                 <label class="form-label">日付</label>
-                                <input type="date" class="form-control" v-model="eventForm.date" required>
+                                <select class="form-control" v-model="eventForm.dayIndex" required>
+                                    <option v-for="(day, index) in tripDays" :key="index" :value="index">
+                                        {{ day.dayNumber }}日目 ({{ day.date }})
+                                    </option>
+                                </select>
                             </div>
                             
                             <div class="row">
@@ -357,11 +536,6 @@
                                 </select>
                             </div>
                             
-                            <div class="mb-3" v-if="eventForm.category === 'custom'">
-                                <label class="form-label">カスタムカテゴリ名</label>
-                                <input type="text" class="form-control" v-model="eventForm.customCategory" placeholder="カテゴリ名を入力">
-                            </div>
-                            
                             <div class="mb-3">
                                 <label class="form-label">詳細</label>
                                 <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
@@ -380,6 +554,11 @@
                 </div>
             </div>
         </div>
+        
+        <!-- フローティング追加ボタン -->
+        <button class="add-event-btn" @click="openEventModal()">
+            <i class="fas fa-plus"></i>
+        </button>
     </div>
     
     <!-- Bootstrap JS -->
@@ -393,100 +572,193 @@
         createApp({
             data() {
                 return {
-                    currentDate: new Date(),
+                    // GitHub設定
+                    gitHubConfig: {
+                        repo: '',
+                        token: '',
+                        username: ''
+                    },
+                    isGitHubConfigured: false,
+                    useLocalOnly: false,
+                    
+                    // 旅行日程
+                    tripDays: [
+                        { dayNumber: 1, date: '7/5(土)' },
+                        { dayNumber: 2, date: '7/6(日)' },
+                        { dayNumber: 3, date: '7/7(月)' }
+                    ],
+                    activeDay: 0,
+                    
+                    // 時間軸（4時〜24時）
+                    timeSlots: Array.from({ length: 20 }, (_, i) => i + 4),
+                    
+                    // 予定データ
                     events: [],
+                    
+                    // UI状態
                     editingEvent: null,
                     draggedEvent: null,
-                    dragOverDay: null,
+                    resizingEvent: null,
+                    resizeDirection: null,
+                    
+                    // フォーム
                     eventForm: {
                         title: '',
-                        date: '',
-                        startTime: '',
-                        endTime: '',
+                        dayIndex: 0,
+                        startTime: '09:00',
+                        endTime: '10:00',
                         category: 'travel',
-                        customCategory: '',
                         description: ''
                     }
                 };
             },
             
-            computed: {
-                currentYear() {
-                    return this.currentDate.getFullYear();
-                },
-                
-                currentMonth() {
-                    return this.currentDate.getMonth() + 1;
-                },
-                
-                calendarWeeks() {
-                    const year = this.currentDate.getFullYear();
-                    const month = this.currentDate.getMonth();
-                    const firstDay = new Date(year, month, 1);
-                    const lastDay = new Date(year, month + 1, 0);
-                    const startDate = new Date(firstDay);
-                    startDate.setDate(startDate.getDate() - firstDay.getDay());
-                    
-                    const weeks = [];
-                    let weekIndex = 0;
-                    
-                    while (startDate <= lastDay || weeks.length < 6) {
-                        const week = { weekIndex, days: [] };
+            methods: {
+                // GitHub設定
+                async testGitHubConnection() {
+                    try {
+                        const response = await fetch(`https://api.github.com/repos/${this.gitHubConfig.username}/${this.gitHubConfig.repo}`, {
+                            headers: {
+                                'Authorization': `token ${this.gitHubConfig.token}`
+                            }
+                        });
                         
-                        for (let i = 0; i < 7; i++) {
-                            const date = new Date(startDate);
-                            const isOtherMonth = date.getMonth() !== month;
-                            const isToday = this.isToday(date);
-                            
-                            week.days.push({
-                                date: this.formatDate(date),
-                                day: date.getDate(),
-                                isOtherMonth,
-                                isToday
-                            });
-                            
-                            startDate.setDate(startDate.getDate() + 1);
+                        if (response.ok) {
+                            this.isGitHubConfigured = true;
+                            alert('GitHub接続に成功しました！');
+                            this.saveGitHubConfig();
+                        } else {
+                            alert('GitHub接続に失敗しました。設定を確認してください。');
                         }
-                        
-                        weeks.push(week);
-                        weekIndex++;
-                        
-                        if (startDate > lastDay && weeks.length >= 5) break;
+                    } catch (error) {
+                        alert('GitHub接続中にエラーが発生しました。');
+                    }
+                },
+                
+                useLocalStorage() {
+                    this.useLocalOnly = true;
+                    this.isGitHubConfigured = true;
+                    alert('ローカル保存モードで開始します。');
+                },
+                
+                saveGitHubConfig() {
+                    localStorage.setItem('trippenGitHubConfig', JSON.stringify(this.gitHubConfig));
+                },
+                
+                loadGitHubConfig() {
+                    const saved = localStorage.getItem('trippenGitHubConfig');
+                    if (saved) {
+                        this.gitHubConfig = JSON.parse(saved);
+                        this.isGitHubConfigured = true;
+                    }
+                },
+                
+                // 日程管理
+                addNewDay() {
+                    const newDayNumber = this.tripDays.length + 1;
+                    const newDate = new Date();
+                    newDate.setDate(newDate.getDate() + newDayNumber - 1);
+                    
+                    this.tripDays.push({
+                        dayNumber: newDayNumber,
+                        date: `${newDate.getMonth() + 1}/${newDate.getDate()}(${['日','月','火','水','木','金','土'][newDate.getDay()]})`
+                    });
+                },
+                
+                getCurrentDayEvents() {
+                    return this.events.filter(event => event.dayIndex === this.activeDay);
+                },
+                
+                // 時間・位置計算
+                timeToPixels(time) {
+                    const [hours, minutes] = time.split(':').map(Number);
+                    const totalMinutes = (hours - 4) * 60 + minutes; // 4時を基準点に
+                    return totalMinutes; // 1分 = 1pixel
+                },
+                
+                pixelsToTime(pixels) {
+                    const totalMinutes = Math.round(pixels / 15) * 15; // 15分間隔にスナップ
+                    const hours = Math.floor(totalMinutes / 60) + 4; // 4時を基準点に
+                    const minutes = totalMinutes % 60;
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                },
+                
+                getEventStyle(event) {
+                    const startPixels = this.timeToPixels(event.startTime);
+                    const endPixels = this.timeToPixels(event.endTime);
+                    const duration = endPixels - startPixels;
+                    
+                    return {
+                        top: `${startPixels}px`,
+                        height: `${duration}px`,
+                        minHeight: '30px'
+                    };
+                },
+                
+                // イベント操作
+                openEventModal(event = null) {
+                    this.editingEvent = event;
+                    
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
+                        this.eventForm = {
+                            title: '',
+                            dayIndex: this.activeDay,
+                            startTime: '09:00',
+                            endTime: '10:00',
+                            category: 'travel',
+                            description: ''
+                        };
                     }
                     
-                    return weeks;
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    modal.show();
                 },
                 
-                shareUrl() {
-                    const baseUrl = window.location.origin + window.location.pathname;
-                    const encodedData = encodeURIComponent(JSON.stringify(this.events));
-                    return `${baseUrl}?data=${encodedData}`;
-                }
-            },
-            
-            methods: {
-                // カレンダーナビゲーション
-                previousMonth() {
-                    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+                saveEvent() {
+                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
+                        alert('必須項目を入力してください');
+                        return;
+                    }
+                    
+                    // 時間検証
+                    if (this.eventForm.startTime >= this.eventForm.endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const eventData = {
+                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
+                        title: this.eventForm.title,
+                        dayIndex: this.eventForm.dayIndex,
+                        startTime: this.eventForm.startTime,
+                        endTime: this.eventForm.endTime,
+                        category: this.eventForm.category,
+                        description: this.eventForm.description
+                    };
+                    
+                    if (this.editingEvent) {
+                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
+                        this.events[index] = eventData;
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
+                    this.saveData();
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                    modal.hide();
                 },
                 
-                nextMonth() {
-                    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
-                },
-                
-                // 日付関連ユーティリティ
-                formatDate(date) {
-                    return date.toISOString().split('T')[0];
-                },
-                
-                isToday(date) {
-                    const today = new Date();
-                    return date.toDateString() === today.toDateString();
-                },
-                
-                // イベント管理
-                getEventsForDay(date) {
-                    return this.events.filter(event => event.date === date);
+                deleteEvent() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
+                        this.saveData();
+                        
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                        modal.hide();
+                    }
                 },
                 
                 getCategoryIcon(category) {
@@ -500,136 +772,127 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // モーダル操作
-                openEventModal(date, event = null) {
-                    this.editingEvent = event;
-                    
-                    if (event) {
-                        this.eventForm = { ...event };
-                    } else {
-                        this.eventForm = {
-                            title: '',
-                            date: date,
-                            startTime: '09:00',
-                            endTime: '10:00',
-                            category: 'travel',
-                            customCategory: '',
-                            description: ''
-                        };
-                    }
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-                    modal.show();
-                },
-                
-                // イベント保存
-                saveEvent() {
-                    if (!this.eventForm.title || !this.eventForm.date || !this.eventForm.startTime || !this.eventForm.endTime) {
-                        alert('必須項目を入力してください');
-                        return;
-                    }
-                    
-                    const eventData = {
-                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
-                        title: this.eventForm.title,
-                        date: this.eventForm.date,
-                        startTime: this.eventForm.startTime,
-                        endTime: this.eventForm.endTime,
-                        category: this.eventForm.category,
-                        customCategory: this.eventForm.customCategory,
-                        description: this.eventForm.description
-                    };
-                    
-                    if (this.editingEvent) {
-                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
-                        this.events[index] = eventData;
-                    } else {
-                        this.events.push(eventData);
-                    }
-                    
-                    this.saveToLocalStorage();
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                    modal.hide();
-                },
-                
-                // イベント削除
-                deleteEvent() {
-                    if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
-                        this.saveToLocalStorage();
-                        
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                        modal.hide();
-                    }
-                },
-                
                 // ドラッグ&ドロップ
                 handleDragStart(event, eventData) {
                     this.draggedEvent = eventData;
-                    event.target.classList.add('dragging');
+                    event.dataTransfer.setData('text/plain', '');
                 },
                 
-                handleDragEnd(event) {
-                    event.target.classList.remove('dragging');
+                handleDragEnd() {
                     this.draggedEvent = null;
-                    this.dragOverDay = null;
                 },
                 
-                handleDrop(event, targetDate) {
+                handleDrop(event) {
+                    if (!this.draggedEvent) return;
+                    
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const y = event.clientY - rect.top;
+                    const newStartTime = this.pixelsToTime(y);
+                    
+                    // 時間の範囲チェック
+                    const startHour = parseInt(newStartTime.split(':')[0]);
+                    if (startHour < 4 || startHour >= 24) return;
+                    
+                    // 予定の長さを保持
+                    const oldStart = this.timeToPixels(this.draggedEvent.startTime);
+                    const oldEnd = this.timeToPixels(this.draggedEvent.endTime);
+                    const duration = oldEnd - oldStart;
+                    
+                    const newEndTime = this.pixelsToTime(y + duration);
+                    
+                    // 予定を更新
+                    const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
+                    if (eventIndex !== -1) {
+                        this.events[eventIndex].startTime = newStartTime;
+                        this.events[eventIndex].endTime = newEndTime;
+                        this.saveData();
+                    }
+                },
+                
+                // リサイズ機能
+                startResize(event, eventData, direction) {
                     event.preventDefault();
+                    event.stopPropagation();
                     
-                    if (this.draggedEvent && this.draggedEvent.date !== targetDate) {
-                        const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
-                        if (eventIndex !== -1) {
-                            this.events[eventIndex].date = targetDate;
-                            this.saveToLocalStorage();
+                    this.resizingEvent = eventData;
+                    this.resizeDirection = direction;
+                    
+                    const moveHandler = (e) => {
+                        const rect = document.querySelector('.schedule-area').getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        const newTime = this.pixelsToTime(y);
+                        
+                        const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                        if (eventIndex === -1) return;
+                        
+                        if (direction === 'top') {
+                            if (newTime < this.events[eventIndex].endTime) {
+                                this.events[eventIndex].startTime = newTime;
+                            }
+                        } else {
+                            if (newTime > this.events[eventIndex].startTime) {
+                                this.events[eventIndex].endTime = newTime;
+                            }
                         }
+                    };
+                    
+                    const upHandler = () => {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', upHandler);
+                        this.resizingEvent = null;
+                        this.resizeDirection = null;
+                        this.saveData();
+                    };
+                    
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', upHandler);
+                },
+                
+                // スケジュールエリアクリック
+                handleScheduleClick(event) {
+                    if (event.target.classList.contains('schedule-area') || 
+                        event.target.classList.contains('grid-line')) {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        const y = event.clientY - rect.top;
+                        const clickTime = this.pixelsToTime(y);
+                        
+                        this.eventForm.startTime = clickTime;
+                        this.eventForm.endTime = this.pixelsToTime(y + 60); // 1時間後
+                        this.eventForm.dayIndex = this.activeDay;
+                        
+                        this.openEventModal();
+                    }
+                },
+                
+                // データ保存・読み込み
+                async saveData() {
+                    if (this.useLocalOnly) {
+                        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                        localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    } else {
+                        // GitHub保存（将来実装）
+                        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                        localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    }
+                },
+                
+                loadData() {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    
+                    if (savedEvents) {
+                        this.events = JSON.parse(savedEvents);
                     }
                     
-                    this.dragOverDay = null;
-                },
-                
-                // データ永続化
-                saveToLocalStorage() {
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                },
-                
-                loadFromLocalStorage() {
-                    const saved = localStorage.getItem('trippenEvents');
-                    if (saved) {
-                        this.events = JSON.parse(saved);
+                    if (savedDays) {
+                        this.tripDays = JSON.parse(savedDays);
                     }
-                },
-                
-                // URL共有
-                loadFromUrl() {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const data = urlParams.get('data');
-                    
-                    if (data) {
-                        try {
-                            const decodedData = JSON.parse(decodeURIComponent(data));
-                            this.events = decodedData;
-                            this.saveToLocalStorage();
-                        } catch (e) {
-                            console.error('URL共有データの読み込みに失敗しました:', e);
-                        }
-                    }
-                },
-                
-                copyShareUrl() {
-                    navigator.clipboard.writeText(this.shareUrl).then(() => {
-                        alert('共有URLをコピーしました！');
-                    }).catch(err => {
-                        console.error('コピーに失敗しました:', err);
-                    });
                 }
             },
             
             mounted() {
-                this.loadFromUrl();
-                this.loadFromLocalStorage();
+                this.loadGitHubConfig();
+                this.loadData();
             }
         }).mount('#app');
     </script>
