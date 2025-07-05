@@ -176,9 +176,10 @@
             align-items: center;
             justify-content: center;
             min-width: 60px;
+            height: 100%;
             transition: all 0.3s ease;
-            padding-left: 20px !important;
-            padding-right: 20px !important;
+            padding: 12px 20px !important;
+            border-radius: 15px 15px 0 0;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -617,7 +618,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link add-day-btn" @click.prevent="showAddDayModal" href="#" title="日程を追加">
+                        <a class="nav-link add-day-btn" @click.prevent="addDayImmediately" href="#" title="日程を追加">
                             <i class="fas fa-plus"></i>
                         </a>
                     </li>
@@ -631,11 +632,7 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
-                    <div>
-                        <button class="btn btn-outline-primary btn-sm" @click="openEventModal()">
-                            <i class="fas fa-plus"></i> 予定追加
-                        </button>
-                    </div>
+                    <!-- ＋予定追加ボタンを削除 -->
                 </div>
                 
                 <div class="timeline-content">
@@ -944,18 +941,37 @@
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
                 
-                showAddDayModal() {
-                    if (this.tripDays.length > 0) {
+                addDayImmediately() {
+                    if (this.tripDays.length === 0) {
+                        this.newDayDate = this.today;
+                    } else {
                         const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
                         const lastDay = new Date(sortedDays[sortedDays.length - 1].fullDate);
                         lastDay.setDate(lastDay.getDate() + 1);
                         this.newDayDate = lastDay.toISOString().split('T')[0];
-                    } else {
-                        this.newDayDate = this.today;
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('addDayModal'));
-                    modal.show();
+                    const selectedDate = new Date(this.newDayDate);
+                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                    const dayName = dayNames[selectedDate.getDay()];
+                    
+                    const newDay = {
+                        id: Date.now() + Math.random(),
+                        dayNumber: this.tripDays.length + 1,
+                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
+                        fullDate: this.newDayDate,
+                        isEditing: false,
+                        editingDate: this.newDayDate
+                    };
+                    
+                    this.tripDays.push(newDay);
+                    this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+                    
+                    this.tripDays.forEach((day, index) => {
+                        day.dayNumber = index + 1;
+                    });
+                    
+                    this.saveData();
                 },
                 
                 addNewDay() {
@@ -1013,7 +1029,8 @@
                         
                         this.tripDays.splice(index, 1);
                         
-                        this.recalculateDatesAfterDeletion(index);
+                        // 削除後の日付を即座に再計算
+                        this.recalculateAllDatesAfterDeletion();
                         
                         this.tripDays.forEach((day, i) => {
                             day.dayNumber = i + 1;
@@ -1027,30 +1044,19 @@
                     }
                 },
                 
-                recalculateDatesAfterDeletion(deletedIndex) {
+                recalculateAllDatesAfterDeletion() {
                     if (this.tripDays.length === 0) return;
                     
-                    if (deletedIndex < this.tripDays.length) {
-                        let baseDate = null;
+                    const baseDate = new Date(this.tripDays[0].fullDate);
+                    
+                    this.tripDays.forEach((day, index) => {
+                        if (index === 0) return;
                         
-                        if (deletedIndex > 0) {
-                            baseDate = new Date(this.tripDays[deletedIndex - 1].fullDate);
-                            baseDate.setDate(baseDate.getDate() + 1);
-                        } else {
-                            baseDate = new Date(this.tripDays[0].fullDate);
-                            baseDate.setDate(baseDate.getDate() - 1);
-                        }
+                        const newDate = new Date(baseDate);
+                        newDate.setDate(baseDate.getDate() + index);
                         
-                        for (let i = deletedIndex; i < this.tripDays.length; i++) {
-                            const targetDate = new Date(baseDate);
-                            if (deletedIndex > 0) {
-                                targetDate.setDate(baseDate.getDate() + (i - deletedIndex + 1));
-                            } else {
-                                targetDate.setDate(baseDate.getDate() + (i + 1));
-                            }
-                            this.updateDayData(i, targetDate);
-                        }
-                    }
+                        this.updateDayData(index, newDate);
+                    });
                 },
                 
                 startDateEdit(index) {
