@@ -602,45 +602,119 @@
             color: var(--accent-color);
         }
         
-        /* モバイル用のタブ関連設定大幅強化 */
+        /* モバイル用タッチ領域とスクロール設定の大幅強化 */
         @media (max-width: 768px) {
+            /* タブスクロール設定の強化 */
+            .day-tabs-container {
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x mandatory;
+                padding: 0 10px;
+                /* タッチスクロールを強制有効化 */
+                touch-action: pan-x;
+            }
+            
+            .day-tabs {
+                min-width: max-content;
+                width: auto;
+                display: flex;
+                flex-wrap: nowrap;
+                padding: 0;
+            }
+            
+            .day-tabs .nav-item {
+                scroll-snap-align: start;
+                flex-shrink: 0;
+                min-width: 120px;
+            }
+            
+            .day-tabs .nav-link {
+                min-width: 100px;
+                padding: 12px 15px;
+                font-size: 0.85rem;
+                white-space: nowrap;
+                /* タッチ操作を確実にする */
+                touch-action: manipulation;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            /* 削除ボタンの大幅改善 */
+            .delete-day-btn {
+                width: 32px;
+                height: 32px;
+                top: 2px;
+                right: 2px;
+                font-size: 1rem;
+                display: flex !important;
+                opacity: 0.8;
+                /* タッチ操作を確実にする */
+                touch-action: manipulation;
+                -webkit-touch-callout: none;
+                position: absolute;
+                z-index: 1001;
+            }
+            
+            .delete-day-btn:active {
+                opacity: 1;
+                transform: scale(1.1) translateZ(0);
+                background: rgba(255, 99, 99, 1);
+            }
+            
+            /* 追加ボタンの改善 */
+            .day-tabs .nav-link.add-day-btn {
+                min-width: 60px;
+                padding: 12px 20px !important;
+                touch-action: manipulation;
+                -webkit-touch-callout: none;
+            }
+            
+            .day-tabs .nav-link.add-day-btn:active {
+                transform: scale(0.95);
+                background: var(--accent-color) !important;
+                color: white !important;
+            }
+            
+            /* リサイズハンドルの大幅改善 */
+            .resize-handle {
+                height: 15px;
+                /* タッチ領域を拡大 */
+            }
+            
+            .resize-handle.top {
+                top: -5px;
+                height: 20px;
+            }
+            
+            .resize-handle.bottom {
+                bottom: -5px;
+                height: 20px;
+            }
+            
+            /* イベントブロックの改善 */
+            .event-block {
+                min-height: 50px;
+                padding: 10px 12px;
+                /* タッチ操作を確実にする */
+                touch-action: manipulation;
+            }
+            
+            .event-block.edit-mode .resize-handle {
+                opacity: 1;
+                background: rgba(255, 215, 0, 0.9);
+            }
+            
+            /* その他のモバイル調整 */
             .time-axis { width: 60px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
             .grid-line { height: 50px; }
             .schedule-grid { height: 1000px; }
-            .event-block { padding: 6px 8px; }
             .event-title { font-size: 0.8rem; }
             .event-time { font-size: 0.7rem; }
             .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
-            
-            /* モバイル用タブ設定の追加 */
-            .day-tabs .nav-link {
-                min-width: 100px;
-                padding: 10px 15px;
-                font-size: 0.9rem;
-            }
-            
-            .delete-day-btn {
-                width: 28px;
-                height: 28px;
-                top: 3px;
-                right: 3px;
-                font-size: 0.9rem;
-                /* モバイルでのタッチ領域を拡大 */
-            }
-            
-            .day-tabs .nav-link.add-day-btn {
-                min-width: 50px;
-                padding: 10px 15px !important;
-            }
-            
-            /* タッチ操作の改善 */
-            .event-block {
-                min-height: 40px;
-                padding: 8px 10px;
-                /* タッチ領域を拡大 */
-            }
             
             .drag-handle {
                 left: 3px;
@@ -656,44 +730,37 @@
                 font-size: 0.8rem;
                 padding: 12px;
             }
-            
-            /* スクロールコンテナのタッチ最適化 */
-            .day-tabs-container {
-                -webkit-overflow-scrolling: touch;
-                scroll-snap-type: x mandatory;
-            }
-            
-            .day-tabs .nav-item {
-                scroll-snap-align: start;
-            }
         }
         
-        /* タッチデバイス専用の設定 */
+        /* タッチデバイス専用設定の強化 */
         @media (hover: none) and (pointer: coarse) {
             .delete-day-btn {
                 display: flex !important;
-                opacity: 0.7;
-                width: 30px;
-                height: 30px;
+                opacity: 0.8;
+                width: 35px;
+                height: 35px;
+                /* 確実なタッチ操作のため */
+                position: absolute;
+                z-index: 1002;
             }
             
-            .delete-day-btn:active {
-                opacity: 1;
-                transform: scale(1.1) translateZ(0);
-            }
-            
-            .day-tabs .nav-link:hover .delete-day-btn {
-                display: flex;
+            .day-tabs .nav-link {
+                /* タッチ遅延を削除 */
+                -webkit-tap-highlight-color: transparent;
+                tap-highlight-color: transparent;
             }
             
             .event-block {
-                /* タッチデバイス用の余白調整 */
-                padding: 10px 12px;
-                min-height: 45px;
+                /* タッチ操作用の余白調整 */
+                padding: 12px 15px;
+                min-height: 55px;
             }
             
-            .day-tabs .nav-link.add-day-btn:active {
-                transform: scale(0.95);
+            /* リサイズハンドルを常時表示 */
+            .event-block.edit-mode .resize-handle {
+                opacity: 1;
+                background: rgba(255, 215, 0, 1);
+                border: 2px solid #fff;
             }
         }
     </style>
@@ -748,7 +815,9 @@
                         :class="{ 'dragging-tab': draggingTabIndex === index }">
                         <a class="nav-link" 
                            :class="{ active: activeDay === index }"
-                           @click="setActiveDay(index)"
+                           @click="handleTabClick(index)"
+                           @touchstart="handleTabTouchStart(index)"
+                           @touchend="handleTabTouchEnd(index)"
                            href="#"
                            @click.prevent>
                             <div class="drag-handle">
@@ -774,9 +843,8 @@
                             </div>
                             <button class="delete-day-btn" 
                                     v-if="tripDays.length > 1"
-                                    @click.stop.prevent="deleteDay(index)"
-                                    @mousedown.stop
-                                    @touchstart.stop
+                                    @click="handleDeleteClick(index)"
+                                    @touchend="handleDeleteTouch(index)"
                                     title="日程を削除">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -784,9 +852,8 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link add-day-btn" 
-                           @click.prevent.stop="addDayImmediately" 
-                           @mousedown.stop
-                           @touchstart.stop
+                           @click="handleAddClick"
+                           @touchend="handleAddTouch"
                            href="#" 
                            title="日程を追加">
                             <i class="fas fa-plus"></i>
@@ -842,7 +909,8 @@
                                 
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'top')"></div>
+                                     @mousedown="startResize($event, event, 'top')"
+                                     @touchstart="startResize($event, event, 'top')"></div>
                                 
                                 <div class="event-title">
                                     <i :class="getCategoryIcon(event.category)"></i>
@@ -857,7 +925,8 @@
                                 
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'bottom')"></div>
+                                     @mousedown="startResize($event, event, 'bottom')"
+                                     @touchstart="startResize($event, event, 'bottom')"></div>
                             </div>
                         </div>
                     </div>
@@ -1038,6 +1107,8 @@
                     selectedEventForDetail: null,
                     editingEvent: null,
                     isMobile: false,
+                    tabTouchStartTime: null,
+                    tabTouchIndex: null,
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1109,6 +1180,42 @@
                 
                 detectMobile() {
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+                },
+                
+                // タブ関連のタッチ処理メソッド
+                handleTabClick(index) {
+                    this.setActiveDay(index);
+                },
+                
+                handleTabTouchStart(index) {
+                    this.tabTouchStartTime = Date.now();
+                    this.tabTouchIndex = index;
+                },
+                
+                handleTabTouchEnd(index) {
+                    const touchDuration = Date.now() - (this.tabTouchStartTime || 0);
+                    if (touchDuration < 500 && this.tabTouchIndex === index) {
+                        this.setActiveDay(index);
+                    }
+                },
+                
+                // ボタン関連のタッチ処理メソッド
+                handleDeleteClick(index) {
+                    this.deleteDay(index);
+                },
+                
+                handleDeleteTouch(index) {
+                    // タッチイベントでの削除処理
+                    this.deleteDay(index);
+                },
+                
+                handleAddClick() {
+                    this.addDayImmediately();
+                },
+                
+                handleAddTouch() {
+                    // タッチイベントでの追加処理
+                    this.addDayImmediately();
                 },
                 
                 addDayImmediately() {
@@ -1728,11 +1835,22 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    const moveHandler = (e) => this.handleResizeMove(e, direction);
-                    const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
+                    // タッチイベントかマウスイベントかを判定
+                    const isTouch = event.type === 'touchstart';
                     
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
+                    if (isTouch) {
+                        const moveHandler = (e) => this.handleResizeMoveTouch(e, direction);
+                        const endHandler = (e) => this.handleResizeEndTouch(e, moveHandler, endHandler);
+                        
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler);
+                    } else {
+                        const moveHandler = (e) => this.handleResizeMove(e, direction);
+                        const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
+                        
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
                 },
                 
                 handleResizeMove(event, direction) {
@@ -1755,9 +1873,39 @@
                     }
                 },
                 
+                handleResizeMoveTouch(event, direction) {
+                    const touch = event.touches[0];
+                    if (!touch) return;
+                    
+                    event.preventDefault();
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const y = touch.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    if (direction === 'top') {
+                        if (newTime < this.events[eventIndex].endTime) {
+                            this.events[eventIndex].startTime = newTime;
+                        }
+                    } else {
+                        if (newTime > this.events[eventIndex].startTime) {
+                            this.events[eventIndex].endTime = newTime;
+                        }
+                    }
+                },
+                
                 handleResizeEnd(event, moveHandler, endHandler) {
                     document.removeEventListener('mousemove', moveHandler);
                     document.removeEventListener('mouseup', endHandler);
+                    this.saveData();
+                },
+                
+                handleResizeEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
                     this.saveData();
                 },
                 
