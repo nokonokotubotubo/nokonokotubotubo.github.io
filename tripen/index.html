@@ -218,23 +218,23 @@ body {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 12px 15px !important;
+    padding: 12px 15px !important;          /* 通常タブと同じpadding */
     min-width: 40px;
-    height: auto;
-    font-size: 1.8rem;
+    height: 56px !important;                /* 追加: 通常タブと同じ固定高さ */
+    font-size: 1.5rem !important;           /* 修正: 2行分の高さを考慮したサイズ */
     font-weight: bold;
-    line-height: 1;
+    line-height: 1 !important;
     transition: all 0.3s ease;
     cursor: pointer;
     pointer-events: auto;
     text-align: center !important;
     white-space: nowrap !important;
+    box-sizing: border-box !important;
 }
-
 .day-tabs .nav-link.add-day-btn:hover {
     background: rgba(70, 130, 180, 0.1) !important;
     color: var(--accent-color) !important;
-    transform: scale(1.1);
+    transform: scale(1.02) !important;
 }
 
 .delete-day-btn {
