@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T10:16:13.277Z",
+  "updated": "2025-07-05T11:13:08.540Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,18 +24,6 @@
     }
   ],
   "entries": [
-    {
-      "id": "https://zenn.dev/yohei7328/articles/a5ba85ab8b9927",
-      "title": "GASでマニュアル自動生成AI(α版)をつくったった",
-      "link": "https://zenn.dev/yohei7328/articles/a5ba85ab8b9927",
-      "published": "2025-07-05T08:37:17.000Z",
-      "description": "何を作ったのか 動画を入れれば、そこから勝手にGoogleDocsに画像付きでマニュアルを生成してくれる物を作りました。 https://youtu.be/0RSgHJjRlJM 使い方 以下を参考につかってください！ めちゃかんたんです！GoogleDocsにすぐに出力されます！...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "何を作ったのか 動画を入れれば、そこから勝手にGoogleDocsに画像付きでマニュアルを生成してくれる物を作りました。 https://youtu.be/0RSgHJjRlJM 使い方 以下を参考につかってください！ めちゃかんたんです！GoogleDocsにすぐに出力されます！...",
-      "thumbnail": null
-    },
     {
       "id": "https://zenn.dev/takahasuma/articles/ea07b5c9458597",
       "title": "Amazon Q Developerで始めるシステム開発：要件定義からアーキテクチャ決定まで",
@@ -142,6 +130,18 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/arnk/articles/3411bf716087c3",
+      "title": "AIをコーディングに活用するタイミングについて考えてみた【2025年6月時点メモ】",
+      "link": "https://zenn.dev/arnk/articles/3411bf716087c3",
+      "published": "2025-07-04T06:25:24.000Z",
+      "description": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Visual Studio Code（VS Code） HTMLでAIを活用するタイミング タグの使い方が適切かどうかを確認 →...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Vis",
       "thumbnail": null
     },
     {
