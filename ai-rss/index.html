@@ -340,6 +340,37 @@
           font-weight: 600;
         }
 
+        .user-rated-mark {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: var(--interested-color);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .rating-feedback {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: var(--interested-color);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+          z-index: 1000;
+          animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
         @media (max-width: 1024px) {
           .stats-tabs {
             grid-template-columns: repeat(2, 1fr);
@@ -375,25 +406,6 @@
             margin-bottom: 1rem;
           }
         }
-
-        /* 評価時のフィードバックアニメーション */
-        .rating-feedback {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: var(--interested-color);
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-          z-index: 1000;
-          animation: slideInRight 0.3s ease;
-        }
-
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
     </style>
 </head>
 <body>
@@ -407,6 +419,9 @@
         let currentData = null;
         let currentTab = 'all';
         let currentCategory = 'all';
+        
+        // ユーザー評価の保存期間（30日）
+        const USER_RATING_EXPIRY_DAYS = 30;
 
         async function loadLatestData() {
             try {
@@ -418,13 +433,193 @@
                 const data = await response.json();
                 console.log('✅ データ読み込み完了:', data.articles.length + '件');
                 
-                currentData = data;
-                renderDashboard(data);
+                // ✅ ローカル評価をフィードデータに適用
+                const articlesWithUserPreferences = applyUserPreferencesToFeed(data.articles);
+                
+                currentData = {
+                    ...data,
+                    articles: articlesWithUserPreferences
+                };
+                
+                renderDashboard(currentData);
                 
             } catch (error) {
                 console.error('❌ データ読み込み失敗:', error);
                 document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました<br><button onclick="loadLatestData()">🔄 再試行</button>';
             }
+        }
+
+        // ✅ ユーザー評価をフィードデータに適用
+        function applyUserPreferencesToFeed(articles) {
+            const userFeedback = getUserFeedbackWithinExpiry();
+            
+            return articles.map(article => {
+                const userRating = userFeedback[article.id];
+                
+                if (userRating && userRating.rating) {
+                    // ユーザー評価に基づいて嗜好カテゴリを上書き
+                    const newPreference = calculatePreferenceFromRating(userRating.rating);
+                    
+                    console.log(`📊 ユーザー評価適用: ${article.title.substring(0, 30)}... - ${article.preference} → ${newPreference}`);
+                    
+                    return {
+                        ...article,
+                        preference: newPreference,
+                        userRating: userRating.rating,
+                        userOverride: true, // ユーザーが評価済みのフラグ
+                        lastRatedAt: userRating.timestamp
+                    };
+                }
+                
+                return article;
+            });
+        }
+
+        // ✅ 期限内のユーザーフィードバックのみを取得
+        function getUserFeedbackWithinExpiry() {
+            const allFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            const currentTime = new Date().getTime();
+            const expiryTime = USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+            
+            const validFeedback = {};
+            let expiredCount = 0;
+            
+            Object.keys(allFeedback).forEach(articleId => {
+                const feedback = allFeedback[articleId];
+                const feedbackTime = new Date(feedback.timestamp).getTime();
+                
+                if (currentTime - feedbackTime < expiryTime) {
+                    validFeedback[articleId] = feedback;
+                } else {
+                    expiredCount++;
+                }
+            });
+            
+            if (expiredCount > 0) {
+                console.log(`🧹 期限切れ評価データを削除: ${expiredCount}件`);
+                localStorage.setItem('ai-rss-feedback', JSON.stringify(validFeedback));
+            }
+            
+            console.log(`📊 有効な評価データ: ${Object.keys(validFeedback).length}件（期間: ${USER_RATING_EXPIRY_DAYS}日）`);
+            return validFeedback;
+        }
+
+        // ✅ 評価から嗜好カテゴリを計算
+        function calculatePreferenceFromRating(rating) {
+            if (rating >= 4) return 'interested';
+            if (rating <= 2) return 'not-interested';
+            return 'neutral';
+        }
+
+        // ✅ 星評価による即座カテゴリ変更
+        function setRating(articleId, rating) {
+            let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            
+            if (!userFeedback[articleId]) {
+                userFeedback[articleId] = {};
+            }
+            
+            // 記事情報も保存（AI学習用）
+            const article = currentData.articles.find(a => a.id === articleId);
+            
+            userFeedback[articleId] = {
+                rating: rating,
+                timestamp: new Date().toISOString(),
+                title: article ? article.title : '',
+                category: article ? article.category : '',
+                feedName: article ? article.feedName : '',
+                expiresAt: new Date(Date.now() + (USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
+            };
+            
+            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
+            
+            // 星の表示を更新
+            const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
+            stars.forEach((star, index) => {
+                star.classList.toggle('filled', index < rating);
+            });
+            
+            // ✅ 嗜好カテゴリの即座変更
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (card) {
+                updateArticlePreference(card, rating, articleId);
+            }
+            
+            // ✅ currentDataも同時更新（フィードが更新されるまで維持）
+            if (currentData && currentData.articles) {
+                const articleIndex = currentData.articles.findIndex(a => a.id === articleId);
+                if (articleIndex !== -1) {
+                    const newPreference = calculatePreferenceFromRating(rating);
+                    currentData.articles[articleIndex].preference = newPreference;
+                    currentData.articles[articleIndex].userRating = rating;
+                    currentData.articles[articleIndex].userOverride = true;
+                }
+            }
+            
+            // 視覚的フィードバック
+            card.style.transform = 'scale(1.02)';
+            card.style.boxShadow = '0 8px 30px rgba(91, 168, 196, 0.3)';
+            setTimeout(() => {
+                card.style.transform = '';
+                card.style.boxShadow = '';
+            }, 300);
+            
+            showFeedbackMessage(`評価を保存しました！（${USER_RATING_EXPIRY_DAYS}日間保持）`);
+            console.log('評価保存・カテゴリ変更:', articleId, rating, `期限: ${USER_RATING_EXPIRY_DAYS}日`);
+            
+            // タブカウントを更新
+            updateTabCountsFromCurrentData();
+        }
+
+        // ✅ 記事の嗜好カテゴリ表示を更新
+        function updateArticlePreference(card, rating, articleId) {
+            const preferenceSpan = card.querySelector('.preference-badge');
+            const newPreference = calculatePreferenceFromRating(rating);
+            
+            // 既存のカテゴリクラスを削除
+            card.classList.remove('interested', 'neutral', 'not-interested');
+            preferenceSpan.classList.remove('badge-interested', 'badge-neutral', 'badge-not-interested');
+            
+            // 新しいカテゴリを設定
+            card.classList.add(newPreference);
+            preferenceSpan.classList.add(`badge-${newPreference}`);
+            
+            // ユーザー評価マークを追加
+            let userMark = card.querySelector('.user-rated-mark');
+            if (!userMark) {
+                userMark = document.createElement('span');
+                userMark.className = 'user-rated-mark';
+                userMark.textContent = '✓ ユーザー評価';
+                card.appendChild(userMark);
+            }
+            
+            if (newPreference === 'interested') {
+                preferenceSpan.textContent = '😍 興味ありそう（ユーザー評価）';
+            } else if (newPreference === 'neutral') {
+                preferenceSpan.textContent = '😐 普通（ユーザー評価）';
+            } else {
+                preferenceSpan.textContent = '😕 興味なさそう（ユーザー評価）';
+            }
+        }
+
+        // ✅ タブカウントをcurrentDataから更新
+        function updateTabCountsFromCurrentData() {
+            if (!currentData || !currentData.articles) return;
+            
+            const articlesByPreference = {
+                interested: currentData.articles.filter(a => a.preference === 'interested'),
+                neutral: currentData.articles.filter(a => a.preference === 'neutral'),
+                'not-interested': currentData.articles.filter(a => a.preference === 'not-interested'),
+                all: currentData.articles
+            };
+            
+            Object.keys(articlesByPreference).forEach(category => {
+                const tabCard = document.querySelector(`[data-tab="${category}"]`);
+                if (tabCard) {
+                    const numberElement = tabCard.querySelector('.stat-number');
+                    numberElement.textContent = articlesByPreference[category].length;
+                }
+            });
         }
         
         function renderDashboard(data) {
@@ -438,6 +633,9 @@
                 'not-interested': articles.filter(a => a.preference === 'not-interested')
             };
             
+            // ユーザー評価済み記事の統計
+            const userRatedCount = articles.filter(a => a.userOverride).length;
+            
             const html = `
             <header class="header">
                 <h1>🤖 AI RSS ダッシュボード</h1>
@@ -445,6 +643,7 @@
                 <div class="header-stats">
                     <span>最終更新: ${updateTime}</span>
                     <span>総記事数: ${articles.length}件</span>
+                    <span>ユーザー評価済み: ${userRatedCount}件</span>
                     <span>🔄 リアルタイム更新</span>
                 </div>
             </header>
@@ -504,10 +703,12 @@
         function generateArticleCard(article) {
             const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
             const relativeTime = getRelativeTime(article.pubDate);
-            const userRating = getUserRating(article.id);
+            const userRating = article.userRating || 0;
+            const isUserRated = article.userOverride || false;
             
             return `
             <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
+                ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
                 <div class="article-content">
                     <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
                         ${article.title}
@@ -515,12 +716,13 @@
                     <div class="article-meta">
                         <span class="preference-badge badge-${article.preference}">
                             ${article.preference === 'interested' ? '😍 興味ありそう' : 
-                              article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}
+                              article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}${isUserRated ? '（ユーザー評価）' : ''}
                         </span>
                         <span class="article-info">📅 ${publishDate}</span>
                         <span class="article-info">⏰ ${relativeTime}</span>
                         <span class="article-info">📰 ${article.feedName}</span>
                         <span class="article-info">🏷️ ${article.category}</span>
+                        ${isUserRated ? `<span class="article-info">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
                     </div>
                     <div class="article-description">
                         ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
@@ -534,7 +736,7 @@
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
-                        <div class="rating-label">この記事を評価</div>
+                        <div class="rating-label">この記事を評価（${USER_RATING_EXPIRY_DAYS}日間記憶）</div>
                     </div>
                 </div>
             </div>`;
@@ -554,38 +756,8 @@
         }
         
         function getUserRating(articleId) {
-            const feedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            const feedback = getUserFeedbackWithinExpiry();
             return feedback[articleId]?.rating || 0;
-        }
-        
-        function setRating(articleId, rating) {
-            let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
-            
-            if (!userFeedback[articleId]) {
-                userFeedback[articleId] = {};
-            }
-            userFeedback[articleId].rating = rating;
-            userFeedback[articleId].timestamp = new Date().toISOString();
-            
-            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
-            
-            // 星の表示を更新
-            const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
-            stars.forEach((star, index) => {
-                star.classList.toggle('filled', index < rating);
-            });
-            
-            // 視覚的フィードバック
-            const card = document.querySelector(`[data-article-id="${articleId}"]`);
-            card.style.transform = 'scale(1.02)';
-            card.style.boxShadow = '0 8px 30px rgba(91, 168, 196, 0.3)';
-            setTimeout(() => {
-                card.style.transform = '';
-                card.style.boxShadow = '';
-            }, 300);
-            
-            showFeedbackMessage('評価を保存しました！');
-            console.log('評価保存:', articleId, rating);
         }
 
         function showFeedbackMessage(message) {
@@ -655,7 +827,7 @@
         }
         
         function restoreUserRatings() {
-            const userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            const userFeedback = getUserFeedbackWithinExpiry();
             Object.keys(userFeedback).forEach(articleId => {
                 const feedback = userFeedback[articleId];
                 if (feedback.rating) {
@@ -673,14 +845,10 @@
         // 定期的な更新（5分ごと）
         setInterval(loadLatestData, 300000);
 
-        // タブの表示/非表示を検出（検索結果[2]に基づく）
+        // ページ表示時に最新データをチェック
         document.addEventListener("visibilitychange", function() {
-            if (document.hidden) {
-                console.log("タブが非アクティブになりました");
-                // 自動更新を一時停止
-            } else {
-                console.log("タブがアクティブになりました");
-                // 最新データをチェック
+            if (!document.hidden) {
+                console.log("タブがアクティブになりました - 最新データをチェック");
                 loadLatestData();
             }
         });
