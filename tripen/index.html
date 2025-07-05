@@ -88,6 +88,7 @@
             display: none;
             align-items: center;
             justify-content: center;
+            z-index: 10;
         }
         
         .day-tabs .nav-link:hover .delete-day-btn {
@@ -259,12 +260,14 @@
         .event-time {
             font-size: 0.8rem;
             opacity: 0.9;
+            pointer-events: none;
         }
         
         .event-description {
             font-size: 0.75rem;
             margin-top: 4px;
             opacity: 0.8;
+            pointer-events: none;
         }
         
         .edit-mode-indicator {
@@ -281,6 +284,7 @@
             justify-content: center;
             font-size: 0.7rem;
             font-weight: bold;
+            pointer-events: none;
         }
         
         .resize-handle {
@@ -297,6 +301,7 @@
             justify-content: center;
             font-size: 0.6rem;
             color: #333;
+            z-index: 15;
         }
         
         .resize-handle.top {
@@ -543,8 +548,8 @@
                 <li class="nav-item" v-for="(day, index) in tripDays" :key="index">
                     <a class="nav-link" 
                        :class="{ active: activeDay === index }"
-                       @click="activeDay = index"
-                       href="#">
+                       @click="setActiveDay(index)"
+                       href="javascript:void(0)">
                         <div>{{ day.dayNumber }}日目</div>
                         <small>{{ day.date }}</small>
                         <button class="delete-day-btn" 
@@ -556,7 +561,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" @click="showAddDayModal" href="#" title="日程を追加">
+                    <a class="nav-link" @click="showAddDayModal" href="javascript:void(0)" title="日程を追加">
                         <i class="fas fa-plus"></i>
                     </a>
                 </li>
@@ -588,9 +593,7 @@
                         
                         <!-- スケジュール表示エリア -->
                         <div class="schedule-area" 
-                             @click="handleScheduleClick"
-                             @dragover.prevent="handleDragOver"
-                             @drop="handleDrop">
+                             @click="handleScheduleClick">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
                                     <div class="quarter-line"></div>
@@ -627,12 +630,12 @@
                                 <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'top')"
-                                     @touchstart="startResize($event, event, 'top')">
+                                     @mousedown.stop="startResize($event, event, 'top')"
+                                     @touchstart.stop="startResize($event, event, 'top')">
                                     ⋮⋮⋮
                                 </div>
                                 
-                                <div class="event-title" @click="showEventDetail(event)">
+                                <div class="event-title" @click.stop="showEventDetail(event)">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.title }}
                                 </div>
@@ -646,8 +649,8 @@
                                 <!-- リサイズハンドル -->
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'bottom')"
-                                     @touchstart="startResize($event, event, 'bottom')">
+                                     @mousedown.stop="startResize($event, event, 'bottom')"
+                                     @touchstart.stop="startResize($event, event, 'bottom')">
                                     ⋮⋮⋮
                                 </div>
                             </div>
@@ -878,6 +881,12 @@
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
                 
+                // 日程切り替え（修正版）
+                setActiveDay(index) {
+                    this.activeDay = index;
+                    this.editModeEvent = null; // 編集モードをリセット
+                },
+                
                 // 日程管理
                 showAddDayModal() {
                     if (this.tripDays.length > 0) {
@@ -981,8 +990,13 @@
                     };
                 },
                 
-                // 新しいイベント処理システム
+                // 新しいイベント処理システム（修正版）
                 handleEventMouseDown(event, eventData) {
+                    // ボタンやリンク要素は除外
+                    if (this.isButtonOrInteractiveElement(event.target)) {
+                        return;
+                    }
+                    
                     // タイトル部分のクリックは除外
                     if (event.target.classList.contains('event-title') || 
                         event.target.closest('.event-title')) {
@@ -994,11 +1008,15 @@
                         return;
                     }
                     
-                    event.preventDefault();
                     this.startEventLongPress(event, eventData, false);
                 },
                 
                 handleEventTouchStart(event, eventData) {
+                    // ボタンやリンク要素は除外
+                    if (this.isButtonOrInteractiveElement(event.target)) {
+                        return;
+                    }
+                    
                     // タイトル部分のタッチは除外
                     if (event.target.classList.contains('event-title') || 
                         event.target.closest('.event-title')) {
@@ -1010,11 +1028,45 @@
                         return;
                     }
                     
-                    event.preventDefault();
                     this.startEventLongPress(event, eventData, true);
                 },
                 
+                // インタラクティブ要素の判定（修正版）
+                isButtonOrInteractiveElement(element) {
+                    const interactiveTags = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'];
+                    const interactiveClasses = ['btn', 'nav-link', 'delete-day-btn', 'resize-handle'];
+                    
+                    // タグ名での判定
+                    if (interactiveTags.includes(element.tagName)) {
+                        return true;
+                    }
+                    
+                    // クラス名での判定
+                    for (let className of interactiveClasses) {
+                        if (element.classList.contains(className)) {
+                            return true;
+                        }
+                    }
+                    
+                    // 親要素もチェック
+                    let parent = element.parentElement;
+                    while (parent && parent.tagName !== 'BODY') {
+                        if (interactiveTags.includes(parent.tagName)) {
+                            return true;
+                        }
+                        for (let className of interactiveClasses) {
+                            if (parent.classList && parent.classList.contains(className)) {
+                                return true;
+                            }
+                        }
+                        parent = parent.parentElement;
+                    }
+                    
+                    return false;
+                },
+                
                 startEventLongPress(event, eventData, isTouch) {
+                    // 最初にpreventDefaultしない
                     this.startPosition = {
                         x: isTouch ? event.touches[0].clientX : event.clientX,
                         y: isTouch ? event.touches[0].clientY : event.clientY
@@ -1043,8 +1095,8 @@
                     const endHandler = (e) => this.handleEventLongPressEnd(e, isTouch, moveHandler, endHandler);
                     
                     if (isTouch) {
-                        document.addEventListener('touchmove', moveHandler, { passive: false });
-                        document.addEventListener('touchend', endHandler, { passive: false });
+                        document.addEventListener('touchmove', moveHandler, { passive: true });
+                        document.addEventListener('touchend', endHandler, { passive: true });
                     } else {
                         document.addEventListener('mousemove', moveHandler);
                         document.addEventListener('mouseup', endHandler);
@@ -1090,6 +1142,7 @@
                 
                 // 移動モード開始
                 startMoveMode(event, eventData, isTouch) {
+                    event.preventDefault(); // ここでpreventDefault
                     this.isDragging = true;
                     this.draggedEvent = eventData;
                     
@@ -1266,15 +1319,6 @@
                         
                         this.openEventModal();
                     }
-                },
-                
-                // レガシーハンドラー
-                handleDragOver(event) {
-                    // 空の実装（互換性のため）
-                },
-                
-                handleDrop(event) {
-                    // 空の実装（互換性のため）
                 },
                 
                 // カテゴリ関連
