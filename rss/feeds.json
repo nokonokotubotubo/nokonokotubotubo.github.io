@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T21:15:28.597Z",
+  "updated": "2025-07-05T22:14:39.163Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049678",
+      "title": "国内企業の生成AI活用事例と導入ポイント：業務効率化の成功事例を徹底解説",
+      "link": "https://qiita.com/karakurai_rena/items/22ecb1c5aad4c1c93ded",
+      "published": "2025-07-05T21:56:08.000Z",
+      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、国内企業の生成AI活用事例とその導入ポイントについてご紹介します。生成AIの進化によって、業務の効率化や新しい価値の創造が実現されている現状を、具体的な事例をもとにわかりやすく解説します。 生成AIとは...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、国内企業の生成AI活用事例とその導入ポイントについてご紹介します。生成AIの進化によって、業務の効率化や新しい価値の創造が実現されている現状を、具体的な事例をもとにわかりやすく解説します。 生成AIとは...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2049656",
       "title": "2025年最新トレンド：AI技術を活用した業務アプリケーション開発の基礎と実践",
@@ -118,18 +130,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "Googleとレノボが共同開発した「Lenovo Chromebook Plus 14」は、小型で軽量ながら、AIタスクを丸一日ストレスなくこなせる性能を備えている。",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2049164",
-      "title": "AIが論文を書く時代へ：Tempest論文・Zochi・ACL2025まとめ",
-      "link": "https://qiita.com/takeshi_05/items/6bb5ef432d46b40c0765",
-      "published": "2025-07-04T14:29:03.000Z",
-      "description": "Tempest論文・Zochi・ACL2025まとめ Tempest論文の要約と感想 論文要約 タイトル：Tempest: Automatic Multi-Turn Jailbreaking of Large Language Models with Tree S...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "Tempest論文・Zochi・ACL2025まとめ Tempest論文の要約と感想 論文要約 タイトル：Tempest: Automatic Multi-Turn Jailbreaking of Large Language Models with Tree S...",
       "thumbnail": null
     },
     {
