@@ -74,6 +74,24 @@
             color: white;
         }
         
+        /* ＋ボタン専用のスタイルを追加 */
+        .day-tabs .nav-link.add-day-btn {
+            background: transparent !important;
+            color: var(--accent-color) !important;
+            border: 2px dashed var(--accent-color) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .day-tabs .nav-link.add-day-btn:hover {
+            background: var(--accent-color) !important;
+            color: white !important;
+            border-color: var(--accent-color) !important;
+        }
+        
         .delete-day-btn {
             position: absolute;
             top: 5px;
@@ -156,7 +174,8 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 1140px;
+            /* 4時から23時まで = 20時間 × 60px = 1200px */
+            height: 1200px;
         }
         
         .grid-line {
@@ -438,7 +457,8 @@
             }
             
             .schedule-grid {
-                height: 950px;
+                /* 4時から23時まで = 20時間 × 50px = 1000px */
+                height: 1000px;
             }
             
             .event-block {
@@ -542,7 +562,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" @click="showAddDayModal" href="#" title="日程を追加">
+                    <a class="nav-link add-day-btn" @click="showAddDayModal" href="#" title="日程を追加">
                         <i class="fas fa-plus"></i>
                     </a>
                 </li>
@@ -952,13 +972,20 @@
                     return days;
                 },
                 
-                // 旅程設定変更
+                // 旅程設定変更（修正済み）
                 showTripSettingsModal() {
-                    this.newTripStartDate = this.tripDays[0]?.fullDate || '';
-                    this.newTripEndDate = this.tripDays[this.tripDays.length - 1]?.fullDate || '';
+                    // 現在の日程から開始日と終了日を設定
+                    if (this.tripDays.length > 0) {
+                        this.newTripStartDate = this.tripDays[0].fullDate;
+                        this.newTripEndDate = this.tripDays[this.tripDays.length - 1].fullDate;
+                    }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('tripSettingsModal'));
-                    modal.show();
+                    // Bootstrap 5 の正しい初期化方法
+                    const modalElement = document.getElementById('tripSettingsModal');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
                 },
                 
                 updateTripSettings() {
@@ -1000,18 +1027,23 @@
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
                 
-                // 日程管理
+                // 日程管理（修正済み）
                 showAddDayModal() {
                     if (this.tripDays.length > 0) {
+                        // 最後の日の次の日を設定
                         const lastDay = new Date(this.tripDays[this.tripDays.length - 1].fullDate);
                         lastDay.setDate(lastDay.getDate() + 1);
                         this.newDayDate = lastDay.toISOString().split('T')[0];
                     } else {
-                        this.newDayDate = new Date().toISOString().split('T')[0];
+                        // 日程がない場合は今日の日付を設定
+                        this.newDayDate = this.today;
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('addDayModal'));
-                    modal.show();
+                    const modalElement = document.getElementById('addDayModal');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
                 },
                 
                 addNewDay() {
@@ -1020,21 +1052,49 @@
                         return;
                     }
                     
+                    // 既存の日付と重複チェック
+                    const existingDate = this.tripDays.find(day => day.fullDate === this.newDayDate);
+                    if (existingDate) {
+                        alert('その日付は既に追加されています');
+                        return;
+                    }
+                    
                     const selectedDate = new Date(this.newDayDate);
                     const dayNumber = this.tripDays.length + 1;
                     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                     const dayName = dayNames[selectedDate.getDay()];
                     
-                    this.tripDays.push({
+                    // 日付順にソートして挿入
+                    const newDay = {
                         dayNumber: dayNumber,
                         date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
                         fullDate: this.newDayDate
+                    };
+                    
+                    this.tripDays.push(newDay);
+                    
+                    // 日付順にソート
+                    this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+                    
+                    // dayNumber を再計算
+                    this.tripDays.forEach((day, index) => {
+                        day.dayNumber = index + 1;
+                    });
+                    
+                    // イベントの dayIndex も更新
+                    this.events.forEach(event => {
+                        const dayIndex = this.tripDays.findIndex(day => day.fullDate === this.tripDays[event.dayIndex]?.fullDate);
+                        if (dayIndex !== -1) {
+                            event.dayIndex = dayIndex;
+                        }
                     });
                     
                     this.saveData();
                     
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addDayModal'));
-                    modal.hide();
+                    if (modal) {
+                        modal.hide();
+                    }
                 },
                 
                 deleteDay(index) {
