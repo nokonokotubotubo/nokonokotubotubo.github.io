@@ -712,8 +712,8 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Vue.js -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Vue.js（本番ビルド） -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     
     <script>
         const { createApp } = Vue;
@@ -889,7 +889,9 @@
                     event.stopPropagation();
                     
                     this.selectedEventForDetail = eventData;
-                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                    const modal = new bootstrap.Modal(document.getElementById('detailModal'), {
+                        focus: false
+                    });
                     modal.show();
                 },
                 
@@ -1193,29 +1195,12 @@
                     this.saveData();
                 },
                 
-                // スケジュールエリアクリック
+                // スケジュールエリアクリック（修正済み）
                 handleScheduleClick(event) {
                     // 編集モードを終了
                     this.editModeEvent = null;
                     
-                    if (this.isDragging || this.isResizing) return;
-                    if (event.target.closest('.event-block')) return;
-                    
-                    if (event.target.classList.contains('schedule-area') || 
-                        event.target.classList.contains('grid-line') ||
-                        event.target.classList.contains('quarter-line')) {
-                        
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                        const snappedY = Math.round(y / 15) * 15;
-                        const clickTime = this.pixelsToTime(snappedY);
-                        
-                        this.eventForm.startTime = clickTime;
-                        this.eventForm.endTime = this.pixelsToTime(snappedY + (this.isMobile ? 50 : 60));
-                        this.eventForm.dayIndex = this.activeDay;
-                        
-                        this.openEventModal();
-                    }
+                    // 予定追加メニューは削除済み - クリックでは何も実行しない
                 },
                 
                 // カテゴリ関連
@@ -1258,7 +1243,9 @@
                         };
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'), {
+                        focus: false
+                    });
                     modal.show();
                 },
                 
