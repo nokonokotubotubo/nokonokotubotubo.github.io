@@ -1111,7 +1111,7 @@
                         const dayName = dayNames[date.getDay()];
                         
                         days.push({
-                            id: Date.now() + dayNumber + Math.random(), // より一意なIDを生成
+                            id: Date.now() + dayNumber + Math.random(),
                             dayNumber: dayNumber++,
                             date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
                             fullDate: date.toISOString().split('T')[0],
@@ -1128,20 +1128,17 @@
                     this.activeDay = index;
                 },
                 
-                // 旅程設定変更（改善版）
+                // 旅程設定変更
                 showTripSettingsModal() {
-                    // 現在の日程から開始日と終了日を設定
                     if (this.tripDays.length > 0) {
                         const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
                         this.newTripStartDate = sortedDays[0].fullDate;
                         this.newTripEndDate = sortedDays[sortedDays.length - 1].fullDate;
                     }
                     
-                    // フォーカス管理を改善したモーダル表示
                     this.$nextTick(() => {
                         const modalElement = document.getElementById('tripSettingsModal');
                         if (modalElement) {
-                            // aria-hiddenを一時的に削除
                             modalElement.removeAttribute('aria-hidden');
                             
                             let modal = bootstrap.Modal.getInstance(modalElement);
@@ -1153,7 +1150,6 @@
                                 });
                             }
                             
-                            // モーダル表示イベントでaria-hidden管理
                             modalElement.addEventListener('shown.bs.modal', () => {
                                 modalElement.removeAttribute('aria-hidden');
                             });
@@ -1178,17 +1174,12 @@
                         return;
                     }
                     
-                    // 新しい日程を生成
                     const newTripDays = this.generateTripDays(this.newTripStartDate, this.newTripEndDate);
-                    
-                    // 範囲外の予定を削除
                     const validDayIndices = new Set(Array.from({length: newTripDays.length}, (_, i) => i));
                     this.events = this.events.filter(event => validDayIndices.has(event.dayIndex));
                     
-                    // 日程を更新
                     this.tripDays = newTripDays;
                     
-                    // アクティブな日が範囲外の場合は最初の日に設定
                     if (this.activeDay >= this.tripDays.length) {
                         this.activeDay = 0;
                     }
@@ -1206,10 +1197,9 @@
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
                 
-                // 日程管理（改善版）
+                // 日程管理
                 showAddDayModal() {
                     if (this.tripDays.length > 0) {
-                        // 日付順にソートしてから最後の日を取得
                         const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
                         const lastDay = new Date(sortedDays[sortedDays.length - 1].fullDate);
                         lastDay.setDate(lastDay.getDate() + 1);
@@ -1218,7 +1208,6 @@
                         this.newDayDate = this.today;
                     }
                     
-                    // フォーカス管理を改善したモーダル表示
                     this.$nextTick(() => {
                         const modalElement = document.getElementById('addDayModal');
                         if (modalElement) {
@@ -1233,7 +1222,6 @@
                                 });
                             }
                             
-                            // モーダル表示イベントでaria-hidden管理
                             modalElement.addEventListener('shown.bs.modal', () => {
                                 modalElement.removeAttribute('aria-hidden');
                             });
@@ -1253,7 +1241,6 @@
                         return;
                     }
                     
-                    // 既存の日付と重複チェック
                     const existingDate = this.tripDays.find(day => day.fullDate === this.newDayDate);
                     if (existingDate) {
                         alert('その日付は既に追加されています');
@@ -1264,7 +1251,6 @@
                     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                     const dayName = dayNames[selectedDate.getDay()];
                     
-                    // 新しい日程を追加
                     const newDay = {
                         id: Date.now() + Math.random(),
                         dayNumber: this.tripDays.length + 1,
@@ -1275,18 +1261,13 @@
                     };
                     
                     this.tripDays.push(newDay);
-                    
-                    // 日付順にソート
                     this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
                     
-                    // dayNumber を再計算
                     this.tripDays.forEach((day, index) => {
                         day.dayNumber = index + 1;
                     });
                     
-                    // イベントの dayIndex も更新
                     this.updateEventIndices();
-                    
                     this.saveData();
                     
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addDayModal'));
@@ -1326,7 +1307,6 @@
                 
                 // 日付編集機能
                 startDateEdit(index) {
-                    // 他の編集中の日付をキャンセル
                     this.tripDays.forEach((day, i) => {
                         if (i !== index && day.isEditing) {
                             this.cancelDateEdit(i);
@@ -1336,7 +1316,6 @@
                     this.tripDays[index].isEditing = true;
                     this.tripDays[index].editingDate = this.tripDays[index].fullDate;
                     
-                    // 次のティックでフォーカス
                     this.$nextTick(() => {
                         const inputs = this.$refs.dateEditInput;
                         if (inputs && inputs[0]) {
@@ -1353,9 +1332,7 @@
                         return;
                     }
                     
-                    // 新しい日付を基準に全ての日付を再計算
                     this.recalculateAllDates(index, newDate);
-                    
                     this.tripDays[index].isEditing = false;
                     this.saveData();
                 },
@@ -1368,17 +1345,14 @@
                 recalculateAllDates(baseIndex, baseDate) {
                     const baseDateTime = new Date(baseDate);
                     
-                    // 基準日から前の日付を計算
                     for (let i = baseIndex - 1; i >= 0; i--) {
                         const targetDate = new Date(baseDateTime);
                         targetDate.setDate(targetDate.getDate() - (baseIndex - i));
                         this.updateDayData(i, targetDate);
                     }
                     
-                    // 基準日を設定
                     this.updateDayData(baseIndex, baseDateTime);
                     
-                    // 基準日から後の日付を計算
                     for (let i = baseIndex + 1; i < this.tripDays.length; i++) {
                         const targetDate = new Date(baseDateTime);
                         targetDate.setDate(targetDate.getDate() + (i - baseIndex));
@@ -1395,7 +1369,7 @@
                     this.tripDays[index].editingDate = date.toISOString().split('T')[0];
                 },
                 
-                // タブ並び替え機能（改善版）
+                // タブ並び替え機能
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
@@ -1418,7 +1392,6 @@
                         return;
                     }
                     
-                    // タブの並び替えを実行
                     this.reorderTabs(this.draggingTabIndex, dropIndex);
                     
                     this.draggingTabIndex = null;
@@ -1430,39 +1403,30 @@
                     this.dragOverTabIndex = null;
                 },
                 
-                // 改善されたタブ並び替え（日付自動変更機能付き）
                 reorderTabs(fromIndex, toIndex) {
-                    // 並び替え前の予定のdayIndex対応を記録
                     const eventMapping = new Map();
                     this.events.forEach(event => {
                         eventMapping.set(event.id, event.dayIndex);
                     });
                     
-                    // タブを並び替え
                     const movedTab = this.tripDays.splice(fromIndex, 1)[0];
                     this.tripDays.splice(toIndex, 0, movedTab);
                     
-                    // dayNumberを再計算
                     this.tripDays.forEach((day, index) => {
                         day.dayNumber = index + 1;
                     });
                     
-                    // 予定のdayIndexを更新（タブの移動に追従）
                     this.events.forEach(event => {
                         const oldDayIndex = eventMapping.get(event.id);
                         if (oldDayIndex === fromIndex) {
-                            // 移動したタブの予定
                             event.dayIndex = toIndex;
                         } else if (fromIndex < toIndex && oldDayIndex > fromIndex && oldDayIndex <= toIndex) {
-                            // 前方に移動した場合、間のタブは前にシフト
                             event.dayIndex = oldDayIndex - 1;
                         } else if (fromIndex > toIndex && oldDayIndex >= toIndex && oldDayIndex < fromIndex) {
-                            // 後方に移動した場合、間のタブは後にシフト
                             event.dayIndex = oldDayIndex + 1;
                         }
                     });
                     
-                    // アクティブタブの調整
                     if (this.activeDay === fromIndex) {
                         this.activeDay = toIndex;
                     } else if (fromIndex < toIndex && this.activeDay > fromIndex && this.activeDay <= toIndex) {
@@ -1471,21 +1435,17 @@
                         this.activeDay++;
                     }
                     
-                    // ドラッグ後に日付を自動調整
                     this.autoAdjustDatesAfterReorder();
-                    
                     this.saveData();
                 },
                 
-                // ドラッグ後の日付自動調整機能
                 autoAdjustDatesAfterReorder() {
                     if (this.tripDays.length <= 1) return;
                     
-                    // 最初のタブの日付を基準として、連続した日付に調整
                     const baseDate = new Date(this.tripDays[0].fullDate);
                     
                     this.tripDays.forEach((day, index) => {
-                        if (index === 0) return; // 最初のタブはそのまま
+                        if (index === 0) return;
                         
                         const newDate = new Date(baseDate);
                         newDate.setDate(baseDate.getDate() + index);
@@ -1494,10 +1454,8 @@
                     });
                 },
                 
-                // イベントインデックス更新
                 updateEventIndices() {
                     this.events.forEach(event => {
-                        // 既存のイベントのdayIndexを適切に更新
                         const dayExists = this.tripDays[event.dayIndex];
                         if (!dayExists && event.dayIndex >= this.tripDays.length) {
                             event.dayIndex = this.tripDays.length - 1;
@@ -1553,7 +1511,6 @@
                     
                     this.selectedEventForDetail = eventData;
                     
-                    // フォーカス管理を改善したモーダル表示
                     this.$nextTick(() => {
                         const modalElement = document.getElementById('detailModal');
                         if (modalElement) {
@@ -1595,7 +1552,7 @@
                     }
                 },
                 
-                // 長押し検出（500ms：編集モード移行）
+                // 長押し検出
                 handleEventMouseDown(event, eventData) {
                     if (event.target.closest('.title-text')) {
                         return;
@@ -1692,7 +1649,7 @@
                     }
                 },
                 
-                // 移動用短い長押し（100ms）
+                // 移動用短い長押し
                 startMoveLongPress(event, eventData, isTouch) {
                     this.startPosition = {
                         x: isTouch ? event.touches[0].clientX : event.clientX,
@@ -1747,7 +1704,7 @@
                     }
                 },
                 
-                // ドラッグ機能（移動）
+                // ドラッグ機能
                 startDrag(event, eventData, isTouch) {
                     this.isDragging = true;
                     this.draggedEvent = eventData;
@@ -1775,4 +1732,145 @@
                     
                     if (this.$refs.dropGuideLine) {
                         this.$refs.dropGuideLine.style.top = `${snappedY}px`;
-                        this.$refs.drop
+                        this.$refs.dropGuideLine.classList.add('active');
+                    }
+                    
+                    this.dropGuideY = snappedY;
+                },
+                
+                handleDragEnd(event, isTouch, moveHandler, endHandler) {
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
+                    
+                    if (this.draggedEvent) {
+                        const newStartTime = this.pixelsToTime(this.dropGuideY);
+                        const oldStart = this.timeToPixels(this.draggedEvent.startTime);
+                        const oldEnd = this.timeToPixels(this.draggedEvent.endTime);
+                        const duration = oldEnd - oldStart;
+                        const newEndTime = this.pixelsToTime(this.dropGuideY + duration);
+                        
+                        const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
+                        if (eventIndex !== -1) {
+                            this.events[eventIndex].startTime = newStartTime;
+                            this.events[eventIndex].endTime = newEndTime;
+                            this.saveData();
+                        }
+                    }
+                    
+                    if (this.$refs.dropGuideLine) {
+                        this.$refs.dropGuideLine.classList.remove('active');
+                    }
+                    
+                    this.draggedEvent = null;
+                    this.isDragging = false;
+                },
+                
+                // リサイズ機能
+                startResize(event, eventData, direction) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.isResizing = true;
+                    this.resizingEvent = eventData;
+                    this.resizeDirection = direction;
+                    
+                    const isTouch = event.type.includes('touch');
+                    
+                    const moveHandler = (e) => this.handleResizeMove(e, isTouch);
+                    const endHandler = (e) => this.handleResizeEnd(e, isTouch, moveHandler, endHandler);
+                    
+                    if (isTouch) {
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler, { passive: false });
+                    } else {
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
+                },
+                
+                handleResizeMove(event, isTouch) {
+                    if (!this.resizingEvent) return;
+                    
+                    event.preventDefault();
+                    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const y = clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.resizingEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    if (this.resizeDirection === 'top') {
+                        if (newTime < this.events[eventIndex].endTime) {
+                            this.events[eventIndex].startTime = newTime;
+                        }
+                    } else {
+                        if (newTime > this.events[eventIndex].startTime) {
+                            this.events[eventIndex].endTime = newTime;
+                        }
+                    }
+                },
+                
+                handleResizeEnd(event, isTouch, moveHandler, endHandler) {
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
+                    
+                    this.resizingEvent = null;
+                    this.resizeDirection = null;
+                    this.isResizing = false;
+                    this.saveData();
+                },
+                
+                // スケジュールエリアクリック
+                handleScheduleClick(event) {
+                    if (this.longPressSucceeded) {
+                        return;
+                    }
+                    
+                    this.editModeEvent = null;
+                },
+                
+                // カテゴリ関連
+                getCategoryIcon(category) {
+                    const icons = {
+                        travel: 'fas fa-car',
+                        food: 'fas fa-utensils',
+                        sightseeing: 'fas fa-camera',
+                        accommodation: 'fas fa-bed',
+                        custom: 'fas fa-star'
+                    };
+                    return icons[category] || 'fas fa-calendar';
+                },
+                
+                getCategoryName(category) {
+                    const names = {
+                        travel: '移動',
+                        food: '食事',
+                        sightseeing: '観光',
+                        accommodation: '宿泊',
+                        custom: 'その他'
+                    };
+                    return names[category] || 'その他';
+                },
+                
+                // イベント操作
+                openEventModal(event = null) {
+                    this.editingEvent = event;
+                    
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
+                        this.eventForm = {
+                            title: '',
+                            dayIndex: this.activeDay,
