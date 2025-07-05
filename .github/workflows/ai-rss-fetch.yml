@@ -65,7 +65,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add ai-rss/data/articles.json
         git commit -m "Update RSS data with user preference system: $(date '+%Y-%m-%d %H:%M')"
-        git push
+        git push --force-with-lease origin HEAD:main
         
     - name: Update complete
       run: |
