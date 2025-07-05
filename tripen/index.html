@@ -602,6 +602,7 @@
             color: var(--accent-color);
         }
         
+        /* モバイル用のタブ関連設定大幅強化 */
         @media (max-width: 768px) {
             .time-axis { width: 60px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
@@ -612,6 +613,88 @@
             .event-time { font-size: 0.7rem; }
             .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
+            
+            /* モバイル用タブ設定の追加 */
+            .day-tabs .nav-link {
+                min-width: 100px;
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .delete-day-btn {
+                width: 28px;
+                height: 28px;
+                top: 3px;
+                right: 3px;
+                font-size: 0.9rem;
+                /* モバイルでのタッチ領域を拡大 */
+            }
+            
+            .day-tabs .nav-link.add-day-btn {
+                min-width: 50px;
+                padding: 10px 15px !important;
+            }
+            
+            /* タッチ操作の改善 */
+            .event-block {
+                min-height: 40px;
+                padding: 8px 10px;
+                /* タッチ領域を拡大 */
+            }
+            
+            .drag-handle {
+                left: 3px;
+                font-size: 0.9rem;
+            }
+            
+            /* モバイル用の編集モードヘルプ調整 */
+            .edit-mode-help {
+                top: 80px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                font-size: 0.8rem;
+                padding: 12px;
+            }
+            
+            /* スクロールコンテナのタッチ最適化 */
+            .day-tabs-container {
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x mandatory;
+            }
+            
+            .day-tabs .nav-item {
+                scroll-snap-align: start;
+            }
+        }
+        
+        /* タッチデバイス専用の設定 */
+        @media (hover: none) and (pointer: coarse) {
+            .delete-day-btn {
+                display: flex !important;
+                opacity: 0.7;
+                width: 30px;
+                height: 30px;
+            }
+            
+            .delete-day-btn:active {
+                opacity: 1;
+                transform: scale(1.1) translateZ(0);
+            }
+            
+            .day-tabs .nav-link:hover .delete-day-btn {
+                display: flex;
+            }
+            
+            .event-block {
+                /* タッチデバイス用の余白調整 */
+                padding: 10px 12px;
+                min-height: 45px;
+            }
+            
+            .day-tabs .nav-link.add-day-btn:active {
+                transform: scale(0.95);
+            }
         }
     </style>
 </head>
@@ -750,7 +833,8 @@
                                      }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @mousedown="handleEventMouseDown($event, event)">
+                                 @mousedown="handleEventMouseDown($event, event)"
+                                 @touchstart="handleEventTouchStart($event, event)">
                                 
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
                                     ✎
@@ -784,7 +868,7 @@
         <div class="edit-mode-help" :class="{ show: editModeEvent }">
             <strong>📝 編集モード</strong><br>
             • 上下端をドラッグ：時間調整<br>
-            • 中央を500ms長押しドラッグ：移動<br>
+            • 中央を長押しドラッグ：移動<br>
             • 空のエリアをクリック：終了
         </div>
         
@@ -1419,6 +1503,27 @@
                     this.startEditModeLongPress(event, eventData);
                 },
                 
+                // タッチイベント専用ハンドラーを追加
+                handleEventTouchStart(event, eventData) {
+                    if (event.target.closest('.title-text')) {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // タッチイベントの座標取得
+                    const touch = event.touches[0];
+                    
+                    // 既に編集モードの場合は即座にドラッグ移動を開始
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        this.startDragMoveTouch(touch, eventData);
+                        return;
+                    }
+                    
+                    this.startEditModeLongPressTouch(touch, eventData);
+                },
+                
                 startEditModeLongPress(event, eventData) {
                     this.longPressSucceeded = false;
                     
@@ -1446,6 +1551,62 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
+                startEditModeLongPressTouch(touch, eventData) {
+                    this.longPressSucceeded = false;
+                    
+                    this.startPosition = {
+                        x: touch.clientX,
+                        y: touch.clientY
+                    };
+                    
+                    // モバイル用の長押し時間を長めに設定
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressSucceeded = true;
+                        this.editModeEvent = eventData;
+                        
+                        if (navigator.vibrate) {
+                            navigator.vibrate([50, 10, 50]); // より強い振動パターン
+                        }
+                        
+                        this.clearLongPress();
+                    }, 800); // モバイル用に800msに延長
+                    
+                    const moveHandler = (e) => this.handleLongPressMoveTouch(e);
+                    const endHandler = (e) => this.handleLongPressEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
+                handleLongPressMoveTouch(event) {
+                    const touch = event.touches[0];
+                    if (!touch) return;
+                    
+                    const currentX = touch.clientX;
+                    const currentY = touch.clientY;
+                    
+                    const deltaX = Math.abs(currentX - this.startPosition.x);
+                    const deltaY = Math.abs(currentY - this.startPosition.y);
+                    
+                    // モバイル用に許容範囲を広げる
+                    if (deltaX > 15 || deltaY > 15) {
+                        this.clearLongPress();
+                    }
+                },
+                
+                handleLongPressEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    
+                    this.clearLongPress();
+                    
+                    if (this.longPressSucceeded) {
+                        setTimeout(() => {
+                            this.longPressSucceeded = false;
+                        }, 100);
+                    }
+                },
+                
                 startDragMove(event, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
@@ -1460,6 +1621,22 @@
                     
                     document.addEventListener('mousemove', moveHandler);
                     document.addEventListener('mouseup', endHandler);
+                },
+                
+                startDragMoveTouch(touch, eventData) {
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
+                    const startY = touch.clientY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const initialTop = touch.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    
+                    const moveHandler = (e) => this.handleDragMoveTouch(e, startY, initialTop);
+                    const endHandler = (e) => this.handleDragEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
                 },
                 
                 handleDragMove(event, startY, initialTop) {
@@ -1481,9 +1658,37 @@
                     }
                 },
                 
+                handleDragMoveTouch(event, startY, initialTop) {
+                    const touch = event.touches[0];
+                    if (!touch) return;
+                    
+                    const deltaY = touch.clientY - startY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedTop);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && endTime <= '23:45') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    }
+                },
+                
                 handleDragEnd(event, moveHandler, endHandler) {
                     document.removeEventListener('mousemove', moveHandler);
                     document.removeEventListener('mouseup', endHandler);
+                    this.saveData();
+                },
+                
+                handleDragEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
                     this.saveData();
                 },
                 
