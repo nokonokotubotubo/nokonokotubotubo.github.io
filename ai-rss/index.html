@@ -105,10 +105,10 @@
           position: relative;
         }
 
-        /* ✅ 1. カテゴリープルダウン位置調整 */
+        /* ✅ 1. カテゴリープルダウンをヘッダーの下に配置 */
         .category-filter-wrapper {
           position: absolute;
-          top: -4rem;
+          top: 1rem;
           left: 2rem;
           z-index: 10;
         }
@@ -135,7 +135,7 @@
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 1.5rem;
-          margin-top: 1rem; /* カテゴリーフィルター分のスペース確保 */
+          margin-top: 4rem; /* カテゴリーフィルター分のスペース確保 */
         }
 
         .stat-tab-card {
@@ -423,7 +423,6 @@
           z-index: 1000;
         }
 
-        /* ✅ 3. トップに戻るボタン */
         .scroll-to-top {
           position: fixed;
           bottom: 20px;
@@ -866,16 +865,30 @@
             });
         }
 
-        // ✅ 2. カテゴリー切り替え時のタブカウント更新
-        function updateTabCountForCategory(visibleCount) {
-            const activeTabCard = document.querySelector(`[data-tab="${currentTab}"]`);
-            if (activeTabCard) {
-                const numberElement = activeTabCard.querySelector('.stat-number');
-                if (currentCategory === 'all') {
-                    updateTabCountsFromCurrentData();
-                } else {
-                    numberElement.textContent = visibleCount;
-                }
+        // ✅ 2. 全タブのカテゴリー切り替え時カウント更新
+        function updateAllTabCountsForCategory() {
+            if (!currentData || !currentData.articles) return;
+
+            if (currentCategory === 'all') {
+                // 全カテゴリ表示時は元の数に戻す
+                updateTabCountsFromCurrentData();
+            } else {
+                // フィルター適用時は各タブの該当カテゴリ記事数を計算
+                const filteredArticlesByPreference = {
+                    interested: currentData.articles.filter(a => a.preference === 'interested' && a.category === currentCategory),
+                    neutral: currentData.articles.filter(a => a.preference === 'neutral' && a.category === currentCategory),
+                    'not-interested': currentData.articles.filter(a => a.preference === 'not-interested' && a.category === currentCategory),
+                    all: currentData.articles.filter(a => a.category === currentCategory)
+                };
+
+                // 各タブの数を更新
+                Object.keys(filteredArticlesByPreference).forEach(preference => {
+                    const tabCard = document.querySelector(`[data-tab="${preference}"]`);
+                    if (tabCard) {
+                        const numberElement = tabCard.querySelector('.stat-number');
+                        numberElement.textContent = filteredArticlesByPreference[preference].length;
+                    }
+                });
             }
         }
         
@@ -954,7 +967,7 @@
             
             setupEventListeners();
             restoreUserRatings();
-            setupScrollToTop(); // ✅ 3. トップに戻るボタン初期化
+            setupScrollToTop();
         }
         
         function generateArticleCard(article) {
@@ -1026,9 +1039,7 @@
             setTimeout(() => messageDiv.remove(), 3000);
         }
 
-        // ✅ 3. トップに戻るボタンの制御
         function setupScrollToTop() {
-            // 既存のボタンがあれば削除
             const existingButton = document.querySelector('.scroll-to-top');
             if (existingButton) {
                 existingButton.remove();
@@ -1040,7 +1051,6 @@
             scrollButton.title = '1番上に戻る';
             document.body.appendChild(scrollButton);
 
-            // スクロール監視
             window.addEventListener('scroll', () => {
                 if (window.pageYOffset > 300) {
                     scrollButton.classList.add('visible');
@@ -1049,7 +1059,6 @@
                 }
             });
 
-            // クリック時の動作
             scrollButton.addEventListener('click', () => {
                 window.scrollTo({
                     top: 0,
@@ -1101,7 +1110,6 @@
             applyFilters();
         }
 
-        // ✅ 2. カテゴリー切り替え時のタブカウント更新対応
         function applyFilters() {
             const activeContainer = document.querySelector('.articles-container:not(.hidden)');
             if (!activeContainer) return;
@@ -1117,7 +1125,8 @@
                 }
             });
 
-            updateTabCountForCategory(visibleCount);
+            // ✅ 全タブの記事数を更新
+            updateAllTabCountsForCategory();
         }
         
         function restoreUserRatings() {
