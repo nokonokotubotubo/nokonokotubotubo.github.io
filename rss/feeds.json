@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T18:20:40.199Z",
+  "updated": "2025-07-05T19:12:55.467Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049656",
+      "title": "2025年最新トレンド：AI技術を活用した業務アプリケーション開発の基礎と実践",
+      "link": "https://qiita.com/karakurai_rena/items/d260cbdc4fb9f6da7da5",
+      "published": "2025-07-05T18:56:16.000Z",
+      "description": "2025年最新トレンド：AI技術を活用した業務アプリケーション開発の基礎と実践 こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、人工知能（AI）技術が急速に進化しており、業務アプリケーションの開発手法にも大きな変化が起きています。特に、生成AIやローコ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "2025年最新トレンド：AI技術を活用した業務アプリケーション開発の基礎と実践 こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、人工知能（AI）技術が急速に進化しており、業務アプリケーションの開発手法にも大きな変化が起きています。特に、生成AIやローコ...",
+      "thumbnail": null
+    },
     {
       "id": "https://zenn.dev/takahasuma/articles/ea07b5c9458597",
       "title": "Amazon Q Developerで始めるシステム開発：要件定義からアーキテクチャ決定まで",
@@ -94,18 +106,6 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "Tempest論文・Zochi・ACL2025まとめ Tempest論文の要約と感想 論文要約 タイトル：Tempest: Automatic Multi-Turn Jailbreaking of Large Language Models with Tree S...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2049139",
-      "title": "Gemini CLIを使って並列タスク処理をしたい！（プロンプトで個別に指示できた編）",
-      "link": "https://qiita.com/nami_fumi/items/ff13d1f6b2afd965cd52",
-      "published": "2025-07-04T13:24:16.000Z",
-      "description": "はじめに 環境 PC: MacBook Air(16 GM) 開発環境: vscode 元ネタと前回記事 note AI駆動開発 Claude Code & Tmux入門 16ワーカーを同時に動かして開発効率爆上げする方法 bashもzshにも対応 前々回記事 ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 環境 PC: MacBook Air(16 GM) 開発環境: vscode 元ネタと前回記事 note AI駆動開発 Claude Code & Tmux入門 16ワーカーを同時に動かして開発効率爆上げする方法 bashもzshにも対応 前々回記事 ...",
       "thumbnail": null
     },
     {
