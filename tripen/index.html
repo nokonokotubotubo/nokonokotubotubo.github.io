@@ -3,1131 +3,635 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 AI RSS ダッシュボード</title>
+    <title>とりっぺんちゃん - 旅行予定調整サイト</title>
     
-    <meta http-equiv="Cache-Control" content="no-cache">
-    <meta http-equiv="Pragma" content="no-cache">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
+        /* カスタムCSS - 淡い水色基調デザイン */
         :root {
-          --primary-light: #E0F7FF;
-          --primary-medium: #B8E6FF;
-          --primary-dark: #87CEEB;
-          --primary-accent: #5BA8C4;
-          --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
-          --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-          --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
-          --text-primary: #2C3E50;
-          --text-secondary: #5A6C7D;
-          --text-light: #8FA0B3;
-          --border-color: #E8F4F8;
-          --border-hover: #B8E6FF;
-          --interested-color: #10B981;
-          --neutral-color: #F59E0B;
-          --not-interested-color: #EF4444;
+            --primary-color: #87CEEB;    /* 淡い水色 */
+            --secondary-color: #B0E0E6;  /* より淡い水色 */
+            --accent-color: #4682B4;     /* 濃い水色 */
+            --text-color: #2F4F4F;       /* 暗いスレート */
+            --bg-color: #F0F8FF;         /* アリスブルー */
         }
-
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
+        
         body {
-          font-family: 'Noto Sans JP', sans-serif;
-          background: var(--background-gradient);
-          color: var(--text-primary);
-          line-height: 1.7;
-          min-height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        .loading {
-          text-align: center;
-          padding: 4rem;
-          font-size: 1.5rem;
-          color: var(--primary-accent);
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-
+        
         .header {
-          background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-accent) 100%);
-          padding: 2rem;
-          text-align: center;
-          margin-bottom: 3rem;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-
-        .header h1 {
-          color: #fff;
-          font-size: 3.5rem;
-          font-weight: 900;
-          margin-bottom: 1rem;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-          animation: slideInDown 0.8s ease;
+        
+        .penguin-icon {
+            font-size: 2rem;
+            margin-right: 10px;
         }
-
-        .header p {
-          color: rgba(255, 255, 255, 0.95);
-          font-size: 1.3rem;
-          margin-bottom: 1rem;
+        
+        .calendar-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-
-        .header-stats {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 0.9rem;
-          animation: fadeIn 1s ease 0.5s both;
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-
-        @keyframes slideInDown {
-          from { transform: translateY(-50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        
+        .calendar-nav {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+        
+        .calendar-nav:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
         }
-
-        .stats-section {
-          max-width: 1200px;
-          margin: 0 auto 3rem;
-          padding: 0 2rem;
-          position: relative;
+        
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-
-        .category-filter-wrapper {
-          position: absolute;
-          top: 0;
-          left: 2rem;
-          z-index: 10;
-        }
-
-        .category-filter {
-          padding: 0.8rem 1.2rem;
-          border: 2px solid var(--border-color);
-          border-radius: 8px;
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          color: var(--text-secondary);
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: var(--card-shadow);
-        }
-
-        .category-filter:hover {
-          border-color: var(--border-hover);
-          transform: translateY(-2px);
-        }
-
-        .stats-tabs {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
-          margin-top: 3rem;
-        }
-
-        .stat-tab-card {
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          border: 2px solid var(--border-color);
-          border-radius: 20px;
-          padding: 2rem;
-          text-align: center;
-          box-shadow: var(--card-shadow);
-          transition: all 0.4s ease;
-          position: relative;
-          overflow: hidden;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .stat-tab-card:hover {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: var(--card-shadow-hover);
-          border-color: var(--border-hover);
-        }
-
-        .stat-tab-card.active {
-          background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
-          border-color: var(--primary-accent);
-          color: #fff;
-          transform: translateY(-8px) scale(1.05);
-        }
-
-        .stat-tab-card.interested.active {
-          background: linear-gradient(135deg, var(--interested-color), #059669);
-        }
-
-        .stat-tab-card.neutral.active {
-          background: linear-gradient(135deg, var(--neutral-color), #D97706);
-        }
-
-        .stat-tab-card.not-interested.active {
-          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
-        }
-
-        .stat-number {
-          font-size: 3rem;
-          font-weight: 900;
-          margin-bottom: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .stat-label {
-          font-size: 1rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .articles-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 2rem;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-          gap: 2rem;
-          animation: slideInUp 0.6s ease;
-        }
-
-        .hidden {
-          display: none;
-        }
-
-        @keyframes slideInUp {
-          from { transform: translateY(50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        .article-card {
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          border: 2px solid var(--border-color);
-          border-radius: 24px;
-          overflow: hidden;
-          transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          position: relative;
-          box-shadow: var(--card-shadow);
-          animation: fadeInScale 0.6s ease;
-        }
-
-        .article-card:hover {
-          border-color: var(--border-hover);
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: var(--card-shadow-hover);
-        }
-
-        .article-card.interested {
-          border-left: 4px solid var(--interested-color);
-        }
-
-        .article-card.neutral {
-          border-left: 4px solid var(--neutral-color);
-        }
-
-        .article-card.not-interested {
-          border-left: 4px solid var(--not-interested-color);
-        }
-
-        @keyframes fadeInScale {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        /* カテゴリ移動アニメーション */
-        .article-card.moving-out {
-          animation: cardMoveOut 0.5s ease-in-out forwards;
-        }
-
-        .article-card.moving-in {
-          animation: cardMoveIn 0.5s ease-in-out forwards;
-        }
-
-        @keyframes cardMoveOut {
-          0% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(0.8); opacity: 0; }
-        }
-
-        @keyframes cardMoveIn {
-          0% { transform: scale(0.8); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* 軽量なスケールアニメーション（同じカテゴリ時） */
-        .article-card.light-scale {
-          animation: lightScale 0.2s ease;
-        }
-
-        @keyframes lightScale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.01); }
-        }
-
-        /* カテゴリ変更時のハイライト */
-        .category-highlight {
-          animation: categoryPulse 1s ease-in-out;
-        }
-
-        @keyframes categoryPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
-        }
-
-        .article-content {
-          padding: 2.5rem;
-        }
-
-        .article-title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin-bottom: 1rem;
-          line-height: 1.4;
-          cursor: pointer;
-          transition: color 0.3s ease;
-        }
-
-        .article-title:hover {
-          color: var(--primary-accent);
-        }
-
-        .article-meta {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .preference-badge {
-          padding: 0.5rem 1rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: #fff;
-          transition: all 0.3s ease;
-        }
-
-        .badge-interested {
-          background: linear-gradient(135deg, var(--interested-color), #059669);
-        }
-
-        .badge-neutral {
-          background: linear-gradient(135deg, var(--neutral-color), #D97706);
-        }
-
-        .badge-not-interested {
-          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
-        }
-
-        .article-info {
-          font-size: 0.9rem;
-          color: var(--text-light);
-          font-weight: 500;
-        }
-
-        .article-description {
-          color: var(--text-secondary);
-          font-size: 1rem;
-          line-height: 1.8;
-          margin-bottom: 2rem;
-        }
-
-        .rating-section {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 1.5rem;
-          border-top: 2px solid var(--border-color);
-        }
-
-        .rating-stars {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .star {
-          cursor: pointer;
-          font-size: 1.8rem;
-          color: #E5E7EB;
-          transition: all 0.3s ease;
-          user-select: none;
-        }
-
-        .star.filled {
-          color: #FBBF24;
-          transform: scale(1.1);
-          filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
-        }
-
-        .star:hover {
-          color: #FBBF24;
-          transform: scale(1.2);
-        }
-
-        .rating-label {
-          font-size: 0.9rem;
-          color: var(--text-light);
-          font-weight: 600;
-        }
-
-        .user-rated-mark {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: var(--interested-color);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: bold;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-        }
-
-        .rating-feedback {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: var(--interested-color);
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-          z-index: 1000;
-          animation: slideInRight 0.3s ease;
-        }
-
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* パーティクル効果 */
-        .particle-effect {
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 1000;
-        }
-
-        @media (max-width: 1024px) {
-          .stats-tabs {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .articles-container {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          }
-        }
-
-        @media (max-width: 768px) {
-          .header h1 {
-            font-size: 2.8rem;
-          }
-          .header-stats {
-            flex-direction: column;
-            gap: 0.5rem;
-          }
-          .stats-tabs {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-            margin-top: 2rem;
-          }
-          .articles-container {
-            grid-template-columns: 1fr;
-            padding: 0 1rem;
-          }
-          .stats-section {
-            padding: 0 1rem;
-          }
-          .category-filter-wrapper {
+        
+        .calendar-table th,
+        .calendar-table td {
+            padding: 15px 5px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            vertical-align: top;
             position: relative;
-            left: 0;
-            margin-bottom: 1rem;
-          }
+        }
+        
+        .calendar-table th {
+            background: var(--secondary-color);
+            color: var(--text-color);
+            font-weight: bold;
+        }
+        
+        .calendar-table td {
+            height: 100px;
+            background: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .calendar-table td:hover {
+            background: #f8f9fa;
+        }
+        
+        .calendar-table td.other-month {
+            background: #f5f5f5;
+            color: #ccc;
+        }
+        
+        .calendar-table td.today {
+            background: var(--secondary-color);
+            font-weight: bold;
+        }
+        
+        .event-item {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 5px;
+            margin: 1px 0;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            cursor: grab;
+            position: relative;
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .event-item:active {
+            cursor: grabbing;
+        }
+        
+        .event-item.dragging {
+            opacity: 0.5;
+        }
+        
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .btn-primary {
+            background: var(--accent-color);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: var(--text-color);
+            transform: translateY(-2px);
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+        }
+        
+        .share-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .share-url {
+            background: var(--bg-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 10px;
+            word-break: break-all;
+        }
+        
+        .drop-zone {
+            border: 2px dashed var(--primary-color);
+            background: rgba(135, 206, 235, 0.1);
+        }
+        
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .calendar-table td {
+                height: 80px;
+                padding: 5px 2px;
+            }
+            
+            .event-item {
+                font-size: 0.7rem;
+                padding: 1px 3px;
+            }
+            
+            .penguin-icon {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading">
-        🤖 最新のAI分析ニュースを読み込み中...
+    <div id="app">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="container">
+                <h1>
+                    <i class="fas fa-snowflake penguin-icon"></i>
+                    とりっぺんちゃん
+                </h1>
+                <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
+            </div>
+        </header>
+        
+        <!-- メインコンテンツ -->
+        <div class="container">
+            <!-- 共有機能 -->
+            <div class="share-section">
+                <h5><i class="fas fa-share-alt"></i> 共有機能</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="share-url">
+                            {{ shareUrl }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" @click="copyShareUrl">
+                            <i class="fas fa-copy"></i> URLをコピー
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- カレンダー -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav" @click="previousMonth">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3>{{ currentYear }}年 {{ currentMonth }}月</h3>
+                    <button class="calendar-nav" @click="nextMonth">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="calendar-table">
+                        <thead>
+                            <tr>
+                                <th>日</th>
+                                <th>月</th>
+                                <th>火</th>
+                                <th>水</th>
+                                <th>木</th>
+                                <th>金</th>
+                                <th>土</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="week in calendarWeeks" :key="week.weekIndex">
+                                <td v-for="day in week.days" :key="day.date"
+                                    :class="[
+                                        day.isOtherMonth ? 'other-month' : '',
+                                        day.isToday ? 'today' : '',
+                                        dragOverDay === day.date ? 'drop-zone' : ''
+                                    ]"
+                                    @click="openEventModal(day.date)"
+                                    @dragover.prevent="dragOverDay = day.date"
+                                    @dragleave="dragOverDay = null"
+                                    @drop="handleDrop($event, day.date)">
+                                    
+                                    <div class="fw-bold">{{ day.day }}</div>
+                                    
+                                    <div class="event-item"
+                                         v-for="event in getEventsForDay(day.date)"
+                                         :key="event.id"
+                                         :class="'event-category-' + event.category"
+                                         draggable="true"
+                                         @dragstart="handleDragStart($event, event)"
+                                         @dragend="handleDragEnd"
+                                         @click.stop="openEventModal(day.date, event)">
+                                        
+                                        <i :class="getCategoryIcon(event.category)"></i>
+                                        {{ event.title }}
+                                        <small class="d-block">
+                                            {{ event.startTime }} - {{ event.endTime }}
+                                        </small>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 予定編集モーダル -->
+        <div class="modal fade" id="eventModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-plus"></i>
+                            {{ editingEvent ? '予定を編集' : '新しい予定を追加' }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="saveEvent">
+                            <div class="mb-3">
+                                <label class="form-label">予定名</label>
+                                <input type="text" class="form-control" v-model="eventForm.title" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">日付</label>
+                                <input type="date" class="form-control" v-model="eventForm.date" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">開始時間</label>
+                                        <input type="time" class="form-control" v-model="eventForm.startTime" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">終了時間</label>
+                                        <input type="time" class="form-control" v-model="eventForm.endTime" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">カテゴリ</label>
+                                <select class="form-control" v-model="eventForm.category" required>
+                                    <option value="travel">🚗 移動</option>
+                                    <option value="food">🍽️ 食事</option>
+                                    <option value="sightseeing">🏛️ 観光</option>
+                                    <option value="accommodation">🏨 宿泊</option>
+                                    <option value="custom">✨ その他</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3" v-if="eventForm.category === 'custom'">
+                                <label class="form-label">カスタムカテゴリ名</label>
+                                <input type="text" class="form-control" v-model="eventForm.customCategory" placeholder="カテゴリ名を入力">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">詳細</label>
+                                <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-danger" v-if="editingEvent" @click="deleteEvent">
+                            <i class="fas fa-trash"></i> 削除
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="saveEvent">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <div id="dashboard-container" style="display: none;"></div>
-
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
     <script>
-        let currentData = null;
-        let currentTab = 'all';
-        let currentCategory = 'all';
+        const { createApp } = Vue;
         
-        // ユーザー評価の保存期間（30日）
-        const USER_RATING_EXPIRY_DAYS = 30;
-
-        async function loadLatestData() {
-            try {
-                const cacheBuster = Date.now();
-                const response = await fetch(`./data/articles.json?v=${cacheBuster}`, {
-                    headers: { 'Cache-Control': 'no-cache' }
-                });
-                
-                const data = await response.json();
-                console.log('✅ データ読み込み完了:', data.articles.length + '件');
-                
-                // ローカル評価をフィードデータに適用
-                const articlesWithUserPreferences = applyUserPreferencesToFeed(data.articles);
-                
-                currentData = {
-                    ...data,
-                    articles: articlesWithUserPreferences
-                };
-                
-                renderDashboard(currentData);
-                
-            } catch (error) {
-                console.error('❌ データ読み込み失敗:', error);
-                document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました<br><button onclick="loadLatestData()">🔄 再試行</button>';
-            }
-        }
-
-        function applyUserPreferencesToFeed(articles) {
-            const userFeedback = getUserFeedbackWithinExpiry();
-            
-            return articles.map(article => {
-                const userRating = userFeedback[article.id];
-                
-                if (userRating && userRating.rating) {
-                    const newPreference = calculatePreferenceFromRating(userRating.rating);
-                    
-                    console.log(`📊 ユーザー評価適用: ${article.title.substring(0, 30)}... - ${article.preference} → ${newPreference}`);
-                    
-                    return {
-                        ...article,
-                        preference: newPreference,
-                        userRating: userRating.rating,
-                        userOverride: true,
-                        lastRatedAt: userRating.timestamp
-                    };
-                }
-                
-                return article;
-            });
-        }
-
-        function getUserFeedbackWithinExpiry() {
-            const allFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
-            const currentTime = new Date().getTime();
-            const expiryTime = USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-            
-            const validFeedback = {};
-            let expiredCount = 0;
-            
-            Object.keys(allFeedback).forEach(articleId => {
-                const feedback = allFeedback[articleId];
-                const feedbackTime = new Date(feedback.timestamp).getTime();
-                
-                if (currentTime - feedbackTime < expiryTime) {
-                    validFeedback[articleId] = feedback;
-                } else {
-                    expiredCount++;
-                }
-            });
-            
-            if (expiredCount > 0) {
-                console.log(`🧹 期限切れ評価データを削除: ${expiredCount}件`);
-                localStorage.setItem('ai-rss-feedback', JSON.stringify(validFeedback));
-            }
-            
-            console.log(`📊 有効な評価データ: ${Object.keys(validFeedback).length}件（期間: ${USER_RATING_EXPIRY_DAYS}日）`);
-            return validFeedback;
-        }
-
-        function calculatePreferenceFromRating(rating) {
-            if (rating >= 4) return 'interested';
-            if (rating <= 2) return 'not-interested';
-            return 'neutral';
-        }
-
-        // ✅ 現在のカテゴリを取得する関数
-        function getCurrentPreference(articleId) {
-            // currentDataから現在の嗜好を取得
-            if (currentData && currentData.articles) {
-                const article = currentData.articles.find(a => a.id === articleId);
-                if (article) {
-                    return article.preference;
-                }
-            }
-            
-            // フォールバック: DOMから取得
-            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (articleCard) {
-                if (articleCard.classList.contains('interested')) return 'interested';
-                if (articleCard.classList.contains('neutral')) return 'neutral';
-                if (articleCard.classList.contains('not-interested')) return 'not-interested';
-            }
-            
-            // デフォルト
-            return 'neutral';
-        }
-
-        // ✅ ユーザー評価マークのみ更新（軽量処理）
-        function updateUserRatingMark(articleId, rating) {
-            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
-            
-            cards.forEach(card => {
-                // ユーザー評価マークを追加
-                let userMark = card.querySelector('.user-rated-mark');
-                if (!userMark) {
-                    userMark = document.createElement('span');
-                    userMark.className = 'user-rated-mark';
-                    userMark.textContent = '✓ ユーザー評価';
-                    card.appendChild(userMark);
-                }
-                
-                // 評価情報を更新
-                let ratingInfo = card.querySelector('.article-info[data-rating]');
-                if (!ratingInfo) {
-                    // 評価情報がない場合は追加
-                    const metaDiv = card.querySelector('.article-meta');
-                    ratingInfo = document.createElement('span');
-                    ratingInfo.className = 'article-info';
-                    ratingInfo.setAttribute('data-rating', 'true');
-                    metaDiv.appendChild(ratingInfo);
-                }
-                ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-                
-                // 軽量なスケールアニメーション
-                card.classList.add('light-scale');
-                setTimeout(() => {
-                    card.classList.remove('light-scale');
-                }, 200);
-            });
-        }
-
-        // ✅ 星評価による最適化されたカテゴリ分け
-        function setRating(articleId, rating) {
-            let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
-            
-            if (!userFeedback[articleId]) {
-                userFeedback[articleId] = {};
-            }
-            
-            // ✅ 現在のカテゴリを取得
-            const currentPreference = getCurrentPreference(articleId);
-            
-            // ✅ 新しいカテゴリを計算
-            const newPreference = calculatePreferenceFromRating(rating);
-            
-            // 記事情報も保存（AI学習用）
-            const article = currentData.articles.find(a => a.id === articleId);
-            
-            userFeedback[articleId] = {
-                rating: rating,
-                timestamp: new Date().toISOString(),
-                title: article ? article.title : '',
-                category: article ? article.category : '',
-                feedName: article ? article.feedName : '',
-                expiresAt: new Date(Date.now() + (USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
-            };
-            
-            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
-            
-            // 星の表示を更新（常に実行）
-            const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
-            stars.forEach((star, index) => {
-                star.classList.toggle('filled', index < rating);
-            });
-            
-            // ✅ カテゴリが同じ場合は移動処理をスキップ
-            if (currentPreference === newPreference) {
-                console.log('📊 カテゴリ変更なし:', currentPreference, '→', newPreference, '処理スキップ');
-                
-                // 評価マークのみ更新
-                updateUserRatingMark(articleId, rating);
-                
-                // 軽量なフィードバックメッセージ
-                showFeedbackMessage(`評価を保存しました（${rating}/5）`);
-                
-                return; // ✅ 早期リターンで不要な処理をスキップ
-            }
-            
-            console.log('📊 カテゴリ変更あり:', currentPreference, '→', newPreference, '移動処理実行');
-            
-            // ✅ currentDataを更新
-            if (currentData && currentData.articles) {
-                const articleIndex = currentData.articles.findIndex(a => a.id === articleId);
-                if (articleIndex !== -1) {
-                    currentData.articles[articleIndex].preference = newPreference;
-                    currentData.articles[articleIndex].userRating = rating;
-                    currentData.articles[articleIndex].userOverride = true;
-                }
-            }
-            
-            // ✅ カテゴリが変わった場合のみ移動処理を実行
-            moveArticleToNewCategory(articleId, currentPreference, newPreference, rating);
-            
-            // ✅ タブカウントを更新
-            updateTabCountsFromCurrentData();
-            
-            // 視覚的フィードバック（カテゴリ変更時のみ）
-            showCategoryChangeAnimation(articleId, newPreference);
-            showFeedbackMessage(`評価を保存し、「${getPreferenceName(newPreference)}」に移動しました！`);
-            
-            console.log('評価保存・カテゴリ移動:', articleId, rating, `${currentPreference} → ${newPreference}`);
-        }
-
-        // ✅ 記事を新しいカテゴリコンテナに移動
-        function moveArticleToNewCategory(articleId, oldPreference, newPreference, rating) {
-            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (!articleCard) return;
-            
-            // 記事カードの嗜好表示を更新
-            updateArticlePreferenceVisual(articleCard, newPreference, rating);
-            
-            // ✅ 記事を新しいコンテナに複製
-            const updatedCard = articleCard.cloneNode(true);
-            
-            // 全てのコンテナに新しい記事を追加
-            const allContainer = document.getElementById('articles-all');
-            const interestedContainer = document.getElementById('articles-interested');
-            const neutralContainer = document.getElementById('articles-neutral');
-            const notInterestedContainer = document.getElementById('articles-not-interested');
-            
-            // 既存の記事を全コンテナから削除
-            [allContainer, interestedContainer, neutralContainer, notInterestedContainer].forEach(container => {
-                const existingCard = container.querySelector(`[data-article-id="${articleId}"]`);
-                if (existingCard) {
-                    // ✅ フェードアウトアニメーション
-                    existingCard.classList.add('moving-out');
-                    
-                    setTimeout(() => {
-                        if (existingCard.parentNode) {
-                            existingCard.remove();
-                        }
-                    }, 500);
-                }
-            });
-            
-            // ✅ 新しいカテゴリコンテナに追加（フェードインアニメーション付き）
-            setTimeout(() => {
-                // 全記事コンテナには常に追加
-                const allCardClone = updatedCard.cloneNode(true);
-                setupCardEventListeners(allCardClone);
-                allCardClone.classList.add('moving-in');
-                allContainer.appendChild(allCardClone);
-                
-                // 該当カテゴリコンテナにも追加
-                let targetContainer;
-                if (newPreference === 'interested') {
-                    targetContainer = interestedContainer;
-                } else if (newPreference === 'neutral') {
-                    targetContainer = neutralContainer;
-                } else {
-                    targetContainer = notInterestedContainer;
-                }
-                
-                if (targetContainer) {
-                    const categoryCardClone = updatedCard.cloneNode(true);
-                    setupCardEventListeners(categoryCardClone);
-                    categoryCardClone.classList.add('moving-in');
-                    targetContainer.appendChild(categoryCardClone);
-                }
-            }, 600);
-            
-            // ✅ カテゴリ移動の視覚的効果
-            setTimeout(() => {
-                highlightCategoryTab(newPreference);
-            }, 800);
-        }
-
-        // ✅ 記事カードの嗜好表示を更新
-        function updateArticlePreferenceVisual(card, newPreference, rating) {
-            const preferenceSpan = card.querySelector('.preference-badge');
-            
-            // 既存のカテゴリクラスを削除
-            card.classList.remove('interested', 'neutral', 'not-interested');
-            preferenceSpan.classList.remove('badge-interested', 'badge-neutral', 'badge-not-interested');
-            
-            // 新しいカテゴリを設定
-            card.classList.add(newPreference);
-            preferenceSpan.classList.add(`badge-${newPreference}`);
-            
-            // ユーザー評価マークを追加
-            let userMark = card.querySelector('.user-rated-mark');
-            if (!userMark) {
-                userMark = document.createElement('span');
-                userMark.className = 'user-rated-mark';
-                userMark.textContent = '✓ ユーザー評価';
-                card.appendChild(userMark);
-            }
-            
-            // 嗜好表示テキストを更新
-            if (newPreference === 'interested') {
-                preferenceSpan.textContent = '😍 興味ありそう（ユーザー評価）';
-            } else if (newPreference === 'neutral') {
-                preferenceSpan.textContent = '😐 普通（ユーザー評価）';
-            } else {
-                preferenceSpan.textContent = '😕 興味なさそう（ユーザー評価）';
-            }
-            
-            // 評価情報を更新
-            let ratingInfo = card.querySelector('.article-info[data-rating]');
-            if (!ratingInfo) {
-                // 評価情報がない場合は追加
-                const metaDiv = card.querySelector('.article-meta');
-                ratingInfo = document.createElement('span');
-                ratingInfo.className = 'article-info';
-                ratingInfo.setAttribute('data-rating', 'true');
-                metaDiv.appendChild(ratingInfo);
-            }
-            ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-        }
-
-        // ✅ カードのイベントリスナーを設定
-        function setupCardEventListeners(card) {
-            // 星評価のクリックイベントを再設定
-            const stars = card.querySelectorAll('.star');
-            stars.forEach(star => {
-                const articleId = card.dataset.articleId;
-                const rating = star.dataset.rating;
-                star.onclick = () => setRating(articleId, parseInt(rating));
-            });
-            
-            // タイトルクリックイベントを再設定
-            const title = card.querySelector('.article-title');
-            if (title) {
-                const onclickAttr = title.getAttribute('onclick');
-                if (onclickAttr) {
-                    const link = onclickAttr.match(/'([^']+)'/)[1];
-                    title.onclick = () => window.open(link, '_blank');
-                }
-            }
-        }
-
-        // ✅ カテゴリタブをハイライト
-        function highlightCategoryTab(preference) {
-            const targetTab = document.querySelector(`[data-tab="${preference}"]`);
-            if (targetTab) {
-                // 一時的にハイライト効果
-                targetTab.classList.add('category-highlight');
-                
-                setTimeout(() => {
-                    targetTab.classList.remove('category-highlight');
-                }, 1000);
-            }
-        }
-
-        // ✅ カテゴリ変更アニメーション
-        function showCategoryChangeAnimation(articleId, newPreference) {
-            const card = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (!card) return;
-            
-            // カテゴリ変更のパーティクル効果
-            const colors = {
-                'interested': '#10B981',
-                'neutral': '#F59E0B',
-                'not-interested': '#EF4444'
-            };
-            
-            // パーティクル効果を作成
-            for (let i = 0; i < 5; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle-effect';
-                particle.style.background = colors[newPreference];
-                
-                const rect = card.getBoundingClientRect();
-                particle.style.left = (rect.left + rect.width / 2) + 'px';
-                particle.style.top = (rect.top + rect.height / 2) + 'px';
-                
-                document.body.appendChild(particle);
-                
-                // アニメーション
-                const angle = (i * 72) * Math.PI / 180;
-                const distance = 100;
-                
-                particle.animate([
-                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-                    { 
-                        transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`, 
-                        opacity: 0 
+        createApp({
+            data() {
+                return {
+                    currentDate: new Date(),
+                    events: [],
+                    editingEvent: null,
+                    draggedEvent: null,
+                    dragOverDay: null,
+                    eventForm: {
+                        title: '',
+                        date: '',
+                        startTime: '',
+                        endTime: '',
+                        category: 'travel',
+                        customCategory: '',
+                        description: ''
                     }
-                ], {
-                    duration: 800,
-                    easing: 'ease-out'
-                }).addEventListener('finish', () => {
-                    particle.remove();
-                });
-            }
-        }
-
-        // ✅ 嗜好名を取得
-        function getPreferenceName(preference) {
-            const names = {
-                'interested': '興味ありそう',
-                'neutral': '普通',
-                'not-interested': '興味なさそう'
-            };
-            return names[preference] || preference;
-        }
-
-        // ✅ タブカウントをcurrentDataから更新
-        function updateTabCountsFromCurrentData() {
-            if (!currentData || !currentData.articles) return;
+                };
+            },
             
-            const articlesByPreference = {
-                interested: currentData.articles.filter(a => a.preference === 'interested'),
-                neutral: currentData.articles.filter(a => a.preference === 'neutral'),
-                'not-interested': currentData.articles.filter(a => a.preference === 'not-interested'),
-                all: currentData.articles
-            };
-            
-            Object.keys(articlesByPreference).forEach(category => {
-                const tabCard = document.querySelector(`[data-tab="${category}"]`);
-                if (tabCard) {
-                    const numberElement = tabCard.querySelector('.stat-number');
-                    numberElement.textContent = articlesByPreference[category].length;
+            computed: {
+                currentYear() {
+                    return this.currentDate.getFullYear();
+                },
+                
+                currentMonth() {
+                    return this.currentDate.getMonth() + 1;
+                },
+                
+                calendarWeeks() {
+                    const year = this.currentDate.getFullYear();
+                    const month = this.currentDate.getMonth();
+                    const firstDay = new Date(year, month, 1);
+                    const lastDay = new Date(year, month + 1, 0);
+                    const startDate = new Date(firstDay);
+                    startDate.setDate(startDate.getDate() - firstDay.getDay());
+                    
+                    const weeks = [];
+                    let weekIndex = 0;
+                    
+                    while (startDate <= lastDay || weeks.length < 6) {
+                        const week = { weekIndex, days: [] };
+                        
+                        for (let i = 0; i < 7; i++) {
+                            const date = new Date(startDate);
+                            const isOtherMonth = date.getMonth() !== month;
+                            const isToday = this.isToday(date);
+                            
+                            week.days.push({
+                                date: this.formatDate(date),
+                                day: date.getDate(),
+                                isOtherMonth,
+                                isToday
+                            });
+                            
+                            startDate.setDate(startDate.getDate() + 1);
+                        }
+                        
+                        weeks.push(week);
+                        weekIndex++;
+                        
+                        if (startDate > lastDay && weeks.length >= 5) break;
+                    }
+                    
+                    return weeks;
+                },
+                
+                shareUrl() {
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    const encodedData = encodeURIComponent(JSON.stringify(this.events));
+                    return `${baseUrl}?data=${encodedData}`;
                 }
-            });
-        }
-        
-        function renderDashboard(data) {
-            const articles = data.articles;
-            const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
-            const categories = [...new Set(articles.map(article => article.category))];
+            },
             
-            const articlesByPreference = {
-                interested: articles.filter(a => a.preference === 'interested'),
-                neutral: articles.filter(a => a.preference === 'neutral'),
-                'not-interested': articles.filter(a => a.preference === 'not-interested')
-            };
-            
-            // ユーザー評価済み記事の統計
-            const userRatedCount = articles.filter(a => a.userOverride).length;
-            
-            const html = `
-            <header class="header">
-                <h1>🤖 AI RSS ダッシュボード</h1>
-                <p>AIが厳選したあなた好みのニュースをお届け</p>
-                <div class="header-stats">
-                    <span>最終更新: ${updateTime}</span>
-                    <span>総記事数: ${articles.length}件</span>
-                    <span>ユーザー評価済み: ${userRatedCount}件</span>
-                    <span>🔄 リアルタイム更新</span>
-                </div>
-            </header>
-
-            <div class="stats-section">
-                <div class="category-filter-wrapper">
-                    <select id="categoryFilter" class="category-filter">
-                        <option value="all">📂 すべて表示</option>
-                        ${categories.map(cat => `<option value="${cat}">🏷️ ${cat}</option>`).join('')}
-                    </select>
-                </div>
-
-                <div class="stats-tabs">
-                    <div class="stat-tab-card interested" data-tab="interested">
-                        <div class="stat-number">${articlesByPreference.interested.length}</div>
-                        <div class="stat-label">😍 興味ありそう</div>
-                    </div>
-                    <div class="stat-tab-card neutral" data-tab="neutral">
-                        <div class="stat-number">${articlesByPreference.neutral.length}</div>
-                        <div class="stat-label">😐 普通</div>
-                    </div>
-                    <div class="stat-tab-card not-interested" data-tab="not-interested">
-                        <div class="stat-number">${articlesByPreference['not-interested'].length}</div>
-                        <div class="stat-label">😕 興味なさそう</div>
-                    </div>
-                    <div class="stat-tab-card all active" data-tab="all">
-                        <div class="stat-number">${articles.length}</div>
-                        <div class="stat-label">📄 総記事数</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="articles-all" class="articles-container">
-                ${articles.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-interested" class="articles-container hidden">
-                ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-neutral" class="articles-container hidden">
-                ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-not-interested" class="articles-container hidden">
-                ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
-            </div>`;
-            
-            document.getElementById('dashboard-container').innerHTML = html;
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-container').style.display = 'block';
-            
-            setupEventListeners();
-            restoreUserRatings();
-        }
-        
-        function generateArticleCard(article) {
-            const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
-            const relativeTime = getRelativeTime(article.pubDate);
-            const userRating = article.userRating || 0;
-            const isUserRated = article.userOverride || false;
-            
-            return `
-            <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
-                ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
-                <div class="article-content">
-                    <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
-                        ${article.title}
-                    </h2>
-                    <div class="article-meta">
-                        <span class="preference-badge badge-${article.preference}">
-                            ${article.preference === 'interested' ? '😍 興味ありそう' : 
-                              article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}${isUserRated ? '（ユーザー評価）' : ''}
-                        </span>
-                        <span class="article-info">📅 ${publishDate}</span>
-                        <span class="article-info">⏰ ${relativeTime}</span>
-                        <span class="article-info">📰 ${article.feedName}</span>
-                        <span class="article-info">🏷️ ${article.category}</span>
-                        ${isUserRated ? `<span class="article-info" data-rating="true">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
-                    </div>
-                    <div class="article-description">
-                        ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
-                    </div>
-                    <div class="rating-section">
-                        <div class="rating-stars">
-                            ${[1,2,3,4,5].map(rating => 
-                                `<span class="star ${rating <= userRating ? 'filled' : ''}" 
-                                      data-rating="${rating}" 
-                                      onclick="setRating('${article.id}', ${rating})" 
-                                      title="${rating}つ星">⭐</span>`
-                            ).join('')}
-                        </div>
-                        <div class="rating-label">この記事を評価（最適化済み）</div>
-                    </div>
-                </div>
-            </div>`;
-        }
-
-        function getRelativeTime(dateString) {
-            const now = new Date();
-            const date = new Date(dateString);
-            const diffMs = now - date;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffHours / 24);
-            
-            if (diffHours < 1) return '1時間未満前';
-            if (diffHours < 24) return `${diffHours}時間前`;
-            if (diffDays < 7) return `${diffDays}日前`;
-            return '1週間以上前';
-        }
-        
-        function getUserRating(articleId) {
-            const feedback = getUserFeedbackWithinExpiry();
-            return feedback[articleId]?.rating || 0;
-        }
-
-        function showFeedbackMessage(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.textContent = message;
-            messageDiv.className = 'rating-feedback';
-            
-            document.body.appendChild(messageDiv);
-            setTimeout(() => messageDiv.remove(), 3000);
-        }
-        
-        function setupEventListeners() {
-            // タブ切り替え機能
-            document.querySelectorAll('.stat-tab-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const tabType = card.dataset.tab;
-                    switchTab(tabType);
-                });
-            });
-
-            // カテゴリフィルタ
-            document.getElementById('categoryFilter').addEventListener('change', (e) => {
-                currentCategory = e.target.value;
-                applyFilters();
-            });
-        }
-
-        function switchTab(tabType) {
-            currentTab = tabType;
-            
-            // すべてのコンテナを非表示
-            document.querySelectorAll('.articles-container').forEach(container => {
-                container.classList.add('hidden');
-            });
-            
-            // 選択されたタブのコンテナを表示
-            const targetContainer = document.getElementById('articles-' + tabType);
-            if (targetContainer) {
-                targetContainer.classList.remove('hidden');
-            }
-            
-            // タブカードの状態更新
-            document.querySelectorAll('.stat-tab-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            
-            const activeCard = document.querySelector(`[data-tab="${tabType}"]`);
-            if (activeCard) {
-                activeCard.classList.add('active');
-            }
-
-            applyFilters();
-        }
-
-        function applyFilters() {
-            const activeContainer = document.querySelector('.articles-container:not(.hidden)');
-            if (!activeContainer) return;
-
-            activeContainer.querySelectorAll('.article-card').forEach(card => {
-                const category = card.dataset.category;
-                if (currentCategory === 'all' || category === currentCategory) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-        
-        function restoreUserRatings() {
-            const userFeedback = getUserFeedbackWithinExpiry();
-            Object.keys(userFeedback).forEach(articleId => {
-                const feedback = userFeedback[articleId];
-                if (feedback.rating) {
-                    const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
-                    stars.forEach((star, index) => {
-                        star.classList.toggle('filled', index < feedback.rating);
+            methods: {
+                // カレンダーナビゲーション
+                previousMonth() {
+                    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+                },
+                
+                nextMonth() {
+                    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
+                },
+                
+                // 日付関連ユーティリティ
+                formatDate(date) {
+                    return date.toISOString().split('T')[0];
+                },
+                
+                isToday(date) {
+                    const today = new Date();
+                    return date.toDateString() === today.toDateString();
+                },
+                
+                // イベント管理
+                getEventsForDay(date) {
+                    return this.events.filter(event => event.date === date);
+                },
+                
+                getCategoryIcon(category) {
+                    const icons = {
+                        travel: 'fas fa-car',
+                        food: 'fas fa-utensils',
+                        sightseeing: 'fas fa-camera',
+                        accommodation: 'fas fa-bed',
+                        custom: 'fas fa-star'
+                    };
+                    return icons[category] || 'fas fa-calendar';
+                },
+                
+                // モーダル操作
+                openEventModal(date, event = null) {
+                    this.editingEvent = event;
+                    
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
+                        this.eventForm = {
+                            title: '',
+                            date: date,
+                            startTime: '09:00',
+                            endTime: '10:00',
+                            category: 'travel',
+                            customCategory: '',
+                            description: ''
+                        };
+                    }
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    modal.show();
+                },
+                
+                // イベント保存
+                saveEvent() {
+                    if (!this.eventForm.title || !this.eventForm.date || !this.eventForm.startTime || !this.eventForm.endTime) {
+                        alert('必須項目を入力してください');
+                        return;
+                    }
+                    
+                    const eventData = {
+                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
+                        title: this.eventForm.title,
+                        date: this.eventForm.date,
+                        startTime: this.eventForm.startTime,
+                        endTime: this.eventForm.endTime,
+                        category: this.eventForm.category,
+                        customCategory: this.eventForm.customCategory,
+                        description: this.eventForm.description
+                    };
+                    
+                    if (this.editingEvent) {
+                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
+                        this.events[index] = eventData;
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
+                    this.saveToLocalStorage();
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                    modal.hide();
+                },
+                
+                // イベント削除
+                deleteEvent() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
+                        this.saveToLocalStorage();
+                        
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                        modal.hide();
+                    }
+                },
+                
+                // ドラッグ&ドロップ
+                handleDragStart(event, eventData) {
+                    this.draggedEvent = eventData;
+                    event.target.classList.add('dragging');
+                },
+                
+                handleDragEnd(event) {
+                    event.target.classList.remove('dragging');
+                    this.draggedEvent = null;
+                    this.dragOverDay = null;
+                },
+                
+                handleDrop(event, targetDate) {
+                    event.preventDefault();
+                    
+                    if (this.draggedEvent && this.draggedEvent.date !== targetDate) {
+                        const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
+                        if (eventIndex !== -1) {
+                            this.events[eventIndex].date = targetDate;
+                            this.saveToLocalStorage();
+                        }
+                    }
+                    
+                    this.dragOverDay = null;
+                },
+                
+                // データ永続化
+                saveToLocalStorage() {
+                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                },
+                
+                loadFromLocalStorage() {
+                    const saved = localStorage.getItem('trippenEvents');
+                    if (saved) {
+                        this.events = JSON.parse(saved);
+                    }
+                },
+                
+                // URL共有
+                loadFromUrl() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const data = urlParams.get('data');
+                    
+                    if (data) {
+                        try {
+                            const decodedData = JSON.parse(decodeURIComponent(data));
+                            this.events = decodedData;
+                            this.saveToLocalStorage();
+                        } catch (e) {
+                            console.error('URL共有データの読み込みに失敗しました:', e);
+                        }
+                    }
+                },
+                
+                copyShareUrl() {
+                    navigator.clipboard.writeText(this.shareUrl).then(() => {
+                        alert('共有URLをコピーしました！');
+                    }).catch(err => {
+                        console.error('コピーに失敗しました:', err);
                     });
                 }
-            });
-        }
-        
-        // ページ読み込み時に実行
-        document.addEventListener('DOMContentLoaded', loadLatestData);
-        
-        // 定期的な更新（5分ごと）
-        setInterval(loadLatestData, 300000);
-
-        // ページ表示時に最新データをチェック
-        document.addEventListener("visibilitychange", function() {
-            if (!document.hidden) {
-                console.log("タブがアクティブになりました - 最新データをチェック");
-                loadLatestData();
+            },
+            
+            mounted() {
+                this.loadFromUrl();
+                this.loadFromLocalStorage();
             }
-        });
+        }).mount('#app');
     </script>
 </body>
 </html>
