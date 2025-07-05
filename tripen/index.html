@@ -210,7 +210,6 @@
             transition: all 0.3s ease;
             z-index: 10;
             overflow: hidden;
-            cursor: pointer;
             user-select: none;
         }
         
@@ -223,12 +222,6 @@
         .event-block.edit-mode {
             border-color: #FFD700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
-        }
-        
-        .event-block.move-mode {
-            border-color: #FF6B6B;
-            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3);
-            cursor: move;
         }
         
         .event-block.dragging {
@@ -253,6 +246,14 @@
             font-weight: bold;
             margin-bottom: 4px;
             font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .event-title:hover {
+            background-color: rgba(255, 255, 255, 0.2);
         }
         
         .event-time {
@@ -266,12 +267,14 @@
             opacity: 0.8;
         }
         
-        .mode-indicator {
+        .edit-mode-indicator {
             position: absolute;
             top: -5px;
             right: -5px;
             width: 20px;
             height: 20px;
+            background: #FFD700;
+            color: #333;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -280,25 +283,20 @@
             font-weight: bold;
         }
         
-        .edit-mode-indicator {
-            background: #FFD700;
-            color: #333;
-        }
-        
-        .move-mode-indicator {
-            background: #FF6B6B;
-            color: white;
-        }
-        
         .resize-handle {
             position: absolute;
             left: 0;
             right: 0;
-            height: 10px;
+            height: 12px;
             background: rgba(255, 215, 0, 0.8);
             opacity: 0;
             transition: opacity 0.3s ease;
             cursor: ns-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            color: #333;
         }
         
         .resize-handle.top {
@@ -315,43 +313,83 @@
             opacity: 1;
         }
         
-        .event-detail-popup {
+        .resize-handle:hover {
+            background: rgba(255, 215, 0, 1);
+        }
+        
+        .event-detail-modal {
             position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: white;
             border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 1000;
-            max-width: 300px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            z-index: 1050;
+            max-width: 400px;
+            width: 90%;
             opacity: 0;
-            transform: scale(0.8);
+            transform: translate(-50%, -50%) scale(0.8);
             transition: all 0.3s ease;
         }
         
-        .event-detail-popup.show {
+        .event-detail-modal.show {
             opacity: 1;
-            transform: scale(1);
+            transform: translate(-50%, -50%) scale(1);
         }
         
-        .event-detail-popup h6 {
+        .event-detail-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .event-detail-backdrop.show {
+            opacity: 1;
+        }
+        
+        .event-detail-header {
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .event-detail-header h5 {
             color: var(--text-color);
-            margin-bottom: 10px;
+            margin: 0;
+            font-size: 1.3rem;
         }
         
-        .event-detail-popup .detail-item {
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+        .event-detail-content .detail-row {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--bg-color);
+            border-radius: 8px;
         }
         
-        .event-detail-popup .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #999;
-            cursor: pointer;
+        .event-detail-content .detail-label {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+        
+        .event-detail-content .detail-value {
+            color: var(--text-color);
+        }
+        
+        .event-detail-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
         }
         
         .modal-content {
@@ -411,12 +449,12 @@
             background: var(--primary-color);
         }
         
-        .mode-help {
+        .edit-mode-help {
             position: fixed;
             top: 100px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
+            background: rgba(255, 215, 0, 0.95);
+            color: #333;
             padding: 15px;
             border-radius: 10px;
             font-size: 0.9rem;
@@ -428,7 +466,7 @@
             max-width: 280px;
         }
         
-        .mode-help.show {
+        .edit-mode-help.show {
             opacity: 1;
             transform: translateX(0);
         }
@@ -472,14 +510,15 @@
                 font-size: 1.2rem;
             }
             
-            .mode-help {
+            .edit-mode-help {
                 right: 10px;
                 max-width: 250px;
                 font-size: 0.8rem;
             }
             
-            .event-detail-popup {
-                max-width: 280px;
+            .event-detail-modal {
+                width: 95%;
+                padding: 20px;
             }
         }
     </style>
@@ -571,34 +610,29 @@
                                      'event-category-' + event.category,
                                      { 
                                          'edit-mode': editModeEvent && editModeEvent.id === event.id,
-                                         'move-mode': moveModeEvent && moveModeEvent.id === event.id,
                                          'dragging': draggedEvent && draggedEvent.id === event.id,
                                          'resizing': resizingEvent && resizingEvent.id === event.id
                                      }
                                  ]"
                                  :style="getEventStyle(event)"
                                  @mousedown="handleEventMouseDown($event, event)"
-                                 @touchstart="handleEventTouchStart($event, event)"
-                                 @click="handleEventClick($event, event)"
-                                 @dblclick="handleEventDoubleClick($event, event)">
+                                 @touchstart="handleEventTouchStart($event, event)">
                                 
-                                <!-- モードインジケーター -->
-                                <div class="mode-indicator edit-mode-indicator" 
+                                <!-- 編集モードインジケーター -->
+                                <div class="edit-mode-indicator" 
                                      v-if="editModeEvent && editModeEvent.id === event.id">
                                     ✎
-                                </div>
-                                <div class="mode-indicator move-mode-indicator" 
-                                     v-if="moveModeEvent && moveModeEvent.id === event.id">
-                                    ⟷
                                 </div>
                                 
                                 <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'top')"
-                                     @touchstart="startResize($event, event, 'top')"></div>
+                                     @touchstart="startResize($event, event, 'top')">
+                                    ⋮⋮⋮
+                                </div>
                                 
-                                <div class="event-title">
+                                <div class="event-title" @click="showEventDetail(event)">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.title }}
                                 </div>
@@ -613,7 +647,9 @@
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'bottom')"
-                                     @touchstart="startResize($event, event, 'bottom')"></div>
+                                     @touchstart="startResize($event, event, 'bottom')">
+                                    ⋮⋮⋮
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -621,46 +657,51 @@
             </div>
         </div>
         
-        <!-- モードヘルプ -->
-        <div class="mode-help" :class="{ show: editModeEvent || moveModeEvent }">
-            <div v-if="editModeEvent">
-                <strong>📝 編集モード</strong><br>
-                • 上下端をドラッグで時間調整<br>
-                • もう一度長押しで移動モードへ<br>
-                • 空のエリアをクリックで終了
-            </div>
-            <div v-if="moveModeEvent">
-                <strong>🔄 移動モード</strong><br>
-                • ドラッグで予定を移動<br>
-                • 空のエリアをクリックで終了
-            </div>
+        <!-- 編集モードヘルプ -->
+        <div class="edit-mode-help" :class="{ show: editModeEvent }">
+            <strong>📝 編集モード</strong><br>
+            • 上下端をドラッグで時間調整<br>
+            • 中央部分を長押し（100ms）+ドラッグで移動<br>
+            • 空のエリアをクリックで終了
         </div>
         
-        <!-- 詳細表示ポップアップ -->
-        <div class="event-detail-popup" ref="detailPopup" :class="{ show: showDetailPopup }">
-            <button class="close-btn" @click="closeDetailPopup">×</button>
-            <h6 v-if="selectedEventForDetail">
-                <i :class="getCategoryIcon(selectedEventForDetail.category)"></i>
-                {{ selectedEventForDetail.title }}
-            </h6>
-            <div v-if="selectedEventForDetail">
-                <div class="detail-item">
-                    <strong>時間:</strong> {{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}
+        <!-- 詳細表示モーダル -->
+        <div class="event-detail-backdrop" :class="{ show: showDetailModal }" @click="closeDetailModal"></div>
+        <div class="event-detail-modal" :class="{ show: showDetailModal }">
+            <div class="event-detail-header" v-if="selectedEventForDetail">
+                <h5>
+                    <i :class="getCategoryIcon(selectedEventForDetail.category)"></i>
+                    {{ selectedEventForDetail.title }}
+                </h5>
+            </div>
+            <div class="event-detail-content" v-if="selectedEventForDetail">
+                <div class="detail-row">
+                    <div class="detail-label">時間</div>
+                    <div class="detail-value">{{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}</div>
                 </div>
-                <div class="detail-item">
-                    <strong>カテゴリ:</strong> {{ getCategoryName(selectedEventForDetail.category) }}
+                <div class="detail-row">
+                    <div class="detail-label">カテゴリ</div>
+                    <div class="detail-value">{{ getCategoryName(selectedEventForDetail.category) }}</div>
                 </div>
-                <div class="detail-item" v-if="selectedEventForDetail.description">
-                    <strong>詳細:</strong><br>{{ selectedEventForDetail.description }}
+                <div class="detail-row">
+                    <div class="detail-label">日程</div>
+                    <div class="detail-value">{{ tripDays[selectedEventForDetail.dayIndex]?.dayNumber }}日目 ({{ tripDays[selectedEventForDetail.dayIndex]?.date }})</div>
                 </div>
-                <div class="mt-3">
-                    <button class="btn btn-primary btn-sm me-2" @click="editFromDetail">
-                        編集
-                    </button>
-                    <button class="btn btn-secondary btn-sm" @click="closeDetailPopup">
-                        閉じる
-                    </button>
+                <div class="detail-row" v-if="selectedEventForDetail.description">
+                    <div class="detail-label">詳細</div>
+                    <div class="detail-value">{{ selectedEventForDetail.description }}</div>
                 </div>
+            </div>
+            <div class="event-detail-buttons">
+                <button class="btn btn-primary flex-fill" @click="editFromDetail">
+                    <i class="fas fa-edit"></i> 編集
+                </button>
+                <button class="btn btn-danger flex-fill" @click="deleteFromDetail">
+                    <i class="fas fa-trash"></i> 削除
+                </button>
+                <button class="btn btn-secondary flex-fill" @click="closeDetailModal">
+                    <i class="fas fa-times"></i> 閉じる
+                </button>
             </div>
         </div>
         
@@ -795,15 +836,13 @@
                     // 予定データ
                     events: [],
                     
-                    // モード管理
+                    // 編集モード
                     editModeEvent: null,
-                    moveModeEvent: null,
                     
                     // 長押し検出
                     longPressTimer: null,
-                    longPressStartTime: 0,
+                    moveLongPressTimer: null,
                     startPosition: { x: 0, y: 0 },
-                    longPressThreshold: 500,
                     
                     // ドラッグ&リサイズ
                     draggedEvent: null,
@@ -814,10 +853,8 @@
                     dropGuideY: 0,
                     
                     // 詳細表示
-                    showDetailPopup: false,
+                    showDetailModal: false,
                     selectedEventForDetail: null,
-                    clickTimer: null,
-                    clickCount: 0,
                     
                     // UI状態
                     editingEvent: null,
@@ -944,52 +981,66 @@
                     };
                 },
                 
-                // 長押し検出（統一版）
+                // 新しいイベント処理システム
                 handleEventMouseDown(event, eventData) {
-                    event.preventDefault();
-                    this.startLongPress(event, eventData, false);
-                },
-                
-                handleEventTouchStart(event, eventData) {
-                    event.preventDefault();
-                    this.startLongPress(event, eventData, true);
-                },
-                
-                startLongPress(event, eventData, isTouch) {
-                    // 移動モード中は移動開始
-                    if (this.moveModeEvent && this.moveModeEvent.id === eventData.id) {
-                        this.startDrag(event, eventData, isTouch);
+                    // タイトル部分のクリックは除外
+                    if (event.target.classList.contains('event-title') || 
+                        event.target.closest('.event-title')) {
                         return;
                     }
                     
-                    this.longPressStartTime = Date.now();
+                    // リサイズハンドルのクリックは除外
+                    if (event.target.classList.contains('resize-handle')) {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    this.startEventLongPress(event, eventData, false);
+                },
+                
+                handleEventTouchStart(event, eventData) {
+                    // タイトル部分のタッチは除外
+                    if (event.target.classList.contains('event-title') || 
+                        event.target.closest('.event-title')) {
+                        return;
+                    }
+                    
+                    // リサイズハンドルのタッチは除外
+                    if (event.target.classList.contains('resize-handle')) {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    this.startEventLongPress(event, eventData, true);
+                },
+                
+                startEventLongPress(event, eventData, isTouch) {
                     this.startPosition = {
                         x: isTouch ? event.touches[0].clientX : event.clientX,
                         y: isTouch ? event.touches[0].clientY : event.clientY
                     };
                     
-                    this.longPressTimer = setTimeout(() => {
-                        // 既に編集モードの場合は移動モードに移行
-                        if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                            this.editModeEvent = null;
-                            this.moveModeEvent = eventData;
-                        } else {
-                            // 新規編集モードに移行
-                            this.clearAllModes();
+                    // 編集モード中の場合は移動操作（100ms長押し）
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        this.moveLongPressTimer = setTimeout(() => {
+                            this.startMoveMode(event, eventData, isTouch);
+                        }, 100); // 100ms
+                    } else {
+                        // 通常の編集モード移行（500ms長押し）
+                        this.longPressTimer = setTimeout(() => {
                             this.editModeEvent = eventData;
-                        }
-                        
-                        this.clearLongPress();
-                        
-                        // 軽微な振動フィードバック
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
-                        }
-                    }, this.longPressThreshold);
+                            this.clearLongPressTimers();
+                            
+                            // 振動フィードバック
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                        }, 500); // 500ms
+                    }
                     
-                    // マウス/タッチ移動とリリースイベントを監視
-                    const moveHandler = (e) => this.handleLongPressMove(e, isTouch);
-                    const endHandler = (e) => this.handleLongPressEnd(e, eventData, isTouch, moveHandler, endHandler);
+                    // イベントリスナーを設定
+                    const moveHandler = (e) => this.handleEventLongPressMove(e, isTouch);
+                    const endHandler = (e) => this.handleEventLongPressEnd(e, isTouch, moveHandler, endHandler);
                     
                     if (isTouch) {
                         document.addEventListener('touchmove', moveHandler, { passive: false });
@@ -1000,7 +1051,7 @@
                     }
                 },
                 
-                handleLongPressMove(event, isTouch) {
+                handleEventLongPressMove(event, isTouch) {
                     const currentX = isTouch ? event.touches[0].clientX : event.clientX;
                     const currentY = isTouch ? event.touches[0].clientY : event.clientY;
                     
@@ -1009,13 +1060,11 @@
                     
                     // 移動距離が閾値を超えたら長押しをキャンセル
                     if (deltaX > 10 || deltaY > 10) {
-                        this.clearLongPress();
+                        this.clearLongPressTimers();
                     }
                 },
                 
-                handleLongPressEnd(event, eventData, isTouch, moveHandler, endHandler) {
-                    const pressDuration = Date.now() - this.longPressStartTime;
-                    
+                handleEventLongPressEnd(event, isTouch, moveHandler, endHandler) {
                     // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
@@ -1025,108 +1074,27 @@
                         document.removeEventListener('mouseup', endHandler);
                     }
                     
-                    this.clearLongPress();
+                    this.clearLongPressTimers();
                 },
                 
-                clearLongPress() {
+                clearLongPressTimers() {
                     if (this.longPressTimer) {
                         clearTimeout(this.longPressTimer);
                         this.longPressTimer = null;
                     }
-                },
-                
-                // クリック/ダブルクリック処理
-                handleEventClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    // 編集モードやドラッグ中は無効
-                    if (this.editModeEvent || this.moveModeEvent || this.isDragging || this.isResizing) {
-                        return;
-                    }
-                    
-                    this.clickCount++;
-                    
-                    if (this.clickCount === 1) {
-                        this.clickTimer = setTimeout(() => {
-                            if (this.clickCount === 1) {
-                                // シングルクリック：詳細表示
-                                this.showEventDetail(event, eventData);
-                            }
-                            this.clickCount = 0;
-                        }, 300); // 300ms待機
+                    if (this.moveLongPressTimer) {
+                        clearTimeout(this.moveLongPressTimer);
+                        this.moveLongPressTimer = null;
                     }
                 },
                 
-                handleEventDoubleClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    // タイマーをクリア
-                    if (this.clickTimer) {
-                        clearTimeout(this.clickTimer);
-                        this.clickTimer = null;
-                    }
-                    
-                    this.clickCount = 0;
-                    
-                    // ダブルクリック：編集モード
-                    this.clearAllModes();
-                    this.closeDetailPopup();
-                    this.openEventModal(eventData);
-                },
-                
-                // 詳細表示
-                showEventDetail(event, eventData) {
-                    this.selectedEventForDetail = eventData;
-                    this.showDetailPopup = true;
-                    
-                    this.$nextTick(() => {
-                        const popup = this.$refs.detailPopup;
-                        const rect = event.target.getBoundingClientRect();
-                        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                        
-                        popup.style.left = `${rect.left + scrollLeft}px`;
-                        popup.style.top = `${rect.bottom + scrollTop + 10}px`;
-                        
-                        // 画面外に出る場合の調整
-                        const popupRect = popup.getBoundingClientRect();
-                        if (popupRect.right > window.innerWidth) {
-                            popup.style.left = `${window.innerWidth - popupRect.width - 20}px`;
-                        }
-                        if (popupRect.bottom > window.innerHeight) {
-                            popup.style.top = `${rect.top + scrollTop - popupRect.height - 10}px`;
-                        }
-                    });
-                },
-                
-                closeDetailPopup() {
-                    this.showDetailPopup = false;
-                    this.selectedEventForDetail = null;
-                },
-                
-                editFromDetail() {
-                    this.openEventModal(this.selectedEventForDetail);
-                    this.closeDetailPopup();
-                },
-                
-                // モード管理
-                clearAllModes() {
-                    this.editModeEvent = null;
-                    this.moveModeEvent = null;
-                    this.closeDetailPopup();
-                },
-                
-                // ドラッグ機能（移動モード用）
-                startDrag(event, eventData, isTouch) {
-                    if (!this.moveModeEvent || this.moveModeEvent.id !== eventData.id) return;
-                    
+                // 移動モード開始
+                startMoveMode(event, eventData, isTouch) {
                     this.isDragging = true;
                     this.draggedEvent = eventData;
                     
-                    const moveHandler = (e) => this.handleDragMove(e, isTouch);
-                    const endHandler = (e) => this.handleDragEnd(e, isTouch, moveHandler, endHandler);
+                    const moveHandler = (e) => this.handleMoveModeDrag(e, isTouch);
+                    const endHandler = (e) => this.handleMoveModeEnd(e, isTouch, moveHandler, endHandler);
                     
                     if (isTouch) {
                         document.addEventListener('touchmove', moveHandler, { passive: false });
@@ -1137,7 +1105,7 @@
                     }
                 },
                 
-                handleDragMove(event, isTouch) {
+                handleMoveModeDrag(event, isTouch) {
                     if (!this.draggedEvent) return;
                     
                     event.preventDefault();
@@ -1154,7 +1122,7 @@
                     this.dropGuideY = snappedY;
                 },
                 
-                handleDragEnd(event, isTouch, moveHandler, endHandler) {
+                handleMoveModeEnd(event, isTouch, moveHandler, endHandler) {
                     // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
@@ -1187,7 +1155,32 @@
                     this.isDragging = false;
                 },
                 
-                // リサイズ機能（編集モード用）
+                // タイトルクリックで詳細表示
+                showEventDetail(event) {
+                    this.selectedEventForDetail = event;
+                    this.showDetailModal = true;
+                },
+                
+                closeDetailModal() {
+                    this.showDetailModal = false;
+                    this.selectedEventForDetail = null;
+                },
+                
+                editFromDetail() {
+                    this.openEventModal(this.selectedEventForDetail);
+                    this.closeDetailModal();
+                },
+                
+                deleteFromDetail() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.selectedEventForDetail.id);
+                        this.saveData();
+                        this.closeDetailModal();
+                        this.editModeEvent = null;
+                    }
+                },
+                
+                // リサイズ機能
                 startResize(event, eventData, direction) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -1252,8 +1245,8 @@
                 
                 // スケジュールエリアクリック
                 handleScheduleClick(event) {
-                    // 全てのモードを終了
-                    this.clearAllModes();
+                    // 編集モードを終了
+                    this.editModeEvent = null;
                     
                     if (this.isDragging || this.isResizing) return;
                     if (event.target.closest('.event-block')) return;
@@ -1357,7 +1350,7 @@
                     }
                     
                     this.saveData();
-                    this.clearAllModes();
+                    this.editModeEvent = null;
                     
                     const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                     modal.hide();
@@ -1367,7 +1360,7 @@
                     if (confirm('この予定を削除しますか？')) {
                         this.events = this.events.filter(e => e.id !== this.editingEvent.id);
                         this.saveData();
-                        this.clearAllModes();
+                        this.editModeEvent = null;
                         
                         const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                         modal.hide();
@@ -1400,13 +1393,6 @@
                 
                 // リサイズイベント監視
                 window.addEventListener('resize', this.detectMobile);
-                
-                // グローバルクリックでポップアップを閉じる
-                document.addEventListener('click', (e) => {
-                    if (this.showDetailPopup && !this.$refs.detailPopup.contains(e.target)) {
-                        this.closeDetailPopup();
-                    }
-                });
             },
             
             unmounted() {
