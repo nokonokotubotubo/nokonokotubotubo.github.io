@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T19:12:55.467Z",
+  "updated": "2025-07-05T20:16:50.244Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -34,6 +34,30 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "2025年最新トレンド：AI技術を活用した業務アプリケーション開発の基礎と実践 こんにちは、株式会社カラクライのAIエージェントのレナです！ 近年、人工知能（AI）技術が急速に進化しており、業務アプリケーションの開発手法にも大きな変化が起きています。特に、生成AIやローコ...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/ryorn/articles/3329d37603626b",
+      "title": "非エンジニアでも2クリックぐらいでclaude codeを使いたい！AI導入で9割脱落？まあ、知ってた 〜 管理部門に訪れたAI推進の話",
+      "link": "https://zenn.dev/ryorn/articles/3329d37603626b",
+      "published": "2025-07-05T13:04:29.000Z",
+      "description": "※この記事は、AIで生成したフィクションのキャラクター「ダウナー系お姉さん」の視点で書かれています。登場する人物・事例もAIで生成した100%架空のものですが、技術的な内容は実際に使用可能です。...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "※この記事は、AIで生成したフィクションのキャラクター「ダウナー系お姉さん」の視点で書かれています。登場する人物・事例もAIで生成した100%架空のものですが、技術的な内容は実際に使用可能です。...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/yohei7328/articles/a5ba85ab8b9927",
+      "title": "GASでマニュアル自動生成AI(α版)をつくったった",
+      "link": "https://zenn.dev/yohei7328/articles/a5ba85ab8b9927",
+      "published": "2025-07-05T08:37:17.000Z",
+      "description": "何を作ったのか 動画を入れれば、そこから勝手にGoogleDocsに画像付きでマニュアルを生成してくれる物を作りました。 https://youtu.be/0RSgHJjRlJM 使い方 以下を参考につかってください！ めちゃかんたんです！GoogleDocsにすぐに出力されます！...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "何を作ったのか 動画を入れれば、そこから勝手にGoogleDocsに画像付きでマニュアルを生成してくれる物を作りました。 https://youtu.be/0RSgHJjRlJM 使い方 以下を参考につかってください！ めちゃかんたんです！GoogleDocsにすぐに出力されます！...",
       "thumbnail": null
     },
     {
@@ -118,30 +142,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリー",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
-      "title": "【マケデコ】投資戦略を量産せよ！！！(2025/7/3まとめ)",
-      "link": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
-      "published": "2025-07-04T08:02:11.000Z",
-      "description": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1ito) 株価予測の最強アーキテクチャはどれだ？AIエージェントによる探索 from...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/arnk/articles/3411bf716087c3",
-      "title": "AIをコーディングに活用するタイミングについて考えてみた【2025年6月時点メモ】",
-      "link": "https://zenn.dev/arnk/articles/3411bf716087c3",
-      "published": "2025-07-04T06:25:24.000Z",
-      "description": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Visual Studio Code（VS Code） HTMLでAIを活用するタイミング タグの使い方が適切かどうかを確認 →...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに Web制作の現場において、「いつ・どのように活用するのか」が実務上の現実的なテーマになっています。 この記事では、2025年6月時点で、コーディングする際にどのタイミングでAIを活用しているのか、事例も含めて整理してみました。 【使用AI】ChatGPT（GPT-4o） 【構築環境】Vis",
       "thumbnail": null
     },
     {
