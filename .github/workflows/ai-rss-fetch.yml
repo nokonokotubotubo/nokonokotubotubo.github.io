@@ -1,57 +1,21 @@
-name: AI RSS Feed Processing
+name: Create ai-rss index.html
 
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
-  ai-rss-processing:
+  create-ai-rss:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        
-    - name: Install dependencies
+    - name: Create index.html
       run: |
-        npm init -y
-        npm install rss-parser
+        echo "<h1>Test AI RSS</h1>" > index.html
         
-    - name: Create output directories
-      run: |
-        mkdir -p ai-rss-temp/data
-        mkdir -p deploy/ai-rss
-        
-    - name: Process RSS feeds
-      run: node src/ai-rss-processor.js
-        
-    - name: Analyze articles with AI
-      run: node src/ai-analyzer.js
-        
-    - name: Generate HTML dashboard
-      run: node src/ai-data-generator.js
-        
-    - name: Copy to ai-rss directory only
-      run: |
-        cp ai-rss-temp/dashboard.html deploy/ai-rss/index.html
-        echo "Copied to ai-rss/index.html only"
-        ls -la deploy/ai-rss/index.html
-        
-    - name: Deploy to GitHub Pages
+    - name: Deploy to ai-rss subdirectory
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./deploy
-        force_orphan: true
+        publish_dir: ./
+        destination_dir: ai-rss
         enable_jekyll: false
-        
-    - name: Deployment complete
-      run: |
-        echo "Dashboard deployed to: https://nokonokotubotubo.github.io/ai-rss/"
