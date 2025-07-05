@@ -1,52 +1,5 @@
-name: AI RSS Feed Processing - StaticCrypt Error Fix
-
-on:
-  schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
-
-jobs:
-  ai-rss-processing:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        
-    - name: Install dependencies
-      run: |
-        npm init -y
-        npm install rss-parser
-        
-    - name: Create output directories
-      run: |
-        mkdir -p ai-rss-temp/data
-        mkdir -p ai-rss
-        
-    - name: Process RSS feeds
-      run: node src/ai-rss-processor.js
-        
-    - name: Analyze articles with AI
-      run: node src/ai-analyzer.js
-        
-    - name: Generate HTML dashboard
-      run: |
-        node src/ai-data-generator.js
-        if [ -f ai-rss-temp/dashboard.html ]; then
-          echo "✅ dashboard.html 生成成功 ($(wc -c < ai-rss-temp/dashboard.html) bytes)"
-        else
-          echo "❌ dashboard.html 生成失敗"
-          exit 1
-        fi
-        
-    # ✅ 修正版：StaticCrypt暗号化（エラーハンドリング強化）
-    - name: Encrypt with StaticCrypt (Fixed)
+    # ✅ 修正：StaticCrypt詳細デバッグ版
+    - name: Encrypt with StaticCrypt (Debug Enhanced)
       run: |
         if [ -f ai-rss-temp/dashboard.html ]; then
           echo "🔒 StaticCrypt暗号化開始"
@@ -59,14 +12,26 @@ jobs:
           PASSWORD_LENGTH=${#STATICCRYPT_PASSWORD}
           echo "📏 パスワード長: $PASSWORD_LENGTH 文字"
           
-          # 入力ファイル確認
-          echo "📄 入力ファイル確認:"
+          # 入力ファイル詳細確認
+          echo "📄 入力ファイル詳細:"
           ls -la ai-rss-temp/dashboard.html
           echo "📊 入力ファイルサイズ: $(wc -c < ai-rss-temp/dashboard.html) bytes"
+          echo "📝 入力ファイル先頭確認:"
+          head -c 100 ai-rss-temp/dashboard.html
+          echo ""
           
-          # 出力ディレクトリ確認
-          echo "📁 出力ディレクトリ確認:"
+          # 出力ディレクトリ詳細確認
+          echo "📁 出力ディレクトリ詳細:"
           ls -la ai-rss/
+          echo "📍 出力ディレクトリ権限:"
+          ls -ld ai-rss/
+          echo "📍 カレントディレクトリ:"
+          pwd
+          
+          # 絶対パスでの確認
+          echo "📍 絶対パス確認:"
+          echo "入力: $(realpath ai-rss-temp/dashboard.html)"
+          echo "出力: $(realpath ai-rss/)/index.html"
           
           # パスワード長による実行方法の選択
           if [ $PASSWORD_LENGTH -lt 8 ]; then
@@ -75,36 +40,93 @@ jobs:
           elif [ $PASSWORD_LENGTH -lt 14 ]; then
             echo "⚠️ パスワードが14文字未満 → --shortフラグ使用"
             
-            # ✅ 修正：シンプルなコマンド実行
-            set -x  # コマンド実行をトレース
-            staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" --short -o ai-rss/index.html
+            # ✅ 修正：標準出力・標準エラーをキャッチ + 絶対パス使用
+            echo "🔄 StaticCrypt実行開始..."
+            set -x
+            
+            # 方法1: 相対パス
+            echo "🔄 方法1: 相対パス実行"
+            staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" --short -o ai-rss/index.html > staticrypt_output.log 2>&1
             STATICCRYPT_EXIT_CODE=$?
+            
+            echo "📄 StaticCrypt出力ログ:"
+            cat staticrypt_output.log || echo "ログファイルなし"
+            
             set +x
             
             if [ $STATICCRYPT_EXIT_CODE -eq 0 ]; then
-              echo "✅ StaticCrypt実行成功"
+              echo "✅ StaticCrypt終了コード成功"
             else
-              echo "❌ StaticCrypt実行失敗 (終了コード: $STATICCRYPT_EXIT_CODE)"
-              exit 1
+              echo "❌ StaticCrypt終了コード失敗: $STATICCRYPT_EXIT_CODE"
             fi
+            
+            # ファイル生成確認
+            if [ ! -f ai-rss/index.html ]; then
+              echo "⚠️ 方法1失敗 - 方法2を試行"
+              
+              # 方法2: 絶対パス
+              echo "🔄 方法2: 絶対パス実行"
+              INPUT_ABS=$(realpath ai-rss-temp/dashboard.html)
+              OUTPUT_ABS="$(realpath ai-rss)/index.html"
+              
+              set -x
+              staticrypt "$INPUT_ABS" -p "$STATICCRYPT_PASSWORD" --short -o "$OUTPUT_ABS" > staticrypt_output2.log 2>&1
+              STATICCRYPT_EXIT_CODE2=$?
+              set +x
+              
+              echo "📄 StaticCrypt出力ログ2:"
+              cat staticrypt_output2.log || echo "ログファイル2なし"
+              
+              if [ $STATICCRYPT_EXIT_CODE2 -ne 0 ]; then
+                echo "❌ 方法2も失敗"
+              fi
+            fi
+            
+            # ファイル生成確認（再）
+            if [ ! -f ai-rss/index.html ]; then
+              echo "⚠️ 両方法失敗 - 方法3を試行"
+              
+              # 方法3: カレントディレクトリ変更
+              echo "🔄 方法3: ディレクトリ変更実行"
+              cd ai-rss
+              
+              set -x
+              staticrypt ../ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" --short -o index.html > ../staticrypt_output3.log 2>&1
+              STATICCRYPT_EXIT_CODE3=$?
+              set +x
+              
+              cd ..
+              
+              echo "📄 StaticCrypt出力ログ3:"
+              cat staticrypt_output3.log || echo "ログファイル3なし"
+              
+              if [ $STATICCRYPT_EXIT_CODE3 -ne 0 ]; then
+                echo "❌ 方法3も失敗"
+              fi
+            fi
+            
           else
             echo "✅ パスワード長推奨値 → 通常実行"
             
             set -x
-            staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" -o ai-rss/index.html
+            staticrypt ai-rss-temp/dashboard.html -p "$STATICCRYPT_PASSWORD" -o ai-rss/index.html > staticrypt_output.log 2>&1
             STATICCRYPT_EXIT_CODE=$?
             set +x
             
-            if [ $STATICCRYPT_EXIT_CODE -eq 0 ]; then
-              echo "✅ StaticCrypt実行成功"
-            else
+            echo "📄 StaticCrypt出力ログ:"
+            cat staticrypt_output.log || echo "ログファイルなし"
+            
+            if [ $STATICCRYPT_EXIT_CODE -ne 0 ]; then
               echo "❌ StaticCrypt実行失敗 (終了コード: $STATICCRYPT_EXIT_CODE)"
               exit 1
             fi
           fi
           
-          # 結果検証
-          echo "🔍 結果検証:"
+          # 最終結果検証
+          echo "🔍 最終結果検証:"
+          echo "📁 ai-rss/ 全体内容:"
+          ls -la ai-rss/
+          
           if [ -f ai-rss/index.html ]; then
             FILE_SIZE=$(wc -c < ai-rss/index.html)
             echo "✅ 暗号化ファイル生成成功 ($FILE_SIZE bytes)"
@@ -112,7 +134,7 @@ jobs:
             if [ $FILE_SIZE -gt 1000 ]; then
               echo "✅ ファイルサイズ適切"
               echo "📄 ファイル先頭確認:"
-              head -c 150 ai-rss/index.html
+              head -c 200 ai-rss/index.html
               echo ""
             else
               echo "❌ ファイルサイズ異常 ($FILE_SIZE bytes)"
@@ -121,9 +143,14 @@ jobs:
               exit 1
             fi
           else
-            echo "❌ 暗号化ファイル生成失敗"
-            echo "📁 ai-rss/ 内容:"
-            ls -la ai-rss/
+            echo "❌ 全ての方法で暗号化ファイル生成失敗"
+            echo "🔍 最終診断:"
+            echo "📁 全ディレクトリ構造:"
+            find . -name "*.html" -o -name "*.log" | sort
+            echo "📁 権限情報:"
+            ls -la . | grep ai-rss
+            echo "📄 StaticCryptヘルプ:"
+            staticrypt --help || echo "ヘルプ取得失敗"
             exit 1
           fi
         else
@@ -132,16 +159,3 @@ jobs:
         fi
       env:
         STATICCRYPT_PASSWORD: ${{ secrets.STATICCRYPT_PASSWORD }}
-        
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./ai-rss
-        force_orphan: true
-        enable_jekyll: false
-        
-    - name: Deployment complete
-      run: |
-        echo "🎉 AI RSS Dashboard deployed successfully!"
-        echo "🔗 Access: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
