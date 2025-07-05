@@ -3,1562 +3,1144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>とりっぺんちゃん - 旅行予定調整サイト</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>🤖 AI RSS ダッシュボード</title>
+    
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <meta http-equiv="Pragma" content="no-cache">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primary-color: #87CEEB;
-            --secondary-color: #B0E0E6;
-            --accent-color: #4682B4;
-            --text-color: #2F4F4F;
-            --bg-color: #F0F8FF;
-            --time-grid-color: #E6F3FF;
+          --primary-light: #E0F7FF;
+          --primary-medium: #B8E6FF;
+          --primary-dark: #87CEEB;
+          --primary-accent: #5BA8C4;
+          --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
+          --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+          --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
+          --text-primary: #2C3E50;
+          --text-secondary: #5A6C7D;
+          --text-light: #8FA0B3;
+          --border-color: #E8F4F8;
+          --border-hover: #B8E6FF;
+          --interested-color: #10B981;
+          --neutral-color: #F59E0B;
+          --not-interested-color: #EF4444;
         }
-        
+
         * {
-            box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
-        
+
         body {
-            background: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            padding: 0;
+          font-family: 'Noto Sans JP', sans-serif;
+          background: var(--background-gradient);
+          color: var(--text-primary);
+          line-height: 1.7;
+          min-height: 100vh;
         }
-        
+
+        .loading {
+          text-align: center;
+          padding: 4rem;
+          font-size: 1.5rem;
+          color: var(--primary-accent);
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
         .header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 15px 0;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .penguin-icon {
-            font-size: 2rem;
-            margin-right: 10px;
-        }
-        
-        .day-tabs-container {
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: var(--secondary-color) transparent;
-            pointer-events: auto;
-        }
-        
-        .day-tabs-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        
-        .day-tabs-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .day-tabs-container::-webkit-scrollbar-thumb {
-            background: var(--secondary-color);
-            border-radius: 3px;
-        }
-        
-        .day-tabs {
-            background: white;
-            border-radius: 15px 15px 0 0;
-            margin: 20px 0 0 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-wrap: nowrap;
-            min-width: max-content;
-            pointer-events: auto;
-        }
-        
-        .day-tabs .nav-item {
-            transition: all 0.3s ease;
-            cursor: move;
-            flex-shrink: 0;
-            position: relative;
-            pointer-events: auto;
-        }
-        
-        .day-tabs .nav-item.dragging-tab {
-            opacity: 0.7;
-            transform: scale(1.05) rotate(3deg);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            z-index: 999;
-            border: 3px dashed var(--accent-color);
-            background: rgba(135, 206, 235, 0.1);
-            border-radius: 15px;
-        }
-        
-        .day-tabs .nav-item.drag-over {
-            background: rgba(135, 206, 235, 0.2);
-            transform: scale(1.02);
-            border: 2px solid var(--accent-color);
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
-        }
-        
-        .day-tabs .nav-item.dragging-tab .nav-link {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
-            color: white !important;
-            animation: drag-pulse 1s infinite alternate;
-        }
-        
-        @keyframes drag-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7); }
-            100% { box-shadow: 0 0 0 10px rgba(135, 206, 235, 0); }
-        }
-        
-        .drag-placeholder {
-            width: 120px;
-            height: 60px;
-            border: 3px dashed var(--accent-color);
-            background: rgba(135, 206, 235, 0.1);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-color);
-            font-weight: bold;
-            animation: placeholder-blink 1s infinite alternate;
-        }
-        
-        @keyframes placeholder-blink {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        .day-tabs .nav-link {
-            border: none;
-            color: var(--text-color);
-            padding: 12px 20px 12px 30px;
-            border-radius: 15px 15px 0 0;
-            white-space: nowrap;
-            text-align: center;
-            min-width: 120px;
-            transition: all 0.3s ease;
-            position: relative;
-            display: block;
-        }
-        
-        .day-tabs .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .day-tabs .nav-link:hover {
-            background: var(--secondary-color);
-            color: white;
-        }
-        
-        .drag-handle {
-            position: absolute;
-            left: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.8rem;
-            cursor: grab;
-        }
-        
-        .tab-content-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .date-display {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            padding: 2px 4px;
-            border-radius: 4px;
-        }
-        
-        .date-display:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .date-edit-icon {
-            opacity: 0;
-            font-size: 0.6rem;
-            margin-left: 4px;
-            transition: opacity 0.2s ease;
-        }
-        
-        .date-display:hover .date-edit-icon {
-            opacity: 0.7;
-        }
-        
-        .date-edit-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 100px;
-        }
-        
-        .date-edit-input {
-            background: white;
-            border: 2px solid var(--accent-color);
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 0.75rem;
-            color: var(--text-color);
-            width: 100px;
-            outline: none;
-        }
-        
-        .day-tabs .nav-link.add-day-btn {
-            background: transparent !important;
-            color: var(--accent-color) !important;
-            border: none !important;
-            cursor: pointer;
-            pointer-events: auto;
-        }
-        
-        .day-tabs .nav-link.add-day-btn:hover {
-            background: rgba(70, 130, 180, 0.1) !important;
-            color: var(--accent-color) !important;
-        }
-        
-        .delete-day-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: rgba(255, 99, 99, 0.8);
-            color: white;
-            border: none;
-            font-size: 0.7rem;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            pointer-events: auto;
-        }
-        
-        .delete-day-btn:hover {
-            background: rgba(255, 99, 99, 1);
-            transform: scale(1.1);
-        }
-        
-        .day-tabs .nav-link:hover .delete-day-btn {
-            display: flex;
-        }
-        
-        .timeline-container {
-            background: white;
-            border-radius: 0 0 15px 15px;
-            margin: 0 0 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            min-height: 600px;
-        }
-        
-        .timeline-header {
-            background: var(--secondary-color);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .timeline-content {
-            position: relative;
-            height: 70vh;
-            min-height: 500px;
-            max-height: 800px;
-            overflow: hidden;
-        }
-        
-        .timeline-scroll-container {
-            display: flex;
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .time-axis {
-            width: 80px;
-            background: var(--time-grid-color);
-            border-right: 2px solid var(--secondary-color);
-            flex-shrink: 0;
-            min-height: 1200px;
-        }
-        
-        .time-slot {
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: var(--text-color);
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .schedule-area {
-            flex: 1;
-            position: relative;
-        }
-        
-        .schedule-grid {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1200px;
-        }
-        
-        .grid-line {
-            height: 60px;
-            border-bottom: 1px solid #e0e0e0;
-            position: relative;
-        }
-        
-        .grid-line:nth-child(odd) {
-            background: rgba(135, 206, 235, 0.05);
-        }
-        
-        .quarter-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #f0f0f0;
-        }
-        
-        .quarter-line:nth-child(1) { top: 15px; }
-        .quarter-line:nth-child(2) { top: 30px; }
-        .quarter-line:nth-child(3) { top: 45px; }
-        
-        .drop-guide-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent-color);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            z-index: 50;
-            border-radius: 2px;
-        }
-        
-        .drop-guide-line.active {
-            opacity: 0.8;
-        }
-        
-        .event-block {
-            position: absolute;
-            left: 10px;
-            right: 10px;
-            background: var(--primary-color);
-            color: white;
-            border-radius: 8px;
-            padding: 8px 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            z-index: 10;
-            user-select: none;
-        }
-        
-        .event-block:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border-color: var(--accent-color);
-        }
-        
-        .event-block.edit-mode {
-            border-color: #FFD700;
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
-        }
-        
-        .event-category-travel { background: #FF6B6B; }
-        .event-category-food { background: #4ECDC4; }
-        .event-category-sightseeing { background: #45B7D1; }
-        .event-category-accommodation { background: #96CEB4; }
-        .event-category-custom { background: #FECA57; }
-        
-        .event-title {
-            font-weight: bold;
-            margin-bottom: 4px;
-            font-size: 0.9rem;
-            pointer-events: none;
-        }
-        
-        .title-text {
-            cursor: pointer;
-            pointer-events: auto;
-        }
-        
-        .event-time {
-            font-size: 0.8rem;
-            opacity: 0.9;
-        }
-        
-        .event-description {
-            font-size: 0.75rem;
-            margin-top: 4px;
-            opacity: 0.8;
-        }
-        
-        .edit-mode-indicator {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background: #FFD700;
-            color: #333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-        
-        .resize-handle {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 10px;
-            background: rgba(255, 215, 0, 0.8);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            cursor: ns-resize;
-        }
-        
-        .resize-handle.top {
-            top: 0;
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .resize-handle.bottom {
-            bottom: 0;
-            border-radius: 0 0 8px 8px;
-        }
-        
-        .event-block.edit-mode .resize-handle {
-            opacity: 1;
-        }
-        
-        .modal-content {
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            background: var(--primary-color);
-            color: white;
-            border-radius: 15px 15px 0 0;
-        }
-        
-        .btn-primary {
-            background: var(--accent-color);
-            border: none;
-            border-radius: 20px;
-            padding: 8px 20px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover {
-            background: var(--text-color);
-            transform: translateY(-2px);
-        }
-        
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
-        }
-        
-        .add-event-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--accent-color);
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .add-event-btn:hover {
-            transform: scale(1.1);
-            background: var(--primary-color);
-        }
-        
-        .edit-mode-help {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            opacity: 0;
-            transform: translateX(20px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            max-width: 280px;
-        }
-        
-        .edit-mode-help.show {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        .trip-setup {
-            text-align: center;
-            padding: 40px 20px;
-        }
-        
-        .trip-setup h2 {
-            color: var(--accent-color);
-            margin-bottom: 30px;
-        }
-        
-        .date-input-group {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-        
-        .date-input-group input[type="date"] {
-            padding: 10px;
-            border: 2px solid var(--secondary-color);
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        
-        .date-input-group span {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--accent-color);
-        }
-        
+          background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-accent) 100%);
+          padding: 2rem;
+          text-align: center;
+          margin-bottom: 3rem;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
+        }
+
+        .header h1 {
+          color: #fff;
+          font-size: 3.5rem;
+          font-weight: 900;
+          margin-bottom: 1rem;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          animation: slideInDown 0.8s ease;
+        }
+
+        .header p {
+          color: rgba(255, 255, 255, 0.95);
+          font-size: 1.3rem;
+          margin-bottom: 1rem;
+        }
+
+        .header-stats {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+          animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes slideInDown {
+          from { transform: translateY(-50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .stats-section {
+          max-width: 1200px;
+          margin: 0 auto 3rem;
+          padding: 0 2rem;
+          position: relative;
+        }
+
+        /* ✅ 1. カテゴリープルダウン位置調整 */
+        .category-filter-wrapper {
+          position: absolute;
+          top: -4rem;
+          left: 2rem;
+          z-index: 10;
+        }
+
+        .category-filter {
+          padding: 0.8rem 1.2rem;
+          border: 2px solid var(--border-color);
+          border-radius: 8px;
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: var(--card-shadow);
+        }
+
+        .category-filter:hover {
+          border-color: var(--border-hover);
+          transform: translateY(-2px);
+        }
+
+        .stats-tabs {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+          margin-top: 1rem; /* カテゴリーフィルター分のスペース確保 */
+        }
+
+        .stat-tab-card {
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          border: 2px solid var(--border-color);
+          border-radius: 20px;
+          padding: 2rem;
+          text-align: center;
+          box-shadow: var(--card-shadow);
+          transition: all 0.4s ease;
+          position: relative;
+          overflow: hidden;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .stat-tab-card:hover {
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: var(--card-shadow-hover);
+          border-color: var(--border-hover);
+        }
+
+        .stat-tab-card.active {
+          background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
+          border-color: var(--primary-accent);
+          color: #fff;
+          transform: translateY(-8px) scale(1.05);
+        }
+
+        .stat-tab-card.interested.active {
+          background: linear-gradient(135deg, var(--interested-color), #059669);
+        }
+
+        .stat-tab-card.neutral.active {
+          background: linear-gradient(135deg, var(--neutral-color), #D97706);
+        }
+
+        .stat-tab-card.not-interested.active {
+          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+        }
+
+        .stat-number {
+          font-size: 3rem;
+          font-weight: 900;
+          margin-bottom: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .stat-label {
+          font-size: 1rem;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .articles-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+          gap: 2rem;
+        }
+
+        .hidden {
+          display: none;
+        }
+
+        .articles-container.show-animation {
+          animation: slideInUp 0.6s ease;
+        }
+
+        .article-card.show-animation {
+          animation: fadeInScale 0.6s ease;
+        }
+
+        @keyframes slideInUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInScale {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        .article-card {
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          border: 2px solid var(--border-color);
+          border-radius: 24px;
+          overflow: hidden;
+          transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          position: relative;
+          box-shadow: var(--card-shadow);
+        }
+
+        .article-card:hover {
+          border-color: var(--border-hover);
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: var(--card-shadow-hover);
+        }
+
+        .article-card.interested {
+          border-left: 4px solid var(--interested-color);
+        }
+
+        .article-card.neutral {
+          border-left: 4px solid var(--neutral-color);
+        }
+
+        .article-card.not-interested {
+          border-left: 4px solid var(--not-interested-color);
+        }
+
+        .article-card.moving-out {
+          animation: cardMoveOut 0.5s ease-in-out forwards;
+        }
+
+        .article-card.moving-in {
+          animation: cardMoveIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes cardMoveOut {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        @keyframes cardMoveIn {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .article-card.light-scale {
+          animation: lightScale 0.2s ease;
+        }
+
+        @keyframes lightScale {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.01); }
+        }
+
+        .category-highlight {
+          animation: categoryPulse 1s ease-in-out;
+        }
+
+        @keyframes categoryPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
+        }
+
+        .article-content {
+          padding: 2.5rem;
+        }
+
+        .article-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 1rem;
+          line-height: 1.4;
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+
+        .article-title:hover {
+          color: var(--primary-accent);
+        }
+
+        .article-meta {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .preference-badge {
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #fff;
+          transition: all 0.3s ease;
+        }
+
+        .badge-interested {
+          background: linear-gradient(135deg, var(--interested-color), #059669);
+        }
+
+        .badge-neutral {
+          background: linear-gradient(135deg, var(--neutral-color), #D97706);
+        }
+
+        .badge-not-interested {
+          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+        }
+
+        .article-info {
+          font-size: 0.9rem;
+          color: var(--text-light);
+          font-weight: 500;
+        }
+
+        .article-description {
+          color: var(--text-secondary);
+          font-size: 1rem;
+          line-height: 1.8;
+          margin-bottom: 2rem;
+        }
+
+        .rating-section {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 1.5rem;
+          border-top: 2px solid var(--border-color);
+        }
+
+        .rating-stars {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .star {
+          cursor: pointer;
+          font-size: 1.8rem;
+          color: #E5E7EB;
+          transition: all 0.3s ease;
+          user-select: none;
+        }
+
+        .star.filled {
+          color: #FBBF24;
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+        }
+
+        .star:hover {
+          color: #FBBF24;
+          transform: scale(1.2);
+        }
+
+        .rating-label {
+          font-size: 0.9rem;
+          color: var(--text-light);
+          font-weight: 600;
+        }
+
+        .user-rated-mark {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: var(--interested-color);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .rating-feedback {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: var(--interested-color);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+          z-index: 1000;
+          animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
+        .particle-effect {
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 1000;
+        }
+
+        /* ✅ 3. トップに戻るボタン */
+        .scroll-to-top {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 60px;
+          height: 60px;
+          background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
+          border: none;
+          border-radius: 50%;
+          color: white;
+          font-size: 24px;
+          cursor: pointer;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.3);
+          transition: all 0.3s ease;
+          z-index: 1000;
+          opacity: 0;
+          visibility: hidden;
+        }
+
+        .scroll-to-top.visible {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .scroll-to-top:hover {
+          transform: translateY(-5px) scale(1.1);
+          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.4);
+        }
+
+        @media (max-width: 1024px) {
+          .stats-tabs {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .articles-container {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          }
+        }
+
         @media (max-width: 768px) {
-            .time-axis { width: 60px; }
-            .time-slot { height: 50px; font-size: 0.8rem; }
-            .grid-line { height: 50px; }
-            .schedule-grid { height: 1000px; }
-            .event-block { padding: 6px 8px; }
-            .event-title { font-size: 0.8rem; }
-            .event-time { font-size: 0.7rem; }
-            .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
-            .date-input-group { flex-direction: column; gap: 10px; }
+          .header h1 {
+            font-size: 2.8rem;
+          }
+          .header-stats {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          .stats-tabs {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+          }
+          .articles-container {
+            grid-template-columns: 1fr;
+            padding: 0 1rem;
+          }
+          .stats-section {
+            padding: 0 1rem;
+          }
+          .category-filter-wrapper {
+            position: relative;
+            left: 0;
+            top: 0;
+            margin-bottom: 1rem;
+          }
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <header class="header">
-            <div class="container">
-                <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
-                <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
-            </div>
-        </header>
-        
-        <div v-if="!tripInitialized" class="container">
-            <div class="trip-setup">
-                <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
-                <p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
-                
-                <div class="date-input-group">
-                    <label for="startDate"><strong>開始日:</strong></label>
-                    <input type="date" id="startDate" v-model="tripStartDate" :min="today">
-                    <span>〜</span>
-                    <label for="endDate"><strong>終了日:</strong></label>
-                    <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
-                </div>
-                
-                <div class="mt-4">
-                    <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
-                        <i class="fas fa-check"></i> 旅行スケジュールを作成
-                    </button>
-                </div>
-                
-                <div class="mt-3">
-                    <button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
-                        <i class="fas fa-folder-open"></i> 既存のデータを読み込む
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div v-if="tripInitialized" class="container-fluid">
-            <div class="day-tabs-container">
-                <ul class="nav nav-tabs day-tabs">
-                    <li class="nav-item" 
-                        v-for="(day, index) in tripDays" 
-                        :key="`day-${day.id || index}`"
-                        draggable="true"
-                        @dragstart="handleTabDragStart($event, index)"
-                        @dragover="handleTabDragOver($event, index)"
-                        @drop="handleTabDrop($event, index)"
-                        @dragend="handleTabDragEnd"
-                        :class="{ 'dragging-tab': draggingTabIndex === index }">
-                        <a class="nav-link" 
-                           :class="{ active: activeDay === index }"
-                           @click="setActiveDay(index)"
-                           href="#"
-                           @click.prevent>
-                            <div class="drag-handle">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
-                            <div class="tab-content-wrapper">
-                                <div>{{ day.dayNumber }}日目</div>
-                                <small v-if="!day.isEditing" 
-                                       @click.stop="startDateEdit(index)"
-                                       class="date-display">
-                                    {{ day.date }}
-                                    <i class="fas fa-edit date-edit-icon"></i>
-                                </small>
-                                <div v-if="day.isEditing" class="date-edit-container" @click.stop>
-                                    <input type="date" 
-                                           v-model="day.editingDate"
-                                           @blur="saveDateEdit(index)"
-                                           @keydown.enter="saveDateEdit(index)"
-                                           @keydown.escape="cancelDateEdit(index)"
-                                           class="date-edit-input"
-                                           ref="dateEditInput">
-                                </div>
-                            </div>
-                            <button class="delete-day-btn" 
-                                    v-if="tripDays.length > 1"
-                                    @click.stop.prevent="deleteDay(index)"
-                                    @mousedown.stop
-                                    @touchstart.stop
-                                    title="日程を削除">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link add-day-btn" 
-                           @click.prevent.stop="addDayImmediately" 
-                           @mousedown.stop
-                           @touchstart.stop
-                           href="#" 
-                           title="日程を追加">
-                            <div class="drag-handle" style="visibility: hidden;">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
-                            <div class="tab-content-wrapper">
-                                <div style="font-size: 1.5rem; font-weight: bold;">＋</div>
-                                <small style="visibility: hidden;">日程追加</small>
-                            </div>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="timeline-container">
-                <div class="timeline-header">
-                    <h5>
-                        <i class="fas fa-calendar-day"></i>
-                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
-                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
-                    </h5>
-                </div>
-                
-                <div class="timeline-content">
-                    <div class="timeline-scroll-container" ref="scrollContainer">
-                        <div class="time-axis">
-                            <div class="time-slot" v-for="hour in timeSlots" :key="hour">
-                                {{ hour }}:00
-                            </div>
-                        </div>
-                        
-                        <div class="schedule-area" @click="handleScheduleClick">
-                            <div class="schedule-grid">
-                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-                                    <div class="quarter-line"></div>
-                                    <div class="quarter-line"></div>
-                                    <div class="quarter-line"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="drop-guide-line" ref="dropGuideLine"></div>
-                            
-                            <div class="event-block" 
-                                 v-for="event in getCurrentDayEvents()" 
-                                 :key="event.id"
-                                 :class="[
-                                     'event-category-' + event.category,
-                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
-                                 ]"
-                                 :style="getEventStyle(event)"
-                                 @mousedown="handleEventMouseDown($event, event)">
-                                
-                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
-                                    ✎
-                                </div>
-                                
-                                <div class="resize-handle top" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'top')"></div>
-                                
-                                <div class="event-title">
-                                    <i :class="getCategoryIcon(event.category)"></i>
-                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
-                                </div>
-                                <div class="event-time">
-                                    {{ event.startTime }} - {{ event.endTime }}
-                                </div>
-                                <div class="event-description" v-if="event.description">
-                                    {{ event.description }}
-                                </div>
-                                
-                                <div class="resize-handle bottom" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="startResize($event, event, 'bottom')"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="edit-mode-help" :class="{ show: editModeEvent }">
-            <strong>📝 編集モード</strong><br>
-            • 上下端をドラッグ：時間調整<br>
-            • 中央を500ms長押しドラッグ：移動<br>
-            • 空のエリアをクリック：終了
-        </div>
-        
-        <!-- モーダル -->
-        <div class="modal fade" id="addDayModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> 新しい日程を追加</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">日付を選択</label>
-                            <input type="date" class="form-control" v-model="newDayDate" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" @click="addNewDay">
-                            <i class="fas fa-save"></i> 追加
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="modal fade" id="detailModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-info-circle"></i> 予定の詳細</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" v-if="selectedEventForDetail">
-                        <div class="mb-3">
-                            <h6><i :class="getCategoryIcon(selectedEventForDetail.category)"></i> {{ selectedEventForDetail.title }}</h6>
-                        </div>
-                        <div class="mb-3">
-                            <strong>日付:</strong> {{ getTripDayByIndex(selectedEventForDetail.dayIndex)?.date }}
-                        </div>
-                        <div class="mb-3">
-                            <strong>時間:</strong> {{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}
-                        </div>
-                        <div class="mb-3">
-                            <strong>カテゴリ:</strong> {{ getCategoryName(selectedEventForDetail.category) }}
-                        </div>
-                        <div class="mb-3" v-if="selectedEventForDetail.description">
-                            <strong>詳細:</strong><br>{{ selectedEventForDetail.description }}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                        <button type="button" class="btn btn-danger" @click="deleteEventFromDetail">
-                            <i class="fas fa-trash"></i> 削除
-                        </button>
-                        <button type="button" class="btn btn-primary" @click="editEventFromDetail">
-                            <i class="fas fa-edit"></i> 編集
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="modal fade" id="eventModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-calendar-plus"></i>
-                            {{ editingEvent ? '予定を編集' : '新しい予定を追加' }}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">予定名</label>
-                            <input type="text" class="form-control" v-model="eventForm.title" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">日付</label>
-                            <select class="form-control" v-model="eventForm.dayIndex" required>
-                                <option v-for="(day, index) in tripDays" :key="index" :value="index">
-                                    {{ day.dayNumber }}日目 ({{ day.date }})
-                                </option>
-                            </select>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">開始時間</label>
-                                    <input type="time" class="form-control" v-model="eventForm.startTime" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">終了時間</label>
-                                    <input type="time" class="form-control" v-model="eventForm.endTime" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">カテゴリ</label>
-                            <select class="form-control" v-model="eventForm.category" required>
-                                <option value="travel">🚗 移動</option>
-                                <option value="food">🍽️ 食事</option>
-                                <option value="sightseeing">🏛️ 観光</option>
-                                <option value="accommodation">🏨 宿泊</option>
-                                <option value="custom">✨ その他</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">詳細</label>
-                            <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-danger" v-if="editingEvent" @click="deleteEvent">
-                            <i class="fas fa-trash"></i> 削除
-                        </button>
-                        <button type="button" class="btn btn-primary" @click="saveEvent">
-                            <i class="fas fa-save"></i> 保存
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <button v-if="tripInitialized" class="add-event-btn" @click="openEventModal()">
-            <i class="fas fa-plus"></i>
-        </button>
+    <div id="loading" class="loading">
+        🤖 最新のAI分析ニュースを読み込み中...
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <div id="dashboard-container" style="display: none;"></div>
+
     <script>
-        const { createApp } = Vue;
+        let currentData = null;
+        let currentTab = 'all';
+        let currentCategory = 'all';
         
-        createApp({
-            data() {
-                return {
-                    tripInitialized: false,
-                    tripStartDate: '',
-                    tripEndDate: '',
-                    today: new Date().toISOString().split('T')[0],
-                    hasExistingData: false,
-                    tripDays: [],
-                    activeDay: 0,
-                    newDayDate: '',
-                    draggingTabIndex: null,
-                    dragOverTabIndex: null,
-                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-                    events: [],
-                    editModeEvent: null,
-                    longPressTimer: null,
-                    longPressSucceeded: false,
-                    startPosition: { x: 0, y: 0 },
-                    selectedEventForDetail: null,
-                    editingEvent: null,
-                    isMobile: false,
-                    eventForm: {
-                        title: '',
-                        dayIndex: 0,
-                        startTime: '09:00',
-                        endTime: '10:00',
-                        category: 'travel',
-                        description: ''
-                    }
+        const USER_RATING_EXPIRY_DAYS = 30;
+
+        async function loadLatestData() {
+            try {
+                const cacheBuster = Date.now();
+                const response = await fetch(`./data/articles.json?v=${cacheBuster}`, {
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+                
+                const data = await response.json();
+                console.log('✅ データ読み込み完了:', data.articles.length + '件');
+                
+                const articlesWithUserPreferences = applyUserPreferencesToFeed(data.articles);
+                
+                currentData = {
+                    ...data,
+                    articles: articlesWithUserPreferences
                 };
-            },
+                
+                renderDashboard(currentData);
+                
+            } catch (error) {
+                console.error('❌ データ読み込み失敗:', error);
+                document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました<br><button onclick="loadLatestData()">🔄 再試行</button>';
+            }
+        }
+
+        function applyUserPreferencesToFeed(articles) {
+            const userFeedback = getUserFeedbackWithinExpiry();
             
-            methods: {
-                checkExistingData() {
-                    const savedEvents = localStorage.getItem('trippenEvents');
-                    const savedDays = localStorage.getItem('trippenDays');
-                    this.hasExistingData = !!(savedEvents && savedDays);
-                },
+            return articles.map(article => {
+                const userRating = userFeedback[article.id];
                 
-                loadExistingData() {
-                    this.loadData();
-                    if (this.tripDays.length > 0) {
-                        this.tripInitialized = true;
-                    }
-                },
-                
-                initializeTripDays() {
-                    if (!this.tripStartDate || !this.tripEndDate) {
-                        alert('開始日と終了日を選択してください');
-                        return;
-                    }
-                    
-                    if (this.tripStartDate > this.tripEndDate) {
-                        alert('終了日は開始日以降を選択してください');
-                        return;
-                    }
-                    
-                    this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
-                    this.activeDay = 0;
-                    this.tripInitialized = true;
-                    this.saveData();
-                },
-                
-                generateTripDays(startDate, endDate) {
-                    const days = [];
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    let dayNumber = 1;
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    
-                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-                        const dayName = dayNames[date.getDay()];
-                        
-                        days.push({
-                            id: Date.now() + dayNumber + Math.random(),
-                            dayNumber: dayNumber++,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
-                            fullDate: date.toISOString().split('T')[0],
-                            isEditing: false,
-                            editingDate: date.toISOString().split('T')[0]
-                        });
-                    }
-                    
-                    return days;
-                },
-                
-                setActiveDay(index) {
-                    this.activeDay = index;
-                },
-                
-                detectMobile() {
-                    this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
-                },
-                
-                addDayImmediately() {
-                    if (this.tripDays.length === 0) {
-                        this.newDayDate = this.today;
-                    } else {
-                        const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                        const lastDay = new Date(sortedDays[sortedDays.length - 1].fullDate);
-                        lastDay.setDate(lastDay.getDate() + 1);
-                        this.newDayDate = lastDay.toISOString().split('T')[0];
-                    }
-                    
-                    const selectedDate = new Date(this.newDayDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[selectedDate.getDay()];
-                    
-                    const newDay = {
-                        id: Date.now() + Math.random(),
-                        dayNumber: this.tripDays.length + 1,
-                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
-                        fullDate: this.newDayDate,
-                        isEditing: false,
-                        editingDate: this.newDayDate
-                    };
-                    
-                    this.tripDays.push(newDay);
-                    this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                    this.tripDays.forEach((day, index) => day.dayNumber = index + 1);
-                    this.saveData();
-                },
-                
-                deleteDay(index) {
-                    if (this.tripDays.length <= 1) {
-                        alert('最低1つの日程は必要です');
-                        return;
-                    }
-                    
-                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
-                        this.events = this.events.filter(event => event.dayIndex !== index);
-                        this.events.forEach(event => {
-                            if (event.dayIndex > index) {
-                                event.dayIndex--;
-                            }
-                        });
-                        
-                        this.tripDays.splice(index, 1);
-                        this.recalculateAllDatesAfterDeletion();
-                        this.tripDays.forEach((day, i) => day.dayNumber = i + 1);
-                        
-                        if (this.activeDay >= this.tripDays.length) {
-                            this.activeDay = this.tripDays.length - 1;
-                        }
-                        
-                        this.saveData();
-                    }
-                },
-                
-                recalculateAllDatesAfterDeletion() {
-                    if (this.tripDays.length === 0) return;
-                    
-                    const baseDate = new Date(this.tripDays[0].fullDate);
-                    this.tripDays.forEach((day, index) => {
-                        if (index === 0) return;
-                        
-                        const newDate = new Date(baseDate);
-                        newDate.setDate(baseDate.getDate() + index);
-                        this.updateDayData(index, newDate);
-                    });
-                },
-                
-                startDateEdit(index) {
-                    this.tripDays.forEach((day, i) => {
-                        if (i !== index && day.isEditing) {
-                            this.cancelDateEdit(i);
-                        }
-                    });
-                    
-                    this.tripDays[index].isEditing = true;
-                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
-                    
-                    this.$nextTick(() => {
-                        const inputs = this.$refs.dateEditInput;
-                        if (inputs && inputs[0]) {
-                            inputs[0].focus();
-                        }
-                    });
-                },
-                
-                saveDateEdit(index) {
-                    const newDate = this.tripDays[index].editingDate;
-                    
-                    if (!newDate) {
-                        this.cancelDateEdit(index);
-                        return;
-                    }
-                    
-                    this.recalculateAllDates(index, newDate);
-                    this.tripDays[index].isEditing = false;
-                    this.saveData();
-                },
-                
-                cancelDateEdit(index) {
-                    this.tripDays[index].isEditing = false;
-                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
-                },
-                
-                recalculateAllDates(baseIndex, baseDate) {
-                    const baseDateTime = new Date(baseDate);
-                    
-                    for (let i = baseIndex - 1; i >= 0; i--) {
-                        const targetDate = new Date(baseDateTime);
-                        targetDate.setDate(targetDate.getDate() - (baseIndex - i));
-                        this.updateDayData(i, targetDate);
-                    }
-                    
-                    this.updateDayData(baseIndex, baseDateTime);
-                    
-                    for (let i = baseIndex + 1; i < this.tripDays.length; i++) {
-                        const targetDate = new Date(baseDateTime);
-                        targetDate.setDate(targetDate.getDate() + (i - baseIndex));
-                        this.updateDayData(i, targetDate);
-                    }
-                },
-                
-                updateDayData(index, date) {
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[date.getDay()];
-                    
-                    this.tripDays[index].date = `${date.getMonth() + 1}/${date.getDate()}(${dayName})`;
-                    this.tripDays[index].fullDate = date.toISOString().split('T')[0];
-                    this.tripDays[index].editingDate = date.toISOString().split('T')[0];
-                },
-                
-                handleTabDragStart(event, index) {
-                    this.draggingTabIndex = index;
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.target.closest('.nav-item').classList.add('dragging-tab');
-                },
-                
-                handleTabDragOver(event, index) {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = 'move';
-                    
-                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
-                        this.dragOverTabIndex = index;
-                        document.querySelectorAll('.nav-item').forEach(item => {
-                            item.classList.remove('drag-over');
-                        });
-                        event.target.closest('.nav-item').classList.add('drag-over');
-                    }
-                },
-                
-                handleTabDrop(event, dropIndex) {
-                    event.preventDefault();
-                    
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
-                    
-                    if (this.draggingTabIndex === null || this.draggingTabIndex === dropIndex) {
-                        return;
-                    }
-                    
-                    this.reorderTabs(this.draggingTabIndex, dropIndex);
-                    this.draggingTabIndex = null;
-                    this.dragOverTabIndex = null;
-                },
-                
-                handleTabDragEnd() {
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
-                    this.draggingTabIndex = null;
-                    this.dragOverTabIndex = null;
-                },
-                
-                reorderTabs(fromIndex, toIndex) {
-                    const eventMapping = new Map();
-                    this.events.forEach(event => {
-                        eventMapping.set(event.id, event.dayIndex);
-                    });
-                    
-                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
-                    this.tripDays.splice(toIndex, 0, movedTab);
-                    
-                    this.tripDays.forEach((day, index) => {
-                        day.dayNumber = index + 1;
-                    });
-                    
-                    this.events.forEach(event => {
-                        const oldDayIndex = eventMapping.get(event.id);
-                        if (oldDayIndex === fromIndex) {
-                            event.dayIndex = toIndex;
-                        } else if (fromIndex < toIndex && oldDayIndex > fromIndex && oldDayIndex <= toIndex) {
-                            event.dayIndex = oldDayIndex - 1;
-                        } else if (fromIndex > toIndex && oldDayIndex >= toIndex && oldDayIndex < fromIndex) {
-                            event.dayIndex = oldDayIndex + 1;
-                        }
-                    });
-                    
-                    if (this.activeDay === fromIndex) {
-                        this.activeDay = toIndex;
-                    } else if (fromIndex < toIndex && this.activeDay > fromIndex && this.activeDay <= toIndex) {
-                        this.activeDay--;
-                    } else if (fromIndex > toIndex && this.activeDay >= toIndex && this.activeDay < fromIndex) {
-                        this.activeDay++;
-                    }
-                    
-                    this.autoAdjustDatesAfterReorder();
-                    this.saveData();
-                },
-                
-                autoAdjustDatesAfterReorder() {
-                    if (this.tripDays.length <= 1) return;
-                    
-                    const baseDate = new Date(this.tripDays[0].fullDate);
-                    this.tripDays.forEach((day, index) => {
-                        if (index === 0) return;
-                        
-                        const newDate = new Date(baseDate);
-                        newDate.setDate(baseDate.getDate() + index);
-                        this.updateDayData(index, newDate);
-                    });
-                },
-                
-                getCurrentDayEvents() {
-                    return this.events.filter(event => event.dayIndex === this.activeDay);
-                },
-                
-                getTripDayByIndex(index) {
-                    return this.tripDays[index] || null;
-                },
-                
-                timeToPixels(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    const totalMinutes = (hours - 4) * 60 + minutes;
-                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
-                    return totalMinutes * pixelPerMinute;
-                },
-                
-                pixelsToTime(pixels) {
-                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
-                    const totalMinutes = pixels / pixelPerMinute;
-                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                    const hours = Math.floor(roundedMinutes / 60) + 4;
-                    const minutes = roundedMinutes % 60;
-                    
-                    const clampedHours = Math.max(4, Math.min(23, hours));
-                    const clampedMinutes = clampedHours === 23 && minutes > 45 ? 45 : minutes;
-                    
-                    return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
-                },
-                
-                getEventStyle(event) {
-                    const startPixels = this.timeToPixels(event.startTime);
-                    const endPixels = this.timeToPixels(event.endTime);
-                    const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+                if (userRating && userRating.rating) {
+                    const newPreference = calculatePreferenceFromRating(userRating.rating);
                     
                     return {
-                        top: `${startPixels}px`,
-                        height: `${duration}px`,
-                        minHeight: this.isMobile ? '25px' : '30px'
+                        ...article,
+                        preference: newPreference,
+                        userRating: userRating.rating,
+                        userOverride: true,
+                        lastRatedAt: userRating.timestamp
                     };
-                },
-                
-                handleTitleClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.selectedEventForDetail = eventData;
-                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-                    modal.show();
-                },
-                
-                editEventFromDetail() {
-                    this.hideModal('detailModal');
-                    this.openEventModal(this.selectedEventForDetail);
-                },
-                
-                deleteEventFromDetail() {
-                    if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== this.selectedEventForDetail.id);
-                        this.saveData();
-                        this.hideModal('detailModal');
-                    }
-                },
-                
-                hideModal(modalId) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
-                    const modalElement = document.getElementById(modalId);
-                    
-                    const focusedElement = modalElement.querySelector(':focus');
-                    if (focusedElement) {
-                        focusedElement.blur();
-                    }
-                    
-                    modal.hide();
-                    
-                    modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
-                        modalElement.removeAttribute('aria-hidden');
-                        modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
-                    }, { once: true });
-                },
-                
-                handleEventMouseDown(event, eventData) {
-                    if (event.target.closest('.title-text')) {
-                        return;
-                    }
-                    
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                        this.startDragMove(event, eventData);
-                        return;
-                    }
-                    
-                    this.startEditModeLongPress(event, eventData);
-                },
-                
-                startEditModeLongPress(event, eventData) {
-                    this.longPressSucceeded = false;
-                    this.startPosition = { x: event.clientX, y: event.clientY };
-                    
-                    this.longPressTimer = setTimeout(() => {
-                        this.longPressSucceeded = true;
-                        this.editModeEvent = eventData;
-                        
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
-                        }
-                        
-                        this.startDragMove(event, eventData);
-                    }, 500);
-                    
-                    const moveHandler = (e) => this.handleLongPressMove(e);
-                    const endHandler = (e) => this.handleLongPressEnd(e, moveHandler, endHandler);
-                    
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
-                },
-                
-                startDragMove(event, eventData) {
-                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
-                        return;
-                    }
-                    
-                    const startY = event.clientY;
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const initialTop = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                    
-                    const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
-                    const endHandler = (e) => this.handleDragEnd(e, moveHandler, endHandler);
-                    
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
-                },
-                
-                handleDragMove(event, startY, initialTop) {
-                    const deltaY = event.clientY - startY;
-                    const newTop = initialTop + deltaY;
-                    const snappedTop = Math.round(newTop / 15) * 15;
-                    const newTime = this.pixelsToTime(snappedTop);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
-                    if (eventIndex === -1) return;
-                    
-                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-                    const endTime = this.pixelsToTime(snappedTop + duration);
-                    
-                    if (newTime >= '04:00' && endTime <= '23:45') {
-                        this.events[eventIndex].startTime = newTime;
-                        this.events[eventIndex].endTime = endTime;
-                    }
-                },
-                
-                handleDragEnd(event, moveHandler, endHandler) {
-                    document.removeEventListener('mousemove', moveHandler);
-                    document.removeEventListener('mouseup', endHandler);
-                    this.saveData();
-                },
-                
-                handleLongPressMove(event) {
-                    const currentX = event.clientX;
-                    const currentY = event.clientY;
-                    const deltaX = Math.abs(currentX - this.startPosition.x);
-                    const deltaY = Math.abs(currentY - this.startPosition.y);
-                    
-                    if (deltaX > 10 || deltaY > 10) {
-                        this.clearLongPress();
-                    }
-                },
-                
-                handleLongPressEnd(event, moveHandler, endHandler) {
-                    document.removeEventListener('mousemove', moveHandler);
-                    document.removeEventListener('mouseup', endHandler);
-                    this.clearLongPress();
-                    
-                    if (this.longPressSucceeded) {
-                        setTimeout(() => {
-                            this.longPressSucceeded = false;
-                        }, 100);
-                    }
-                },
-                
-                clearLongPress() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                },
-                
-                startResize(event, eventData, direction) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    const moveHandler = (e) => this.handleResizeMove(e, direction);
-                    const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
-                    
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
-                },
-                
-                handleResizeMove(event, direction) {
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                    const snappedY = Math.round(y / 15) * 15;
-                    const newTime = this.pixelsToTime(snappedY);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
-                    if (eventIndex === -1) return;
-                    
-                    if (direction === 'top') {
-                        if (newTime < this.events[eventIndex].endTime) {
-                            this.events[eventIndex].startTime = newTime;
-                        }
-                    } else {
-                        if (newTime > this.events[eventIndex].startTime) {
-                            this.events[eventIndex].endTime = newTime;
-                        }
-                    }
-                },
-                
-                handleResizeEnd(event, moveHandler, endHandler) {
-                    document.removeEventListener('mousemove', moveHandler);
-                    document.removeEventListener('mouseup', endHandler);
-                    this.saveData();
-                },
-                
-                handleScheduleClick(event) {
-                    if (this.longPressSucceeded) {
-                        return;
-                    }
-                    this.editModeEvent = null;
-                },
-                
-                getCategoryIcon(category) {
-                    const icons = {
-                        travel: 'fas fa-car',
-                        food: 'fas fa-utensils',
-                        sightseeing: 'fas fa-camera',
-                        accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star'
-                    };
-                    return icons[category] || 'fas fa-calendar';
-                },
-                
-                getCategoryName(category) {
-                    const names = {
-                        travel: '移動',
-                        food: '食事',
-                        sightseeing: '観光',
-                        accommodation: '宿泊',
-                        custom: 'その他'
-                    };
-                    return names[category] || 'その他';
-                },
-                
-                openEventModal(event = null) {
-                    this.editingEvent = event;
-                    
-                    if (event) {
-                        this.eventForm = { ...event };
-                    } else {
-                        this.eventForm = {
-                            title: '',
-                            dayIndex: this.activeDay,
-                            startTime: '09:00',
-                            endTime: '10:00',
-                            category: 'travel',
-                            description: ''
-                        };
-                    }
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-                    modal.show();
-                },
-                
-                saveEvent() {
-                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
-                        alert('必須項目を入力してください');
-                        return;
-                    }
-                    
-                    if (this.eventForm.startTime >= this.eventForm.endTime) {
-                        alert('終了時間は開始時間より後に設定してください');
-                        return;
-                    }
-                    
-                    const eventData = {
-                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
-                        title: this.eventForm.title,
-                        dayIndex: this.eventForm.dayIndex,
-                        startTime: this.eventForm.startTime,
-                        endTime: this.eventForm.endTime,
-                        category: this.eventForm.category,
-                        description: this.eventForm.description
-                    };
-                    
-                    if (this.editingEvent) {
-                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
-                        this.events[index] = eventData;
-                    } else {
-                        this.events.push(eventData);
-                    }
-                    
-                    this.saveData();
-                    this.editModeEvent = null;
-                    this.hideModal('eventModal');
-                },
-                
-                deleteEvent() {
-                    if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.hideModal('eventModal');
-                    }
-                },
-                
-                saveData() {
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-                    localStorage.setItem('trippenInitialized', 'true');
-                },
-                
-                loadData() {
-                    const savedEvents = localStorage.getItem('trippenEvents');
-                    const savedDays = localStorage.getItem('trippenDays');
-                    const savedInitialized = localStorage.getItem('trippenInitialized');
-                    
-                    if (savedEvents) {
-                        this.events = JSON.parse(savedEvents);
-                    }
-                    
-                    if (savedDays) {
-                        this.tripDays = JSON.parse(savedDays);
-                    }
-                    
-                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
-                        this.tripInitialized = true;
-                    }
                 }
-            },
-            
-            mounted() {
-                this.detectMobile();
-                this.checkExistingData();
-                this.loadData();
                 
-                window.addEventListener('resize', this.detectMobile);
-            },
+                return article;
+            });
+        }
+
+        function getUserFeedbackWithinExpiry() {
+            const allFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            const currentTime = new Date().getTime();
+            const expiryTime = USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
             
-            unmounted() {
-                window.removeEventListener('resize', this.detectMobile);
+            const validFeedback = {};
+            let expiredCount = 0;
+            
+            Object.keys(allFeedback).forEach(articleId => {
+                const feedback = allFeedback[articleId];
+                const feedbackTime = new Date(feedback.timestamp).getTime();
+                
+                if (currentTime - feedbackTime < expiryTime) {
+                    validFeedback[articleId] = feedback;
+                } else {
+                    expiredCount++;
+                }
+            });
+            
+            if (expiredCount > 0) {
+                localStorage.setItem('ai-rss-feedback', JSON.stringify(validFeedback));
             }
-        }).mount('#app');
+            
+            return validFeedback;
+        }
+
+        function calculatePreferenceFromRating(rating) {
+            if (rating >= 4) return 'interested';
+            if (rating <= 2) return 'not-interested';
+            return 'neutral';
+        }
+
+        function getCurrentPreference(articleId) {
+            if (currentData && currentData.articles) {
+                const article = currentData.articles.find(a => a.id === articleId);
+                if (article) {
+                    return article.preference;
+                }
+            }
+            
+            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (articleCard) {
+                if (articleCard.classList.contains('interested')) return 'interested';
+                if (articleCard.classList.contains('neutral')) return 'neutral';
+                if (articleCard.classList.contains('not-interested')) return 'not-interested';
+            }
+            
+            return 'neutral';
+        }
+
+        function updateUserRatingMark(articleId, rating) {
+            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
+            
+            cards.forEach(card => {
+                let userMark = card.querySelector('.user-rated-mark');
+                if (!userMark) {
+                    userMark = document.createElement('span');
+                    userMark.className = 'user-rated-mark';
+                    userMark.textContent = '✓ ユーザー評価';
+                    card.appendChild(userMark);
+                }
+                
+                let ratingInfo = card.querySelector('.article-info[data-rating]');
+                if (!ratingInfo) {
+                    const metaDiv = card.querySelector('.article-meta');
+                    ratingInfo = document.createElement('span');
+                    ratingInfo.className = 'article-info';
+                    ratingInfo.setAttribute('data-rating', 'true');
+                    metaDiv.appendChild(ratingInfo);
+                }
+                ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
+                
+                card.classList.add('light-scale');
+                setTimeout(() => {
+                    card.classList.remove('light-scale');
+                }, 200);
+            });
+        }
+
+        function setRating(articleId, rating) {
+            let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            
+            if (!userFeedback[articleId]) {
+                userFeedback[articleId] = {};
+            }
+            
+            const currentPreference = getCurrentPreference(articleId);
+            const newPreference = calculatePreferenceFromRating(rating);
+            
+            const article = currentData.articles.find(a => a.id === articleId);
+            
+            userFeedback[articleId] = {
+                rating: rating,
+                timestamp: new Date().toISOString(),
+                title: article ? article.title : '',
+                category: article ? article.category : '',
+                feedName: article ? article.feedName : '',
+                expiresAt: new Date(Date.now() + (USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
+            };
+            
+            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
+            
+            const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
+            stars.forEach((star, index) => {
+                star.classList.toggle('filled', index < rating);
+            });
+            
+            if (currentPreference === newPreference) {
+                updateUserRatingMark(articleId, rating);
+                showFeedbackMessage(`評価を保存しました（${rating}/5）`);
+                return;
+            }
+            
+            if (currentData && currentData.articles) {
+                const articleIndex = currentData.articles.findIndex(a => a.id === articleId);
+                if (articleIndex !== -1) {
+                    currentData.articles[articleIndex].preference = newPreference;
+                    currentData.articles[articleIndex].userRating = rating;
+                    currentData.articles[articleIndex].userOverride = true;
+                }
+            }
+            
+            moveArticleToNewCategory(articleId, currentPreference, newPreference, rating);
+            updateTabCountsFromCurrentData();
+            
+            showCategoryChangeAnimation(articleId, newPreference);
+            showFeedbackMessage(`評価を保存し、「${getPreferenceName(newPreference)}」に移動しました！`);
+        }
+
+        function moveArticleToNewCategory(articleId, oldPreference, newPreference, rating) {
+            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (!articleCard) return;
+            
+            updateArticlePreferenceVisual(articleCard, newPreference, rating);
+            
+            const updatedCard = articleCard.cloneNode(true);
+            
+            const allContainer = document.getElementById('articles-all');
+            const interestedContainer = document.getElementById('articles-interested');
+            const neutralContainer = document.getElementById('articles-neutral');
+            const notInterestedContainer = document.getElementById('articles-not-interested');
+            
+            [allContainer, interestedContainer, neutralContainer, notInterestedContainer].forEach(container => {
+                const existingCard = container.querySelector(`[data-article-id="${articleId}"]`);
+                if (existingCard) {
+                    existingCard.classList.add('moving-out');
+                    setTimeout(() => {
+                        if (existingCard.parentNode) {
+                            existingCard.remove();
+                        }
+                    }, 500);
+                }
+            });
+            
+            setTimeout(() => {
+                const allCardClone = updatedCard.cloneNode(true);
+                setupCardEventListeners(allCardClone);
+                allCardClone.classList.add('moving-in');
+                allContainer.appendChild(allCardClone);
+                
+                let targetContainer;
+                if (newPreference === 'interested') {
+                    targetContainer = interestedContainer;
+                } else if (newPreference === 'neutral') {
+                    targetContainer = neutralContainer;
+                } else {
+                    targetContainer = notInterestedContainer;
+                }
+                
+                if (targetContainer) {
+                    const categoryCardClone = updatedCard.cloneNode(true);
+                    setupCardEventListeners(categoryCardClone);
+                    categoryCardClone.classList.add('moving-in');
+                    targetContainer.appendChild(categoryCardClone);
+                }
+            }, 600);
+            
+            setTimeout(() => {
+                highlightCategoryTab(newPreference);
+            }, 800);
+        }
+
+        function updateArticlePreferenceVisual(card, newPreference, rating) {
+            const preferenceSpan = card.querySelector('.preference-badge');
+            
+            card.classList.remove('interested', 'neutral', 'not-interested');
+            preferenceSpan.classList.remove('badge-interested', 'badge-neutral', 'badge-not-interested');
+            
+            card.classList.add(newPreference);
+            preferenceSpan.classList.add(`badge-${newPreference}`);
+            
+            let userMark = card.querySelector('.user-rated-mark');
+            if (!userMark) {
+                userMark = document.createElement('span');
+                userMark.className = 'user-rated-mark';
+                userMark.textContent = '✓ ユーザー評価';
+                card.appendChild(userMark);
+            }
+            
+            if (newPreference === 'interested') {
+                preferenceSpan.textContent = '😍 興味ありそう（ユーザー評価）';
+            } else if (newPreference === 'neutral') {
+                preferenceSpan.textContent = '😐 普通（ユーザー評価）';
+            } else {
+                preferenceSpan.textContent = '😕 興味なさそう（ユーザー評価）';
+            }
+            
+            let ratingInfo = card.querySelector('.article-info[data-rating]');
+            if (!ratingInfo) {
+                const metaDiv = card.querySelector('.article-meta');
+                ratingInfo = document.createElement('span');
+                ratingInfo.className = 'article-info';
+                ratingInfo.setAttribute('data-rating', 'true');
+                metaDiv.appendChild(ratingInfo);
+            }
+            ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
+        }
+
+        function setupCardEventListeners(card) {
+            const stars = card.querySelectorAll('.star');
+            stars.forEach(star => {
+                const articleId = card.dataset.articleId;
+                const rating = star.dataset.rating;
+                star.onclick = () => setRating(articleId, parseInt(rating));
+            });
+            
+            const title = card.querySelector('.article-title');
+            if (title) {
+                const onclickAttr = title.getAttribute('onclick');
+                if (onclickAttr) {
+                    const link = onclickAttr.match(/'([^']+)'/)[1];
+                    title.onclick = () => window.open(link, '_blank');
+                }
+            }
+        }
+
+        function highlightCategoryTab(preference) {
+            const targetTab = document.querySelector(`[data-tab="${preference}"]`);
+            if (targetTab) {
+                targetTab.classList.add('category-highlight');
+                
+                setTimeout(() => {
+                    targetTab.classList.remove('category-highlight');
+                }, 1000);
+            }
+        }
+
+        function showCategoryChangeAnimation(articleId, newPreference) {
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (!card) return;
+            
+            const colors = {
+                'interested': '#10B981',
+                'neutral': '#F59E0B',
+                'not-interested': '#EF4444'
+            };
+            
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle-effect';
+                particle.style.background = colors[newPreference];
+                
+                const rect = card.getBoundingClientRect();
+                particle.style.left = (rect.left + rect.width / 2) + 'px';
+                particle.style.top = (rect.top + rect.height / 2) + 'px';
+                
+                document.body.appendChild(particle);
+                
+                const angle = (i * 72) * Math.PI / 180;
+                const distance = 100;
+                
+                particle.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { 
+                        transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`, 
+                        opacity: 0 
+                    }
+                ], {
+                    duration: 800,
+                    easing: 'ease-out'
+                }).addEventListener('finish', () => {
+                    particle.remove();
+                });
+            }
+        }
+
+        function getPreferenceName(preference) {
+            const names = {
+                'interested': '興味ありそう',
+                'neutral': '普通',
+                'not-interested': '興味なさそう'
+            };
+            return names[preference] || preference;
+        }
+
+        function updateTabCountsFromCurrentData() {
+            if (!currentData || !currentData.articles) return;
+            
+            const articlesByPreference = {
+                interested: currentData.articles.filter(a => a.preference === 'interested'),
+                neutral: currentData.articles.filter(a => a.preference === 'neutral'),
+                'not-interested': currentData.articles.filter(a => a.preference === 'not-interested'),
+                all: currentData.articles
+            };
+            
+            Object.keys(articlesByPreference).forEach(category => {
+                const tabCard = document.querySelector(`[data-tab="${category}"]`);
+                if (tabCard) {
+                    const numberElement = tabCard.querySelector('.stat-number');
+                    numberElement.textContent = articlesByPreference[category].length;
+                }
+            });
+        }
+
+        // ✅ 2. カテゴリー切り替え時のタブカウント更新
+        function updateTabCountForCategory(visibleCount) {
+            const activeTabCard = document.querySelector(`[data-tab="${currentTab}"]`);
+            if (activeTabCard) {
+                const numberElement = activeTabCard.querySelector('.stat-number');
+                if (currentCategory === 'all') {
+                    updateTabCountsFromCurrentData();
+                } else {
+                    numberElement.textContent = visibleCount;
+                }
+            }
+        }
+        
+        function renderDashboard(data) {
+            const articles = data.articles;
+            const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
+            const categories = [...new Set(articles.map(article => article.category))];
+            
+            const articlesByPreference = {
+                interested: articles.filter(a => a.preference === 'interested'),
+                neutral: articles.filter(a => a.preference === 'neutral'),
+                'not-interested': articles.filter(a => a.preference === 'not-interested')
+            };
+            
+            const userRatedCount = articles.filter(a => a.userOverride).length;
+            
+            const html = `
+            <header class="header">
+                <h1>🤖 AI RSS ダッシュボード</h1>
+                <p>AIが厳選したあなた好みのニュースをお届け</p>
+                <div class="header-stats">
+                    <span>最終更新: ${updateTime}</span>
+                    <span>総記事数: ${articles.length}件</span>
+                    <span>ユーザー評価済み: ${userRatedCount}件</span>
+                    <span>🔄 リアルタイム更新</span>
+                </div>
+            </header>
+
+            <div class="stats-section">
+                <div class="category-filter-wrapper">
+                    <select id="categoryFilter" class="category-filter">
+                        <option value="all">📂 すべて表示</option>
+                        ${categories.map(cat => `<option value="${cat}">🏷️ ${cat}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="stats-tabs">
+                    <div class="stat-tab-card interested ${currentTab === 'interested' ? 'active' : ''}" data-tab="interested">
+                        <div class="stat-number">${articlesByPreference.interested.length}</div>
+                        <div class="stat-label">😍 興味ありそう</div>
+                    </div>
+                    <div class="stat-tab-card neutral ${currentTab === 'neutral' ? 'active' : ''}" data-tab="neutral">
+                        <div class="stat-number">${articlesByPreference.neutral.length}</div>
+                        <div class="stat-label">😐 普通</div>
+                    </div>
+                    <div class="stat-tab-card not-interested ${currentTab === 'not-interested' ? 'active' : ''}" data-tab="not-interested">
+                        <div class="stat-number">${articlesByPreference['not-interested'].length}</div>
+                        <div class="stat-label">😕 興味なさそう</div>
+                    </div>
+                    <div class="stat-tab-card all ${currentTab === 'all' ? 'active' : ''}" data-tab="all">
+                        <div class="stat-number">${articles.length}</div>
+                        <div class="stat-label">📄 総記事数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="articles-all" class="articles-container ${currentTab === 'all' ? '' : 'hidden'}">
+                ${articles.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-interested" class="articles-container ${currentTab === 'interested' ? '' : 'hidden'}">
+                ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-neutral" class="articles-container ${currentTab === 'neutral' ? '' : 'hidden'}">
+                ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-not-interested" class="articles-container ${currentTab === 'not-interested' ? '' : 'hidden'}">
+                ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
+            </div>`;
+            
+            document.getElementById('dashboard-container').innerHTML = html;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-container').style.display = 'block';
+            
+            setupEventListeners();
+            restoreUserRatings();
+            setupScrollToTop(); // ✅ 3. トップに戻るボタン初期化
+        }
+        
+        function generateArticleCard(article) {
+            const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
+            const relativeTime = getRelativeTime(article.pubDate);
+            const userRating = article.userRating || 0;
+            const isUserRated = article.userOverride || false;
+            
+            return `
+            <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
+                ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
+                <div class="article-content">
+                    <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
+                        ${article.title}
+                    </h2>
+                    <div class="article-meta">
+                        <span class="preference-badge badge-${article.preference}">
+                            ${article.preference === 'interested' ? '😍 興味ありそう' : 
+                              article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}${isUserRated ? '（ユーザー評価）' : ''}
+                        </span>
+                        <span class="article-info">📅 ${publishDate}</span>
+                        <span class="article-info">⏰ ${relativeTime}</span>
+                        <span class="article-info">📰 ${article.feedName}</span>
+                        <span class="article-info">🏷️ ${article.category}</span>
+                        ${isUserRated ? `<span class="article-info" data-rating="true">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
+                    </div>
+                    <div class="article-description">
+                        ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
+                    </div>
+                    <div class="rating-section">
+                        <div class="rating-stars">
+                            ${[1,2,3,4,5].map(rating => 
+                                `<span class="star ${rating <= userRating ? 'filled' : ''}" 
+                                      data-rating="${rating}" 
+                                      onclick="setRating('${article.id}', ${rating})" 
+                                      title="${rating}つ星">⭐</span>`
+                            ).join('')}
+                        </div>
+                        <div class="rating-label">この記事を評価</div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function getRelativeTime(dateString) {
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffHours < 1) return '1時間未満前';
+            if (diffHours < 24) return `${diffHours}時間前`;
+            if (diffDays < 7) return `${diffDays}日前`;
+            return '1週間以上前';
+        }
+        
+        function getUserRating(articleId) {
+            const feedback = getUserFeedbackWithinExpiry();
+            return feedback[articleId]?.rating || 0;
+        }
+
+        function showFeedbackMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            messageDiv.className = 'rating-feedback';
+            
+            document.body.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+
+        // ✅ 3. トップに戻るボタンの制御
+        function setupScrollToTop() {
+            // 既存のボタンがあれば削除
+            const existingButton = document.querySelector('.scroll-to-top');
+            if (existingButton) {
+                existingButton.remove();
+            }
+
+            const scrollButton = document.createElement('button');
+            scrollButton.className = 'scroll-to-top';
+            scrollButton.innerHTML = '↑';
+            scrollButton.title = '1番上に戻る';
+            document.body.appendChild(scrollButton);
+
+            // スクロール監視
+            window.addEventListener('scroll', () => {
+                if (window.pageYOffset > 300) {
+                    scrollButton.classList.add('visible');
+                } else {
+                    scrollButton.classList.remove('visible');
+                }
+            });
+
+            // クリック時の動作
+            scrollButton.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+        
+        function setupEventListeners() {
+            document.querySelectorAll('.stat-tab-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const tabType = card.dataset.tab;
+                    switchTab(tabType);
+                });
+            });
+
+            document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                currentCategory = e.target.value;
+                applyFilters();
+            });
+        }
+
+        function switchTab(tabType) {
+            currentTab = tabType;
+            
+            document.querySelectorAll('.articles-container').forEach(container => {
+                container.classList.add('hidden');
+                container.classList.remove('show-animation');
+            });
+            
+            const targetContainer = document.getElementById('articles-' + tabType);
+            if (targetContainer) {
+                targetContainer.classList.remove('hidden');
+                targetContainer.classList.add('show-animation');
+                targetContainer.querySelectorAll('.article-card').forEach(card => {
+                    card.classList.add('show-animation');
+                });
+            }
+            
+            document.querySelectorAll('.stat-tab-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            const activeCard = document.querySelector(`[data-tab="${tabType}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+
+            applyFilters();
+        }
+
+        // ✅ 2. カテゴリー切り替え時のタブカウント更新対応
+        function applyFilters() {
+            const activeContainer = document.querySelector('.articles-container:not(.hidden)');
+            if (!activeContainer) return;
+
+            let visibleCount = 0;
+            activeContainer.querySelectorAll('.article-card').forEach(card => {
+                const category = card.dataset.category;
+                if (currentCategory === 'all' || category === currentCategory) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            updateTabCountForCategory(visibleCount);
+        }
+        
+        function restoreUserRatings() {
+            const userFeedback = getUserFeedbackWithinExpiry();
+            Object.keys(userFeedback).forEach(articleId => {
+                const feedback = userFeedback[articleId];
+                if (feedback.rating) {
+                    const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
+                    stars.forEach((star, index) => {
+                        star.classList.toggle('filled', index < feedback.rating);
+                    });
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadLatestData);
+        setInterval(loadLatestData, 300000);
+
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) {
+                loadLatestData();
+            }
+        });
     </script>
 </body>
 </html>
