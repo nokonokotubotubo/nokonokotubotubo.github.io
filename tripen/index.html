@@ -6,33 +6,29 @@
     <title>とりっぺんちゃん - 旅行予定調整サイト</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* カスタムCSS - 淡い水色基調デザイン */
         :root {
             --primary-color: #87CEEB;
             --secondary-color: #B0E0E6;
             --accent-color: #4682B4;
             --text-color: #2F4F4F;
             --bg-color: #F0F8FF;
-            --time-grid-color: #E6F3FF;
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
         }
         
         .header {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 15px 0;
+            padding: 20px 0;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
@@ -45,18 +41,15 @@
         .day-tabs {
             background: white;
             border-radius: 15px 15px 0 0;
-            padding: 0;
             margin: 20px 0 0 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow-x: auto;
         }
         
         .day-tabs .nav-link {
             border: none;
             color: var(--text-color);
-            padding: 12px 20px;
+            padding: 15px 25px;
             border-radius: 15px 15px 0 0;
-            white-space: nowrap;
             text-align: center;
             min-width: 120px;
             transition: all 0.3s ease;
@@ -88,26 +81,26 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 10;
         }
         
-        .day-tabs .nav-link:hover .delete-day-btn {
+        .nav-link:hover .delete-day-btn {
             display: flex;
         }
         
         .timeline-container {
             background: white;
             border-radius: 0 0 15px 15px;
-            padding: 0;
+            padding: 20px;
             margin: 0 0 20px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            min-height: 600px;
+            min-height: 500px;
         }
         
         .timeline-header {
             background: var(--secondary-color);
             padding: 15px 20px;
-            border-radius: 0 0 0 0;
+            border-radius: 10px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -115,22 +108,21 @@
         
         .timeline-content {
             position: relative;
-            height: 70vh;
-            min-height: 500px;
-            max-height: 800px;
-            overflow: hidden;
+            height: 60vh;
+            min-height: 400px;
+            overflow-y: auto;
+            border: 2px solid var(--secondary-color);
+            border-radius: 10px;
         }
         
-        .timeline-scroll-container {
+        .time-grid {
             display: flex;
             height: 100%;
-            overflow-y: auto;
-            overflow-x: hidden;
         }
         
         .time-axis {
             width: 80px;
-            background: var(--time-grid-color);
+            background: var(--bg-color);
             border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
         }
@@ -144,12 +136,12 @@
             font-weight: bold;
             color: var(--text-color);
             border-bottom: 1px solid #e0e0e0;
-            flex-shrink: 0;
         }
         
         .schedule-area {
             flex: 1;
             position: relative;
+            min-height: 1200px;
         }
         
         .schedule-grid {
@@ -157,45 +149,22 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 1140px;
+            height: 100%;
         }
         
         .grid-line {
             height: 60px;
             border-bottom: 1px solid #e0e0e0;
             position: relative;
+            cursor: pointer;
         }
         
         .grid-line:nth-child(odd) {
             background: rgba(135, 206, 235, 0.05);
         }
         
-        .quarter-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #f0f0f0;
-        }
-        
-        .quarter-line:nth-child(1) { top: 15px; }
-        .quarter-line:nth-child(2) { top: 30px; }
-        .quarter-line:nth-child(3) { top: 45px; }
-        
-        .drop-guide-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent-color);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            z-index: 50;
-            border-radius: 2px;
-        }
-        
-        .drop-guide-line.active {
-            opacity: 0.8;
+        .grid-line:hover {
+            background: rgba(135, 206, 235, 0.1);
         }
         
         .event-block {
@@ -205,12 +174,12 @@
             background: var(--primary-color);
             color: white;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
             transition: all 0.3s ease;
             z-index: 10;
-            overflow: hidden;
+            cursor: pointer;
             user-select: none;
         }
         
@@ -225,18 +194,6 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
         }
         
-        .event-block.dragging {
-            opacity: 0.8;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-            z-index: 100;
-            transform: scale(1.02);
-        }
-        
-        .event-block.resizing {
-            border-color: #FF6B6B;
-            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3);
-        }
-        
         .event-category-travel { background: #FF6B6B; }
         .event-category-food { background: #4ECDC4; }
         .event-category-sightseeing { background: #45B7D1; }
@@ -245,11 +202,11 @@
         
         .event-title {
             font-weight: bold;
-            margin-bottom: 4px;
-            font-size: 0.9rem;
+            margin-bottom: 5px;
+            font-size: 1rem;
             cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 4px;
+            padding: 5px;
+            border-radius: 5px;
             transition: background-color 0.2s ease;
         }
         
@@ -258,179 +215,43 @@
         }
         
         .event-time {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             opacity: 0.9;
-            pointer-events: none;
         }
         
         .event-description {
-            font-size: 0.75rem;
-            margin-top: 4px;
+            font-size: 0.8rem;
+            margin-top: 5px;
             opacity: 0.8;
-            pointer-events: none;
         }
         
-        .edit-mode-indicator {
+        .edit-indicator {
             position: absolute;
             top: -5px;
             right: -5px;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: #FFD700;
             color: #333;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             font-weight: bold;
-            pointer-events: none;
-        }
-        
-        .resize-handle {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 12px;
-            background: rgba(255, 215, 0, 0.8);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            cursor: ns-resize;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            color: #333;
-            z-index: 15;
-        }
-        
-        .resize-handle.top {
-            top: 0;
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .resize-handle.bottom {
-            bottom: 0;
-            border-radius: 0 0 8px 8px;
-        }
-        
-        .event-block.edit-mode .resize-handle {
-            opacity: 1;
-        }
-        
-        .resize-handle:hover {
-            background: rgba(255, 215, 0, 1);
-        }
-        
-        .event-detail-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            z-index: 1050;
-            max-width: 400px;
-            width: 90%;
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.8);
-            transition: all 0.3s ease;
-        }
-        
-        .event-detail-modal.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        
-        .event-detail-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1040;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .event-detail-backdrop.show {
-            opacity: 1;
-        }
-        
-        .event-detail-header {
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .event-detail-header h5 {
-            color: var(--text-color);
-            margin: 0;
-            font-size: 1.3rem;
-        }
-        
-        .event-detail-content .detail-row {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: var(--bg-color);
-            border-radius: 8px;
-        }
-        
-        .event-detail-content .detail-label {
-            font-weight: bold;
-            color: var(--accent-color);
-            margin-bottom: 5px;
-        }
-        
-        .event-detail-content .detail-value {
-            color: var(--text-color);
-        }
-        
-        .event-detail-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .modal-content {
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            background: var(--primary-color);
-            color: white;
-            border-radius: 15px 15px 0 0;
         }
         
         .btn-primary {
             background: var(--accent-color);
             border: none;
             border-radius: 20px;
-            padding: 8px 20px;
+            padding: 10px 20px;
             transition: all 0.3s ease;
         }
         
         .btn-primary:hover {
             background: var(--text-color);
             transform: translateY(-2px);
-        }
-        
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
         }
         
         .add-event-btn {
@@ -454,7 +275,66 @@
             background: var(--primary-color);
         }
         
-        .edit-mode-help {
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .detail-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            z-index: 1050;
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .detail-modal.show {
+            opacity: 1;
+        }
+        
+        .detail-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .detail-backdrop.show {
+            opacity: 1;
+        }
+        
+        .help-message {
             position: fixed;
             top: 100px;
             right: 20px;
@@ -471,64 +351,29 @@
             max-width: 280px;
         }
         
-        .edit-mode-help.show {
+        .help-message.show {
             opacity: 1;
             transform: translateX(0);
         }
         
-        /* レスポンシブデザイン */
         @media (max-width: 768px) {
-            .time-axis {
-                width: 60px;
-            }
-            
-            .time-slot {
-                height: 50px;
-                font-size: 0.8rem;
-            }
-            
-            .grid-line {
-                height: 50px;
-            }
-            
-            .schedule-grid {
-                height: 950px;
-            }
-            
-            .event-block {
-                padding: 6px 8px;
-            }
-            
-            .event-title {
-                font-size: 0.8rem;
-            }
-            
-            .event-time {
-                font-size: 0.7rem;
-            }
-            
-            .add-event-btn {
-                bottom: 20px;
-                right: 20px;
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
-            }
-            
-            .edit-mode-help {
-                right: 10px;
-                max-width: 250px;
-                font-size: 0.8rem;
-            }
-            
-            .event-detail-modal {
-                width: 95%;
-                padding: 20px;
-            }
+            .time-axis { width: 60px; }
+            .time-slot { height: 50px; font-size: 0.8rem; }
+            .grid-line { height: 50px; }
+            .schedule-area { min-height: 1000px; }
+            .event-block { padding: 8px; }
+            .event-title { font-size: 0.9rem; }
+            .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; }
         }
     </style>
 </head>
 <body>
+    <!-- 動作確認用の簡単なテスト -->
+    <div id="test-app" style="display: none;">
+        <p>{{ message }}</p>
+        <button @click="testClick">テストボタン</button>
+    </div>
+
     <div id="app">
         <!-- ヘッダー -->
         <header class="header">
@@ -538,32 +383,33 @@
                     とりっぺんちゃん
                 </h1>
                 <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
+                <small>動作状況: <span id="status">読み込み中...</span></small>
             </div>
         </header>
         
-        <!-- メインコンテンツ -->
         <div class="container-fluid">
             <!-- 日付タブ -->
             <ul class="nav nav-tabs day-tabs">
                 <li class="nav-item" v-for="(day, index) in tripDays" :key="index">
-                    <a class="nav-link" 
-                       :class="{ active: activeDay === index }"
-                       @click="setActiveDay(index)"
-                       href="javascript:void(0)">
+                    <button type="button" 
+                            class="nav-link" 
+                            :class="{ active: activeDay === index }"
+                            @click="setActiveDay(index)">
                         <div>{{ day.dayNumber }}日目</div>
                         <small>{{ day.date }}</small>
-                        <button class="delete-day-btn" 
+                        <button type="button" 
+                                class="delete-day-btn" 
                                 v-if="tripDays.length > 1"
                                 @click.stop="deleteDay(index)"
                                 title="日程を削除">
                             <i class="fas fa-times"></i>
                         </button>
-                    </a>
+                    </button>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" @click="showAddDayModal" href="javascript:void(0)" title="日程を追加">
+                    <button type="button" class="nav-link" @click="showAddDayModal" title="日程を追加">
                         <i class="fas fa-plus"></i>
-                    </a>
+                    </button>
                 </li>
             </ul>
             
@@ -572,18 +418,18 @@
                 <div class="timeline-header">
                     <h5>
                         <i class="fas fa-calendar-day"></i>
-                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
-                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                        {{ currentDayInfo.dayNumber }}日目の予定
+                        <small class="text-muted">{{ currentDayInfo.date }}</small>
                     </h5>
                     <div>
-                        <button class="btn btn-outline-primary btn-sm" @click="openEventModal()">
+                        <button type="button" class="btn btn-primary" @click="openEventModal()">
                             <i class="fas fa-plus"></i> 予定追加
                         </button>
                     </div>
                 </div>
                 
                 <div class="timeline-content">
-                    <div class="timeline-scroll-container" ref="scrollContainer">
+                    <div class="time-grid">
                         <!-- 時間軸 -->
                         <div class="time-axis">
                             <div class="time-slot" v-for="hour in timeSlots" :key="hour">
@@ -592,47 +438,31 @@
                         </div>
                         
                         <!-- スケジュール表示エリア -->
-                        <div class="schedule-area" 
-                             @click="handleScheduleClick">
+                        <div class="schedule-area" @click="handleScheduleClick">
                             <div class="schedule-grid">
-                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-                                    <div class="quarter-line"></div>
-                                    <div class="quarter-line"></div>
-                                    <div class="quarter-line"></div>
+                                <div class="grid-line" 
+                                     v-for="hour in timeSlots" 
+                                     :key="hour"
+                                     :data-hour="hour">
                                 </div>
                             </div>
                             
-                            <!-- ドロップガイドライン -->
-                            <div class="drop-guide-line" ref="dropGuideLine"></div>
-                            
                             <!-- 予定ブロック -->
                             <div class="event-block" 
-                                 v-for="event in getCurrentDayEvents()" 
+                                 v-for="event in currentDayEvents" 
                                  :key="event.id"
                                  :class="[
                                      'event-category-' + event.category,
-                                     { 
-                                         'edit-mode': editModeEvent && editModeEvent.id === event.id,
-                                         'dragging': draggedEvent && draggedEvent.id === event.id,
-                                         'resizing': resizingEvent && resizingEvent.id === event.id
-                                     }
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @mousedown="handleEventMouseDown($event, event)"
-                                 @touchstart="handleEventTouchStart($event, event)">
+                                 @click="handleEventClick(event)"
+                                 @contextmenu.prevent="enterEditMode(event)">
                                 
                                 <!-- 編集モードインジケーター -->
-                                <div class="edit-mode-indicator" 
+                                <div class="edit-indicator" 
                                      v-if="editModeEvent && editModeEvent.id === event.id">
                                     ✎
-                                </div>
-                                
-                                <!-- リサイズハンドル -->
-                                <div class="resize-handle top" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown.stop="startResize($event, event, 'top')"
-                                     @touchstart.stop="startResize($event, event, 'top')">
-                                    ⋮⋮⋮
                                 </div>
                                 
                                 <div class="event-title" @click.stop="showEventDetail(event)">
@@ -645,14 +475,6 @@
                                 <div class="event-description" v-if="event.description">
                                     {{ event.description }}
                                 </div>
-                                
-                                <!-- リサイズハンドル -->
-                                <div class="resize-handle bottom" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown.stop="startResize($event, event, 'bottom')"
-                                     @touchstart.stop="startResize($event, event, 'bottom')">
-                                    ⋮⋮⋮
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -660,51 +482,37 @@
             </div>
         </div>
         
-        <!-- 編集モードヘルプ -->
-        <div class="edit-mode-help" :class="{ show: editModeEvent }">
+        <!-- ヘルプメッセージ -->
+        <div class="help-message" :class="{ show: editModeEvent }">
             <strong>📝 編集モード</strong><br>
-            • 上下端をドラッグで時間調整<br>
-            • 中央部分を長押し（100ms）+ドラッグで移動<br>
+            • ドラッグで移動<br>
+            • 右クリックで編集モード切替<br>
             • 空のエリアをクリックで終了
         </div>
         
         <!-- 詳細表示モーダル -->
-        <div class="event-detail-backdrop" :class="{ show: showDetailModal }" @click="closeDetailModal"></div>
-        <div class="event-detail-modal" :class="{ show: showDetailModal }">
-            <div class="event-detail-header" v-if="selectedEventForDetail">
+        <div class="detail-backdrop" :class="{ show: showDetailModal }" @click="closeDetailModal"></div>
+        <div class="detail-modal" :class="{ show: showDetailModal }">
+            <div v-if="selectedEvent">
                 <h5>
-                    <i :class="getCategoryIcon(selectedEventForDetail.category)"></i>
-                    {{ selectedEventForDetail.title }}
+                    <i :class="getCategoryIcon(selectedEvent.category)"></i>
+                    {{ selectedEvent.title }}
                 </h5>
-            </div>
-            <div class="event-detail-content" v-if="selectedEventForDetail">
-                <div class="detail-row">
-                    <div class="detail-label">時間</div>
-                    <div class="detail-value">{{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}</div>
+                <hr>
+                <p><strong>時間:</strong> {{ selectedEvent.startTime }} - {{ selectedEvent.endTime }}</p>
+                <p><strong>カテゴリ:</strong> {{ getCategoryName(selectedEvent.category) }}</p>
+                <p v-if="selectedEvent.description"><strong>詳細:</strong><br>{{ selectedEvent.description }}</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary flex-fill" @click="editFromDetail">
+                        <i class="fas fa-edit"></i> 編集
+                    </button>
+                    <button type="button" class="btn btn-danger flex-fill" @click="deleteFromDetail">
+                        <i class="fas fa-trash"></i> 削除
+                    </button>
+                    <button type="button" class="btn btn-secondary flex-fill" @click="closeDetailModal">
+                        閉じる
+                    </button>
                 </div>
-                <div class="detail-row">
-                    <div class="detail-label">カテゴリ</div>
-                    <div class="detail-value">{{ getCategoryName(selectedEventForDetail.category) }}</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">日程</div>
-                    <div class="detail-value">{{ tripDays[selectedEventForDetail.dayIndex]?.dayNumber }}日目 ({{ tripDays[selectedEventForDetail.dayIndex]?.date }})</div>
-                </div>
-                <div class="detail-row" v-if="selectedEventForDetail.description">
-                    <div class="detail-label">詳細</div>
-                    <div class="detail-value">{{ selectedEventForDetail.description }}</div>
-                </div>
-            </div>
-            <div class="event-detail-buttons">
-                <button class="btn btn-primary flex-fill" @click="editFromDetail">
-                    <i class="fas fa-edit"></i> 編集
-                </button>
-                <button class="btn btn-danger flex-fill" @click="deleteFromDetail">
-                    <i class="fas fa-trash"></i> 削除
-                </button>
-                <button class="btn btn-secondary flex-fill" @click="closeDetailModal">
-                    <i class="fas fa-times"></i> 閉じる
-                </button>
             </div>
         </div>
         
@@ -735,7 +543,7 @@
             </div>
         </div>
         
-        <!-- 予定追加/編集モーダル -->
+        <!-- 予定編集モーダル -->
         <div class="modal fade" id="eventModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -747,52 +555,50 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form @submit.prevent="saveEvent">
-                            <div class="mb-3">
-                                <label class="form-label">予定名</label>
-                                <input type="text" class="form-control" v-model="eventForm.title" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">日付</label>
-                                <select class="form-control" v-model="eventForm.dayIndex" required>
-                                    <option v-for="(day, index) in tripDays" :key="index" :value="index">
-                                        {{ day.dayNumber }}日目 ({{ day.date }})
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">開始時間</label>
-                                        <input type="time" class="form-control" v-model="eventForm.startTime" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">終了時間</label>
-                                        <input type="time" class="form-control" v-model="eventForm.endTime" required>
-                                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">予定名</label>
+                            <input type="text" class="form-control" v-model="eventForm.title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">日付</label>
+                            <select class="form-control" v-model="eventForm.dayIndex" required>
+                                <option v-for="(day, index) in tripDays" :key="index" :value="index">
+                                    {{ day.dayNumber }}日目 ({{ day.date }})
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">開始時間</label>
+                                    <input type="time" class="form-control" v-model="eventForm.startTime" required>
                                 </div>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">カテゴリ</label>
-                                <select class="form-control" v-model="eventForm.category" required>
-                                    <option value="travel">🚗 移動</option>
-                                    <option value="food">🍽️ 食事</option>
-                                    <option value="sightseeing">🏛️ 観光</option>
-                                    <option value="accommodation">🏨 宿泊</option>
-                                    <option value="custom">✨ その他</option>
-                                </select>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">終了時間</label>
+                                    <input type="time" class="form-control" v-model="eventForm.endTime" required>
+                                </div>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">詳細</label>
-                                <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
-                            </div>
-                        </form>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">カテゴリ</label>
+                            <select class="form-control" v-model="eventForm.category" required>
+                                <option value="travel">🚗 移動</option>
+                                <option value="food">🍽️ 食事</option>
+                                <option value="sightseeing">🏛️ 観光</option>
+                                <option value="accommodation">🏨 宿泊</option>
+                                <option value="custom">✨ その他</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">詳細</label>
+                            <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
@@ -808,23 +614,44 @@
         </div>
         
         <!-- フローティング追加ボタン -->
-        <button class="add-event-btn" @click="openEventModal()">
+        <button type="button" class="add-event-btn" @click="openEventModal()">
             <i class="fas fa-plus"></i>
         </button>
     </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Vue.js -->
+    <!-- 必須JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     
     <script>
-        const { createApp } = Vue;
-        
-        createApp({
+        // 基本動作確認用のテストアプリ
+        const testApp = Vue.createApp({
             data() {
                 return {
-                    // 旅行日程
+                    message: 'Vue.js動作確認中...'
+                }
+            },
+            methods: {
+                testClick() {
+                    this.message = 'Vue.js正常動作！';
+                    document.getElementById('status').textContent = 'Vue.js動作確認完了';
+                }
+            },
+            mounted() {
+                console.log('Test Vue app mounted');
+                setTimeout(() => {
+                    this.message = 'Vue.js読み込み完了';
+                }, 1000);
+            }
+        });
+        
+        // メインアプリケーション
+        const { createApp } = Vue;
+        
+        const app = createApp({
+            data() {
+                return {
+                    // 基本データ
                     tripDays: [
                         { dayNumber: 1, date: '7/5(土)', fullDate: '2025-07-05' },
                         { dayNumber: 2, date: '7/6(日)', fullDate: '2025-07-06' },
@@ -833,35 +660,17 @@
                     activeDay: 0,
                     newDayDate: '',
                     
-                    // 時間軸（4時〜23時）
+                    // 時間軸
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     
                     // 予定データ
                     events: [],
                     
-                    // 編集モード
-                    editModeEvent: null,
-                    
-                    // 長押し検出
-                    longPressTimer: null,
-                    moveLongPressTimer: null,
-                    startPosition: { x: 0, y: 0 },
-                    
-                    // ドラッグ&リサイズ
-                    draggedEvent: null,
-                    resizingEvent: null,
-                    resizeDirection: null,
-                    isDragging: false,
-                    isResizing: false,
-                    dropGuideY: 0,
-                    
-                    // 詳細表示
-                    showDetailModal: false,
-                    selectedEventForDetail: null,
-                    
                     // UI状態
+                    editModeEvent: null,
+                    showDetailModal: false,
+                    selectedEvent: null,
                     editingEvent: null,
-                    isMobile: false,
                     
                     // フォーム
                     eventForm: {
@@ -875,30 +684,36 @@
                 };
             },
             
-            methods: {
-                // デバイス判定
-                detectMobile() {
-                    this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+            computed: {
+                currentDayInfo() {
+                    return this.tripDays[this.activeDay] || { dayNumber: 1, date: '未設定' };
                 },
                 
-                // 日程切り替え（修正版）
+                currentDayEvents() {
+                    return this.events.filter(event => event.dayIndex === this.activeDay);
+                }
+            },
+            
+            methods: {
+                // 基本操作
                 setActiveDay(index) {
                     this.activeDay = index;
-                    this.editModeEvent = null; // 編集モードをリセット
+                    this.editModeEvent = null;
+                    console.log('Active day set to:', index);
                 },
                 
                 // 日程管理
                 showAddDayModal() {
-                    if (this.tripDays.length > 0) {
-                        const lastDay = new Date(this.tripDays[this.tripDays.length - 1].fullDate);
-                        lastDay.setDate(lastDay.getDate() + 1);
-                        this.newDayDate = lastDay.toISOString().split('T')[0];
+                    const lastDay = this.tripDays[this.tripDays.length - 1];
+                    if (lastDay) {
+                        const date = new Date(lastDay.fullDate);
+                        date.setDate(date.getDate() + 1);
+                        this.newDayDate = date.toISOString().split('T')[0];
                     } else {
                         this.newDayDate = new Date().toISOString().split('T')[0];
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('addDayModal'));
-                    modal.show();
+                    new bootstrap.Modal(document.getElementById('addDayModal')).show();
                 },
                 
                 addNewDay() {
@@ -908,20 +723,16 @@
                     }
                     
                     const selectedDate = new Date(this.newDayDate);
-                    const dayNumber = this.tripDays.length + 1;
                     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[selectedDate.getDay()];
                     
                     this.tripDays.push({
-                        dayNumber: dayNumber,
-                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
+                        dayNumber: this.tripDays.length + 1,
+                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayNames[selectedDate.getDay()]})`,
                         fullDate: this.newDayDate
                     });
                     
                     this.saveData();
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addDayModal'));
-                    modal.hide();
+                    bootstrap.Modal.getInstance(document.getElementById('addDayModal')).hide();
                 },
                 
                 deleteDay(index) {
@@ -930,9 +741,11 @@
                         return;
                     }
                     
-                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
+                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
+                        // 該当日の予定を削除
                         this.events = this.events.filter(event => event.dayIndex !== index);
                         
+                        // インデックスを調整
                         this.events.forEach(event => {
                             if (event.dayIndex > index) {
                                 event.dayIndex--;
@@ -941,6 +754,7 @@
                         
                         this.tripDays.splice(index, 1);
                         
+                        // 日程番号を振り直し
                         this.tripDays.forEach((day, i) => {
                             day.dayNumber = i + 1;
                         });
@@ -953,24 +767,17 @@
                     }
                 },
                 
-                getCurrentDayEvents() {
-                    return this.events.filter(event => event.dayIndex === this.activeDay);
-                },
-                
-                // 時間・位置計算
+                // 時間計算
                 timeToPixels(timeString) {
                     const [hours, minutes] = timeString.split(':').map(Number);
                     const totalMinutes = (hours - 4) * 60 + minutes;
-                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
-                    return totalMinutes * pixelPerMinute;
+                    return totalMinutes; // 1分 = 1px
                 },
                 
                 pixelsToTime(pixels) {
-                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
-                    const totalMinutes = pixels / pixelPerMinute;
-                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                    const hours = Math.floor(roundedMinutes / 60) + 4;
-                    const minutes = roundedMinutes % 60;
+                    const totalMinutes = Math.round(pixels / 15) * 15; // 15分刻み
+                    const hours = Math.floor(totalMinutes / 60) + 4;
+                    const minutes = totalMinutes % 60;
                     
                     const clampedHours = Math.max(4, Math.min(23, hours));
                     const clampedMinutes = clampedHours === 23 && minutes > 45 ? 45 : minutes;
@@ -981,319 +788,47 @@
                 getEventStyle(event) {
                     const startPixels = this.timeToPixels(event.startTime);
                     const endPixels = this.timeToPixels(event.endTime);
-                    const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+                    const duration = Math.max(endPixels - startPixels, 30);
                     
                     return {
                         top: `${startPixels}px`,
-                        height: `${duration}px`,
-                        minHeight: this.isMobile ? '25px' : '30px'
+                        height: `${duration}px`
                     };
                 },
                 
-                // 新しいイベント処理システム（修正版）
-                handleEventMouseDown(event, eventData) {
-                    // ボタンやリンク要素は除外
-                    if (this.isButtonOrInteractiveElement(event.target)) {
-                        return;
-                    }
-                    
-                    // タイトル部分のクリックは除外
-                    if (event.target.classList.contains('event-title') || 
-                        event.target.closest('.event-title')) {
-                        return;
-                    }
-                    
-                    // リサイズハンドルのクリックは除外
-                    if (event.target.classList.contains('resize-handle')) {
-                        return;
-                    }
-                    
-                    this.startEventLongPress(event, eventData, false);
+                // イベント操作
+                handleEventClick(event) {
+                    console.log('Event clicked:', event.title);
+                    // 右クリックで編集モード、左クリックは何もしない
                 },
                 
-                handleEventTouchStart(event, eventData) {
-                    // ボタンやリンク要素は除外
-                    if (this.isButtonOrInteractiveElement(event.target)) {
-                        return;
-                    }
-                    
-                    // タイトル部分のタッチは除外
-                    if (event.target.classList.contains('event-title') || 
-                        event.target.closest('.event-title')) {
-                        return;
-                    }
-                    
-                    // リサイズハンドルのタッチは除外
-                    if (event.target.classList.contains('resize-handle')) {
-                        return;
-                    }
-                    
-                    this.startEventLongPress(event, eventData, true);
+                enterEditMode(event) {
+                    console.log('Enter edit mode:', event.title);
+                    this.editModeEvent = event;
                 },
                 
-                // インタラクティブ要素の判定（修正版）
-                isButtonOrInteractiveElement(element) {
-                    const interactiveTags = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'];
-                    const interactiveClasses = ['btn', 'nav-link', 'delete-day-btn', 'resize-handle'];
-                    
-                    // タグ名での判定
-                    if (interactiveTags.includes(element.tagName)) {
-                        return true;
-                    }
-                    
-                    // クラス名での判定
-                    for (let className of interactiveClasses) {
-                        if (element.classList.contains(className)) {
-                            return true;
-                        }
-                    }
-                    
-                    // 親要素もチェック
-                    let parent = element.parentElement;
-                    while (parent && parent.tagName !== 'BODY') {
-                        if (interactiveTags.includes(parent.tagName)) {
-                            return true;
-                        }
-                        for (let className of interactiveClasses) {
-                            if (parent.classList && parent.classList.contains(className)) {
-                                return true;
-                            }
-                        }
-                        parent = parent.parentElement;
-                    }
-                    
-                    return false;
-                },
-                
-                startEventLongPress(event, eventData, isTouch) {
-                    // 最初にpreventDefaultしない
-                    this.startPosition = {
-                        x: isTouch ? event.touches[0].clientX : event.clientX,
-                        y: isTouch ? event.touches[0].clientY : event.clientY
-                    };
-                    
-                    // 編集モード中の場合は移動操作（100ms長押し）
-                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                        this.moveLongPressTimer = setTimeout(() => {
-                            this.startMoveMode(event, eventData, isTouch);
-                        }, 100); // 100ms
-                    } else {
-                        // 通常の編集モード移行（500ms長押し）
-                        this.longPressTimer = setTimeout(() => {
-                            this.editModeEvent = eventData;
-                            this.clearLongPressTimers();
-                            
-                            // 振動フィードバック
-                            if (navigator.vibrate) {
-                                navigator.vibrate(50);
-                            }
-                        }, 500); // 500ms
-                    }
-                    
-                    // イベントリスナーを設定
-                    const moveHandler = (e) => this.handleEventLongPressMove(e, isTouch);
-                    const endHandler = (e) => this.handleEventLongPressEnd(e, isTouch, moveHandler, endHandler);
-                    
-                    if (isTouch) {
-                        document.addEventListener('touchmove', moveHandler, { passive: true });
-                        document.addEventListener('touchend', endHandler, { passive: true });
-                    } else {
-                        document.addEventListener('mousemove', moveHandler);
-                        document.addEventListener('mouseup', endHandler);
-                    }
-                },
-                
-                handleEventLongPressMove(event, isTouch) {
-                    const currentX = isTouch ? event.touches[0].clientX : event.clientX;
-                    const currentY = isTouch ? event.touches[0].clientY : event.clientY;
-                    
-                    const deltaX = Math.abs(currentX - this.startPosition.x);
-                    const deltaY = Math.abs(currentY - this.startPosition.y);
-                    
-                    // 移動距離が閾値を超えたら長押しをキャンセル
-                    if (deltaX > 10 || deltaY > 10) {
-                        this.clearLongPressTimers();
-                    }
-                },
-                
-                handleEventLongPressEnd(event, isTouch, moveHandler, endHandler) {
-                    // イベントリスナーを削除
-                    if (isTouch) {
-                        document.removeEventListener('touchmove', moveHandler);
-                        document.removeEventListener('touchend', endHandler);
-                    } else {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', endHandler);
-                    }
-                    
-                    this.clearLongPressTimers();
-                },
-                
-                clearLongPressTimers() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                    if (this.moveLongPressTimer) {
-                        clearTimeout(this.moveLongPressTimer);
-                        this.moveLongPressTimer = null;
-                    }
-                },
-                
-                // 移動モード開始
-                startMoveMode(event, eventData, isTouch) {
-                    event.preventDefault(); // ここでpreventDefault
-                    this.isDragging = true;
-                    this.draggedEvent = eventData;
-                    
-                    const moveHandler = (e) => this.handleMoveModeDrag(e, isTouch);
-                    const endHandler = (e) => this.handleMoveModeEnd(e, isTouch, moveHandler, endHandler);
-                    
-                    if (isTouch) {
-                        document.addEventListener('touchmove', moveHandler, { passive: false });
-                        document.addEventListener('touchend', endHandler, { passive: false });
-                    } else {
-                        document.addEventListener('mousemove', moveHandler);
-                        document.addEventListener('mouseup', endHandler);
-                    }
-                },
-                
-                handleMoveModeDrag(event, isTouch) {
-                    if (!this.draggedEvent) return;
-                    
-                    event.preventDefault();
-                    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const y = clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                    const snappedY = Math.round(y / 15) * 15;
-                    
-                    if (this.$refs.dropGuideLine) {
-                        this.$refs.dropGuideLine.style.top = `${snappedY}px`;
-                        this.$refs.dropGuideLine.classList.add('active');
-                    }
-                    
-                    this.dropGuideY = snappedY;
-                },
-                
-                handleMoveModeEnd(event, isTouch, moveHandler, endHandler) {
-                    // イベントリスナーを削除
-                    if (isTouch) {
-                        document.removeEventListener('touchmove', moveHandler);
-                        document.removeEventListener('touchend', endHandler);
-                    } else {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', endHandler);
-                    }
-                    
-                    if (this.draggedEvent) {
-                        const newStartTime = this.pixelsToTime(this.dropGuideY);
-                        const oldStart = this.timeToPixels(this.draggedEvent.startTime);
-                        const oldEnd = this.timeToPixels(this.draggedEvent.endTime);
-                        const duration = oldEnd - oldStart;
-                        const newEndTime = this.pixelsToTime(this.dropGuideY + duration);
-                        
-                        const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
-                        if (eventIndex !== -1) {
-                            this.events[eventIndex].startTime = newStartTime;
-                            this.events[eventIndex].endTime = newEndTime;
-                            this.saveData();
-                        }
-                    }
-                    
-                    if (this.$refs.dropGuideLine) {
-                        this.$refs.dropGuideLine.classList.remove('active');
-                    }
-                    
-                    this.draggedEvent = null;
-                    this.isDragging = false;
-                },
-                
-                // タイトルクリックで詳細表示
                 showEventDetail(event) {
-                    this.selectedEventForDetail = event;
+                    console.log('Show event detail:', event.title);
+                    this.selectedEvent = event;
                     this.showDetailModal = true;
                 },
                 
                 closeDetailModal() {
                     this.showDetailModal = false;
-                    this.selectedEventForDetail = null;
+                    this.selectedEvent = null;
                 },
                 
                 editFromDetail() {
-                    this.openEventModal(this.selectedEventForDetail);
+                    this.openEventModal(this.selectedEvent);
                     this.closeDetailModal();
                 },
                 
                 deleteFromDetail() {
                     if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== this.selectedEventForDetail.id);
+                        this.events = this.events.filter(e => e.id !== this.selectedEvent.id);
                         this.saveData();
                         this.closeDetailModal();
-                        this.editModeEvent = null;
                     }
-                },
-                
-                // リサイズ機能
-                startResize(event, eventData, direction) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.isResizing = true;
-                    this.resizingEvent = eventData;
-                    this.resizeDirection = direction;
-                    
-                    const isTouch = event.type.includes('touch');
-                    
-                    const moveHandler = (e) => this.handleResizeMove(e, isTouch);
-                    const endHandler = (e) => this.handleResizeEnd(e, isTouch, moveHandler, endHandler);
-                    
-                    if (isTouch) {
-                        document.addEventListener('touchmove', moveHandler, { passive: false });
-                        document.addEventListener('touchend', endHandler, { passive: false });
-                    } else {
-                        document.addEventListener('mousemove', moveHandler);
-                        document.addEventListener('mouseup', endHandler);
-                    }
-                },
-                
-                handleResizeMove(event, isTouch) {
-                    if (!this.resizingEvent) return;
-                    
-                    event.preventDefault();
-                    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const y = clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                    const snappedY = Math.round(y / 15) * 15;
-                    const newTime = this.pixelsToTime(snappedY);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === this.resizingEvent.id);
-                    if (eventIndex === -1) return;
-                    
-                    if (this.resizeDirection === 'top') {
-                        if (newTime < this.events[eventIndex].endTime) {
-                            this.events[eventIndex].startTime = newTime;
-                        }
-                    } else {
-                        if (newTime > this.events[eventIndex].startTime) {
-                            this.events[eventIndex].endTime = newTime;
-                        }
-                    }
-                },
-                
-                handleResizeEnd(event, isTouch, moveHandler, endHandler) {
-                    // イベントリスナーを削除
-                    if (isTouch) {
-                        document.removeEventListener('touchmove', moveHandler);
-                        document.removeEventListener('touchend', endHandler);
-                    } else {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', endHandler);
-                    }
-                    
-                    this.resizingEvent = null;
-                    this.resizeDirection = null;
-                    this.isResizing = false;
-                    this.saveData();
                 },
                 
                 // スケジュールエリアクリック
@@ -1301,50 +836,30 @@
                     // 編集モードを終了
                     this.editModeEvent = null;
                     
-                    if (this.isDragging || this.isResizing) return;
-                    if (event.target.closest('.event-block')) return;
+                    // イベントブロックをクリックした場合は処理しない
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
                     
-                    if (event.target.classList.contains('schedule-area') || 
-                        event.target.classList.contains('grid-line') ||
-                        event.target.classList.contains('quarter-line')) {
+                    // グリッドラインをクリックした場合
+                    if (event.target.classList.contains('grid-line')) {
+                        const hour = parseInt(event.target.dataset.hour);
+                        const rect = event.target.getBoundingClientRect();
+                        const y = event.clientY - rect.top;
+                        const minute = Math.round((y / 60) * 60 / 15) * 15; // 15分刻み
                         
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                        const snappedY = Math.round(y / 15) * 15;
-                        const clickTime = this.pixelsToTime(snappedY);
+                        const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        const endTime = this.pixelsToTime(this.timeToPixels(startTime) + 60);
                         
-                        this.eventForm.startTime = clickTime;
-                        this.eventForm.endTime = this.pixelsToTime(snappedY + (this.isMobile ? 50 : 60));
+                        this.eventForm.startTime = startTime;
+                        this.eventForm.endTime = endTime;
                         this.eventForm.dayIndex = this.activeDay;
                         
                         this.openEventModal();
                     }
                 },
                 
-                // カテゴリ関連
-                getCategoryIcon(category) {
-                    const icons = {
-                        travel: 'fas fa-car',
-                        food: 'fas fa-utensils',
-                        sightseeing: 'fas fa-camera',
-                        accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star'
-                    };
-                    return icons[category] || 'fas fa-calendar';
-                },
-                
-                getCategoryName(category) {
-                    const names = {
-                        travel: '移動',
-                        food: '食事',
-                        sightseeing: '観光',
-                        accommodation: '宿泊',
-                        custom: 'その他'
-                    };
-                    return names[category] || 'その他';
-                },
-                
-                // イベント操作
+                // モーダル操作
                 openEventModal(event = null) {
                     this.editingEvent = event;
                     
@@ -1361,8 +876,7 @@
                         };
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-                    modal.show();
+                    new bootstrap.Modal(document.getElementById('eventModal')).show();
                 },
                 
                 saveEvent() {
@@ -1394,55 +908,101 @@
                     }
                     
                     this.saveData();
-                    this.editModeEvent = null;
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                    modal.hide();
+                    bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
                 },
                 
                 deleteEvent() {
                     if (confirm('この予定を削除しますか？')) {
                         this.events = this.events.filter(e => e.id !== this.editingEvent.id);
                         this.saveData();
-                        this.editModeEvent = null;
-                        
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                        modal.hide();
+                        bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
                     }
                 },
                 
-                // データ保存・読み込み
+                // ユーティリティ
+                getCategoryIcon(category) {
+                    const icons = {
+                        travel: 'fas fa-car',
+                        food: 'fas fa-utensils',
+                        sightseeing: 'fas fa-camera',
+                        accommodation: 'fas fa-bed',
+                        custom: 'fas fa-star'
+                    };
+                    return icons[category] || 'fas fa-calendar';
+                },
+                
+                getCategoryName(category) {
+                    const names = {
+                        travel: '移動',
+                        food: '食事',
+                        sightseeing: '観光',
+                        accommodation: '宿泊',
+                        custom: 'その他'
+                    };
+                    return names[category] || 'その他';
+                },
+                
+                // データ保存
                 saveData() {
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    try {
+                        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                        localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                        console.log('Data saved successfully');
+                    } catch (error) {
+                        console.error('Failed to save data:', error);
+                    }
                 },
                 
                 loadData() {
-                    const savedEvents = localStorage.getItem('trippenEvents');
-                    const savedDays = localStorage.getItem('trippenDays');
-                    
-                    if (savedEvents) {
-                        this.events = JSON.parse(savedEvents);
-                    }
-                    
-                    if (savedDays) {
-                        this.tripDays = JSON.parse(savedDays);
+                    try {
+                        const savedEvents = localStorage.getItem('trippenEvents');
+                        const savedDays = localStorage.getItem('trippenDays');
+                        
+                        if (savedEvents) {
+                            this.events = JSON.parse(savedEvents);
+                        }
+                        
+                        if (savedDays) {
+                            this.tripDays = JSON.parse(savedDays);
+                        }
+                        
+                        console.log('Data loaded successfully');
+                    } catch (error) {
+                        console.error('Failed to load data:', error);
                     }
                 }
             },
             
             mounted() {
-                this.detectMobile();
+                console.log('Main Vue app mounted');
+                document.getElementById('status').textContent = 'アプリケーション正常起動';
                 this.loadData();
                 
-                // リサイズイベント監視
-                window.addEventListener('resize', this.detectMobile);
-            },
-            
-            unmounted() {
-                window.removeEventListener('resize', this.detectMobile);
+                // 基本動作確認
+                setTimeout(() => {
+                    console.log('App initialization complete');
+                    console.log('Trip days:', this.tripDays);
+                    console.log('Events:', this.events);
+                }, 1000);
             }
-        }).mount('#app');
+        });
+        
+        // アプリケーション起動
+        try {
+            console.log('Starting Vue applications...');
+            
+            // テストアプリをマウント
+            testApp.mount('#test-app');
+            
+            // メインアプリをマウント
+            app.mount('#app');
+            
+            console.log('Vue applications mounted successfully');
+            
+        } catch (error) {
+            console.error('Failed to mount Vue applications:', error);
+            document.getElementById('status').textContent = 'エラー: ' + error.message;
+        }
     </script>
 </body>
 </html>
