@@ -1,4 +1,4 @@
-name: AI RSS - Correct Subdirectory
+name: Create ai-rss on main branch
 
 on:
   workflow_dispatch:
@@ -8,17 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout to preserve existing files
+    - name: Checkout main branch
       uses: actions/checkout@v4
-      with:
-        ref: gh-pages
-        path: gh-pages-content
-      continue-on-error: true
-        
-    - name: Create ai-rss subdirectory structure
+      
+    - name: Create ai-rss directory and index.html
       run: |
-        mkdir -p deploy/ai-rss
-        cat > deploy/ai-rss/index.html << 'EOF'
+        mkdir -p ai-rss
+        cat > ai-rss/index.html << 'EOF'
         <!DOCTYPE html>
         <html lang="ja">
         <head>
@@ -27,24 +23,16 @@ jobs:
         </head>
         <body>
         <h1>AI RSS Dashboard</h1>
-        <p>Successfully deployed to /ai-rss/ subdirectory</p>
+        <p>Successfully created on main branch</p>
         </body>
         </html>
         EOF
+        echo "Created ai-rss/index.html: $(wc -c < ai-rss/index.html) bytes"
         
-        # 既存ファイルがあれば保持
-        if [ -d "gh-pages-content" ]; then
-          cp -r gh-pages-content/* deploy/ 2>/dev/null || true
-          cp -r gh-pages-content/.[^.]* deploy/ 2>/dev/null || true
-        fi
-        
-        echo "Structure:"
-        find deploy -type f | head -10
-        
-    - name: Deploy with subdirectory preserved
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./deploy
-        keep_files: false
-        enable_jekyll: false
+    - name: Commit and push to main
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add ai-rss/index.html
+        git commit -m "Create ai-rss/index.html"
+        git push
