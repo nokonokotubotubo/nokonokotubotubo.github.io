@@ -247,12 +247,12 @@
             margin-bottom: 4px;
             font-size: 0.9rem;
             position: relative;
-            pointer-events: none; /* タイトル全体のクリックを無効化 */
+            pointer-events: none;
         }
         
         .title-text {
             cursor: pointer;
-            pointer-events: auto; /* 文字部分のみクリック可能 */
+            pointer-events: auto;
         }
         
         .title-text:hover {
@@ -743,7 +743,6 @@
                     
                     // 編集モード
                     editModeEvent: null,
-                    editModeActivatedTime: 0, // 編集モード開始時刻を記録
                     
                     // 長押し検出
                     longPressTimer: null,
@@ -752,6 +751,9 @@
                     
                     // 移動用短い長押し検出
                     moveLongPressTimer: null,
+                    
+                    // 長押し成功フラグ（重要！）
+                    longPressSucceeded: false,
                     
                     // ドラッグ&リサイズ
                     draggedEvent: null,
@@ -889,17 +891,13 @@
                     };
                 },
                 
-                // タイトルクリック処理（改良版）
+                // タイトルクリック処理
                 handleTitleClick(event, eventData) {
                     event.preventDefault();
-                    event.stopPropagation(); // バブリングを防止
-                    
-                    console.log('Title text click detected', { eventTitle: eventData.title });
+                    event.stopPropagation();
                     
                     this.selectedEventForDetail = eventData;
-                    const modal = new bootstrap.Modal(document.getElementById('detailModal'), {
-                        focus: false
-                    });
+                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
                     modal.show();
                 },
                 
@@ -924,28 +922,29 @@
                 handleEventMouseDown(event, eventData) {
                     // タイトルテキスト部分のクリックは除外
                     if (event.target.closest('.title-text')) {
-                        console.log('Title text click detected, skipping long press');
                         return;
                     }
                     
                     event.preventDefault();
-                    event.stopPropagation(); // バブリングを防止
+                    event.stopPropagation();
                     this.startEditModeLongPress(event, eventData, false);
                 },
                 
                 handleEventTouchStart(event, eventData) {
                     // タイトルテキスト部分のタッチは除外
                     if (event.target.closest('.title-text')) {
-                        console.log('Title text touch detected, skipping long press');
                         return;
                     }
                     
                     event.preventDefault();
-                    event.stopPropagation(); // バブリングを防止
+                    event.stopPropagation();
                     this.startEditModeLongPress(event, eventData, true);
                 },
                 
                 startEditModeLongPress(event, eventData, isTouch) {
+                    // 長押し成功フラグをリセット
+                    this.longPressSucceeded = false;
+                    
                     // 編集モード中の場合、移動用の短い長押しを開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         // リサイズハンドル部分は除外
@@ -963,9 +962,11 @@
                     };
                     
                     this.longPressTimer = setTimeout(() => {
+                        // 長押し成功フラグを設定（重要！）
+                        this.longPressSucceeded = true;
+                        
                         // 編集モードに移行
                         this.editModeEvent = eventData;
-                        this.editModeActivatedTime = Date.now(); // 開始時刻を記録
                         this.clearLongPress();
                         
                         // 軽微な振動フィードバック
@@ -1013,6 +1014,14 @@
                     }
                     
                     this.clearLongPress();
+                    
+                    // 長押し成功後は、後続のクリックイベントを無効化するため
+                    // 少し時間を置いてフラグをリセット
+                    if (this.longPressSucceeded) {
+                        setTimeout(() => {
+                            this.longPressSucceeded = false;
+                        }, 100);
+                    }
                 },
                 
                 clearLongPress() {
@@ -1210,18 +1219,16 @@
                     this.saveData();
                 },
                 
-                // スケジュールエリアクリック（改良版）
+                // スケジュールエリアクリック（根本修正版）
                 handleScheduleClick(event) {
-                    // 編集モード開始直後（200ms以内）のクリックは無視
-                    const timeSinceEditMode = Date.now() - this.editModeActivatedTime;
-                    if (this.editModeEvent && timeSinceEditMode < 200) {
-                        console.log('Click ignored - too soon after edit mode activation', { timeSince: timeSinceEditMode });
+                    // 長押し成功直後のクリックイベントは無視（重要！）
+                    if (this.longPressSucceeded) {
+                        console.log('Click ignored - long press just succeeded');
                         return;
                     }
                     
                     // 編集モードを終了
                     this.editModeEvent = null;
-                    this.editModeActivatedTime = 0;
                     console.log('Schedule area clicked, edit mode cleared');
                     
                     // 予定追加メニューは削除済み - クリックでは何も実行しない
