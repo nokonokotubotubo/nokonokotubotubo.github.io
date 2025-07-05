@@ -1,221 +1,298 @@
 const fs = require('fs');
 
-class AdvancedPreferenceAnalyzer {
+class AIAnalyzer {
   constructor() {
-    // 技術系キーワード（重み付き）
-    this.techKeywords = {
-      // プログラミング言語・フレームワーク
-      'javascript': 3, 'typescript': 3, 'react': 3, 'vue': 3, 'angular': 2,
-      'node.js': 3, 'python': 3, 'java': 2, 'go': 2, 'rust': 2,
-      'docker': 3, 'kubernetes': 3, 'aws': 3, 'azure': 2, 'gcp': 2,
-      
-      // AI・機械学習
-      'ai': 4, '人工知能': 4, 'machine learning': 4, '機械学習': 4,
-      'deep learning': 4, 'ディープラーニング': 4, 'chatgpt': 3, 'llm': 3,
-      
-      // 開発・技術トレンド
-      'github': 3, 'オープンソース': 3, 'api': 2, 'rest': 2, 'graphql': 2,
-      'マイクロサービス': 3, 'serverless': 3, 'devops': 3, 'ci/cd': 3,
-      
-      // データ・インフラ
-      'database': 2, 'sql': 2, 'nosql': 2, 'redis': 2, 'mongodb': 2,
-      'postgresql': 2, 'mysql': 2, 'elasticsearch': 2
+    this.preferences = {
+      interested: ['AI', 'Machine Learning', 'Deep Learning', 'Neural Network', 'アルゴリズム', 'データサイエンス', 'Python', 'JavaScript', 'React', 'Vue', 'Node.js', 'API', 'クラウド', 'AWS', 'Azure', 'Docker', 'Kubernetes', 'セキュリティ', 'ブロックチェーン', 'Web3'],
+      neutral: ['ニュース', '発表', 'リリース', '更新', 'アップデート', '企業', '会社', '業界', '市場', '経済'],
+      notInterested: ['広告', 'PR', '宣伝', 'スポンサー', '募集', '求人']
     };
     
-    // ネガティブキーワード
-    this.negativeKeywords = {
-      '政治': -3, '選挙': -3, '政党': -3, '議員': -2, '国会': -2,
-      '事件': -2, '事故': -2, '災害': -2, '犯罪': -2,
-      '芸能': -2, 'スポーツ': -1, '野球': -1, 'サッカー': -1
-    };
-    
-    // カテゴリ重み
-    this.categoryWeights = {
-      'tech': 2,
-      'business': 0,
-      'politics': -2,
-      'sports': -1,
-      'entertainment': -1
-    };
-    
-    this.userPreferences = this.loadUserPreferences();
+    // 📤 前回の評価データを読み込み
+    this.userFeedback = this.loadPreviousUserFeedback();
+    this.learnFromUserFeedback();
   }
 
-  loadUserPreferences() {
+  loadPreviousUserFeedback() {
     try {
-      if (fs.existsSync('ai-rss-temp/data/user-preferences.json')) {
-        return JSON.parse(fs.readFileSync('ai-rss-temp/data/user-preferences.json', 'utf8'));
+      // GitHub Actions環境で前回実行時の評価データを読み込み
+      if (fs.existsSync('ai-rss/user-ratings-history.json')) {
+        const historyData = JSON.parse(fs.readFileSync('ai-rss/user-ratings-history.json', 'utf8'));
+        console.log(`📊 前回の評価履歴読み込み: ${Object.keys(historyData.ratings || {}).length}件`);
+        return historyData.ratings || {};
+      }
+      
+      // フォールバック: 現在のディレクトリにある場合
+      if (fs.existsSync('user-ratings-history.json')) {
+        const historyData = JSON.parse(fs.readFileSync('user-ratings-history.json', 'utf8'));
+        console.log(`📊 評価履歴読み込み: ${Object.keys(historyData.ratings || {}).length}件`);
+        return historyData.ratings || {};
       }
     } catch (error) {
-      console.log('📂 新規ユーザー: デフォルト嗜好設定を使用');
+      console.log('📂 評価履歴なし: 初回実行');
     }
-    return {
-      positivePatterns: [],
-      negativePatterns: [],
-      learningHistory: []
-    };
+    return {};
   }
 
-  analyzeText(text) {
-    const normalizedText = text.toLowerCase();
-    let score = 0;
-    let matchedKeywords = [];
+  learnFromUserFeedback() {
+    if (Object.keys(this.userFeedback).length === 0) {
+      console.log('📊 学習用データなし: デフォルト嗜好を使用');
+      return;
+    }
 
-    // 技術キーワード分析
-    Object.entries(this.techKeywords).forEach(([keyword, weight]) => {
-      if (normalizedText.includes(keyword)) {
-        score += weight;
-        matchedKeywords.push(`+${keyword}(${weight})`);
-      }
-    });
-
-    // ネガティブキーワード分析
-    Object.entries(this.negativeKeywords).forEach(([keyword, weight]) => {
-      if (normalizedText.includes(keyword)) {
-        score += weight;
-        matchedKeywords.push(`${keyword}(${weight})`);
-      }
-    });
-
-    return { score, matchedKeywords };
-  }
-
-  analyzeArticle(article) {
-    const titleAnalysis = this.analyzeText(article.title);
-    const descAnalysis = this.analyzeText(article.description);
+    console.log('🤖 ユーザー評価からの学習開始...');
     
-    // タイトルを重視（2倍の重み）
-    let totalScore = (titleAnalysis.score * 2) + descAnalysis.score;
+    // 高評価記事（4-5星）のキーワードを興味ありに追加
+    const highRatedKeywords = this.extractKeywordsFromRatings(4, 5);
+    // 低評価記事（1-2星）のキーワードを興味なしに追加
+    const lowRatedKeywords = this.extractKeywordsFromRatings(1, 2);
     
-    // カテゴリ重み追加
-    const categoryWeight = this.categoryWeights[article.category] || 0;
-    totalScore += categoryWeight;
-    
-    // 学習データ反映
-    this.userPreferences.positivePatterns.forEach(pattern => {
-      if (article.title.toLowerCase().includes(pattern.toLowerCase()) ||
-          article.description.toLowerCase().includes(pattern.toLowerCase())) {
-        totalScore += 3;
-      }
-    });
-    
-    this.userPreferences.negativePatterns.forEach(pattern => {
-      if (article.title.toLowerCase().includes(pattern.toLowerCase()) ||
-          article.description.toLowerCase().includes(pattern.toLowerCase())) {
-        totalScore -= 3;
-      }
-    });
-    
-    // 嗜好レベル決定
-    let preference;
-    if (totalScore >= 3) {
-      preference = 'interested';
-    } else if (totalScore <= -2) {
-      preference = 'not-interested';
-    } else {
-      preference = 'neutral';
+    // 学習結果を嗜好に反映
+    if (highRatedKeywords.length > 0) {
+      this.preferences.interested.push(...highRatedKeywords);
+      console.log(`📚 高評価から学習: ${highRatedKeywords.join(', ')}`);
     }
     
-    return {
-      preference,
-      score: totalScore,
-      titleKeywords: titleAnalysis.matchedKeywords,
-      descKeywords: descAnalysis.matchedKeywords
-    };
+    if (lowRatedKeywords.length > 0) {
+      this.preferences.notInterested.push(...lowRatedKeywords);
+      console.log(`📚 低評価から学習: ${lowRatedKeywords.join(', ')}`);
+    }
+    
+    // 重複除去
+    this.preferences.interested = [...new Set(this.preferences.interested)];
+    this.preferences.notInterested = [...new Set(this.preferences.notInterested)];
+    
+    console.log(`📊 学習完了: 興味あり${this.preferences.interested.length}語, 興味なし${this.preferences.notInterested.length}語`);
   }
 
-  async analyzeAllArticles() {
+  extractKeywordsFromRatings(minRating, maxRating) {
+    const keywords = [];
+    
+    Object.values(this.userFeedback).forEach(feedback => {
+      if (feedback.rating >= minRating && feedback.rating <= maxRating && feedback.title) {
+        // タイトルからキーワードを抽出
+        const titleKeywords = this.extractKeywords(feedback.title);
+        keywords.push(...titleKeywords);
+        
+        // 説明文からもキーワード抽出
+        if (feedback.description) {
+          const descKeywords = this.extractKeywords(feedback.description);
+          keywords.push(...descKeywords);
+        }
+      }
+    });
+    
+    // 出現頻度でフィルタリング（2回以上出現するキーワードのみ採用）
+    const keywordCount = {};
+    keywords.forEach(keyword => {
+      keywordCount[keyword] = (keywordCount[keyword] || 0) + 1;
+    });
+    
+    return Object.keys(keywordCount).filter(keyword => keywordCount[keyword] >= 2 && keyword.length >= 2);
+  }
+
+  extractKeywords(text) {
+    const keywords = [];
+    
+    // 英語キーワード（3文字以上）
+    const englishWords = text.match(/[A-Za-z]{3,}/g) || [];
+    keywords.push(...englishWords.map(word => word.toLowerCase()));
+    
+    // カタカナキーワード（3文字以上）
+    const katakanaWords = text.match(/[ァ-ヶー]{3,}/g) || [];
+    keywords.push(...katakanaWords);
+    
+    // 技術系日本語キーワード
+    const techKeywords = ['機械学習', '人工知能', 'データ', 'システム', 'アプリ', 'サービス', '開発', '技術', 'プログラム', 'ソフトウェア', 'ハードウェア', 'インフラ', 'セキュリティ', 'ネットワーク', 'データベース', 'フレームワーク', 'ライブラリ', 'アルゴリズム'];
+    techKeywords.forEach(keyword => {
+      if (text.includes(keyword)) {
+        keywords.push(keyword);
+      }
+    });
+    
+    return keywords.filter(keyword => keyword.length >= 2);
+  }
+
+  analyzeAllArticles() {
     try {
       console.log('🤖 AI分析開始...');
       
-      const articles = JSON.parse(
-        fs.readFileSync('ai-rss-temp/data/articles.json', 'utf8')
-      );
+      const articles = JSON.parse(fs.readFileSync('ai-rss-temp/data/articles.json', 'utf8'));
       
       const analyzedArticles = articles.map(article => {
-        const analysis = this.analyzeArticle(article);
+        const preference = this.analyzePreference(article);
+        const preferenceScore = this.calculatePreferenceScore(article);
+        const similarityScore = this.calculateSimilarityScore(article);
         
         return {
           ...article,
-          preference: analysis.preference,
-          preferenceScore: this.getNumericScore(analysis.preference),
-          aiScore: analysis.score,
-          matchedKeywords: [...analysis.titleKeywords, ...analysis.descKeywords]
+          preference: preference,
+          preferenceScore: preferenceScore,
+          similarityScore: similarityScore,
+          analyzedAt: new Date().toISOString()
         };
       });
-      
-      // 統計計算
-      const stats = {
-        interested: analyzedArticles.filter(a => a.preference === 'interested').length,
-        neutral: analyzedArticles.filter(a => a.preference === 'neutral').length,
-        notInterested: analyzedArticles.filter(a => a.preference === 'not-interested').length,
-        total: analyzedArticles.length
-      };
-      
+
+      // 🤖 学習結果を考慮した並び替え
+      analyzedArticles.sort((a, b) => {
+        // 1. preference順（interested > neutral > not-interested）
+        const preferenceOrder = { 'interested': 3, 'neutral': 2, 'not-interested': 1 };
+        const prefDiff = preferenceOrder[b.preference] - preferenceOrder[a.preference];
+        if (prefDiff !== 0) return prefDiff;
+        
+        // 2. 同じpreference内では類似性スコア順
+        const similarityDiff = (b.similarityScore || 0) - (a.similarityScore || 0);
+        if (similarityDiff !== 0) return similarityDiff;
+        
+        // 3. 最後に日付順
+        return new Date(b.pubDate) - new Date(a.pubDate);
+      });
+
+      // 分析結果の統計
+      const stats = analyzedArticles.reduce((acc, article) => {
+        acc[article.preference] = (acc[article.preference] || 0) + 1;
+        return acc;
+      }, {});
+
       console.log('📊 AI分析結果:');
-      console.log(`  😍 興味あり: ${stats.interested}件`);
-      console.log(`  😐 普通: ${stats.neutral}件`);
-      console.log(`  😕 興味なし: ${stats.notInterested}件`);
-      console.log(`  📄 総計: ${stats.total}件`);
-      
-      // 結果保存
-      fs.writeFileSync(
-        'ai-rss-temp/data/articles.json',
-        JSON.stringify(analyzedArticles, null, 2)
-      );
-      
-      // 分析ログ保存
+      console.log(`  😍 興味あり: ${stats.interested || 0}件`);
+      console.log(`  😐 普通: ${stats.neutral || 0}件`);
+      console.log(`  😕 興味なし: ${stats['not-interested'] || 0}件`);
+      console.log(`  📄 総計: ${analyzedArticles.length}件`);
+
+      // 📊 学習効果の分析ログ
+      const learningEffectiveness = this.calculateLearningEffectiveness(analyzedArticles);
+
+      // 分析ログを保存
       const analysisLog = {
         timestamp: new Date().toISOString(),
-        stats,
-        topKeywords: this.getTopKeywords(analyzedArticles)
+        totalArticles: analyzedArticles.length,
+        preferences: stats,
+        userFeedbackCount: Object.keys(this.userFeedback).length,
+        learnedKeywords: {
+          interested: this.preferences.interested.length,
+          notInterested: this.preferences.notInterested.length
+        },
+        learningEffectiveness: learningEffectiveness
       };
-      
-      fs.writeFileSync(
-        'ai-rss-temp/data/analysis-log.json',
-        JSON.stringify(analysisLog, null, 2)
-      );
-      
-      console.log('✅ AI分析完了');
-      
+
+      fs.writeFileSync('ai-rss-temp/data/analysis-log.json', JSON.stringify(analysisLog, null, 2));
+      fs.writeFileSync('ai-rss-temp/data/articles.json', JSON.stringify(analyzedArticles, null, 2));
+
+      console.log('✅ AI分析完了（学習効果反映済み）');
+
     } catch (error) {
       console.error('💥 AI分析失敗:', error.message);
       process.exit(1);
     }
   }
 
-  getNumericScore(preference) {
-    switch (preference) {
-      case 'interested': return 3;
-      case 'neutral': return 2;
-      case 'not-interested': return 1;
-      default: return 2;
+  calculateLearningEffectiveness(articles) {
+    if (Object.keys(this.userFeedback).length === 0) {
+      return { hasLearning: false, message: 'まだ学習データがありません' };
     }
+
+    const totalFeedback = Object.keys(this.userFeedback).length;
+    const highRatedCount = Object.values(this.userFeedback).filter(f => f.rating >= 4).length;
+    const lowRatedCount = Object.values(this.userFeedback).filter(f => f.rating <= 2).length;
+    
+    const interestedCount = articles.filter(a => a.preference === 'interested').length;
+    const notInterestedCount = articles.filter(a => a.preference === 'not-interested').length;
+    
+    return {
+      hasLearning: true,
+      totalUserRatings: totalFeedback,
+      highRatedHistory: highRatedCount,
+      lowRatedHistory: lowRatedCount,
+      currentInterested: interestedCount,
+      currentNotInterested: notInterestedCount,
+      learningRatio: totalFeedback > 0 ? (highRatedCount + lowRatedCount) / totalFeedback : 0
+    };
   }
 
-  getTopKeywords(articles) {
-    const keywordCount = {};
+  analyzePreference(article) {
+    const score = this.calculatePreferenceScore(article);
     
-    articles.forEach(article => {
-      if (article.matchedKeywords) {
-        article.matchedKeywords.forEach(keyword => {
-          const baseKeyword = keyword.replace(/[+\-()0-9]/g, '');
-          keywordCount[baseKeyword] = (keywordCount[baseKeyword] || 0) + 1;
-        });
+    if (score >= 0.6) return 'interested';
+    if (score <= -0.3) return 'not-interested';
+    return 'neutral';
+  }
+
+  calculatePreferenceScore(article) {
+    const text = `${article.title} ${article.description}`.toLowerCase();
+    let score = 0;
+    let matchCount = 0;
+
+    // 興味ありキーワードのマッチング
+    this.preferences.interested.forEach(keyword => {
+      if (text.includes(keyword.toLowerCase())) {
+        score += 1;
+        matchCount++;
+      }
+    });
+
+    // 興味なしキーワードのマッチング
+    this.preferences.notInterested.forEach(keyword => {
+      if (text.includes(keyword.toLowerCase())) {
+        score -= 1.5;
+        matchCount++;
+      }
+    });
+
+    // 中性キーワードのマッチング
+    this.preferences.neutral.forEach(keyword => {
+      if (text.includes(keyword.toLowerCase())) {
+        score += 0.1;
+        matchCount++;
+      }
+    });
+
+    // マッチしたキーワード数で正規化
+    return matchCount > 0 ? score / Math.max(matchCount, 3) : 0;
+  }
+
+  calculateSimilarityScore(article) {
+    let maxSimilarity = 0;
+    
+    Object.values(this.userFeedback).forEach(feedback => {
+      if (feedback.title && feedback.rating) {
+        const titleSimilarity = this.calculateTextSimilarity(article.title, feedback.title);
+        const descSimilarity = feedback.description ? this.calculateTextSimilarity(article.description, feedback.description) : 0;
+        
+        const overallSimilarity = Math.max(titleSimilarity, descSimilarity * 0.7);
+        
+        if (overallSimilarity > 0.3) { // 30%以上の類似度
+          let bonus = 0;
+          if (feedback.rating >= 4) {
+            bonus = 0.8 * overallSimilarity; // 高評価記事との類似性
+          } else if (feedback.rating <= 2) {
+            bonus = -0.8 * overallSimilarity; // 低評価記事との類似性
+          }
+          
+          if (Math.abs(bonus) > Math.abs(maxSimilarity)) {
+            maxSimilarity = bonus;
+          }
+        }
       }
     });
     
-    return Object.entries(keywordCount)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
-      .map(([keyword, count]) => ({ keyword, count }));
+    return maxSimilarity;
+  }
+
+  calculateTextSimilarity(text1, text2) {
+    const words1 = new Set(text1.toLowerCase().split(/\s+/));
+    const words2 = new Set(text2.toLowerCase().split(/\s+/));
+    
+    const intersection = new Set([...words1].filter(word => words2.has(word)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
   }
 }
 
-// メイン実行
 if (require.main === module) {
-  const analyzer = new AdvancedPreferenceAnalyzer();
+  const analyzer = new AIAnalyzer();
   analyzer.analyzeAllArticles();
 }
 
-module.exports = { AdvancedPreferenceAnalyzer };
+module.exports = { AIAnalyzer };
