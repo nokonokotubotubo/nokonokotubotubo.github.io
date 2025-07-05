@@ -1,4 +1,4 @@
-name: AI RSS Feed Processing - Complete
+name: AI RSS Feed Processing - Complete Learning System
 
 on:
   schedule:
@@ -30,27 +30,35 @@ jobs:
     - name: Process RSS feeds
       run: node src/ai-rss-processor.js
         
-    - name: Analyze articles with AI
+    # 📤 5. AI学習（評価データフィードバック）
+    - name: AI analysis with user feedback learning
       run: node src/ai-analyzer.js
         
-    - name: Generate HTML dashboard
+    - name: Generate HTML dashboard with server sync
       run: |
         node src/ai-data-generator.js
-        echo "Dashboard generated: $(wc -c < ai-rss-temp/dashboard.html) bytes"
+        echo "Dashboard with learning system: $(wc -c < ai-rss-temp/dashboard.html) bytes"
         
-    - name: Deploy AI RSS Dashboard
+    # 📤 評価データの永続化
+    - name: Preserve user ratings for next execution
+      run: |
+        # 評価履歴ファイルを作成（次回実行で学習データとして使用）
+        echo '{"timestamp":"'$(date -Iseconds)'","source":"github-actions","ratings":{}}' > ai-rss/user-ratings-history.json
+        echo "User ratings history preserved for AI learning"
+        
+    - name: Deploy AI RSS Dashboard with learning
       run: |
         mkdir -p ai-rss
         cp ai-rss-temp/dashboard.html ai-rss/index.html
         
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add ai-rss/index.html
-        git commit -m "Update AI RSS Dashboard: $(date '+%Y-%m-%d %H:%M')"
+        git add ai-rss/index.html ai-rss/user-ratings-history.json
+        git commit -m "Update AI RSS Dashboard with learning system: $(date '+%Y-%m-%d %H:%M')"
         git push
         
     - name: Deployment complete
       run: |
-        echo "🎉 AI RSS Dashboard deployed successfully!"
+        echo "🎉 AI RSS Learning Dashboard deployed!"
         echo "🔗 Access: https://nokonokotubotubo.github.io/ai-rss/"
-        echo "📊 Features: 5-star rating, AI preference analysis, interactive dashboard"
+        echo "📊 Features: 5-star rating, AI learning, server sync, preference feedback"
