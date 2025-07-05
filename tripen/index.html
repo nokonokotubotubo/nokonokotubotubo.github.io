@@ -51,6 +51,21 @@
             overflow-x: auto;
         }
         
+        /* タブ並び替え用スタイル */
+        .day-tabs .nav-item {
+            transition: all 0.3s ease;
+            cursor: move;
+        }
+        
+        .day-tabs .nav-item.dragging-tab {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        
+        .day-tabs .nav-item.drag-over {
+            transform: translateX(10px);
+        }
+        
         .day-tabs .nav-link {
             border: none;
             color: var(--text-color);
@@ -61,6 +76,7 @@
             min-width: 120px;
             transition: all 0.3s ease;
             position: relative;
+            padding-left: 30px; /* ドラッグハンドル分の余白 */
         }
         
         .day-tabs .nav-link.active {
@@ -74,22 +90,91 @@
             color: white;
         }
         
-        /* ＋ボタン専用のスタイルを追加 */
+        .drag-handle {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            cursor: grab;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .tab-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* 日付編集用スタイル */
+        .date-display {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        
+        .date-display:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .date-edit-icon {
+            opacity: 0;
+            font-size: 0.6rem;
+            margin-left: 4px;
+            transition: opacity 0.2s ease;
+        }
+        
+        .date-display:hover .date-edit-icon {
+            opacity: 0.7;
+        }
+        
+        .date-edit-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 100px;
+        }
+        
+        .date-edit-input {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            color: var(--text-color);
+            width: 100px;
+            outline: none;
+        }
+        
+        .date-edit-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(135, 206, 235, 0.3);
+        }
+        
+        /* ＋ボタン専用のスタイルを修正 */
         .day-tabs .nav-link.add-day-btn {
             background: transparent !important;
             color: var(--accent-color) !important;
-            border: 2px dashed var(--accent-color) !important;
+            border: 2px solid var(--accent-color) !important;
             display: flex;
             align-items: center;
             justify-content: center;
             min-width: 60px;
             transition: all 0.3s ease;
+            padding-left: 20px; /* ドラッグハンドル分の余白を調整 */
         }
-
+        
         .day-tabs .nav-link.add-day-btn:hover {
             background: var(--accent-color) !important;
             color: white !important;
-            border-color: var(--accent-color) !important;
+            border: 2px solid var(--accent-color) !important;
+            opacity: 0.9;
         }
         
         .delete-day-btn {
@@ -150,6 +235,8 @@
             background: var(--time-grid-color);
             border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
+            height: 100%; /* 親要素の高さに合わせる */
+            min-height: 1200px;
         }
         
         .time-slot {
@@ -546,13 +633,40 @@
             
             <!-- 日付タブ -->
             <ul class="nav nav-tabs day-tabs">
-                <li class="nav-item" v-for="(day, index) in tripDays" :key="index">
+                <li class="nav-item" 
+                    v-for="(day, index) in tripDays" 
+                    :key="`day-${day.id || index}`"
+                    draggable="true"
+                    @dragstart="handleTabDragStart($event, index)"
+                    @dragover="handleTabDragOver($event, index)"
+                    @drop="handleTabDrop($event, index)"
+                    @dragend="handleTabDragEnd"
+                    :class="{ 'dragging-tab': draggingTabIndex === index }">
                     <a class="nav-link" 
                        :class="{ active: activeDay === index }"
                        @click="activeDay = index"
                        href="#">
-                        <div>{{ day.dayNumber }}日目</div>
-                        <small>{{ day.date }}</small>
+                        <div class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <div class="tab-content">
+                            <div>{{ day.dayNumber }}日目</div>
+                            <small v-if="!day.isEditing" 
+                                   @click.stop="startDateEdit(index)"
+                                   class="date-display">
+                                {{ day.date }}
+                                <i class="fas fa-edit date-edit-icon"></i>
+                            </small>
+                            <div v-if="day.isEditing" class="date-edit-container" @click.stop>
+                                <input type="date" 
+                                       v-model="day.editingDate"
+                                       @blur="saveDateEdit(index)"
+                                       @keydown.enter="saveDateEdit(index)"
+                                       @keydown.escape="cancelDateEdit(index)"
+                                       class="date-edit-input"
+                                       ref="dateEditInput">
+                            </div>
+                        </div>
                         <button class="delete-day-btn" 
                                 v-if="tripDays.length > 1"
                                 @click.stop="deleteDay(index)"
@@ -872,6 +986,10 @@
                     activeDay: 0,
                     newDayDate: '',
                     
+                    // タブ並び替え機能
+                    draggingTabIndex: null,
+                    dragOverTabIndex: null,
+                    
                     // 時間軸（4時〜23時）
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     
@@ -963,9 +1081,12 @@
                         const dayName = dayNames[date.getDay()];
                         
                         days.push({
+                            id: Date.now() + dayNumber, // 一意のIDを追加
                             dayNumber: dayNumber++,
                             date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
-                            fullDate: date.toISOString().split('T')[0]
+                            fullDate: date.toISOString().split('T')[0],
+                            isEditing: false,
+                            editingDate: date.toISOString().split('T')[0]
                         });
                     }
                     
@@ -983,7 +1104,11 @@
                     // Bootstrap 5 の正しい初期化方法
                     const modalElement = document.getElementById('tripSettingsModal');
                     if (modalElement) {
-                        const modal = new bootstrap.Modal(modalElement);
+                        // 既存のモーダルインスタンスを取得または新規作成
+                        let modal = bootstrap.Modal.getInstance(modalElement);
+                        if (!modal) {
+                            modal = new bootstrap.Modal(modalElement);
+                        }
                         modal.show();
                     }
                 },
@@ -1030,18 +1155,21 @@
                 // 日程管理（修正済み）
                 showAddDayModal() {
                     if (this.tripDays.length > 0) {
-                        // 最後の日の次の日を設定
-                        const lastDay = new Date(this.tripDays[this.tripDays.length - 1].fullDate);
+                        // 日付順にソートしてから最後の日を取得
+                        const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+                        const lastDay = new Date(sortedDays[sortedDays.length - 1].fullDate);
                         lastDay.setDate(lastDay.getDate() + 1);
                         this.newDayDate = lastDay.toISOString().split('T')[0];
                     } else {
-                        // 日程がない場合は今日の日付を設定
                         this.newDayDate = this.today;
                     }
                     
                     const modalElement = document.getElementById('addDayModal');
                     if (modalElement) {
-                        const modal = new bootstrap.Modal(modalElement);
+                        let modal = bootstrap.Modal.getInstance(modalElement);
+                        if (!modal) {
+                            modal = new bootstrap.Modal(modalElement);
+                        }
                         modal.show();
                     }
                 },
@@ -1066,9 +1194,12 @@
                     
                     // 日付順にソートして挿入
                     const newDay = {
+                        id: Date.now() + dayNumber,
                         dayNumber: dayNumber,
                         date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
-                        fullDate: this.newDayDate
+                        fullDate: this.newDayDate,
+                        isEditing: false,
+                        editingDate: this.newDayDate
                     };
                     
                     this.tripDays.push(newDay);
@@ -1124,6 +1255,182 @@
                         
                         this.saveData();
                     }
+                },
+                
+                // 日付編集機能
+                startDateEdit(index) {
+                    // 他の編集中の日付をキャンセル
+                    this.tripDays.forEach((day, i) => {
+                        if (i !== index && day.isEditing) {
+                            this.cancelDateEdit(i);
+                        }
+                    });
+                    
+                    this.tripDays[index].isEditing = true;
+                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
+                    
+                    // 次のティックでフォーカス
+                    this.$nextTick(() => {
+                        const inputs = this.$refs.dateEditInput;
+                        if (inputs && inputs[0]) {
+                            inputs[0].focus();
+                        }
+                    });
+                },
+                
+                saveDateEdit(index) {
+                    const newDate = this.tripDays[index].editingDate;
+                    
+                    if (!newDate) {
+                        this.cancelDateEdit(index);
+                        return;
+                    }
+                    
+                    // 新しい日付を基準に全ての日付を再計算
+                    this.recalculateAllDates(index, newDate);
+                    
+                    this.tripDays[index].isEditing = false;
+                    this.saveData();
+                },
+                
+                cancelDateEdit(index) {
+                    this.tripDays[index].isEditing = false;
+                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
+                },
+                
+                recalculateAllDates(baseIndex, baseDate) {
+                    const baseDateTime = new Date(baseDate);
+                    
+                    // 古い日付との対応関係を記録
+                    const oldToNewMapping = new Map();
+                    
+                    // 基準日から前の日付を計算
+                    for (let i = baseIndex - 1; i >= 0; i--) {
+                        const targetDate = new Date(baseDateTime);
+                        targetDate.setDate(targetDate.getDate() - (baseIndex - i));
+                        const oldDate = this.tripDays[i].fullDate;
+                        this.updateDayData(i, targetDate);
+                        oldToNewMapping.set(oldDate, targetDate.toISOString().split('T')[0]);
+                    }
+                    
+                    // 基準日を設定
+                    const oldBaseDate = this.tripDays[baseIndex].fullDate;
+                    this.updateDayData(baseIndex, baseDateTime);
+                    oldToNewMapping.set(oldBaseDate, baseDate);
+                    
+                    // 基準日から後の日付を計算
+                    for (let i = baseIndex + 1; i < this.tripDays.length; i++) {
+                        const targetDate = new Date(baseDateTime);
+                        targetDate.setDate(targetDate.getDate() + (i - baseIndex));
+                        const oldDate = this.tripDays[i].fullDate;
+                        this.updateDayData(i, targetDate);
+                        oldToNewMapping.set(oldDate, targetDate.toISOString().split('T')[0]);
+                    }
+                    
+                    // 予定の日付対応を維持（削除しない）
+                    this.maintainEventConsistency(oldToNewMapping);
+                },
+                
+                updateDayData(index, date) {
+                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                    const dayName = dayNames[date.getDay()];
+                    
+                    this.tripDays[index].date = `${date.getMonth() + 1}/${date.getDate()}(${dayName})`;
+                    this.tripDays[index].fullDate = date.toISOString().split('T')[0];
+                    this.tripDays[index].editingDate = date.toISOString().split('T')[0];
+                },
+                
+                maintainEventConsistency(oldToNewMapping) {
+                    // 各予定の日付対応を確認し、適切なdayIndexに更新
+                    this.events.forEach(event => {
+                        const currentDayDate = this.tripDays[event.dayIndex]?.fullDate;
+                        if (currentDayDate) {
+                            // 現在のdayIndexが正しい日付を指しているか確認
+                            // 日付が変更されていても、そのタブの予定として維持
+                            return;
+                        } else {
+                            // dayIndexが無効な場合は最初の日に移動
+                            event.dayIndex = 0;
+                        }
+                    });
+                },
+                
+                // タブ並び替え機能
+                handleTabDragStart(event, index) {
+                    this.draggingTabIndex = index;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/html', event.target);
+                },
+                
+                handleTabDragOver(event, index) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    
+                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
+                        this.dragOverTabIndex = index;
+                    }
+                },
+                
+                handleTabDrop(event, dropIndex) {
+                    event.preventDefault();
+                    
+                    if (this.draggingTabIndex === null || this.draggingTabIndex === dropIndex) {
+                        return;
+                    }
+                    
+                    // タブの並び替えを実行
+                    this.reorderTabs(this.draggingTabIndex, dropIndex);
+                    
+                    this.draggingTabIndex = null;
+                    this.dragOverTabIndex = null;
+                },
+                
+                handleTabDragEnd() {
+                    this.draggingTabIndex = null;
+                    this.dragOverTabIndex = null;
+                },
+                
+                reorderTabs(fromIndex, toIndex) {
+                    // 並び替え前の予定のdayIndex対応を記録
+                    const eventMapping = new Map();
+                    this.events.forEach(event => {
+                        eventMapping.set(event.id, event.dayIndex);
+                    });
+                    
+                    // タブを並び替え
+                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
+                    this.tripDays.splice(toIndex, 0, movedTab);
+                    
+                    // dayNumberを再計算
+                    this.tripDays.forEach((day, index) => {
+                        day.dayNumber = index + 1;
+                    });
+                    
+                    // 予定のdayIndexを更新（タブの移動に追従）
+                    this.events.forEach(event => {
+                        const oldDayIndex = eventMapping.get(event.id);
+                        if (oldDayIndex === fromIndex) {
+                            // 移動したタブの予定
+                            event.dayIndex = toIndex;
+                        } else if (fromIndex < toIndex && oldDayIndex > fromIndex && oldDayIndex <= toIndex) {
+                            // 前方に移動した場合、間のタブは前にシフト
+                            event.dayIndex = oldDayIndex - 1;
+                        } else if (fromIndex > toIndex && oldDayIndex >= toIndex && oldDayIndex < fromIndex) {
+                            // 後方に移動した場合、間のタブは後にシフト
+                            event.dayIndex = oldDayIndex + 1;
+                        }
+                    });
+                    
+                    // アクティブタブの調整
+                    if (this.activeDay === fromIndex) {
+                        this.activeDay = toIndex;
+                    } else if (fromIndex < toIndex && this.activeDay > fromIndex && this.activeDay <= toIndex) {
+                        this.activeDay--;
+                    } else if (fromIndex > toIndex && this.activeDay >= toIndex && this.activeDay < fromIndex) {
+                        this.activeDay++;
+                    }
+                    
+                    this.saveData();
                 },
                 
                 getCurrentDayEvents() {
@@ -1490,127 +1797,4 @@
                         food: 'fas fa-utensils',
                         sightseeing: 'fas fa-camera',
                         accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star'
-                    };
-                    return icons[category] || 'fas fa-calendar';
-                },
-                
-                getCategoryName(category) {
-                    const names = {
-                        travel: '移動',
-                        food: '食事',
-                        sightseeing: '観光',
-                        accommodation: '宿泊',
-                        custom: 'その他'
-                    };
-                    return names[category] || 'その他';
-                },
-                
-                // イベント操作
-                openEventModal(event = null) {
-                    this.editingEvent = event;
-                    
-                    if (event) {
-                        this.eventForm = { ...event };
-                    } else {
-                        this.eventForm = {
-                            title: '',
-                            dayIndex: this.activeDay,
-                            startTime: '09:00',
-                            endTime: '10:00',
-                            category: 'travel',
-                            description: ''
-                        };
-                    }
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-                    modal.show();
-                },
-                
-                saveEvent() {
-                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
-                        alert('必須項目を入力してください');
-                        return;
-                    }
-                    
-                    if (this.eventForm.startTime >= this.eventForm.endTime) {
-                        alert('終了時間は開始時間より後に設定してください');
-                        return;
-                    }
-                    
-                    const eventData = {
-                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
-                        title: this.eventForm.title,
-                        dayIndex: this.eventForm.dayIndex,
-                        startTime: this.eventForm.startTime,
-                        endTime: this.eventForm.endTime,
-                        category: this.eventForm.category,
-                        description: this.eventForm.description
-                    };
-                    
-                    if (this.editingEvent) {
-                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
-                        this.events[index] = eventData;
-                    } else {
-                        this.events.push(eventData);
-                    }
-                    
-                    this.saveData();
-                    this.editModeEvent = null;
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                    modal.hide();
-                },
-                
-                deleteEvent() {
-                    if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
-                        modal.hide();
-                    }
-                },
-                
-                // データ保存・読み込み
-                saveData() {
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-                    localStorage.setItem('trippenInitialized', 'true');
-                },
-                
-                loadData() {
-                    const savedEvents = localStorage.getItem('trippenEvents');
-                    const savedDays = localStorage.getItem('trippenDays');
-                    const savedInitialized = localStorage.getItem('trippenInitialized');
-                    
-                    if (savedEvents) {
-                        this.events = JSON.parse(savedEvents);
-                    }
-                    
-                    if (savedDays) {
-                        this.tripDays = JSON.parse(savedDays);
-                    }
-                    
-                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
-                        this.tripInitialized = true;
-                    }
-                }
-            },
-            
-            mounted() {
-                this.detectMobile();
-                this.checkExistingData();
-                this.loadData();
-                
-                window.addEventListener('resize', this.detectMobile);
-            },
-            
-            unmounted() {
-                window.removeEventListener('resize', this.detectMobile);
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+                        custom: 'fas fa-star
