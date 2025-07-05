@@ -246,7 +246,6 @@
             font-weight: bold;
             margin-bottom: 4px;
             font-size: 0.9rem;
-            position: relative;
             pointer-events: none;
         }
         
@@ -390,6 +389,39 @@
             transform: translateX(0);
         }
         
+        /* 旅程設定用スタイル */
+        .trip-setup {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .trip-setup h2 {
+            color: var(--accent-color);
+            margin-bottom: 30px;
+        }
+        
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .date-input-group input[type="date"] {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .date-input-group span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
         /* レスポンシブデザイン */
         @media (max-width: 768px) {
             .time-axis {
@@ -434,6 +466,11 @@
                 max-width: 250px;
                 font-size: 0.8rem;
             }
+            
+            .date-input-group {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -450,8 +487,43 @@
             </div>
         </header>
         
+        <!-- 初期旅程設定 -->
+        <div v-if="!tripInitialized" class="container">
+            <div class="trip-setup">
+                <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
+                <p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
+                
+                <div class="date-input-group">
+                    <label for="startDate"><strong>開始日:</strong></label>
+                    <input type="date" id="startDate" v-model="tripStartDate" :min="today">
+                    <span>〜</span>
+                    <label for="endDate"><strong>終了日:</strong></label>
+                    <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
+                        <i class="fas fa-check"></i> 旅行スケジュールを作成
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
+                        <i class="fas fa-folder-open"></i> 既存のデータを読み込む
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- メインコンテンツ -->
-        <div class="container-fluid">
+        <div v-if="tripInitialized" class="container-fluid">
+            <!-- 旅程変更ボタン -->
+            <div class="d-flex justify-content-end mb-2">
+                <button class="btn btn-outline-primary btn-sm" @click="showTripSettingsModal">
+                    <i class="fas fa-cog"></i> 旅程設定変更
+                </button>
+            </div>
+            
             <!-- 日付タブ -->
             <ul class="nav nav-tabs day-tabs">
                 <li class="nav-item" v-for="(day, index) in tripDays" :key="index">
@@ -572,6 +644,41 @@
             • 空のエリアをクリック：終了
         </div>
         
+        <!-- 旅程設定変更モーダル -->
+        <div class="modal fade" id="tripSettingsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-cog"></i>
+                            旅程設定変更
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">開始日</label>
+                            <input type="date" class="form-control" v-model="newTripStartDate" :min="today">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">終了日</label>
+                            <input type="date" class="form-control" v-model="newTripEndDate" :min="newTripStartDate">
+                        </div>
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>注意:</strong> 日程を変更すると、範囲外の予定は削除されます。
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-primary" @click="updateTripSettings">
+                            <i class="fas fa-save"></i> 変更を保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 日程追加モーダル -->
         <div class="modal fade" id="addDayModal" tabindex="-1">
             <div class="modal-dialog">
@@ -613,6 +720,9 @@
                     <div class="modal-body" v-if="selectedEventForDetail">
                         <div class="mb-3">
                             <h6><i :class="getCategoryIcon(selectedEventForDetail.category)"></i> {{ selectedEventForDetail.title }}</h6>
+                        </div>
+                        <div class="mb-3">
+                            <strong>日付:</strong> {{ getTripDayByIndex(selectedEventForDetail.dayIndex)?.date }}
                         </div>
                         <div class="mb-3">
                             <strong>時間:</strong> {{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}
@@ -710,7 +820,7 @@
         </div>
         
         <!-- フローティング追加ボタン -->
-        <button class="add-event-btn" @click="openEventModal()">
+        <button v-if="tripInitialized" class="add-event-btn" @click="openEventModal()">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -726,12 +836,19 @@
         createApp({
             data() {
                 return {
+                    // 旅程初期化状態
+                    tripInitialized: false,
+                    tripStartDate: '',
+                    tripEndDate: '',
+                    today: new Date().toISOString().split('T')[0],
+                    hasExistingData: false,
+                    
+                    // 旅程設定変更用
+                    newTripStartDate: '',
+                    newTripEndDate: '',
+                    
                     // 旅行日程
-                    tripDays: [
-                        { dayNumber: 1, date: '7/5(土)', fullDate: '2025-07-05' },
-                        { dayNumber: 2, date: '7/6(日)', fullDate: '2025-07-06' },
-                        { dayNumber: 3, date: '7/7(月)', fullDate: '2025-07-07' }
-                    ],
+                    tripDays: [],
                     activeDay: 0,
                     newDayDate: '',
                     
@@ -752,7 +869,7 @@
                     // 移動用短い長押し検出
                     moveLongPressTimer: null,
                     
-                    // 長押し成功フラグ（重要！）
+                    // 長押し成功フラグ
                     longPressSucceeded: false,
                     
                     // ドラッグ&リサイズ
@@ -783,6 +900,101 @@
             },
             
             methods: {
+                // 初期化処理
+                checkExistingData() {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    this.hasExistingData = !!(savedEvents && savedDays);
+                },
+                
+                loadExistingData() {
+                    this.loadData();
+                    if (this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
+                },
+                
+                // 旅程初期化
+                initializeTripDays() {
+                    if (!this.tripStartDate || !this.tripEndDate) {
+                        alert('開始日と終了日を選択してください');
+                        return;
+                    }
+                    
+                    if (this.tripStartDate > this.tripEndDate) {
+                        alert('終了日は開始日以降を選択してください');
+                        return;
+                    }
+                    
+                    this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+                    this.activeDay = 0;
+                    this.tripInitialized = true;
+                    this.saveData();
+                },
+                
+                generateTripDays(startDate, endDate) {
+                    const days = [];
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    let dayNumber = 1;
+                    
+                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                        const dayName = dayNames[date.getDay()];
+                        
+                        days.push({
+                            dayNumber: dayNumber++,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
+                            fullDate: date.toISOString().split('T')[0]
+                        });
+                    }
+                    
+                    return days;
+                },
+                
+                // 旅程設定変更
+                showTripSettingsModal() {
+                    this.newTripStartDate = this.tripDays[0]?.fullDate || '';
+                    this.newTripEndDate = this.tripDays[this.tripDays.length - 1]?.fullDate || '';
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('tripSettingsModal'));
+                    modal.show();
+                },
+                
+                updateTripSettings() {
+                    if (!this.newTripStartDate || !this.newTripEndDate) {
+                        alert('開始日と終了日を選択してください');
+                        return;
+                    }
+                    
+                    if (this.newTripStartDate > this.newTripEndDate) {
+                        alert('終了日は開始日以降を選択してください');
+                        return;
+                    }
+                    
+                    // 新しい日程を生成
+                    const newTripDays = this.generateTripDays(this.newTripStartDate, this.newTripEndDate);
+                    
+                    // 範囲外の予定を削除
+                    const validDayIndices = new Set(Array.from({length: newTripDays.length}, (_, i) => i));
+                    this.events = this.events.filter(event => validDayIndices.has(event.dayIndex));
+                    
+                    // 日程を更新
+                    this.tripDays = newTripDays;
+                    
+                    // アクティブな日が範囲外の場合は最初の日に設定
+                    if (this.activeDay >= this.tripDays.length) {
+                        this.activeDay = 0;
+                    }
+                    
+                    this.saveData();
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('tripSettingsModal'));
+                    modal.hide();
+                    
+                    alert('旅程設定を更新しました');
+                },
+                
                 // デバイス判定
                 detectMobile() {
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
@@ -858,6 +1070,10 @@
                     return this.events.filter(event => event.dayIndex === this.activeDay);
                 },
                 
+                getTripDayByIndex(index) {
+                    return this.tripDays[index] || null;
+                },
+                
                 // 時間・位置計算
                 timeToPixels(timeString) {
                     const [hours, minutes] = timeString.split(':').map(Number);
@@ -920,7 +1136,6 @@
                 
                 // 長押し検出（500ms：編集モード移行）
                 handleEventMouseDown(event, eventData) {
-                    // タイトルテキスト部分のクリックは除外
                     if (event.target.closest('.title-text')) {
                         return;
                     }
@@ -931,7 +1146,6 @@
                 },
                 
                 handleEventTouchStart(event, eventData) {
-                    // タイトルテキスト部分のタッチは除外
                     if (event.target.closest('.title-text')) {
                         return;
                     }
@@ -942,12 +1156,9 @@
                 },
                 
                 startEditModeLongPress(event, eventData, isTouch) {
-                    // 長押し成功フラグをリセット
                     this.longPressSucceeded = false;
                     
-                    // 編集モード中の場合、移動用の短い長押しを開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                        // リサイズハンドル部分は除外
                         if (event.target.classList.contains('resize-handle')) {
                             return;
                         }
@@ -962,22 +1173,15 @@
                     };
                     
                     this.longPressTimer = setTimeout(() => {
-                        // 長押し成功フラグを設定（重要！）
                         this.longPressSucceeded = true;
-                        
-                        // 編集モードに移行
                         this.editModeEvent = eventData;
                         this.clearLongPress();
                         
-                        // 軽微な振動フィードバック
                         if (navigator.vibrate) {
                             navigator.vibrate(50);
                         }
-                        
-                        console.log('Edit mode activated', { eventTitle: eventData.title });
-                    }, 500); // 500ms長押し
+                    }, 500);
                     
-                    // マウス/タッチ移動とリリースイベントを監視
                     const moveHandler = (e) => this.handleLongPressMove(e, isTouch);
                     const endHandler = (e) => this.handleLongPressEnd(e, moveHandler, endHandler, isTouch);
                     
@@ -997,14 +1201,12 @@
                     const deltaX = Math.abs(currentX - this.startPosition.x);
                     const deltaY = Math.abs(currentY - this.startPosition.y);
                     
-                    // 移動距離が閾値を超えたら長押しをキャンセル
                     if (deltaX > 10 || deltaY > 10) {
                         this.clearLongPress();
                     }
                 },
                 
                 handleLongPressEnd(event, moveHandler, endHandler, isTouch) {
-                    // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
@@ -1015,8 +1217,6 @@
                     
                     this.clearLongPress();
                     
-                    // 長押し成功後は、後続のクリックイベントを無効化するため
-                    // 少し時間を置いてフラグをリセット
                     if (this.longPressSucceeded) {
                         setTimeout(() => {
                             this.longPressSucceeded = false;
@@ -1039,10 +1239,9 @@
                     };
                     
                     this.moveLongPressTimer = setTimeout(() => {
-                        // 移動開始
                         this.startDrag(event, eventData, isTouch);
                         this.clearMoveLongPress();
-                    }, 100); // 100ms長押し
+                    }, 100);
                     
                     const moveHandler = (e) => this.handleMoveLongPressMove(e, isTouch);
                     const endHandler = (e) => this.handleMoveLongPressEnd(e, moveHandler, endHandler, isTouch);
@@ -1063,14 +1262,12 @@
                     const deltaX = Math.abs(currentX - this.startPosition.x);
                     const deltaY = Math.abs(currentY - this.startPosition.y);
                     
-                    // 移動距離が閾値を超えたら長押しをキャンセル
                     if (deltaX > 10 || deltaY > 10) {
                         this.clearMoveLongPress();
                     }
                 },
                 
                 handleMoveLongPressEnd(event, moveHandler, endHandler, isTouch) {
-                    // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
@@ -1124,7 +1321,6 @@
                 },
                 
                 handleDragEnd(event, isTouch, moveHandler, endHandler) {
-                    // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
@@ -1204,7 +1400,6 @@
                 },
                 
                 handleResizeEnd(event, isTouch, moveHandler, endHandler) {
-                    // イベントリスナーを削除
                     if (isTouch) {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
@@ -1219,19 +1414,13 @@
                     this.saveData();
                 },
                 
-                // スケジュールエリアクリック（根本修正版）
+                // スケジュールエリアクリック
                 handleScheduleClick(event) {
-                    // 長押し成功直後のクリックイベントは無視（重要！）
                     if (this.longPressSucceeded) {
-                        console.log('Click ignored - long press just succeeded');
                         return;
                     }
                     
-                    // 編集モードを終了
                     this.editModeEvent = null;
-                    console.log('Schedule area clicked, edit mode cleared');
-                    
-                    // 予定追加メニューは削除済み - クリックでは何も実行しない
                 },
                 
                 // カテゴリ関連
@@ -1328,11 +1517,13 @@
                 saveData() {
                     localStorage.setItem('trippenEvents', JSON.stringify(this.events));
                     localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    localStorage.setItem('trippenInitialized', 'true');
                 },
                 
                 loadData() {
                     const savedEvents = localStorage.getItem('trippenEvents');
                     const savedDays = localStorage.getItem('trippenDays');
+                    const savedInitialized = localStorage.getItem('trippenInitialized');
                     
                     if (savedEvents) {
                         this.events = JSON.parse(savedEvents);
@@ -1341,11 +1532,16 @@
                     if (savedDays) {
                         this.tripDays = JSON.parse(savedDays);
                     }
+                    
+                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
                 }
             },
             
             mounted() {
                 this.detectMobile();
+                this.checkExistingData();
                 this.loadData();
                 
                 window.addEventListener('resize', this.detectMobile);
