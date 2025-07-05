@@ -1,4 +1,4 @@
-name: Create ai-rss index.html
+name: AI RSS - Direct Directory Method
 
 on:
   workflow_dispatch:
@@ -8,14 +8,29 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Create index.html
+    - name: Create ai-rss directory with index.html
       run: |
-        echo "<h1>Test AI RSS</h1>" > index.html
+        mkdir -p ai-rss
+        cat > ai-rss/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+        <meta charset="UTF-8">
+        <title>AI RSS Dashboard</title>
+        </head>
+        <body>
+        <h1>AI RSS Dashboard</h1>
+        <p>Test file created successfully</p>
+        </body>
+        </html>
+        EOF
+        echo "Created: $(ls -la ai-rss/index.html)"
+        echo "Size: $(wc -c < ai-rss/index.html) bytes"
         
-    - name: Deploy to ai-rss subdirectory
+    - name: Deploy ai-rss directory
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
-        destination_dir: ai-rss
+        publish_dir: ./ai-rss
+        force_orphan: true
         enable_jekyll: false
