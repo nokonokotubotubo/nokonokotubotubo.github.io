@@ -80,6 +80,8 @@
             transition: all 0.3s ease;
             cursor: move;
             flex-shrink: 0;
+            position: relative;
+            z-index: 2;
         }
         
         .day-tabs .nav-item.dragging-tab {
@@ -99,6 +101,7 @@
             position: relative;
             padding-left: 30px;
             display: block;
+            overflow: visible;
         }
         
         .day-tabs .nav-link.active {
@@ -207,9 +210,10 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            z-index: 100;
             cursor: pointer;
             transition: all 0.2s ease;
+            pointer-events: auto;
         }
         
         .delete-day-btn:hover {
@@ -1274,7 +1278,20 @@
                 
                 editEventFromDetail() {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+                    const modalElement = document.getElementById('detailModal');
+                    
+                    const focusedElement = modalElement.querySelector(':focus');
+                    if (focusedElement) {
+                        focusedElement.blur();
+                    }
+                    
                     modal.hide();
+                    
+                    modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
+                        modalElement.removeAttribute('aria-hidden');
+                        modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
+                    }, { once: true });
+                    
                     this.openEventModal(this.selectedEventForDetail);
                 },
                 
@@ -1284,7 +1301,19 @@
                         this.saveData();
                         
                         const modal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+                        const modalElement = document.getElementById('detailModal');
+                        
+                        const focusedElement = modalElement.querySelector(':focus');
+                        if (focusedElement) {
+                            focusedElement.blur();
+                        }
+                        
                         modal.hide();
+                        
+                        modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
+                            modalElement.removeAttribute('aria-hidden');
+                            modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
+                        }, { once: true });
                     }
                 },
                 
@@ -1523,8 +1552,24 @@
                     this.saveData();
                     this.editModeEvent = null;
                     
+                    // フォーカス管理とaria-hidden属性の適切な処理
                     const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                    const modalElement = document.getElementById('eventModal');
+                    
+                    // モーダル非表示前にフォーカスをクリア
+                    const focusedElement = modalElement.querySelector(':focus');
+                    if (focusedElement) {
+                        focusedElement.blur();
+                    }
+                    
+                    // モーダルを非表示
                     modal.hide();
+                    
+                    // モーダル完全非表示後にaria-hidden属性をクリア
+                    modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
+                        modalElement.removeAttribute('aria-hidden');
+                        modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
+                    }, { once: true });
                 },
                 
                 deleteEvent() {
@@ -1533,8 +1578,24 @@
                         this.saveData();
                         this.editModeEvent = null;
                         
+                        // フォーカス管理とaria-hidden属性の適切な処理
                         const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                        const modalElement = document.getElementById('eventModal');
+                        
+                        // モーダル非表示前にフォーカスをクリア
+                        const focusedElement = modalElement.querySelector(':focus');
+                        if (focusedElement) {
+                            focusedElement.blur();
+                        }
+                        
+                        // モーダルを非表示
                         modal.hide();
+                        
+                        // モーダル完全非表示後にaria-hidden属性をクリア
+                        modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
+                            modalElement.removeAttribute('aria-hidden');
+                            modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
+                        }, { once: true });
                     }
                 },
                 
