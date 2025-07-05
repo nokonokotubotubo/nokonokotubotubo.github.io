@@ -36,18 +36,14 @@ jobs:
       run: node src/ai-analyzer.js
         
     - name: Generate HTML dashboard
-      run: |
-        node src/ai-data-generator.js
-        ls -la ai-rss-temp/dashboard.html
+      run: node src/ai-data-generator.js
         
-    # ✅ 修正：/ai-rss/ サブディレクトリ構造を作成
-    - name: Create ai-rss subdirectory structure
+    - name: Copy to ai-rss directory only
       run: |
         cp ai-rss-temp/dashboard.html deploy/ai-rss/index.html
-        echo "Dashboard copied to deploy/ai-rss/"
-        ls -la deploy/ai-rss/
+        echo "Copied to ai-rss/index.html only"
+        ls -la deploy/ai-rss/index.html
         
-    # ✅ 修正：deployディレクトリをルートにデプロイ
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
@@ -58,5 +54,4 @@ jobs:
         
     - name: Deployment complete
       run: |
-        echo "Dashboard deployed successfully!"
-        echo "Access: https://nokonokotubotubo.github.io/ai-rss/"
+        echo "Dashboard deployed to: https://nokonokotubotubo.github.io/ai-rss/"
