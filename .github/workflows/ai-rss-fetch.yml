@@ -1,4 +1,4 @@
-name: AI RSS Data Update - User Preference System
+name: AI RSS Data Update - Stale Info Fix
 
 on:
   schedule:
@@ -11,9 +11,11 @@ jobs:
     timeout-minutes: 10
     
     steps:
-    - name: Checkout repository
+    - name: Checkout repository with full history
       uses: actions/checkout@v4
-      
+      with:
+        fetch-depth: 0  # 完全な履歴を取得
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -27,13 +29,28 @@ jobs:
     - name: Create output directories
       run: mkdir -p ai-rss-temp/data
         
-    - name: Process RSS feeds with improved stability
+    # ✅ Git設定とstale info修正
+    - name: Fix stale git references
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git config pull.rebase true
+        
+        # リモート参照を更新
+        git fetch origin main
+        git remote prune origin
+        
+        # 現在のブランチ状態を確認
+        echo "Current branch: $(git branch --show-current)"
+        echo "Remote tracking: $(git branch -vv)"
+        
+    - name: Process RSS feeds
       run: node src/ai-rss-processor.js
         
-    - name: AI analysis with user feedback learning
+    - name: AI analysis with learning
       run: node src/ai-analyzer.js
         
-    - name: Generate article data only
+    - name: Generate data only
       run: |
         node -e "
         const fs = require('fs');
@@ -50,10 +67,10 @@ jobs:
         };
         fs.writeFileSync('ai-rss-temp/data/articles.json', JSON.stringify(data, null, 2));
         console.log('📊 データ生成完了:', articles.length + '件');
-        console.log('⭐ ユーザー評価システム有効');
         "
         
-    - name: Deploy data with user preference support
+    # ✅ stale info対応の安全なプッシュ
+    - name: Safe push with stale info handling
       run: |
         # データディレクトリが存在しない場合は作成
         mkdir -p ai-rss/data
@@ -61,15 +78,45 @@ jobs:
         # データファイルのみ更新
         cp ai-rss-temp/data/articles.json ai-rss/data/articles.json
         
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add ai-rss/data/articles.json
-        git commit -m "Update RSS data with user preference system: $(date '+%Y-%m-%d %H:%M')"
-        git push --force-with-lease origin HEAD:main
+        # ステージング前に最新状態を再確認
+        git fetch origin main
         
-    - name: Update complete
+        # ファイルをステージング
+        git add ai-rss/data/articles.json
+        
+        # コミット作成（変更がある場合のみ）
+        if git diff --staged --quiet; then
+          echo "📝 変更なし: コミットをスキップ"
+        else
+          git commit -m "Update RSS data with user preference system: $(date '+%Y-%m-%d %H:%M')"
+          
+          # ✅ stale info対応のプッシュ戦略
+          echo "🔄 プッシュ試行中..."
+          
+          # 戦略1: 通常のプッシュ
+          if git push origin HEAD:main; then
+            echo "✅ 通常プッシュ成功"
+          else
+            echo "⚠️ 通常プッシュ失敗、リベース戦略を試行"
+            
+            # 戦略2: リベース + プッシュ
+            git fetch origin main
+            git rebase origin/main
+            
+            if git push origin HEAD:main; then
+              echo "✅ リベースプッシュ成功"
+            else
+              echo "⚠️ リベースプッシュ失敗、強制プッシュを試行"
+              
+              # 戦略3: 安全な強制プッシュ（最後の手段）
+              git push --force-with-lease origin HEAD:main
+              echo "✅ 強制プッシュ完了"
+            fi
+          fi
+        fi
+        
+    - name: Deployment complete
       run: |
-        echo "🎉 データ更新完了！"
+        echo "🎉 AI RSS Learning Dashboard deployed!"
         echo "📊 記事数: $(jq '.articles | length' ai-rss/data/articles.json)件"
-        echo "⭐ ユーザー評価システム: 有効（30日間保持）"
         echo "🔗 ダッシュボード: https://nokonokotubotubo.github.io/ai-rss/"
