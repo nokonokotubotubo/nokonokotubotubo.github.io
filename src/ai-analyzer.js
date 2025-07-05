@@ -3,7 +3,7 @@ const fs = require('fs');
 class AIAnalyzer {
   constructor() {
     this.preferences = {
-      interested: ['AI', 'Machine Learning', 'Deep Learning', 'Neural Network', 'アルゴリズム', 'データサイエンス', 'Python', 'JavaScript', 'React', 'Vue', 'Node.js', 'API', 'クラウド', 'AWS', 'Azure', 'Docker', 'Kubernetes', 'セキュリティ', 'ブロックチェーン', 'Web3'],
+      interested: ['AI', 'Python', 'JavaScript', 'Vue', 'Node.js', 'API', 'クラウド', 'AWS', 'Azure', 'Docker', 'セキュリティ', 'ガジェット'],
       neutral: ['ニュース', '発表', 'リリース', '更新', 'アップデート', '企業', '会社', '業界', '市場', '経済'],
       notInterested: ['広告', 'PR', '宣伝', 'スポンサー', '募集', '求人']
     };
