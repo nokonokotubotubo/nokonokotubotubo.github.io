@@ -4,141 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>とりっぺんちゃん - 旅行予定調整サイト</title>
-    
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
         :root {
-            --primary-color: #87CEEB;
-            --secondary-color: #B0E0E6;
-            --accent-color: #4682B4;
-            --text-color: #2F4F4F;
-            --bg-color: #F0F8FF;
-            --time-grid-color: #E6F3FF;
+            --primary: #87CEEB;
+            --secondary: #B0E0E6;
+            --accent: #4682B4;
+            --text: #2F4F4F;
+            --bg: #F0F8FF;
+            --grid: #E6F3FF;
+            --white: #fff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --radius: 15px;
+            --transition: all 0.3s ease;
         }
         
+        * { box-sizing: border-box; }
+        
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background: var(--bg);
+            color: var(--text);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
         }
         
         .header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
             padding: 15px 0;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow);
         }
         
-        .penguin-icon {
-            font-size: 2rem;
-            margin-right: 10px;
-        }
+        .penguin-icon { font-size: 2rem; margin-right: 10px; }
         
         .day-tabs-container {
             overflow-x: auto;
-            overflow-y: hidden;
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            scrollbar-color: var(--secondary-color) transparent;
-            position: relative;
-            z-index: 1;
-            /* スクロール領域でのポインターイベント確保 */
+            scrollbar-color: var(--secondary) transparent;
             pointer-events: auto;
         }
         
-        .day-tabs-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        
-        .day-tabs-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .day-tabs-container::-webkit-scrollbar-thumb {
-            background: var(--secondary-color);
-            border-radius: 3px;
-        }
+        .day-tabs-container::-webkit-scrollbar { height: 6px; }
+        .day-tabs-container::-webkit-scrollbar-track { background: transparent; }
+        .day-tabs-container::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 3px; }
         
         .day-tabs {
-            background: white;
-            border-radius: 15px 15px 0 0;
+            background: var(--white);
+            border-radius: var(--radius) var(--radius) 0 0;
             padding: 0;
             margin: 20px 0 0 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow);
             display: flex;
-            flex-wrap: nowrap;
             min-width: max-content;
-            /* 子要素のポインターイベント確保 */
             pointer-events: auto;
-            position: relative;
-            z-index: 10;
         }
         
         .day-tabs .nav-item {
-            transition: all 0.3s ease;
+            transition: var(--transition);
             cursor: move;
             flex-shrink: 0;
-            position: relative;
-            z-index: 20;
-            /* ポインターイベント確保 */
             pointer-events: auto;
         }
         
-        /* ドラッグ中の要素スタイル強化 */
         .day-tabs .nav-item.dragging-tab {
             opacity: 0.7;
             transform: scale(1.05) rotate(3deg);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             z-index: 999;
-            border: 3px dashed var(--accent-color);
+            border: 3px dashed var(--accent);
             background: rgba(135, 206, 235, 0.1);
-            border-radius: 15px;
+            border-radius: var(--radius);
         }
         
-        /* ドロップゾーンのハイライト */
         .day-tabs .nav-item.drag-over {
             background: rgba(135, 206, 235, 0.2);
             transform: scale(1.02);
-            border: 2px solid var(--accent-color);
-            border-radius: 15px;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
             box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
         }
         
-        /* ドラッグ中の視覚的フィードバック強化 */
         .day-tabs .nav-item.dragging-tab .nav-link {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
-            color: white !important;
+            background: linear-gradient(45deg, var(--primary), var(--secondary)) !important;
+            color: var(--white) !important;
             animation: drag-pulse 1s infinite alternate;
         }
         
         @keyframes drag-pulse {
-            0% { 
-                box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7);
-            }
-            100% { 
-                box-shadow: 0 0 0 10px rgba(135, 206, 235, 0);
-            }
+            0% { box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(135, 206, 235, 0); }
         }
         
-        /* ドラッグプレースホルダー */
         .drag-placeholder {
             width: 120px;
             height: 60px;
-            border: 3px dashed var(--accent-color);
+            border: 3px dashed var(--accent);
             background: rgba(135, 206, 235, 0.1);
-            border-radius: 15px;
+            border-radius: var(--radius);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--accent-color);
+            color: var(--accent);
             font-weight: bold;
             animation: placeholder-blink 1s infinite alternate;
         }
@@ -150,28 +121,26 @@
         
         .day-tabs .nav-link {
             border: none;
-            color: var(--text-color);
-            padding: 12px 20px;
-            border-radius: 15px 15px 0 0;
+            color: var(--text);
+            padding: 12px 20px 12px 30px;
+            border-radius: var(--radius) var(--radius) 0 0;
             white-space: nowrap;
             text-align: center;
             min-width: 120px;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             position: relative;
-            padding-left: 30px;
             display: block;
-            overflow: visible;
         }
         
         .day-tabs .nav-link.active {
-            background: var(--primary-color);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         
         .day-tabs .nav-link:hover {
-            background: var(--secondary-color);
-            color: white;
+            background: var(--secondary);
+            color: var(--white);
         }
         
         .drag-handle {
@@ -184,23 +153,14 @@
             cursor: grab;
         }
         
-        .tab-content-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
         .date-display {
             cursor: pointer;
             transition: all 0.2s ease;
-            position: relative;
             padding: 2px 4px;
             border-radius: 4px;
         }
         
-        .date-display:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+        .date-display:hover { background: rgba(255, 255, 255, 0.2); }
         
         .date-edit-icon {
             opacity: 0;
@@ -209,9 +169,7 @@
             transition: opacity 0.2s ease;
         }
         
-        .date-display:hover .date-edit-icon {
-            opacity: 0.7;
-        }
+        .date-display:hover .date-edit-icon { opacity: 0.7; }
         
         .date-edit-container {
             display: flex;
@@ -221,41 +179,36 @@
         }
         
         .date-edit-input {
-            background: white;
-            border: 2px solid var(--accent-color);
+            background: var(--white);
+            border: 2px solid var(--accent);
             border-radius: 4px;
             padding: 2px 6px;
             font-size: 0.75rem;
-            color: var(--text-color);
+            color: var(--text);
             width: 100px;
             outline: none;
         }
         
-        /* ＋ボタン専用のスタイル（修正版） */
         .day-tabs .nav-link.add-day-btn {
             background: transparent !important;
-            color: var(--accent-color) !important;
-            border: 2px solid var(--accent-color) !important;
+            color: var(--accent) !important;
+            border: 2px solid var(--accent) !important;
             display: flex;
             align-items: center;
             justify-content: center;
             min-width: 60px;
             height: 100%;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             padding: 12px 20px !important;
-            border-radius: 15px 15px 0 0;
+            border-radius: var(--radius) var(--radius) 0 0;
             cursor: pointer;
             z-index: 500;
             pointer-events: auto;
-            /* 確実にクリック可能にする */
-            position: relative;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
-            background: var(--accent-color) !important;
-            color: white !important;
-            border: 2px solid var(--accent-color) !important;
-            opacity: 0.9;
+            background: var(--accent) !important;
+            color: var(--white) !important;
         }
         
         .delete-day-btn {
@@ -266,7 +219,7 @@
             height: 20px;
             border-radius: 50%;
             background: rgba(255, 99, 99, 0.8);
-            color: white;
+            color: var(--white);
             border: none;
             font-size: 0.7rem;
             display: none;
@@ -274,24 +227,20 @@
             justify-content: center;
             z-index: 1000;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition);
             pointer-events: auto;
-            /* 確実に最前面に配置 */
-            transform: translateZ(0);
         }
         
         .delete-day-btn:hover {
             background: rgba(255, 99, 99, 1);
-            transform: scale(1.1) translateZ(0);
+            transform: scale(1.1);
         }
         
-        .day-tabs .nav-link:hover .delete-day-btn {
-            display: flex;
-        }
+        .day-tabs .nav-link:hover .delete-day-btn { display: flex; }
         
         .timeline-container {
-            background: white;
-            border-radius: 0 0 15px 15px;
+            background: var(--white);
+            border-radius: 0 0 var(--radius) var(--radius);
             padding: 0;
             margin: 0 0 20px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -299,9 +248,8 @@
         }
         
         .timeline-header {
-            background: var(--secondary-color);
+            background: var(--secondary);
             padding: 15px 20px;
-            border-radius: 0 0 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -324,8 +272,8 @@
         
         .time-axis {
             width: 80px;
-            background: var(--time-grid-color);
-            border-right: 2px solid var(--secondary-color);
+            background: var(--grid);
+            border-right: 2px solid var(--secondary);
             flex-shrink: 0;
             height: 100%;
             min-height: 1200px;
@@ -338,15 +286,12 @@
             justify-content: center;
             font-size: 0.9rem;
             font-weight: bold;
-            color: var(--text-color);
+            color: var(--text);
             border-bottom: 1px solid #e0e0e0;
             flex-shrink: 0;
         }
         
-        .schedule-area {
-            flex: 1;
-            position: relative;
-        }
+        .schedule-area { flex: 1; position: relative; }
         
         .schedule-grid {
             position: absolute;
@@ -362,9 +307,7 @@
             position: relative;
         }
         
-        .grid-line:nth-child(odd) {
-            background: rgba(135, 206, 235, 0.05);
-        }
+        .grid-line:nth-child(odd) { background: rgba(135, 206, 235, 0.05); }
         
         .quarter-line {
             position: absolute;
@@ -383,28 +326,26 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: var(--accent-color);
+            background: var(--accent);
             opacity: 0;
             transition: opacity 0.2s ease;
             z-index: 50;
             border-radius: 2px;
         }
         
-        .drop-guide-line.active {
-            opacity: 0.8;
-        }
+        .drop-guide-line.active { opacity: 0.8; }
         
         .event-block {
             position: absolute;
             left: 10px;
             right: 10px;
-            background: var(--primary-color);
-            color: white;
+            background: var(--primary);
+            color: var(--white);
             border-radius: 8px;
             padding: 8px 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             z-index: 10;
             overflow: hidden;
             user-select: none;
@@ -413,7 +354,7 @@
         .event-block:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border-color: var(--accent-color);
+            border-color: var(--accent);
         }
         
         .event-block.edit-mode {
@@ -487,32 +428,30 @@
             border-radius: 0 0 8px 8px;
         }
         
-        .event-block.edit-mode .resize-handle {
-            opacity: 1;
-        }
+        .event-block.edit-mode .resize-handle { opacity: 1; }
         
         .modal-content {
-            border-radius: 15px;
+            border-radius: var(--radius);
             border: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
         
         .modal-header {
-            background: var(--primary-color);
-            color: white;
-            border-radius: 15px 15px 0 0;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: var(--radius) var(--radius) 0 0;
         }
         
         .btn-primary {
-            background: var(--accent-color);
+            background: var(--accent);
             border: none;
             border-radius: 20px;
             padding: 8px 20px;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
         
         .btn-primary:hover {
-            background: var(--text-color);
+            background: var(--text);
             transform: translateY(-2px);
         }
         
@@ -523,7 +462,7 @@
         }
         
         .form-control:focus {
-            border-color: var(--primary-color);
+            border-color: var(--primary);
             box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
         }
         
@@ -534,18 +473,18 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: var(--accent-color);
+            background: var(--accent);
             border: none;
-            color: white;
+            color: var(--white);
             font-size: 1.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
+            transition: var(--transition);
             z-index: 1000;
         }
         
         .add-event-btn:hover {
             transform: scale(1.1);
-            background: var(--primary-color);
+            background: var(--primary);
         }
         
         .edit-mode-help {
@@ -553,14 +492,14 @@
             top: 100px;
             right: 20px;
             background: rgba(0, 0, 0, 0.9);
-            color: white;
+            color: var(--white);
             padding: 15px;
             border-radius: 10px;
             font-size: 0.9rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             opacity: 0;
             transform: translateX(20px);
-            transition: all 0.3s ease;
+            transition: var(--transition);
             z-index: 1000;
             max-width: 280px;
         }
@@ -576,7 +515,7 @@
         }
         
         .trip-setup h2 {
-            color: var(--accent-color);
+            color: var(--accent);
             margin-bottom: 30px;
         }
         
@@ -591,7 +530,7 @@
         
         .date-input-group input[type="date"] {
             padding: 10px;
-            border: 2px solid var(--secondary-color);
+            border: 2px solid var(--secondary);
             border-radius: 8px;
             font-size: 1rem;
         }
@@ -599,7 +538,7 @@
         .date-input-group span {
             font-size: 1.2rem;
             font-weight: bold;
-            color: var(--accent-color);
+            color: var(--accent);
         }
         
         @media (max-width: 768px) {
@@ -610,7 +549,13 @@
             .event-block { padding: 6px 8px; }
             .event-title { font-size: 0.8rem; }
             .event-time { font-size: 0.7rem; }
-            .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
+            .add-event-btn { 
+                bottom: 20px; 
+                right: 20px; 
+                width: 50px; 
+                height: 50px; 
+                font-size: 1.2rem; 
+            }
             .date-input-group { flex-direction: column; gap: 10px; }
         }
     </style>
@@ -925,7 +870,6 @@
         </button>
     </div>
     
-    <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     
@@ -1060,44 +1004,6 @@
                     this.saveData();
                 },
                 
-                addNewDay() {
-                    if (!this.newDayDate) {
-                        alert('日付を選択してください');
-                        return;
-                    }
-                    
-                    const existingDate = this.tripDays.find(day => day.fullDate === this.newDayDate);
-                    if (existingDate) {
-                        alert('その日付は既に追加されています');
-                        return;
-                    }
-                    
-                    const selectedDate = new Date(this.newDayDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[selectedDate.getDay()];
-                    
-                    const newDay = {
-                        id: Date.now() + Math.random(),
-                        dayNumber: this.tripDays.length + 1,
-                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
-                        fullDate: this.newDayDate,
-                        isEditing: false,
-                        editingDate: this.newDayDate
-                    };
-                    
-                    this.tripDays.push(newDay);
-                    this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                    
-                    this.tripDays.forEach((day, index) => {
-                        day.dayNumber = index + 1;
-                    });
-                    
-                    this.saveData();
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addDayModal'));
-                    modal.hide();
-                },
-                
                 deleteDay(index) {
                     if (this.tripDays.length <= 1) {
                         alert('最低1つの日程は必要です');
@@ -1115,7 +1021,6 @@
                         
                         this.tripDays.splice(index, 1);
                         
-                        // 削除後の日付を即座に再計算
                         this.recalculateAllDatesAfterDeletion();
                         
                         this.tripDays.forEach((day, i) => {
@@ -1211,8 +1116,6 @@
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
-                    
-                    // ドラッグ中の視覚的フィードバックを追加
                     event.target.closest('.nav-item').classList.add('dragging-tab');
                 },
                 
@@ -1223,12 +1126,10 @@
                     if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
                         this.dragOverTabIndex = index;
                         
-                        // 全てのドロップゾーンハイライトをクリア
                         document.querySelectorAll('.nav-item').forEach(item => {
                             item.classList.remove('drag-over');
                         });
                         
-                        // 現在のドロップゾーンをハイライト
                         event.target.closest('.nav-item').classList.add('drag-over');
                     }
                 },
@@ -1236,7 +1137,6 @@
                 handleTabDrop(event, dropIndex) {
                     event.preventDefault();
                     
-                    // 全ての視覚的フィードバックをクリア
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
                     });
@@ -1252,7 +1152,6 @@
                 },
                 
                 handleTabDragEnd() {
-                    // 全ての視覚的フィードバックをクリア
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
                     });
@@ -1410,7 +1309,6 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // 既に編集モードの場合は即座にドラッグ移動を開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         this.startDragMove(event, eventData);
                         return;
@@ -1435,7 +1333,6 @@
                             navigator.vibrate(50);
                         }
                         
-                        // 長押し成功後にドラッグ移動を開始
                         this.startDragMove(event, eventData);
                     }, 500);
                     
@@ -1637,20 +1534,16 @@
                     this.saveData();
                     this.editModeEvent = null;
                     
-                    // フォーカス管理とaria-hidden属性の適切な処理
                     const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                     const modalElement = document.getElementById('eventModal');
                     
-                    // モーダル非表示前にフォーカスをクリア
                     const focusedElement = modalElement.querySelector(':focus');
                     if (focusedElement) {
                         focusedElement.blur();
                     }
                     
-                    // モーダルを非表示
                     modal.hide();
                     
-                    // モーダル完全非表示後にaria-hidden属性をクリア
                     modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
                         modalElement.removeAttribute('aria-hidden');
                         modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
@@ -1663,20 +1556,16 @@
                         this.saveData();
                         this.editModeEvent = null;
                         
-                        // フォーカス管理とaria-hidden属性の適切な処理
                         const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                         const modalElement = document.getElementById('eventModal');
                         
-                        // モーダル非表示前にフォーカスをクリア
                         const focusedElement = modalElement.querySelector(':focus');
                         if (focusedElement) {
                             focusedElement.blur();
                         }
                         
-                        // モーダルを非表示
                         modal.hide();
                         
-                        // モーダル完全非表示後にaria-hidden属性をクリア
                         modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
                             modalElement.removeAttribute('aria-hidden');
                             modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
