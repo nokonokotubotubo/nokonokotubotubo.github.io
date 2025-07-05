@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T04:21:32.959Z",
+  "updated": "2025-07-05T05:16:23.398Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,18 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049365",
+      "title": "VS CodeでGoogle Colabに接続できるのか？…やはり無理のよう (生成AIに聞いてみる)",
+      "link": "https://qiita.com/dl_from_scratch/items/3e697aebbc5f521bf3ba",
+      "published": "2025-07-05T05:02:24.000Z",
+      "description": "ローカルPC上で起動したVS CodeからWebサービスのGoogle Colabに接続できるのか？…ChatGPTに聞いてみましたが、やはり無理のようでした。結果を記載します。 結果的には不可能でしたが、ただ、生成AIに聞いていくと(2回目で)、結構いい所まで進む手順...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "ローカルPC上で起動したVS CodeからWebサービスのGoogle Colabに接続できるのか？…ChatGPTに聞いてみましたが、やはり無理のようでした。結果を記載します。 結果的には不可能でしたが、ただ、生成AIに聞いていくと(2回目で)、結構いい所まで進む手順...",
+      "thumbnail": null
+    },
     {
       "id": "5nbwyb-1751668200000",
       "title": "え、これがChromebook？--気づけばWindowsやMacを凌ぐ「AI全部入りPC」になってた話",
@@ -61,6 +73,18 @@
       "thumbnail": null
     },
     {
+      "id": "tag:qiita.com,2005:PublicArticle/2049119",
+      "title": "NotebookLMとGeminiで攻略！Generative AI Leader試験サンプル問題作成ガイド",
+      "link": "https://qiita.com/toshyss/items/d1e1a9308057817ff69e",
+      "published": "2025-07-04T12:33:29.000Z",
+      "description": "はじめに 2025年の5月に一般公開されたGoogle CloudのGenerative AI Leader試験に挑戦しました。その際、単なる机上の勉強にとどまらず、試験範囲である生成AI（Generative AI）を使って、その効果を実感しながら理解を深めていきました...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに 2025年の5月に一般公開されたGoogle CloudのGenerative AI Leader試験に挑戦しました。その際、単なる机上の勉強にとどまらず、試験範囲である生成AI（Generative AI）を使って、その効果を実感しながら理解を深めていきました...",
+      "thumbnail": null
+    },
+    {
       "id": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
       "title": "Google Prompting Essentials（全4回シリーズ｜#1）",
       "link": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
@@ -73,18 +97,6 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2049067",
-      "title": "🎬 第1回：【導入編】動画分割ツールをC#と生成AI(copilot)で作った話",
-      "link": "https://qiita.com/Fujita_Kousuke/items/7f6d13fcbbbbb63ccdf5",
-      "published": "2025-07-04T09:51:27.000Z",
-      "description": "はじめに：何気ない会話から生まれたツール 「長い動画を任意の区間で簡単に分割して出力できるツールがほしい」 知り合いのYouTuberから、そんな一言を受けこのプロジェクトは始まりました。 自分はもともとプログラミング知識はありましたが、今回使う言語は「C#」、あまり開発...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに：何気ない会話から生まれたツール 「長い動画を任意の区間で簡単に分割して出力できるツールがほしい」 知り合いのYouTuberから、そんな一言を受けこのプロジェクトは始まりました。 自分はもともとプログラミング知識はありましたが、今回使う言語は「C#」、あまり開発...",
-      "thumbnail": null
-    },
-    {
       "id": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
       "title": "【マケデコ】投資戦略を量産せよ！！！(2025/7/3まとめ)",
       "link": "https://zenn.dev/gamella/articles/cd27c944f40fcc",
@@ -94,18 +106,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "本記事は2025/7/3に開催された「投資戦略を量産せよ！！！」イベントのまとめ記事です。 概要 現在の投資戦略の重要課題である戦略量産をテーマに以下の２つの発表を行いました。 AlphaMiner : 定量・定性的な投資戦略構築エージェントの開発 from いとう(https://x.com/k1",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2047524",
-      "title": "AWS Summit 2025-セッションレポート : 「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」",
-      "link": "https://qiita.com/shiba-kc/items/9a4f2bb49176dc5c0d17",
-      "published": "2025-07-04T07:35:33.000Z",
-      "description": "はじめに 本記事は、AWS Summit 2025で開催されたセッション「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」の内容をベースに、生成AIアプリケーションの評価手法とリスク管理に関する実践的なアプローチを紹介します。セッションを視聴でき...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "はじめに 本記事は、AWS Summit 2025で開催されたセッション「責任ある AI に向けて: 生成 AI アプリケーション評価のアプローチ」の内容をベースに、生成AIアプリケーションの評価手法とリスク管理に関する実践的なアプローチを紹介します。セッションを視聴でき...",
       "thumbnail": null
     },
     {
