@@ -211,19 +211,6 @@
             z-index: 10;
             overflow: hidden;
             user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none;
-            pointer-events: auto;
-        }
-        
-        /* Android Chrome対応 */
-        .event-block * {
-            -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
         }
         
         .event-block:hover {
@@ -259,11 +246,16 @@
             font-weight: bold;
             margin-bottom: 4px;
             font-size: 0.9rem;
-            cursor: pointer;
             position: relative;
+            pointer-events: none; /* タイトル全体のクリックを無効化 */
         }
         
-        .event-title:hover {
+        .title-text {
+            cursor: pointer;
+            pointer-events: auto; /* 文字部分のみクリック可能 */
+        }
+        
+        .title-text:hover {
             text-decoration: underline;
         }
         
@@ -398,27 +390,6 @@
             transform: translateX(0);
         }
         
-        /* デバッグ情報表示エリア */
-        .debug-info {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #00ff00;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            max-width: 300px;
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .debug-info.show {
-            opacity: 1;
-        }
-        
         /* レスポンシブデザイン */
         @media (max-width: 768px) {
             .time-axis {
@@ -468,15 +439,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- デバッグ情報表示 -->
-        <div class="debug-info" :class="{ show: debugMode && debugInfo }" v-if="debugMode">
-            <div><strong>DEBUG MODE</strong></div>
-            <div v-if="debugInfo">{{ debugInfo }}</div>
-            <div v-if="supportsPointerEvents !== null">
-                PointerEvent Support: {{ supportsPointerEvents ? 'YES' : 'NO' }}
-            </div>
-        </div>
-
         <!-- ヘッダー -->
         <header class="header">
             <div class="container">
@@ -565,8 +527,8 @@
                                      }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @pointerdown="handleEventPointerDown($event, event)"
-                                 @contextmenu.prevent>
+                                 @mousedown="handleEventMouseDown($event, event)"
+                                 @touchstart="handleEventTouchStart($event, event)">
                                 
                                 <!-- 編集モードインジケーター -->
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
@@ -576,11 +538,12 @@
                                 <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @pointerdown="startResize($event, event, 'top')"></div>
+                                     @mousedown="startResize($event, event, 'top')"
+                                     @touchstart="startResize($event, event, 'top')"></div>
                                 
-                                <div class="event-title" @click="handleTitleClick($event, event)">
+                                <div class="event-title">
                                     <i :class="getCategoryIcon(event.category)"></i>
-                                    {{ event.title }}
+                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
                                 </div>
                                 <div class="event-time">
                                     {{ event.startTime }} - {{ event.endTime }}
@@ -592,7 +555,8 @@
                                 <!-- リサイズハンドル -->
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @pointerdown="startResize($event, event, 'bottom')"></div>
+                                     @mousedown="startResize($event, event, 'bottom')"
+                                     @touchstart="startResize($event, event, 'bottom')"></div>
                             </div>
                         </div>
                     </div>
@@ -753,8 +717,8 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Vue.js（本番ビルド） -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     
     <script>
         const { createApp } = Vue;
@@ -762,11 +726,6 @@
         createApp({
             data() {
                 return {
-                    // デバッグモード
-                    debugMode: true, // 本番環境では false に設定
-                    debugInfo: '',
-                    supportsPointerEvents: null,
-                    
                     // 旅行日程
                     tripDays: [
                         { dayNumber: 1, date: '7/5(土)', fullDate: '2025-07-05' },
@@ -784,6 +743,7 @@
                     
                     // 編集モード
                     editModeEvent: null,
+                    editModeActivatedTime: 0, // 編集モード開始時刻を記録
                     
                     // 長押し検出
                     longPressTimer: null,
@@ -821,27 +781,9 @@
             },
             
             methods: {
-                // デバッグログ出力
-                debugLog(message, data = null) {
-                    if (this.debugMode) {
-                        const timestamp = new Date().toLocaleTimeString();
-                        const logMessage = `[${timestamp}] ${message}`;
-                        console.log(logMessage, data);
-                        this.debugInfo = data ? `${logMessage}: ${JSON.stringify(data)}` : logMessage;
-                        
-                        // 3秒後にデバッグ情報をクリア
-                        setTimeout(() => {
-                            if (this.debugInfo === (data ? `${logMessage}: ${JSON.stringify(data)}` : logMessage)) {
-                                this.debugInfo = '';
-                            }
-                        }, 3000);
-                    }
-                },
-                
                 // デバイス判定
                 detectMobile() {
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
-                    this.debugLog('Device detection', { isMobile: this.isMobile, width: window.innerWidth });
                 },
                 
                 // 日程管理
@@ -947,12 +889,12 @@
                     };
                 },
                 
-                // タイトルクリック処理
+                // タイトルクリック処理（改良版）
                 handleTitleClick(event, eventData) {
                     event.preventDefault();
-                    event.stopPropagation();
+                    event.stopPropagation(); // バブリングを防止
                     
-                    this.debugLog('Title click detected', { eventTitle: eventData.title });
+                    console.log('Title text click detected', { eventTitle: eventData.title });
                     
                     this.selectedEventForDetail = eventData;
                     const modal = new bootstrap.Modal(document.getElementById('detailModal'), {
@@ -978,101 +920,97 @@
                     }
                 },
                 
-                // 統合ポインターイベントハンドラー
-                handleEventPointerDown(event, eventData) {
-                    this.debugLog('PointerDown detected', { 
-                        pointerType: event.pointerType, 
-                        eventTitle: eventData.title,
-                        button: event.button 
-                    });
-                    
-                    // タイトル部分のクリックは除外
-                    if (event.target.closest('.event-title')) {
-                        this.debugLog('Title click detected, skipping long press');
-                        return;
-                    }
-                    
-                    // 右クリック（コンテキストメニュー）は除外
-                    if (event.button === 2) {
-                        this.debugLog('Right click detected, skipping');
+                // 長押し検出（500ms：編集モード移行）
+                handleEventMouseDown(event, eventData) {
+                    // タイトルテキスト部分のクリックは除外
+                    if (event.target.closest('.title-text')) {
+                        console.log('Title text click detected, skipping long press');
                         return;
                     }
                     
                     event.preventDefault();
-                    event.stopPropagation();
-                    
-                    // 長押し検出開始
-                    this.startEditModeLongPress(event, eventData);
+                    event.stopPropagation(); // バブリングを防止
+                    this.startEditModeLongPress(event, eventData, false);
                 },
                 
-                // 長押し検出の改良版
-                startEditModeLongPress(event, eventData) {
-                    this.debugLog('Starting long press detection', { eventTitle: eventData.title });
-                    
-                    // 既存の編集モード中の場合
-                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                        if (event.target.classList.contains('resize-handle')) {
-                            return;
-                        }
-                        this.startMoveLongPress(event, eventData);
+                handleEventTouchStart(event, eventData) {
+                    // タイトルテキスト部分のタッチは除外
+                    if (event.target.closest('.title-text')) {
+                        console.log('Title text touch detected, skipping long press');
                         return;
                     }
                     
-                    // 長押し開始位置を記録
+                    event.preventDefault();
+                    event.stopPropagation(); // バブリングを防止
+                    this.startEditModeLongPress(event, eventData, true);
+                },
+                
+                startEditModeLongPress(event, eventData, isTouch) {
+                    // 編集モード中の場合、移動用の短い長押しを開始
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        // リサイズハンドル部分は除外
+                        if (event.target.classList.contains('resize-handle')) {
+                            return;
+                        }
+                        this.startMoveLongPress(event, eventData, isTouch);
+                        return;
+                    }
+                    
                     this.longPressStartTime = Date.now();
                     this.startPosition = {
-                        x: event.clientX,
-                        y: event.clientY
+                        x: isTouch ? event.touches[0].clientX : event.clientX,
+                        y: isTouch ? event.touches[0].clientY : event.clientY
                     };
                     
-                    // 500ms後に編集モード移行
                     this.longPressTimer = setTimeout(() => {
-                        this.debugLog('Long press timer triggered', { eventTitle: eventData.title });
+                        // 編集モードに移行
                         this.editModeEvent = eventData;
+                        this.editModeActivatedTime = Date.now(); // 開始時刻を記録
                         this.clearLongPress();
                         
-                        // 振動フィードバック（対応デバイスのみ）
+                        // 軽微な振動フィードバック
                         if (navigator.vibrate) {
                             navigator.vibrate(50);
                         }
                         
-                        this.debugLog('Edit mode activated', { eventTitle: eventData.title });
-                    }, 500);
+                        console.log('Edit mode activated', { eventTitle: eventData.title });
+                    }, 500); // 500ms長押し
                     
-                    // ポインター移動とリリースの監視
-                    const moveHandler = (e) => this.handleLongPressMove(e);
-                    const upHandler = (e) => this.handleLongPressEnd(e, moveHandler, upHandler);
+                    // マウス/タッチ移動とリリースイベントを監視
+                    const moveHandler = (e) => this.handleLongPressMove(e, isTouch);
+                    const endHandler = (e) => this.handleLongPressEnd(e, moveHandler, endHandler, isTouch);
                     
-                    document.addEventListener('pointermove', moveHandler, { passive: false });
-                    document.addEventListener('pointerup', upHandler, { passive: false });
-                    document.addEventListener('pointercancel', upHandler, { passive: false });
+                    if (isTouch) {
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler, { passive: false });
+                    } else {
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
                 },
                 
-                // 移動検出の改良
-                handleLongPressMove(event) {
-                    if (!this.longPressTimer) return;
-                    
-                    const currentX = event.clientX;
-                    const currentY = event.clientY;
+                handleLongPressMove(event, isTouch) {
+                    const currentX = isTouch ? event.touches[0].clientX : event.clientX;
+                    const currentY = isTouch ? event.touches[0].clientY : event.clientY;
                     
                     const deltaX = Math.abs(currentX - this.startPosition.x);
                     const deltaY = Math.abs(currentY - this.startPosition.y);
                     
-                    // 移動閾値を緩和（10px → 15px）
-                    if (deltaX > 15 || deltaY > 15) {
-                        this.debugLog('Movement detected, canceling long press', { deltaX, deltaY });
+                    // 移動距離が閾値を超えたら長押しをキャンセル
+                    if (deltaX > 10 || deltaY > 10) {
                         this.clearLongPress();
                     }
                 },
                 
-                // リリース検出の改良
-                handleLongPressEnd(event, moveHandler, upHandler) {
-                    this.debugLog('Pointer released');
-                    
+                handleLongPressEnd(event, moveHandler, endHandler, isTouch) {
                     // イベントリスナーを削除
-                    document.removeEventListener('pointermove', moveHandler);
-                    document.removeEventListener('pointerup', upHandler);
-                    document.removeEventListener('pointercancel', upHandler);
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
                     
                     this.clearLongPress();
                 },
@@ -1081,57 +1019,56 @@
                     if (this.longPressTimer) {
                         clearTimeout(this.longPressTimer);
                         this.longPressTimer = null;
-                        this.debugLog('Long press timer cleared');
                     }
                 },
                 
                 // 移動用短い長押し（100ms）
-                startMoveLongPress(event, eventData) {
-                    this.debugLog('Starting move long press', { eventTitle: eventData.title });
-                    
+                startMoveLongPress(event, eventData, isTouch) {
                     this.startPosition = {
-                        x: event.clientX,
-                        y: event.clientY
+                        x: isTouch ? event.touches[0].clientX : event.clientX,
+                        y: isTouch ? event.touches[0].clientY : event.clientY
                     };
                     
                     this.moveLongPressTimer = setTimeout(() => {
-                        this.debugLog('Move long press timer triggered');
                         // 移動開始
-                        this.startDrag(event, eventData);
+                        this.startDrag(event, eventData, isTouch);
                         this.clearMoveLongPress();
                     }, 100); // 100ms長押し
                     
-                    const moveHandler = (e) => this.handleMoveLongPressMove(e);
-                    const endHandler = (e) => this.handleMoveLongPressEnd(e, moveHandler, endHandler);
+                    const moveHandler = (e) => this.handleMoveLongPressMove(e, isTouch);
+                    const endHandler = (e) => this.handleMoveLongPressEnd(e, moveHandler, endHandler, isTouch);
                     
-                    document.addEventListener('pointermove', moveHandler, { passive: false });
-                    document.addEventListener('pointerup', endHandler, { passive: false });
-                    document.addEventListener('pointercancel', endHandler, { passive: false });
+                    if (isTouch) {
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler, { passive: false });
+                    } else {
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
                 },
                 
-                handleMoveLongPressMove(event) {
-                    if (!this.moveLongPressTimer) return;
-                    
-                    const currentX = event.clientX;
-                    const currentY = event.clientY;
+                handleMoveLongPressMove(event, isTouch) {
+                    const currentX = isTouch ? event.touches[0].clientX : event.clientX;
+                    const currentY = isTouch ? event.touches[0].clientY : event.clientY;
                     
                     const deltaX = Math.abs(currentX - this.startPosition.x);
                     const deltaY = Math.abs(currentY - this.startPosition.y);
                     
                     // 移動距離が閾値を超えたら長押しをキャンセル
-                    if (deltaX > 15 || deltaY > 15) {
-                        this.debugLog('Move long press canceled due to movement');
+                    if (deltaX > 10 || deltaY > 10) {
                         this.clearMoveLongPress();
                     }
                 },
                 
-                handleMoveLongPressEnd(event, moveHandler, endHandler) {
-                    this.debugLog('Move long press ended');
-                    
+                handleMoveLongPressEnd(event, moveHandler, endHandler, isTouch) {
                     // イベントリスナーを削除
-                    document.removeEventListener('pointermove', moveHandler);
-                    document.removeEventListener('pointerup', endHandler);
-                    document.removeEventListener('pointercancel', endHandler);
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
                     
                     this.clearMoveLongPress();
                 },
@@ -1140,30 +1077,31 @@
                     if (this.moveLongPressTimer) {
                         clearTimeout(this.moveLongPressTimer);
                         this.moveLongPressTimer = null;
-                        this.debugLog('Move long press timer cleared');
                     }
                 },
                 
                 // ドラッグ機能（移動）
-                startDrag(event, eventData) {
-                    this.debugLog('Starting drag', { eventTitle: eventData.title });
-                    
+                startDrag(event, eventData, isTouch) {
                     this.isDragging = true;
                     this.draggedEvent = eventData;
                     
-                    const moveHandler = (e) => this.handleDragMove(e);
-                    const endHandler = (e) => this.handleDragEnd(e, moveHandler, endHandler);
+                    const moveHandler = (e) => this.handleDragMove(e, isTouch);
+                    const endHandler = (e) => this.handleDragEnd(e, isTouch, moveHandler, endHandler);
                     
-                    document.addEventListener('pointermove', moveHandler, { passive: false });
-                    document.addEventListener('pointerup', endHandler, { passive: false });
-                    document.addEventListener('pointercancel', endHandler, { passive: false });
+                    if (isTouch) {
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler, { passive: false });
+                    } else {
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
                 },
                 
-                handleDragMove(event) {
+                handleDragMove(event, isTouch) {
                     if (!this.draggedEvent) return;
                     
                     event.preventDefault();
-                    const clientY = event.clientY;
+                    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
                     const rect = this.$refs.scrollContainer.getBoundingClientRect();
                     const y = clientY - rect.top + this.$refs.scrollContainer.scrollTop;
                     const snappedY = Math.round(y / 15) * 15;
@@ -1176,13 +1114,15 @@
                     this.dropGuideY = snappedY;
                 },
                 
-                handleDragEnd(event, moveHandler, endHandler) {
-                    this.debugLog('Drag ended');
-                    
+                handleDragEnd(event, isTouch, moveHandler, endHandler) {
                     // イベントリスナーを削除
-                    document.removeEventListener('pointermove', moveHandler);
-                    document.removeEventListener('pointerup', endHandler);
-                    document.removeEventListener('pointercancel', endHandler);
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
                     
                     if (this.draggedEvent) {
                         const newStartTime = this.pixelsToTime(this.dropGuideY);
@@ -1196,11 +1136,6 @@
                             this.events[eventIndex].startTime = newStartTime;
                             this.events[eventIndex].endTime = newEndTime;
                             this.saveData();
-                            this.debugLog('Event moved', { 
-                                eventTitle: this.draggedEvent.title,
-                                newStartTime, 
-                                newEndTime 
-                            });
                         }
                     }
                     
@@ -1217,25 +1152,29 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    this.debugLog('Starting resize', { eventTitle: eventData.title, direction });
-                    
                     this.isResizing = true;
                     this.resizingEvent = eventData;
                     this.resizeDirection = direction;
                     
-                    const moveHandler = (e) => this.handleResizeMove(e);
-                    const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
+                    const isTouch = event.type.includes('touch');
                     
-                    document.addEventListener('pointermove', moveHandler, { passive: false });
-                    document.addEventListener('pointerup', endHandler, { passive: false });
-                    document.addEventListener('pointercancel', endHandler, { passive: false });
+                    const moveHandler = (e) => this.handleResizeMove(e, isTouch);
+                    const endHandler = (e) => this.handleResizeEnd(e, isTouch, moveHandler, endHandler);
+                    
+                    if (isTouch) {
+                        document.addEventListener('touchmove', moveHandler, { passive: false });
+                        document.addEventListener('touchend', endHandler, { passive: false });
+                    } else {
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', endHandler);
+                    }
                 },
                 
-                handleResizeMove(event) {
+                handleResizeMove(event, isTouch) {
                     if (!this.resizingEvent) return;
                     
                     event.preventDefault();
-                    const clientY = event.clientY;
+                    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
                     const rect = this.$refs.scrollContainer.getBoundingClientRect();
                     const y = clientY - rect.top + this.$refs.scrollContainer.scrollTop;
                     const snappedY = Math.round(y / 15) * 15;
@@ -1255,13 +1194,15 @@
                     }
                 },
                 
-                handleResizeEnd(event, moveHandler, endHandler) {
-                    this.debugLog('Resize ended');
-                    
+                handleResizeEnd(event, isTouch, moveHandler, endHandler) {
                     // イベントリスナーを削除
-                    document.removeEventListener('pointermove', moveHandler);
-                    document.removeEventListener('pointerup', endHandler);
-                    document.removeEventListener('pointercancel', endHandler);
+                    if (isTouch) {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                    } else {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                    }
                     
                     this.resizingEvent = null;
                     this.resizeDirection = null;
@@ -1269,11 +1210,19 @@
                     this.saveData();
                 },
                 
-                // スケジュールエリアクリック（修正済み）
+                // スケジュールエリアクリック（改良版）
                 handleScheduleClick(event) {
+                    // 編集モード開始直後（200ms以内）のクリックは無視
+                    const timeSinceEditMode = Date.now() - this.editModeActivatedTime;
+                    if (this.editModeEvent && timeSinceEditMode < 200) {
+                        console.log('Click ignored - too soon after edit mode activation', { timeSince: timeSinceEditMode });
+                        return;
+                    }
+                    
                     // 編集モードを終了
                     this.editModeEvent = null;
-                    this.debugLog('Schedule area clicked, edit mode cleared');
+                    this.editModeActivatedTime = 0;
+                    console.log('Schedule area clicked, edit mode cleared');
                     
                     // 予定追加メニューは削除済み - クリックでは何も実行しない
                 },
@@ -1318,9 +1267,7 @@
                         };
                     }
                     
-                    const modal = new bootstrap.Modal(document.getElementById('eventModal'), {
-                        focus: false
-                    });
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
                     modal.show();
                 },
                 
@@ -1393,15 +1340,6 @@
             mounted() {
                 this.detectMobile();
                 this.loadData();
-                
-                // PointerEvent対応チェック
-                this.supportsPointerEvents = 'PointerEvent' in window;
-                this.debugLog('PointerEvent support check', { supported: this.supportsPointerEvents });
-                
-                if (!this.supportsPointerEvents) {
-                    console.warn('PointerEvent not supported, may fall back to mouse/touch events');
-                    this.debugLog('PointerEvent not supported, may have compatibility issues');
-                }
                 
                 window.addEventListener('resize', this.detectMobile);
             },
