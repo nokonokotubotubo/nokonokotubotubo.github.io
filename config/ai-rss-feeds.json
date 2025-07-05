@@ -6,13 +6,8 @@
       "category": "tech"
     },
     {
-      "name": "Zenn トレンド",
+      "name": "Zenn トレンド", 
       "url": "https://zenn.dev/feed",
-      "category": "tech"
-    },
-    {
-      "name": "TechCrunch Japan",
-      "url": "https://jp.techcrunch.com/feed/",
       "category": "tech"
     },
     {
@@ -21,23 +16,38 @@
       "category": "tech"
     },
     {
-      "name": "日経新聞 テクノロジー",
-      "url": "https://www.nikkei.com/rss/",
-      "category": "business"
+      "name": "Publickey",
+      "url": "https://www.publickey1.jp/atom.xml",
+      "category": "tech"
     },
     {
-      "name": "ITmedia NEWS",
-      "url": "https://www.itmedia.co.jp/rss/2.0/news_technology.xml",
+      "name": "ITmedia総合",
+      "url": "https://rss.itmedia.co.jp/rss/2.0/itmedia_all.xml",
       "category": "tech"
     },
     {
       "name": "CNET Japan",
-      "url": "https://japan.cnet.com/rss/",
+      "url": "http://feed.japan.cnet.com/rss/index.rdf",
       "category": "tech"
     },
     {
-      "name": "Publickey",
-      "url": "https://www.publickey1.jp/atom.xml",
+      "name": "日経クロステック IT",
+      "url": "https://xtech.nikkei.com/rss/xtech-it.rdf",
+      "category": "tech"
+    },
+    {
+      "name": "TechCrunch本家",
+      "url": "https://techcrunch.com/feed/",
+      "category": "tech"
+    },
+    {
+      "name": "はてなブックマーク テクノロジー",
+      "url": "https://b.hatena.ne.jp/hotentry/it.rss",
+      "category": "tech"
+    },
+    {
+      "name": "GIGAZINE",
+      "url": "https://gigazine.net/news/rss_2.0/",
       "category": "tech"
     }
   ]
