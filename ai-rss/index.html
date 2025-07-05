@@ -196,16 +196,29 @@
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
           gap: 2rem;
-          animation: slideInUp 0.6s ease;
         }
 
         .hidden {
           display: none;
         }
 
+        /* ✅ 更新時・タブ切り替え時のみアニメーション */
+        .articles-container.show-animation {
+          animation: slideInUp 0.6s ease;
+        }
+
+        .article-card.show-animation {
+          animation: fadeInScale 0.6s ease;
+        }
+
         @keyframes slideInUp {
           from { transform: translateY(50px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInScale {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
 
         .article-card {
@@ -216,7 +229,6 @@
           transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           position: relative;
           box-shadow: var(--card-shadow);
-          animation: fadeInScale 0.6s ease;
         }
 
         .article-card:hover {
@@ -237,12 +249,6 @@
           border-left: 4px solid var(--not-interested-color);
         }
 
-        @keyframes fadeInScale {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        /* カテゴリ移動アニメーション */
         .article-card.moving-out {
           animation: cardMoveOut 0.5s ease-in-out forwards;
         }
@@ -261,7 +267,6 @@
           100% { transform: scale(1); opacity: 1; }
         }
 
-        /* 軽量なスケールアニメーション（同じカテゴリ時） */
         .article-card.light-scale {
           animation: lightScale 0.2s ease;
         }
@@ -271,7 +276,6 @@
           50% { transform: scale(1.01); }
         }
 
-        /* カテゴリ変更時のハイライト */
         .category-highlight {
           animation: categoryPulse 1s ease-in-out;
         }
@@ -410,7 +414,6 @@
           to { transform: translateX(0); opacity: 1; }
         }
 
-        /* パーティクル効果 */
         .particle-effect {
           position: absolute;
           width: 6px;
@@ -469,7 +472,6 @@
         let currentTab = 'all';
         let currentCategory = 'all';
         
-        // ユーザー評価の保存期間（30日）
         const USER_RATING_EXPIRY_DAYS = 30;
 
         async function loadLatestData() {
@@ -482,7 +484,6 @@
                 const data = await response.json();
                 console.log('✅ データ読み込み完了:', data.articles.length + '件');
                 
-                // ローカル評価をフィードデータに適用
                 const articlesWithUserPreferences = applyUserPreferencesToFeed(data.articles);
                 
                 currentData = {
@@ -490,7 +491,7 @@
                     articles: articlesWithUserPreferences
                 };
                 
-                renderDashboard(currentData);
+                renderDashboard(currentData, true);
                 
             } catch (error) {
                 console.error('❌ データ読み込み失敗:', error);
@@ -506,8 +507,6 @@
                 
                 if (userRating && userRating.rating) {
                     const newPreference = calculatePreferenceFromRating(userRating.rating);
-                    
-                    console.log(`📊 ユーザー評価適用: ${article.title.substring(0, 30)}... - ${article.preference} → ${newPreference}`);
                     
                     return {
                         ...article,
@@ -542,11 +541,9 @@
             });
             
             if (expiredCount > 0) {
-                console.log(`🧹 期限切れ評価データを削除: ${expiredCount}件`);
                 localStorage.setItem('ai-rss-feedback', JSON.stringify(validFeedback));
             }
             
-            console.log(`📊 有効な評価データ: ${Object.keys(validFeedback).length}件（期間: ${USER_RATING_EXPIRY_DAYS}日）`);
             return validFeedback;
         }
 
@@ -556,9 +553,7 @@
             return 'neutral';
         }
 
-        // ✅ 現在のカテゴリを取得する関数
         function getCurrentPreference(articleId) {
-            // currentDataから現在の嗜好を取得
             if (currentData && currentData.articles) {
                 const article = currentData.articles.find(a => a.id === articleId);
                 if (article) {
@@ -566,7 +561,6 @@
                 }
             }
             
-            // フォールバック: DOMから取得
             const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
             if (articleCard) {
                 if (articleCard.classList.contains('interested')) return 'interested';
@@ -574,16 +568,13 @@
                 if (articleCard.classList.contains('not-interested')) return 'not-interested';
             }
             
-            // デフォルト
             return 'neutral';
         }
 
-        // ✅ ユーザー評価マークのみ更新（軽量処理）
         function updateUserRatingMark(articleId, rating) {
             const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
             
             cards.forEach(card => {
-                // ユーザー評価マークを追加
                 let userMark = card.querySelector('.user-rated-mark');
                 if (!userMark) {
                     userMark = document.createElement('span');
@@ -592,10 +583,8 @@
                     card.appendChild(userMark);
                 }
                 
-                // 評価情報を更新
                 let ratingInfo = card.querySelector('.article-info[data-rating]');
                 if (!ratingInfo) {
-                    // 評価情報がない場合は追加
                     const metaDiv = card.querySelector('.article-meta');
                     ratingInfo = document.createElement('span');
                     ratingInfo.className = 'article-info';
@@ -604,7 +593,6 @@
                 }
                 ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
                 
-                // 軽量なスケールアニメーション
                 card.classList.add('light-scale');
                 setTimeout(() => {
                     card.classList.remove('light-scale');
@@ -612,7 +600,6 @@
             });
         }
 
-        // ✅ 星評価による最適化されたカテゴリ分け
         function setRating(articleId, rating) {
             let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
             
@@ -620,13 +607,9 @@
                 userFeedback[articleId] = {};
             }
             
-            // ✅ 現在のカテゴリを取得
             const currentPreference = getCurrentPreference(articleId);
-            
-            // ✅ 新しいカテゴリを計算
             const newPreference = calculatePreferenceFromRating(rating);
             
-            // 記事情報も保存（AI学習用）
             const article = currentData.articles.find(a => a.id === articleId);
             
             userFeedback[articleId] = {
@@ -640,28 +623,17 @@
             
             localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
             
-            // 星の表示を更新（常に実行）
             const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
             stars.forEach((star, index) => {
                 star.classList.toggle('filled', index < rating);
             });
             
-            // ✅ カテゴリが同じ場合は移動処理をスキップ
             if (currentPreference === newPreference) {
-                console.log('📊 カテゴリ変更なし:', currentPreference, '→', newPreference, '処理スキップ');
-                
-                // 評価マークのみ更新
                 updateUserRatingMark(articleId, rating);
-                
-                // 軽量なフィードバックメッセージ
                 showFeedbackMessage(`評価を保存しました（${rating}/5）`);
-                
-                return; // ✅ 早期リターンで不要な処理をスキップ
+                return;
             }
             
-            console.log('📊 カテゴリ変更あり:', currentPreference, '→', newPreference, '移動処理実行');
-            
-            // ✅ currentDataを更新
             if (currentData && currentData.articles) {
                 const articleIndex = currentData.articles.findIndex(a => a.id === articleId);
                 if (articleIndex !== -1) {
@@ -671,43 +643,30 @@
                 }
             }
             
-            // ✅ カテゴリが変わった場合のみ移動処理を実行
             moveArticleToNewCategory(articleId, currentPreference, newPreference, rating);
-            
-            // ✅ タブカウントを更新
             updateTabCountsFromCurrentData();
             
-            // 視覚的フィードバック（カテゴリ変更時のみ）
             showCategoryChangeAnimation(articleId, newPreference);
             showFeedbackMessage(`評価を保存し、「${getPreferenceName(newPreference)}」に移動しました！`);
-            
-            console.log('評価保存・カテゴリ移動:', articleId, rating, `${currentPreference} → ${newPreference}`);
         }
 
-        // ✅ 記事を新しいカテゴリコンテナに移動
         function moveArticleToNewCategory(articleId, oldPreference, newPreference, rating) {
             const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
             if (!articleCard) return;
             
-            // 記事カードの嗜好表示を更新
             updateArticlePreferenceVisual(articleCard, newPreference, rating);
             
-            // ✅ 記事を新しいコンテナに複製
             const updatedCard = articleCard.cloneNode(true);
             
-            // 全てのコンテナに新しい記事を追加
             const allContainer = document.getElementById('articles-all');
             const interestedContainer = document.getElementById('articles-interested');
             const neutralContainer = document.getElementById('articles-neutral');
             const notInterestedContainer = document.getElementById('articles-not-interested');
             
-            // 既存の記事を全コンテナから削除
             [allContainer, interestedContainer, neutralContainer, notInterestedContainer].forEach(container => {
                 const existingCard = container.querySelector(`[data-article-id="${articleId}"]`);
                 if (existingCard) {
-                    // ✅ フェードアウトアニメーション
                     existingCard.classList.add('moving-out');
-                    
                     setTimeout(() => {
                         if (existingCard.parentNode) {
                             existingCard.remove();
@@ -716,15 +675,12 @@
                 }
             });
             
-            // ✅ 新しいカテゴリコンテナに追加（フェードインアニメーション付き）
             setTimeout(() => {
-                // 全記事コンテナには常に追加
                 const allCardClone = updatedCard.cloneNode(true);
                 setupCardEventListeners(allCardClone);
                 allCardClone.classList.add('moving-in');
                 allContainer.appendChild(allCardClone);
                 
-                // 該当カテゴリコンテナにも追加
                 let targetContainer;
                 if (newPreference === 'interested') {
                     targetContainer = interestedContainer;
@@ -742,25 +698,20 @@
                 }
             }, 600);
             
-            // ✅ カテゴリ移動の視覚的効果
             setTimeout(() => {
                 highlightCategoryTab(newPreference);
             }, 800);
         }
 
-        // ✅ 記事カードの嗜好表示を更新
         function updateArticlePreferenceVisual(card, newPreference, rating) {
             const preferenceSpan = card.querySelector('.preference-badge');
             
-            // 既存のカテゴリクラスを削除
             card.classList.remove('interested', 'neutral', 'not-interested');
             preferenceSpan.classList.remove('badge-interested', 'badge-neutral', 'badge-not-interested');
             
-            // 新しいカテゴリを設定
             card.classList.add(newPreference);
             preferenceSpan.classList.add(`badge-${newPreference}`);
             
-            // ユーザー評価マークを追加
             let userMark = card.querySelector('.user-rated-mark');
             if (!userMark) {
                 userMark = document.createElement('span');
@@ -769,7 +720,6 @@
                 card.appendChild(userMark);
             }
             
-            // 嗜好表示テキストを更新
             if (newPreference === 'interested') {
                 preferenceSpan.textContent = '😍 興味ありそう（ユーザー評価）';
             } else if (newPreference === 'neutral') {
@@ -778,10 +728,8 @@
                 preferenceSpan.textContent = '😕 興味なさそう（ユーザー評価）';
             }
             
-            // 評価情報を更新
             let ratingInfo = card.querySelector('.article-info[data-rating]');
             if (!ratingInfo) {
-                // 評価情報がない場合は追加
                 const metaDiv = card.querySelector('.article-meta');
                 ratingInfo = document.createElement('span');
                 ratingInfo.className = 'article-info';
@@ -791,9 +739,7 @@
             ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
         }
 
-        // ✅ カードのイベントリスナーを設定
         function setupCardEventListeners(card) {
-            // 星評価のクリックイベントを再設定
             const stars = card.querySelectorAll('.star');
             stars.forEach(star => {
                 const articleId = card.dataset.articleId;
@@ -801,7 +747,6 @@
                 star.onclick = () => setRating(articleId, parseInt(rating));
             });
             
-            // タイトルクリックイベントを再設定
             const title = card.querySelector('.article-title');
             if (title) {
                 const onclickAttr = title.getAttribute('onclick');
@@ -812,11 +757,9 @@
             }
         }
 
-        // ✅ カテゴリタブをハイライト
         function highlightCategoryTab(preference) {
             const targetTab = document.querySelector(`[data-tab="${preference}"]`);
             if (targetTab) {
-                // 一時的にハイライト効果
                 targetTab.classList.add('category-highlight');
                 
                 setTimeout(() => {
@@ -825,19 +768,16 @@
             }
         }
 
-        // ✅ カテゴリ変更アニメーション
         function showCategoryChangeAnimation(articleId, newPreference) {
             const card = document.querySelector(`[data-article-id="${articleId}"]`);
             if (!card) return;
             
-            // カテゴリ変更のパーティクル効果
             const colors = {
                 'interested': '#10B981',
                 'neutral': '#F59E0B',
                 'not-interested': '#EF4444'
             };
             
-            // パーティクル効果を作成
             for (let i = 0; i < 5; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle-effect';
@@ -849,7 +789,6 @@
                 
                 document.body.appendChild(particle);
                 
-                // アニメーション
                 const angle = (i * 72) * Math.PI / 180;
                 const distance = 100;
                 
@@ -868,7 +807,6 @@
             }
         }
 
-        // ✅ 嗜好名を取得
         function getPreferenceName(preference) {
             const names = {
                 'interested': '興味ありそう',
@@ -878,7 +816,6 @@
             return names[preference] || preference;
         }
 
-        // ✅ タブカウントをcurrentDataから更新
         function updateTabCountsFromCurrentData() {
             if (!currentData || !currentData.articles) return;
             
@@ -898,7 +835,8 @@
             });
         }
         
-        function renderDashboard(data) {
+        // ✅ タブ状態管理修正版
+        function renderDashboard(data, isUpdate = false) {
             const articles = data.articles;
             const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
             const categories = [...new Set(articles.map(article => article.category))];
@@ -909,7 +847,6 @@
                 'not-interested': articles.filter(a => a.preference === 'not-interested')
             };
             
-            // ユーザー評価済み記事の統計
             const userRatedCount = articles.filter(a => a.userOverride).length;
             
             const html = `
@@ -933,38 +870,38 @@
                 </div>
 
                 <div class="stats-tabs">
-                    <div class="stat-tab-card interested" data-tab="interested">
+                    <div class="stat-tab-card interested ${currentTab === 'interested' ? 'active' : ''}" data-tab="interested">
                         <div class="stat-number">${articlesByPreference.interested.length}</div>
                         <div class="stat-label">😍 興味ありそう</div>
                     </div>
-                    <div class="stat-tab-card neutral" data-tab="neutral">
+                    <div class="stat-tab-card neutral ${currentTab === 'neutral' ? 'active' : ''}" data-tab="neutral">
                         <div class="stat-number">${articlesByPreference.neutral.length}</div>
                         <div class="stat-label">😐 普通</div>
                     </div>
-                    <div class="stat-tab-card not-interested" data-tab="not-interested">
+                    <div class="stat-tab-card not-interested ${currentTab === 'not-interested' ? 'active' : ''}" data-tab="not-interested">
                         <div class="stat-number">${articlesByPreference['not-interested'].length}</div>
                         <div class="stat-label">😕 興味なさそう</div>
                     </div>
-                    <div class="stat-tab-card all active" data-tab="all">
+                    <div class="stat-tab-card all ${currentTab === 'all' ? 'active' : ''}" data-tab="all">
                         <div class="stat-number">${articles.length}</div>
                         <div class="stat-label">📄 総記事数</div>
                     </div>
                 </div>
             </div>
 
-            <div id="articles-all" class="articles-container">
+            <div id="articles-all" class="articles-container ${currentTab === 'all' ? '' : 'hidden'} ${isUpdate && currentTab === 'all' ? 'show-animation' : ''}">
                 ${articles.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-interested" class="articles-container hidden">
+            <div id="articles-interested" class="articles-container ${currentTab === 'interested' ? '' : 'hidden'} ${isUpdate && currentTab === 'interested' ? 'show-animation' : ''}">
                 ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-neutral" class="articles-container hidden">
+            <div id="articles-neutral" class="articles-container ${currentTab === 'neutral' ? '' : 'hidden'} ${isUpdate && currentTab === 'neutral' ? 'show-animation' : ''}">
                 ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-not-interested" class="articles-container hidden">
+            <div id="articles-not-interested" class="articles-container ${currentTab === 'not-interested' ? '' : 'hidden'} ${isUpdate && currentTab === 'not-interested' ? 'show-animation' : ''}">
                 ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
             </div>`;
             
@@ -974,6 +911,15 @@
             
             setupEventListeners();
             restoreUserRatings();
+            
+            if (isUpdate) {
+                const activeContainer = document.querySelector('.articles-container:not(.hidden)');
+                if (activeContainer) {
+                    activeContainer.querySelectorAll('.article-card').forEach(card => {
+                        card.classList.add('show-animation');
+                    });
+                }
+            }
         }
         
         function generateArticleCard(article) {
@@ -1012,7 +958,7 @@
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
-                        <div class="rating-label">この記事を評価（最適化済み）</div>
+                        <div class="rating-label">この記事を評価（タブ状態保持）</div>
                     </div>
                 </div>
             </div>`;
@@ -1046,7 +992,7 @@
         }
         
         function setupEventListeners() {
-            // タブ切り替え機能
+            // ✅ タブ切り替え時のアニメーション
             document.querySelectorAll('.stat-tab-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const tabType = card.dataset.tab;
@@ -1054,7 +1000,6 @@
                 });
             });
 
-            // カテゴリフィルタ
             document.getElementById('categoryFilter').addEventListener('change', (e) => {
                 currentCategory = e.target.value;
                 applyFilters();
@@ -1064,18 +1009,21 @@
         function switchTab(tabType) {
             currentTab = tabType;
             
-            // すべてのコンテナを非表示
             document.querySelectorAll('.articles-container').forEach(container => {
                 container.classList.add('hidden');
+                container.classList.remove('show-animation');
             });
             
-            // 選択されたタブのコンテナを表示
             const targetContainer = document.getElementById('articles-' + tabType);
             if (targetContainer) {
                 targetContainer.classList.remove('hidden');
+                // ✅ タブ切り替え時のアニメーション
+                targetContainer.classList.add('show-animation');
+                targetContainer.querySelectorAll('.article-card').forEach(card => {
+                    card.classList.add('show-animation');
+                });
             }
             
-            // タブカードの状態更新
             document.querySelectorAll('.stat-tab-card').forEach(card => {
                 card.classList.remove('active');
             });
@@ -1115,16 +1063,11 @@
             });
         }
         
-        // ページ読み込み時に実行
         document.addEventListener('DOMContentLoaded', loadLatestData);
-        
-        // 定期的な更新（5分ごと）
         setInterval(loadLatestData, 300000);
 
-        // ページ表示時に最新データをチェック
         document.addEventListener("visibilitychange", function() {
             if (!document.hidden) {
-                console.log("タブがアクティブになりました - 最新データをチェック");
                 loadLatestData();
             }
         });
