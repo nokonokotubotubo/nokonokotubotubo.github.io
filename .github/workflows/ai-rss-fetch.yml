@@ -27,7 +27,7 @@ jobs:
     - name: Create output directories
       run: |
         mkdir -p ai-rss-temp/data
-        mkdir -p ai-rss
+        mkdir -p deploy/ai-rss
         
     - name: Process RSS feeds
       run: node src/ai-rss-processor.js
@@ -40,21 +40,23 @@ jobs:
         node src/ai-data-generator.js
         ls -la ai-rss-temp/dashboard.html
         
-    - name: Copy HTML without encryption
+    # ✅ 修正：/ai-rss/ サブディレクトリ構造を作成
+    - name: Create ai-rss subdirectory structure
       run: |
-        cp ai-rss-temp/dashboard.html ai-rss/index.html
-        echo "File copied successfully"
-        ls -la ai-rss/index.html
+        cp ai-rss-temp/dashboard.html deploy/ai-rss/index.html
+        echo "Dashboard copied to deploy/ai-rss/"
+        ls -la deploy/ai-rss/
         
+    # ✅ 修正：deployディレクトリをルートにデプロイ
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./ai-rss
+        publish_dir: ./deploy
         force_orphan: true
         enable_jekyll: false
         
     - name: Deployment complete
       run: |
         echo "Dashboard deployed successfully!"
-        echo "Access: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo "Access: https://nokonokotubotubo.github.io/ai-rss/"
