@@ -1,38 +1,56 @@
-name: Create ai-rss on main branch
+name: AI RSS Feed Processing - Complete
 
 on:
+  schedule:
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
-  create-ai-rss:
+  ai-rss-processing:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
-    - name: Checkout main branch
+    - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Create ai-rss directory and index.html
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install rss-parser
+        
+    - name: Create output directories
+      run: mkdir -p ai-rss-temp/data
+        
+    - name: Process RSS feeds
+      run: node src/ai-rss-processor.js
+        
+    - name: Analyze articles with AI
+      run: node src/ai-analyzer.js
+        
+    - name: Generate HTML dashboard
+      run: |
+        node src/ai-data-generator.js
+        echo "Dashboard generated: $(wc -c < ai-rss-temp/dashboard.html) bytes"
+        
+    - name: Deploy AI RSS Dashboard
       run: |
         mkdir -p ai-rss
-        cat > ai-rss/index.html << 'EOF'
-        <!DOCTYPE html>
-        <html lang="ja">
-        <head>
-        <meta charset="UTF-8">
-        <title>AI RSS Dashboard</title>
-        </head>
-        <body>
-        <h1>AI RSS Dashboard</h1>
-        <p>Successfully created on main branch</p>
-        </body>
-        </html>
-        EOF
-        echo "Created ai-rss/index.html: $(wc -c < ai-rss/index.html) bytes"
+        cp ai-rss-temp/dashboard.html ai-rss/index.html
         
-    - name: Commit and push to main
-      run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add ai-rss/index.html
-        git commit -m "Create ai-rss/index.html"
+        git commit -m "Update AI RSS Dashboard: $(date '+%Y-%m-%d %H:%M')"
         git push
+        
+    - name: Deployment complete
+      run: |
+        echo "🎉 AI RSS Dashboard deployed successfully!"
+        echo "🔗 Access: https://nokonokotubotubo.github.io/ai-rss/"
+        echo "📊 Features: 5-star rating, AI preference analysis, interactive dashboard"
