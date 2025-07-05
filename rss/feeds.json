@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T07:15:07.361Z",
+  "updated": "2025-07-05T08:20:22.409Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -34,6 +34,18 @@
       "sourceColor": "#55C500",
       "sourceFeed": "qiita",
       "summary": "ローカルPC上で起動したVS CodeからWebサービスのGoogle Colabに接続できるのか？…ChatGPTに聞いてみましたが、やはり無理のようでした。結果を記載します。 結果的には不可能でしたが、ただ、生成AIに聞いていくと(2回目で)、結構いい所まで進む手順...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
+      "title": "【非エンジニア向け】Chrome MCP 概要について",
+      "link": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
+      "published": "2025-07-04T23:08:55.000Z",
+      "description": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに 「AIアシスタントがブラウザを直接操作してくれたら便利なのに...」と思ったことはありませんか？ Chrome MCP Serverは、そんな願いを叶える革新的なツールです。Model...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに ",
       "thumbnail": null
     },
     {
@@ -154,18 +166,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "2025年5月から6月にかけて、夏のスマートフォン新商品が相次いで発表されたが、その中でもFCNTが発表した「arrows Alpha」と、モトローラ・モビリティが発表した「motorola edge 60 pro」は、機能・性能などで似通っている部分が多い。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/govtechtokyo/articles/be81294e64ff95",
-      "title": "あなたのコンテンツはAI-Ready? 生成AIにスルーされない自治体ウェブサイトのつくりかた",
-      "link": "https://zenn.dev/govtechtokyo/articles/be81294e64ff95",
-      "published": "2025-07-04T05:00:05.000Z",
-      "description": "はじめに もはや生成AIなしの生活や仕事は考えられない、そんな方も増えてきているのではないでしょうか。私もまさにその一人です。 私はGovTech東京の業務を通じて、都庁や都内自治体皆さんのDX支援をしておりますが、様々な行政サービスや業務において生成AIの積極活用が進んでいます。 このように「生成AIの活用」は今や誰もが注目するテーマですが、自治体ウェブサイト（以降、自治体サイト）の運用や改善を伴走支援している立場としては、生成AIが自治体のコンテンツを正しく引用しているかどうかも、最近...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに もはや生成AIなしの生活や仕事は考えられない、そんな方も増えてきているのではないでしょうか。私もまさにその一人です。 私はGovTech東京の業務を通じて、都庁や都内自治体皆さんのDX支援をしておりますが、様々な行政サービスや業務において生成AIの積極活用が進んでいます。 このように「生成",
       "thumbnail": null
     },
     {
