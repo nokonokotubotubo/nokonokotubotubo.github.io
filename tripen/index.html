@@ -102,7 +102,7 @@
             min-width: 120px;
             transition: all 0.3s ease;
             position: relative;
-            padding-left: 30px; /* ドラッグハンドル分の余白 */
+            padding-left: 30px;
             display: block;
         }
         
@@ -131,7 +131,7 @@
             cursor: grabbing;
         }
         
-        .tab-content {
+        .tab-content-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -184,7 +184,7 @@
             box-shadow: 0 0 0 2px rgba(135, 206, 235, 0.3);
         }
         
-        /* ＋ボタン専用のスタイルを修正 */
+        /* ＋ボタン専用のスタイル */
         .day-tabs .nav-link.add-day-btn {
             background: transparent !important;
             color: var(--accent-color) !important;
@@ -194,7 +194,7 @@
             justify-content: center;
             min-width: 60px;
             transition: all 0.3s ease;
-            padding-left: 20px; /* ドラッグハンドル分の余白を調整 */
+            padding-left: 20px;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -262,7 +262,7 @@
             background: var(--time-grid-color);
             border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
-            height: 100%; /* 親要素の高さに合わせる */
+            height: 100%;
             min-height: 1200px;
         }
         
@@ -288,7 +288,6 @@
             top: 0;
             left: 0;
             right: 0;
-            /* 4時から23時まで = 20時間 × 60px = 1200px */
             height: 1200px;
         }
         
@@ -571,7 +570,6 @@
             }
             
             .schedule-grid {
-                /* 4時から23時まで = 20時間 × 50px = 1000px */
                 height: 1000px;
             }
             
@@ -678,7 +676,7 @@
                             <div class="drag-handle">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
-                            <div class="tab-content">
+                            <div class="tab-content-wrapper">
                                 <div>{{ day.dayNumber }}日目</div>
                                 <small v-if="!day.isEditing" 
                                        @click.stop="startDateEdit(index)"
@@ -1150,14 +1148,6 @@
                                 });
                             }
                             
-                            modalElement.addEventListener('shown.bs.modal', () => {
-                                modalElement.removeAttribute('aria-hidden');
-                            });
-                            
-                            modalElement.addEventListener('hidden.bs.modal', () => {
-                                modalElement.setAttribute('aria-hidden', 'true');
-                            });
-                            
                             modal.show();
                         }
                     });
@@ -1221,14 +1211,6 @@
                                     keyboard: true
                                 });
                             }
-                            
-                            modalElement.addEventListener('shown.bs.modal', () => {
-                                modalElement.removeAttribute('aria-hidden');
-                            });
-                            
-                            modalElement.addEventListener('hidden.bs.modal', () => {
-                                modalElement.setAttribute('aria-hidden', 'true');
-                            });
                             
                             modal.show();
                         }
@@ -1520,14 +1502,6 @@
                                 focus: true,
                                 backdrop: true,
                                 keyboard: true
-                            });
-                            
-                            modalElement.addEventListener('shown.bs.modal', () => {
-                                modalElement.removeAttribute('aria-hidden');
-                            });
-                            
-                            modalElement.addEventListener('hidden.bs.modal', () => {
-                                modalElement.setAttribute('aria-hidden', 'true');
                             });
                             
                             modal.show();
@@ -1874,3 +1848,82 @@
                         this.eventForm = {
                             title: '',
                             dayIndex: this.activeDay,
+                            startTime: '09:00',
+                            endTime: '10:00',
+                            category: 'travel',
+                            description: ''
+                        };
+                    }
+                    
+                    this.$nextTick(() => {
+                        const modalElement = document.getElementById('eventModal');
+                        if (modalElement) {
+                            modalElement.removeAttribute('aria-hidden');
+                            
+                            const modal = new bootstrap.Modal(modalElement, {
+                                focus: true,
+                                backdrop: true,
+                                keyboard: true
+                            });
+                            
+                            modal.show();
+                        }
+                    });
+                },
+                
+                saveEvent() {
+                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
+                        alert('必須項目を入力してください');
+                        return;
+                    }
+                    
+                    if (this.eventForm.startTime >= this.eventForm.endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const eventData = {
+                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
+                        title: this.eventForm.title,
+                        dayIndex: this.eventForm.dayIndex,
+                        startTime: this.eventForm.startTime,
+                        endTime: this.eventForm.endTime,
+                        category: this.eventForm.category,
+                        description: this.eventForm.description
+                    };
+                    
+                    if (this.editingEvent) {
+                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
+                        this.events[index] = eventData;
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
+                    this.saveData();
+                    this.editModeEvent = null;
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                    modal.hide();
+                },
+                
+                deleteEvent() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
+                        this.saveData();
+                        this.editModeEvent = null;
+                        
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                        modal.hide();
+                    }
+                },
+                
+                // データ保存・読み込み
+                saveData() {
+                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    localStorage.setItem('trippenInitialized', 'true');
+                },
+                
+                loadData() {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem
