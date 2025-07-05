@@ -48,6 +48,8 @@
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: var(--secondary-color) transparent;
+            position: relative;
+            z-index: 1;
         }
         
         .day-tabs-container::-webkit-scrollbar {
@@ -180,6 +182,8 @@
             transition: all 0.3s ease;
             padding: 12px 20px !important;
             border-radius: 15px 15px 0 0;
+            cursor: pointer;
+            z-index: 5;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -203,6 +207,14 @@
             display: none;
             align-items: center;
             justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-day-btn:hover {
+            background: rgba(255, 99, 99, 1);
+            transform: scale(1.1);
         }
         
         .day-tabs .nav-link:hover .delete-day-btn {
@@ -611,14 +623,21 @@
                             </div>
                             <button class="delete-day-btn" 
                                     v-if="tripDays.length > 1"
-                                    @click.stop="deleteDay(index)"
+                                    @click.stop.prevent="deleteDay(index)"
+                                    @mousedown.stop
+                                    @touchstart.stop
                                     title="日程を削除">
                                 <i class="fas fa-times"></i>
                             </button>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link add-day-btn" @click.prevent="addDayImmediately" href="#" title="日程を追加">
+                        <a class="nav-link add-day-btn" 
+                           @click.prevent.stop="addDayImmediately" 
+                           @mousedown.stop
+                           @touchstart.stop
+                           href="#" 
+                           title="日程を追加">
                             <i class="fas fa-plus"></i>
                         </a>
                     </li>
@@ -632,7 +651,6 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
-                    <!-- ＋予定追加ボタンを削除 -->
                 </div>
                 
                 <div class="timeline-content">
@@ -1277,15 +1295,18 @@
                     
                     event.preventDefault();
                     event.stopPropagation();
+                    
+                    // 既に編集モードの場合は即座にドラッグ移動を開始
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        this.startDragMove(event, eventData);
+                        return;
+                    }
+                    
                     this.startEditModeLongPress(event, eventData);
                 },
                 
                 startEditModeLongPress(event, eventData) {
                     this.longPressSucceeded = false;
-                    
-                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                        return;
-                    }
                     
                     this.startPosition = {
                         x: event.clientX,
@@ -1295,11 +1316,13 @@
                     this.longPressTimer = setTimeout(() => {
                         this.longPressSucceeded = true;
                         this.editModeEvent = eventData;
-                        this.clearLongPress();
                         
                         if (navigator.vibrate) {
                             navigator.vibrate(50);
                         }
+                        
+                        // 長押し成功後にドラッグ移動を開始
+                        this.startDragMove(event, eventData);
                     }, 500);
                     
                     const moveHandler = (e) => this.handleLongPressMove(e);
@@ -1307,6 +1330,47 @@
                     
                     document.addEventListener('mousemove', moveHandler);
                     document.addEventListener('mouseup', endHandler);
+                },
+                
+                startDragMove(event, eventData) {
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
+                    const startY = event.clientY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const initialTop = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    
+                    const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
+                    const endHandler = (e) => this.handleDragEnd(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', endHandler);
+                },
+                
+                handleDragMove(event, startY, initialTop) {
+                    const deltaY = event.clientY - startY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedTop);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && endTime <= '23:45') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    }
+                },
+                
+                handleDragEnd(event, moveHandler, endHandler) {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    this.saveData();
                 },
                 
                 handleLongPressMove(event) {
