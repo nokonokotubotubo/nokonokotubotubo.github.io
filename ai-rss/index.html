@@ -13,19 +13,27 @@
     <style>
         :root {
           --primary-light: #E0F7FF;
+          --primary-medium: #B8E6FF;
+          --primary-dark: #87CEEB;
           --primary-accent: #5BA8C4;
           --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
           --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+          --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
           --text-primary: #2C3E50;
           --text-secondary: #5A6C7D;
           --text-light: #8FA0B3;
           --border-color: #E8F4F8;
+          --border-hover: #B8E6FF;
           --interested-color: #10B981;
           --neutral-color: #F59E0B;
           --not-interested-color: #EF4444;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
 
         body {
           font-family: 'Noto Sans JP', sans-serif;
@@ -40,13 +48,20 @@
           padding: 4rem;
           font-size: 1.5rem;
           color: var(--primary-accent);
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
         }
 
         .header {
-          background: linear-gradient(135deg, #87CEEB 0%, var(--primary-accent) 100%);
+          background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-accent) 100%);
           padding: 2rem;
           text-align: center;
           margin-bottom: 3rem;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
         }
 
         .header h1 {
@@ -54,6 +69,8 @@
           font-size: 3.5rem;
           font-weight: 900;
           margin-bottom: 1rem;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          animation: slideInDown 0.8s ease;
         }
 
         .header p {
@@ -68,18 +85,56 @@
           gap: 2rem;
           color: rgba(255, 255, 255, 0.8);
           font-size: 0.9rem;
+          animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes slideInDown {
+          from { transform: translateY(-50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         .stats-section {
           max-width: 1200px;
           margin: 0 auto 3rem;
           padding: 0 2rem;
+          position: relative;
+        }
+
+        .category-filter-wrapper {
+          position: absolute;
+          top: 0;
+          left: 2rem;
+          z-index: 10;
+        }
+
+        .category-filter {
+          padding: 0.8rem 1.2rem;
+          border: 2px solid var(--border-color);
+          border-radius: 8px;
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: var(--card-shadow);
+        }
+
+        .category-filter:hover {
+          border-color: var(--border-hover);
+          transform: translateY(-2px);
         }
 
         .stats-tabs {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 1.5rem;
+          margin-top: 3rem;
         }
 
         .stat-tab-card {
@@ -90,16 +145,49 @@
           text-align: center;
           box-shadow: var(--card-shadow);
           transition: all 0.4s ease;
+          position: relative;
+          overflow: hidden;
           cursor: pointer;
+          user-select: none;
+        }
+
+        .stat-tab-card:hover {
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: var(--card-shadow-hover);
+          border-color: var(--border-hover);
         }
 
         .stat-tab-card.active {
-          background: linear-gradient(135deg, var(--primary-accent) 0%, #87CEEB 100%);
+          background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
+          border-color: var(--primary-accent);
           color: #fff;
+          transform: translateY(-8px) scale(1.05);
         }
 
-        .stat-number { font-size: 3rem; font-weight: 900; margin-bottom: 0.5rem; }
-        .stat-label { font-size: 1rem; font-weight: 600; }
+        .stat-tab-card.interested.active {
+          background: linear-gradient(135deg, var(--interested-color), #059669);
+        }
+
+        .stat-tab-card.neutral.active {
+          background: linear-gradient(135deg, var(--neutral-color), #D97706);
+        }
+
+        .stat-tab-card.not-interested.active {
+          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+        }
+
+        .stat-number {
+          font-size: 3rem;
+          font-weight: 900;
+          margin-bottom: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .stat-label {
+          font-size: 1rem;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
 
         .articles-container {
           max-width: 1200px;
@@ -108,6 +196,16 @@
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
           gap: 2rem;
+          animation: slideInUp 0.6s ease;
+        }
+
+        .hidden {
+          display: none;
+        }
+
+        @keyframes slideInUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
 
         .article-card {
@@ -116,23 +214,51 @@
           border-radius: 24px;
           overflow: hidden;
           transition: all 0.4s ease;
+          position: relative;
           box-shadow: var(--card-shadow);
+          animation: fadeInScale 0.6s ease;
         }
 
-        .article-card:hover { transform: translateY(-8px) scale(1.02); }
+        .article-card:hover {
+          border-color: var(--border-hover);
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: var(--card-shadow-hover);
+        }
 
-        .article-content { padding: 2.5rem; }
+        .article-card.interested {
+          border-left: 4px solid var(--interested-color);
+        }
+
+        .article-card.neutral {
+          border-left: 4px solid var(--neutral-color);
+        }
+
+        .article-card.not-interested {
+          border-left: 4px solid var(--not-interested-color);
+        }
+
+        @keyframes fadeInScale {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        .article-content {
+          padding: 2.5rem;
+        }
 
         .article-title {
           font-size: 1.4rem;
           font-weight: 700;
           color: var(--text-primary);
           margin-bottom: 1rem;
+          line-height: 1.4;
           cursor: pointer;
           transition: color 0.3s ease;
         }
 
-        .article-title:hover { color: var(--primary-accent); }
+        .article-title:hover {
+          color: var(--primary-accent);
+        }
 
         .article-meta {
           display: flex;
@@ -148,11 +274,20 @@
           font-size: 0.8rem;
           font-weight: 700;
           color: #fff;
+          transition: all 0.3s ease;
         }
 
-        .badge-interested { background: var(--interested-color); }
-        .badge-neutral { background: var(--neutral-color); }
-        .badge-not-interested { background: var(--not-interested-color); }
+        .badge-interested {
+          background: linear-gradient(135deg, var(--interested-color), #059669);
+        }
+
+        .badge-neutral {
+          background: linear-gradient(135deg, var(--neutral-color), #D97706);
+        }
+
+        .badge-not-interested {
+          background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+        }
 
         .article-info {
           font-size: 0.9rem;
@@ -170,11 +305,15 @@
         .rating-section {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           padding-top: 1.5rem;
           border-top: 2px solid var(--border-color);
         }
 
-        .rating-stars { display: flex; gap: 0.5rem; }
+        .rating-stars {
+          display: flex;
+          gap: 0.5rem;
+        }
 
         .star {
           cursor: pointer;
@@ -184,12 +323,76 @@
           user-select: none;
         }
 
-        .star.filled { color: #FBBF24; transform: scale(1.1); }
-        .star:hover { color: #FBBF24; transform: scale(1.2); }
+        .star.filled {
+          color: #FBBF24;
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+        }
+
+        .star:hover {
+          color: #FBBF24;
+          transform: scale(1.2);
+        }
+
+        .rating-label {
+          font-size: 0.9rem;
+          color: var(--text-light);
+          font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+          .stats-tabs {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .articles-container {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          }
+        }
 
         @media (max-width: 768px) {
-          .stats-tabs { grid-template-columns: repeat(2, 1fr); }
-          .articles-container { grid-template-columns: 1fr; padding: 0 1rem; }
+          .header h1 {
+            font-size: 2.8rem;
+          }
+          .header-stats {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          .stats-tabs {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+          }
+          .articles-container {
+            grid-template-columns: 1fr;
+            padding: 0 1rem;
+          }
+          .stats-section {
+            padding: 0 1rem;
+          }
+          .category-filter-wrapper {
+            position: relative;
+            left: 0;
+            margin-bottom: 1rem;
+          }
+        }
+
+        /* 評価時のフィードバックアニメーション */
+        .rating-feedback {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: var(--interested-color);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+          z-index: 1000;
+          animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
@@ -201,6 +404,10 @@
     <div id="dashboard-container" style="display: none;"></div>
 
     <script>
+        let currentData = null;
+        let currentTab = 'all';
+        let currentCategory = 'all';
+
         async function loadLatestData() {
             try {
                 const cacheBuster = Date.now();
@@ -211,17 +418,19 @@
                 const data = await response.json();
                 console.log('✅ データ読み込み完了:', data.articles.length + '件');
                 
+                currentData = data;
                 renderDashboard(data);
                 
             } catch (error) {
                 console.error('❌ データ読み込み失敗:', error);
-                document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました';
+                document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました<br><button onclick="loadLatestData()">🔄 再試行</button>';
             }
         }
         
         function renderDashboard(data) {
             const articles = data.articles;
             const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
+            const categories = [...new Set(articles.map(article => article.category))];
             
             const articlesByPreference = {
                 interested: articles.filter(a => a.preference === 'interested'),
@@ -236,50 +445,71 @@
                 <div class="header-stats">
                     <span>最終更新: ${updateTime}</span>
                     <span>総記事数: ${articles.length}件</span>
-                    <span>🔄 データ自動更新</span>
+                    <span>🔄 リアルタイム更新</span>
                 </div>
             </header>
 
             <div class="stats-section">
+                <div class="category-filter-wrapper">
+                    <select id="categoryFilter" class="category-filter">
+                        <option value="all">📂 すべて表示</option>
+                        ${categories.map(cat => `<option value="${cat}">🏷️ ${cat}</option>`).join('')}
+                    </select>
+                </div>
+
                 <div class="stats-tabs">
-                    <div class="stat-tab-card interested">
+                    <div class="stat-tab-card interested" data-tab="interested">
                         <div class="stat-number">${articlesByPreference.interested.length}</div>
                         <div class="stat-label">😍 興味ありそう</div>
                     </div>
-                    <div class="stat-tab-card neutral">
+                    <div class="stat-tab-card neutral" data-tab="neutral">
                         <div class="stat-number">${articlesByPreference.neutral.length}</div>
                         <div class="stat-label">😐 普通</div>
                     </div>
-                    <div class="stat-tab-card not-interested">
+                    <div class="stat-tab-card not-interested" data-tab="not-interested">
                         <div class="stat-number">${articlesByPreference['not-interested'].length}</div>
                         <div class="stat-label">😕 興味なさそう</div>
                     </div>
-                    <div class="stat-tab-card all active">
+                    <div class="stat-tab-card all active" data-tab="all">
                         <div class="stat-number">${articles.length}</div>
                         <div class="stat-label">📄 総記事数</div>
                     </div>
                 </div>
             </div>
 
-            <div class="articles-container">
+            <div id="articles-all" class="articles-container">
                 ${articles.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-interested" class="articles-container hidden">
+                ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-neutral" class="articles-container hidden">
+                ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
+            </div>
+
+            <div id="articles-not-interested" class="articles-container hidden">
+                ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
             </div>`;
             
             document.getElementById('dashboard-container').innerHTML = html;
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboard-container').style.display = 'block';
             
+            setupEventListeners();
             restoreUserRatings();
         }
         
         function generateArticleCard(article) {
             const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
+            const relativeTime = getRelativeTime(article.pubDate);
             const userRating = getUserRating(article.id);
             
             return `
-            <div class="article-card ${article.preference}" data-article-id="${article.id}">
+            <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
                 <div class="article-content">
-                    <h2 class="article-title" onclick="window.open('${article.link}', '_blank')">
+                    <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
                         ${article.title}
                     </h2>
                     <div class="article-meta">
@@ -288,7 +518,9 @@
                               article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}
                         </span>
                         <span class="article-info">📅 ${publishDate}</span>
+                        <span class="article-info">⏰ ${relativeTime}</span>
                         <span class="article-info">📰 ${article.feedName}</span>
+                        <span class="article-info">🏷️ ${article.category}</span>
                     </div>
                     <div class="article-description">
                         ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
@@ -302,9 +534,23 @@
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
+                        <div class="rating-label">この記事を評価</div>
                     </div>
                 </div>
             </div>`;
+        }
+
+        function getRelativeTime(dateString) {
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffHours < 1) return '1時間未満前';
+            if (diffHours < 24) return `${diffHours}時間前`;
+            if (diffDays < 7) return `${diffDays}日前`;
+            return '1週間以上前';
         }
         
         function getUserRating(articleId) {
@@ -323,12 +569,89 @@
             
             localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
             
+            // 星の表示を更新
             const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
             stars.forEach((star, index) => {
                 star.classList.toggle('filled', index < rating);
             });
             
+            // 視覚的フィードバック
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            card.style.transform = 'scale(1.02)';
+            card.style.boxShadow = '0 8px 30px rgba(91, 168, 196, 0.3)';
+            setTimeout(() => {
+                card.style.transform = '';
+                card.style.boxShadow = '';
+            }, 300);
+            
+            showFeedbackMessage('評価を保存しました！');
             console.log('評価保存:', articleId, rating);
+        }
+
+        function showFeedbackMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            messageDiv.className = 'rating-feedback';
+            
+            document.body.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+        
+        function setupEventListeners() {
+            // タブ切り替え機能
+            document.querySelectorAll('.stat-tab-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const tabType = card.dataset.tab;
+                    switchTab(tabType);
+                });
+            });
+
+            // カテゴリフィルタ
+            document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                currentCategory = e.target.value;
+                applyFilters();
+            });
+        }
+
+        function switchTab(tabType) {
+            currentTab = tabType;
+            
+            // すべてのコンテナを非表示
+            document.querySelectorAll('.articles-container').forEach(container => {
+                container.classList.add('hidden');
+            });
+            
+            // 選択されたタブのコンテナを表示
+            const targetContainer = document.getElementById('articles-' + tabType);
+            if (targetContainer) {
+                targetContainer.classList.remove('hidden');
+            }
+            
+            // タブカードの状態更新
+            document.querySelectorAll('.stat-tab-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            const activeCard = document.querySelector(`[data-tab="${tabType}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const activeContainer = document.querySelector('.articles-container:not(.hidden)');
+            if (!activeContainer) return;
+
+            activeContainer.querySelectorAll('.article-card').forEach(card => {
+                const category = card.dataset.category;
+                if (currentCategory === 'all' || category === currentCategory) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
         
         function restoreUserRatings() {
@@ -347,8 +670,20 @@
         // ページ読み込み時に実行
         document.addEventListener('DOMContentLoaded', loadLatestData);
         
-        // 5分ごとに自動更新
+        // 定期的な更新（5分ごと）
         setInterval(loadLatestData, 300000);
+
+        // タブの表示/非表示を検出（検索結果[2]に基づく）
+        document.addEventListener("visibilitychange", function() {
+            if (document.hidden) {
+                console.log("タブが非アクティブになりました");
+                // 自動更新を一時停止
+            } else {
+                console.log("タブがアクティブになりました");
+                // 最新データをチェック
+                loadLatestData();
+            }
+        });
     </script>
 </body>
 </html>
