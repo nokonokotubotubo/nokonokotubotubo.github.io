@@ -177,12 +177,7 @@
             justify-content: center;
             min-width: 60px;
             transition: all 0.3s ease;
-            padding-left: 20px !important; /* 通常のタブと同じ */
-        }
-        
-        /* ＋ボタンのドラッグハンドルを非表示 */
-        .day-tabs .nav-link.add-day-btn .drag-handle {
-            display: none;
+            padding: 12px 20px !important; /* 通常のタブと同じパディング */
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -622,7 +617,6 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link add-day-btn" @click.prevent="showAddDayModal" href="#" title="日程を追加">
-                            <div class="drag-handle" style="display: none;"></div>
                             <i class="fas fa-plus"></i>
                         </a>
                     </li>
@@ -1001,7 +995,6 @@
                     modal.hide();
                 },
                 
-                // 修正版：タブ削除時の日付自動再設定機能
                 deleteDay(index) {
                     if (this.tripDays.length <= 1) {
                         alert('最低1つの日程は必要です');
@@ -1009,10 +1002,10 @@
                     }
                     
                     if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
-                        // 予定を削除
+                        // 該当日の予定を削除
                         this.events = this.events.filter(event => event.dayIndex !== index);
                         
-                        // 予定のindexを更新
+                        // 削除されたタブより後のタブの予定のdayIndexを調整
                         this.events.forEach(event => {
                             if (event.dayIndex > index) {
                                 event.dayIndex--;
@@ -1022,8 +1015,10 @@
                         // タブを削除
                         this.tripDays.splice(index, 1);
                         
-                        // 日付の自動再設定
-                        this.recalculateDatesAfterDeletion(index);
+                        // 日付自動再設定ロジック
+                        if (this.tripDays.length > 0) {
+                            this.autoRecalculateDatesAfterDeletion(index);
+                        }
                         
                         // dayNumberを再計算
                         this.tripDays.forEach((day, i) => {
@@ -1039,35 +1034,29 @@
                     }
                 },
                 
-                // 新規追加：削除後の日付自動再設定メソッド
-                recalculateDatesAfterDeletion(deletedIndex) {
-                    if (this.tripDays.length === 0) return;
-                    
-                    // 削除された位置から右側のタブが存在する場合
+                // タブ削除後の日付自動再設定
+                autoRecalculateDatesAfterDeletion(deletedIndex) {
+                    // 削除されたタブの右側にタブがある場合
                     if (deletedIndex < this.tripDays.length) {
-                        let baseDate = null;
+                        let baseDate;
                         
-                        // 左側のタブが存在する場合
+                        // 左側のタブがある場合は左側の日付の翌日を設定
                         if (deletedIndex > 0) {
-                            // 左側の日付の翌日を基準とする
-                            baseDate = new Date(this.tripDays[deletedIndex - 1].fullDate);
+                            const leftTab = this.tripDays[deletedIndex - 1];
+                            baseDate = new Date(leftTab.fullDate);
                             baseDate.setDate(baseDate.getDate() + 1);
-                        } else {
-                            // 左側がない場合、右側のタブの前日を基準とする
-                            baseDate = new Date(this.tripDays[0].fullDate);
+                        } 
+                        // 左側がない場合は右側のタブの前日を設定
+                        else {
+                            const rightTab = this.tripDays[deletedIndex];
+                            baseDate = new Date(rightTab.fullDate);
                             baseDate.setDate(baseDate.getDate() - 1);
                         }
                         
-                        // 削除された位置以降のタブの日付を再設定
+                        // 削除されたタブの位置から右側の全てのタブの日付を連続で設定
                         for (let i = deletedIndex; i < this.tripDays.length; i++) {
                             const targetDate = new Date(baseDate);
-                            if (deletedIndex > 0) {
-                                // 左側がある場合：左側の翌日から連続
-                                targetDate.setDate(baseDate.getDate() + (i - deletedIndex + 1));
-                            } else {
-                                // 左側がない場合：右側の前日から連続
-                                targetDate.setDate(baseDate.getDate() + (i + 1));
-                            }
+                            targetDate.setDate(baseDate.getDate() + (i - deletedIndex + (deletedIndex > 0 ? 1 : 0)));
                             this.updateDayData(i, targetDate);
                         }
                     }
