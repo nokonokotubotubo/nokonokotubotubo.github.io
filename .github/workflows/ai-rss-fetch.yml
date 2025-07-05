@@ -1,4 +1,4 @@
-name: AI RSS Feed Processing - Complete Learning System
+name: AI RSS Data Update Only
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  ai-rss-processing:
+  ai-rss-data-update:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     
@@ -30,35 +30,40 @@ jobs:
     - name: Process RSS feeds
       run: node src/ai-rss-processor.js
         
-    # 📤 5. AI学習（評価データフィードバック）
-    - name: AI analysis with user feedback learning
+    - name: AI analysis with learning
       run: node src/ai-analyzer.js
         
-    - name: Generate HTML dashboard with server sync
+    # ✅ データのみ生成（HTMLは固定テンプレート使用）
+    - name: Generate data only
       run: |
-        node src/ai-data-generator.js
-        echo "Dashboard with learning system: $(wc -c < ai-rss-temp/dashboard.html) bytes"
+        node -e "
+        const fs = require('fs');
+        const articles = JSON.parse(fs.readFileSync('ai-rss-temp/data/articles.json', 'utf8'));
+        const data = {
+          articles: articles,
+          timestamp: new Date().toISOString(),
+          version: Date.now()
+        };
+        fs.writeFileSync('ai-rss-temp/data/articles.json', JSON.stringify(data, null, 2));
+        console.log('データ生成完了:', articles.length + '件');
+        "
         
-    # 📤 評価データの永続化
-    - name: Preserve user ratings for next execution
+    - name: Deploy data only
       run: |
-        # 評価履歴ファイルを作成（次回実行で学習データとして使用）
-        echo '{"timestamp":"'$(date -Iseconds)'","source":"github-actions","ratings":{}}' > ai-rss/user-ratings-history.json
-        echo "User ratings history preserved for AI learning"
+        # データディレクトリが存在しない場合は作成
+        mkdir -p ai-rss/data
         
-    - name: Deploy AI RSS Dashboard with learning
-      run: |
-        mkdir -p ai-rss
-        cp ai-rss-temp/dashboard.html ai-rss/index.html
+        # データファイルのみ更新
+        cp ai-rss-temp/data/articles.json ai-rss/data/articles.json
         
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add ai-rss/index.html ai-rss/user-ratings-history.json
-        git commit -m "Update AI RSS Dashboard with learning system: $(date '+%Y-%m-%d %H:%M')"
+        git add ai-rss/data/articles.json
+        git commit -m "Update RSS data: $(date '+%Y-%m-%d %H:%M')"
         git push
         
-    - name: Deployment complete
+    - name: Update complete
       run: |
-        echo "🎉 AI RSS Learning Dashboard deployed!"
-        echo "🔗 Access: https://nokonokotubotubo.github.io/ai-rss/"
-        echo "📊 Features: 5-star rating, AI learning, server sync, preference feedback"
+        echo "🎉 データ更新完了！"
+        echo "📊 記事数: $(jq '.articles | length' ai-rss/data/articles.json)件"
+        echo "🔗 ダッシュボード: https://nokonokotubotubo.github.io/ai-rss/"
