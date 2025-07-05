@@ -112,6 +112,7 @@
             display: flex;
             height: 80vh;
             min-height: 600px;
+            max-height: 800px;
             overflow: hidden;
         }
         
@@ -120,7 +121,7 @@
             background: var(--time-grid-color);
             border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
-            overflow: hidden;
+            overflow-y: auto;
         }
         
         .time-slot {
@@ -132,6 +133,7 @@
             font-weight: bold;
             color: var(--text-color);
             border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
         }
         
         .schedule-area {
@@ -161,11 +163,14 @@
         
         .quarter-line {
             position: absolute;
-            top: 15px;
             left: 0;
             right: 0;
             height: 1px;
             background: #f0f0f0;
+        }
+        
+        .quarter-line:nth-child(1) {
+            top: 15px;
         }
         
         .quarter-line:nth-child(2) {
@@ -174,6 +179,22 @@
         
         .quarter-line:nth-child(3) {
             top: 45px;
+        }
+        
+        .drop-guide-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-color);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 50;
+            border-radius: 2px;
+        }
+        
+        .drop-guide-line.active {
+            opacity: 0.8;
         }
         
         .event-block {
@@ -200,9 +221,9 @@
         
         .event-block.dragging {
             opacity: 0.8;
-            /* 傾きを削除 */
             box-shadow: 0 8px 25px rgba(0,0,0,0.4);
             z-index: 100;
+            transform: scale(1.02);
         }
         
         .event-block.resizing {
@@ -236,9 +257,9 @@
             position: absolute;
             left: 0;
             right: 0;
-            height: 6px;
+            height: 8px;
             cursor: ns-resize;
-            background: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.7);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -255,6 +276,10 @@
         
         .event-block:hover .resize-handle {
             opacity: 1;
+        }
+        
+        .resize-handle:hover {
+            background: rgba(255,255,255,0.9);
         }
         
         .modal-content {
@@ -312,11 +337,6 @@
         .add-event-btn:hover {
             transform: scale(1.1);
             background: var(--primary-color);
-        }
-        
-        .drop-zone {
-            background: rgba(135, 206, 235, 0.2);
-            border: 2px dashed var(--primary-color);
         }
         
         /* レスポンシブデザイン */
@@ -444,7 +464,7 @@
                     <!-- スケジュール表示エリア -->
                     <div class="schedule-area" 
                          @click="handleScheduleClick"
-                         @dragover.prevent
+                         @dragover.prevent="handleDragOver"
                          @drop="handleDrop">
                         <div class="schedule-grid">
                             <div class="grid-line" v-for="hour in timeSlots" :key="hour">
@@ -453,6 +473,9 @@
                                 <div class="quarter-line"></div>
                             </div>
                         </div>
+                        
+                        <!-- ドロップガイドライン -->
+                        <div class="drop-guide-line" ref="dropGuideLine"></div>
                         
                         <!-- 予定ブロック -->
                         <div class="event-block" 
@@ -594,8 +617,8 @@
                     ],
                     activeDay: 0,
                     
-                    // 時間軸（4時〜24時）
-                    timeSlots: Array.from({ length: 20 }, (_, i) => i + 4),
+                    // 時間軸（4時〜23時）- 修正版
+                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     
                     // 予定データ
                     events: [],
@@ -606,6 +629,7 @@
                     resizingEvent: null,
                     resizeDirection: null,
                     isResizing: false,
+                    dropGuideY: 0,
                     
                     // フォーム
                     eventForm: {
@@ -675,19 +699,21 @@
                     return this.events.filter(event => event.dayIndex === this.activeDay);
                 },
                 
-                // 時間・位置計算（修正版）
-                timeToPixels(time) {
-                    const [hours, minutes] = time.split(':').map(Number);
-                    const totalMinutes = (hours - 4) * 60 + minutes; // 4時を基準点に
-                    return totalMinutes * 1; // 1分 = 1pixel
+                // 時間・位置計算（完全修正版）
+                timeToPixels(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    const totalMinutes = (hours - 4) * 60 + minutes; // 4時を0基準に
+                    return totalMinutes; // 1分 = 1pixel
                 },
                 
                 pixelsToTime(pixels) {
-                    const totalMinutes = Math.round(pixels / 15) * 15; // 15分間隔にスナップ
-                    const hours = Math.floor(totalMinutes / 60) + 4; // 4時を基準点に
+                    // 15分間隔でスナップ
+                    const roundedPixels = Math.round(pixels / 15) * 15;
+                    const totalMinutes = Math.max(0, roundedPixels); // 負の値を防ぐ
+                    const hours = Math.floor(totalMinutes / 60) + 4; // 4時を基準に戻す
                     const minutes = totalMinutes % 60;
                     
-                    // 時間範囲の制限（4時〜24時）
+                    // 時間範囲の制限（4時〜23時45分）
                     const clampedHours = Math.max(4, Math.min(23, hours));
                     const clampedMinutes = clampedHours === 23 && minutes > 45 ? 45 : minutes;
                     
@@ -697,11 +723,11 @@
                 getEventStyle(event) {
                     const startPixels = this.timeToPixels(event.startTime);
                     const endPixels = this.timeToPixels(event.endTime);
-                    const duration = endPixels - startPixels;
+                    const duration = Math.max(endPixels - startPixels, 30); // 最小30px
                     
                     return {
                         top: `${startPixels}px`,
-                        height: `${Math.max(duration, 30)}px`,
+                        height: `${duration}px`,
                         minHeight: '30px'
                     };
                 },
@@ -727,23 +753,20 @@
                     modal.show();
                 },
                 
-                // イベントクリック処理（修正版）
+                // イベントクリック処理
                 handleEventClick(event, eventData) {
-                    // リサイズ中の場合はモーダルを開かない
                     if (this.isResizing) {
                         event.preventDefault();
                         event.stopPropagation();
                         return;
                     }
                     
-                    // リサイズハンドルをクリックした場合はモーダルを開かない
                     if (event.target.classList.contains('resize-handle')) {
                         event.preventDefault();
                         event.stopPropagation();
                         return;
                     }
                     
-                    // 通常のクリック処理
                     this.openEventModal(eventData);
                 },
                 
@@ -753,7 +776,6 @@
                         return;
                     }
                     
-                    // 時間検証
                     if (this.eventForm.startTime >= this.eventForm.endTime) {
                         alert('終了時間は開始時間より後に設定してください');
                         return;
@@ -803,7 +825,7 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // ドラッグ&ドロップ（修正版）
+                // ドラッグ&ドロップ（精度向上版）
                 handleDragStart(event, eventData) {
                     this.draggedEvent = eventData;
                     event.dataTransfer.setData('text/plain', '');
@@ -812,14 +834,35 @@
                 
                 handleDragEnd() {
                     this.draggedEvent = null;
+                    // ガイドラインを非表示
+                    if (this.$refs.dropGuideLine) {
+                        this.$refs.dropGuideLine.classList.remove('active');
+                    }
+                },
+                
+                handleDragOver(event) {
+                    if (!this.draggedEvent) return;
+                    
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const y = event.clientY - rect.top;
+                    
+                    // 15分間隔にスナップした位置を計算
+                    const snappedY = Math.round(y / 15) * 15;
+                    
+                    // ガイドラインを表示
+                    if (this.$refs.dropGuideLine) {
+                        this.$refs.dropGuideLine.style.top = `${snappedY}px`;
+                        this.$refs.dropGuideLine.classList.add('active');
+                    }
+                    
+                    this.dropGuideY = snappedY;
                 },
                 
                 handleDrop(event) {
                     if (!this.draggedEvent) return;
                     
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const y = event.clientY - rect.top;
-                    const newStartTime = this.pixelsToTime(y);
+                    // スナップした位置を使用
+                    const newStartTime = this.pixelsToTime(this.dropGuideY);
                     
                     // 時間の範囲チェック
                     const startHour = parseInt(newStartTime.split(':')[0]);
@@ -830,7 +873,7 @@
                     const oldEnd = this.timeToPixels(this.draggedEvent.endTime);
                     const duration = oldEnd - oldStart;
                     
-                    const newEndTime = this.pixelsToTime(y + duration);
+                    const newEndTime = this.pixelsToTime(this.dropGuideY + duration);
                     
                     // 予定を更新
                     const eventIndex = this.events.findIndex(e => e.id === this.draggedEvent.id);
@@ -839,9 +882,14 @@
                         this.events[eventIndex].endTime = newEndTime;
                         this.saveData();
                     }
+                    
+                    // ガイドラインを非表示
+                    if (this.$refs.dropGuideLine) {
+                        this.$refs.dropGuideLine.classList.remove('active');
+                    }
                 },
                 
-                // リサイズ機能（修正版）
+                // リサイズ機能
                 startResize(event, eventData, direction) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -853,7 +901,8 @@
                     const moveHandler = (e) => {
                         const rect = document.querySelector('.schedule-area').getBoundingClientRect();
                         const y = e.clientY - rect.top;
-                        const newTime = this.pixelsToTime(y);
+                        const snappedY = Math.round(y / 15) * 15; // 15分間隔にスナップ
+                        const newTime = this.pixelsToTime(snappedY);
                         
                         const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
                         if (eventIndex === -1) return;
@@ -876,7 +925,6 @@
                         this.resizeDirection = null;
                         this.saveData();
                         
-                        // リサイズ完了後、少し待ってからフラグをクリア
                         setTimeout(() => {
                             this.isResizing = false;
                         }, 100);
@@ -886,27 +934,21 @@
                     document.addEventListener('mouseup', upHandler);
                 },
                 
-                // スケジュールエリアクリック（修正版）
+                // スケジュールエリアクリック
                 handleScheduleClick(event) {
-                    // リサイズ中の場合は何もしない
-                    if (this.isResizing) {
-                        return;
-                    }
-                    
-                    // 予定ブロックをクリックした場合は何もしない
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
+                    if (this.isResizing) return;
+                    if (event.target.closest('.event-block')) return;
                     
                     if (event.target.classList.contains('schedule-area') || 
                         event.target.classList.contains('grid-line') ||
                         event.target.classList.contains('quarter-line')) {
                         const rect = event.currentTarget.getBoundingClientRect();
                         const y = event.clientY - rect.top;
-                        const clickTime = this.pixelsToTime(y);
+                        const snappedY = Math.round(y / 15) * 15; // 15分間隔にスナップ
+                        const clickTime = this.pixelsToTime(snappedY);
                         
                         this.eventForm.startTime = clickTime;
-                        this.eventForm.endTime = this.pixelsToTime(y + 60); // 1時間後
+                        this.eventForm.endTime = this.pixelsToTime(snappedY + 60); // 1時間後
                         this.eventForm.dayIndex = this.activeDay;
                         
                         this.openEventModal();
@@ -919,7 +961,6 @@
                         localStorage.setItem('trippenEvents', JSON.stringify(this.events));
                         localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
                     } else {
-                        // GitHub保存（将来実装）
                         localStorage.setItem('trippenEvents', JSON.stringify(this.events));
                         localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
                     }
