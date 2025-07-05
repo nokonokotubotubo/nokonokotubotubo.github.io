@@ -50,6 +50,8 @@
             scrollbar-color: var(--secondary-color) transparent;
             position: relative;
             z-index: 1;
+            /* スクロール領域でのポインターイベント確保 */
+            pointer-events: auto;
         }
         
         .day-tabs-container::-webkit-scrollbar {
@@ -74,6 +76,10 @@
             display: flex;
             flex-wrap: nowrap;
             min-width: max-content;
+            /* 子要素のポインターイベント確保 */
+            pointer-events: auto;
+            position: relative;
+            z-index: 10;
         }
         
         .day-tabs .nav-item {
@@ -81,12 +87,65 @@
             cursor: move;
             flex-shrink: 0;
             position: relative;
-            z-index: 2;
+            z-index: 20;
+            /* ポインターイベント確保 */
+            pointer-events: auto;
         }
         
+        /* ドラッグ中の要素スタイル強化 */
         .day-tabs .nav-item.dragging-tab {
-            opacity: 0.5;
-            transform: scale(0.95);
+            opacity: 0.7;
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            z-index: 999;
+            border: 3px dashed var(--accent-color);
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: 15px;
+        }
+        
+        /* ドロップゾーンのハイライト */
+        .day-tabs .nav-item.drag-over {
+            background: rgba(135, 206, 235, 0.2);
+            transform: scale(1.02);
+            border: 2px solid var(--accent-color);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
+        }
+        
+        /* ドラッグ中の視覚的フィードバック強化 */
+        .day-tabs .nav-item.dragging-tab .nav-link {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+            animation: drag-pulse 1s infinite alternate;
+        }
+        
+        @keyframes drag-pulse {
+            0% { 
+                box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7);
+            }
+            100% { 
+                box-shadow: 0 0 0 10px rgba(135, 206, 235, 0);
+            }
+        }
+        
+        /* ドラッグプレースホルダー */
+        .drag-placeholder {
+            width: 120px;
+            height: 60px;
+            border: 3px dashed var(--accent-color);
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-weight: bold;
+            animation: placeholder-blink 1s infinite alternate;
+        }
+        
+        @keyframes placeholder-blink {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
         .day-tabs .nav-link {
@@ -186,7 +245,10 @@
             padding: 12px 20px !important;
             border-radius: 15px 15px 0 0;
             cursor: pointer;
-            z-index: 5;
+            z-index: 500;
+            pointer-events: auto;
+            /* 確実にクリック可能にする */
+            position: relative;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -210,15 +272,17 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 1000;
             cursor: pointer;
             transition: all 0.2s ease;
             pointer-events: auto;
+            /* 確実に最前面に配置 */
+            transform: translateZ(0);
         }
         
         .delete-day-btn:hover {
             background: rgba(255, 99, 99, 1);
-            transform: scale(1.1);
+            transform: scale(1.1) translateZ(0);
         }
         
         .day-tabs .nav-link:hover .delete-day-btn {
@@ -1147,6 +1211,9 @@
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
+                    
+                    // ドラッグ中の視覚的フィードバックを追加
+                    event.target.closest('.nav-item').classList.add('dragging-tab');
                 },
                 
                 handleTabDragOver(event, index) {
@@ -1155,11 +1222,24 @@
                     
                     if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
                         this.dragOverTabIndex = index;
+                        
+                        // 全てのドロップゾーンハイライトをクリア
+                        document.querySelectorAll('.nav-item').forEach(item => {
+                            item.classList.remove('drag-over');
+                        });
+                        
+                        // 現在のドロップゾーンをハイライト
+                        event.target.closest('.nav-item').classList.add('drag-over');
                     }
                 },
                 
                 handleTabDrop(event, dropIndex) {
                     event.preventDefault();
+                    
+                    // 全ての視覚的フィードバックをクリア
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
                     
                     if (this.draggingTabIndex === null || this.draggingTabIndex === dropIndex) {
                         return;
@@ -1172,6 +1252,11 @@
                 },
                 
                 handleTabDragEnd() {
+                    // 全ての視覚的フィードバックをクリア
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
+                    
                     this.draggingTabIndex = null;
                     this.dragOverTabIndex = null;
                 },
