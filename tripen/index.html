@@ -21,12 +21,26 @@
             box-sizing: border-box;
         }
         
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
         body {
             background: var(--bg-color);
             color: var(--text-color);
             font-family: 'Segoe UI', system-ui, sans-serif;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
         .header {
@@ -35,11 +49,19 @@
             padding: 15px 0;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
         }
         
         .penguin-icon {
             font-size: 2rem;
             margin-right: 10px;
+        }
+        
+        .container-fluid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
         .day-tabs-container {
@@ -49,6 +71,7 @@
             scrollbar-width: thin;
             scrollbar-color: var(--secondary-color) transparent;
             pointer-events: auto;
+            flex-shrink: 0;
         }
         
         .day-tabs-container::-webkit-scrollbar {
@@ -258,6 +281,10 @@
             margin: 0 0 20px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             min-height: 600px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
         .timeline-header {
@@ -266,13 +293,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
         
         .timeline-content {
             position: relative;
-            height: 70vh;
-            min-height: 500px;
-            max-height: 800px;
+            flex: 1;
             overflow: hidden;
         }
         
@@ -667,7 +693,7 @@
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
                             <div class="tab-content-wrapper">
-                                <div style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">＋</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;">＋</div>
                                 <small style="visibility: hidden;">日程追加</small>
                             </div>
                         </a>
