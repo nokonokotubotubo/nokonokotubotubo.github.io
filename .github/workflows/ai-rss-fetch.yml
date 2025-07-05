@@ -1,4 +1,4 @@
-name: AI RSS Data Update Only
+name: AI RSS Data Update - User Preference System
 
 on:
   schedule:
@@ -27,14 +27,13 @@ jobs:
     - name: Create output directories
       run: mkdir -p ai-rss-temp/data
         
-    - name: Process RSS feeds
+    - name: Process RSS feeds with improved stability
       run: node src/ai-rss-processor.js
         
-    - name: AI analysis with learning
+    - name: AI analysis with user feedback learning
       run: node src/ai-analyzer.js
         
-    # ✅ データのみ生成（HTMLは固定テンプレート使用）
-    - name: Generate data only
+    - name: Generate article data only
       run: |
         node -e "
         const fs = require('fs');
@@ -42,13 +41,19 @@ jobs:
         const data = {
           articles: articles,
           timestamp: new Date().toISOString(),
-          version: Date.now()
+          version: Date.now(),
+          userPreferenceSystem: {
+            enabled: true,
+            expiryDays: 30,
+            description: 'ユーザー評価は30日間保持されます'
+          }
         };
         fs.writeFileSync('ai-rss-temp/data/articles.json', JSON.stringify(data, null, 2));
-        console.log('データ生成完了:', articles.length + '件');
+        console.log('📊 データ生成完了:', articles.length + '件');
+        console.log('⭐ ユーザー評価システム有効');
         "
         
-    - name: Deploy data only
+    - name: Deploy data with user preference support
       run: |
         # データディレクトリが存在しない場合は作成
         mkdir -p ai-rss/data
@@ -59,11 +64,12 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add ai-rss/data/articles.json
-        git commit -m "Update RSS data: $(date '+%Y-%m-%d %H:%M')"
+        git commit -m "Update RSS data with user preference system: $(date '+%Y-%m-%d %H:%M')"
         git push
         
     - name: Update complete
       run: |
         echo "🎉 データ更新完了！"
         echo "📊 記事数: $(jq '.articles | length' ai-rss/data/articles.json)件"
+        echo "⭐ ユーザー評価システム: 有効（30日間保持）"
         echo "🔗 ダッシュボード: https://nokonokotubotubo.github.io/ai-rss/"
