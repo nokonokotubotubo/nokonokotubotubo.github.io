@@ -50,7 +50,6 @@
             scrollbar-color: var(--secondary-color) transparent;
             position: relative;
             z-index: 1;
-            /* スクロール領域でのポインターイベント確保 */
             pointer-events: auto;
         }
         
@@ -76,7 +75,6 @@
             display: flex;
             flex-wrap: nowrap;
             min-width: max-content;
-            /* 子要素のポインターイベント確保 */
             pointer-events: auto;
             position: relative;
             z-index: 10;
@@ -88,7 +86,6 @@
             flex-shrink: 0;
             position: relative;
             z-index: 20;
-            /* ポインターイベント確保 */
             pointer-events: auto;
         }
         
@@ -128,26 +125,6 @@
             }
         }
         
-        /* ドラッグプレースホルダー */
-        .drag-placeholder {
-            width: 120px;
-            height: 60px;
-            border: 3px dashed var(--accent-color);
-            background: rgba(135, 206, 235, 0.1);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-color);
-            font-weight: bold;
-            animation: placeholder-blink 1s infinite alternate;
-        }
-        
-        @keyframes placeholder-blink {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
         .day-tabs .nav-link {
             border: none;
             color: var(--text-color);
@@ -161,6 +138,12 @@
             padding-left: 30px;
             display: block;
             overflow: visible;
+            pointer-events: auto;
+            /* モバイル用タッチ最適化 */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         .day-tabs .nav-link.active {
@@ -188,6 +171,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            pointer-events: auto;
         }
         
         .date-display {
@@ -196,6 +180,7 @@
             position: relative;
             padding: 2px 4px;
             border-radius: 4px;
+            pointer-events: auto;
         }
         
         .date-display:hover {
@@ -218,6 +203,7 @@
             align-items: center;
             justify-content: center;
             min-width: 100px;
+            pointer-events: auto;
         }
         
         .date-edit-input {
@@ -229,9 +215,10 @@
             color: var(--text-color);
             width: 100px;
             outline: none;
+            pointer-events: auto;
         }
         
-        /* ＋ボタン専用のスタイル（修正版） */
+        /* ＋ボタン専用のスタイル */
         .day-tabs .nav-link.add-day-btn {
             background: transparent !important;
             color: var(--accent-color) !important;
@@ -247,8 +234,9 @@
             cursor: pointer;
             z-index: 500;
             pointer-events: auto;
-            /* 確実にクリック可能にする */
             position: relative;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -262,22 +250,23 @@
             position: absolute;
             top: 5px;
             right: 5px;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: rgba(255, 99, 99, 0.8);
+            background: rgba(255, 99, 99, 0.9);
             color: white;
             border: none;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 2000;
             cursor: pointer;
             transition: all 0.2s ease;
             pointer-events: auto;
-            /* 確実に最前面に配置 */
             transform: translateZ(0);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
         }
         
         .delete-day-btn:hover {
@@ -602,7 +591,7 @@
             color: var(--accent-color);
         }
         
-        /* モバイル用タッチ領域とスクロール設定の大幅強化 */
+        /* モバイル用設定の大幅強化 */
         @media (max-width: 768px) {
             /* タブスクロール設定の強化 */
             .day-tabs-container {
@@ -611,7 +600,6 @@
                 -webkit-overflow-scrolling: touch;
                 scroll-snap-type: x mandatory;
                 padding: 0 10px;
-                /* タッチスクロールを強制有効化 */
                 touch-action: pan-x;
             }
             
@@ -634,33 +622,33 @@
                 padding: 12px 15px;
                 font-size: 0.85rem;
                 white-space: nowrap;
-                /* タッチ操作を確実にする */
                 touch-action: manipulation;
                 -webkit-touch-callout: none;
                 -webkit-user-select: none;
                 user-select: none;
+                pointer-events: auto;
             }
             
             /* 削除ボタンの大幅改善 */
             .delete-day-btn {
-                width: 32px;
-                height: 32px;
+                width: 36px;
+                height: 36px;
                 top: 2px;
                 right: 2px;
-                font-size: 1rem;
+                font-size: 1.1rem;
                 display: flex !important;
-                opacity: 0.8;
-                /* タッチ操作を確実にする */
+                opacity: 0.9;
                 touch-action: manipulation;
                 -webkit-touch-callout: none;
                 position: absolute;
-                z-index: 1001;
+                z-index: 3000;
+                background: rgba(255, 99, 99, 1);
             }
             
             .delete-day-btn:active {
                 opacity: 1;
                 transform: scale(1.1) translateZ(0);
-                background: rgba(255, 99, 99, 1);
+                background: rgba(255, 50, 50, 1);
             }
             
             /* 追加ボタンの改善 */
@@ -679,31 +667,32 @@
             
             /* リサイズハンドルの大幅改善 */
             .resize-handle {
-                height: 15px;
-                /* タッチ領域を拡大 */
+                height: 20px;
+                touch-action: manipulation;
             }
             
             .resize-handle.top {
                 top: -5px;
-                height: 20px;
+                height: 25px;
             }
             
             .resize-handle.bottom {
                 bottom: -5px;
-                height: 20px;
+                height: 25px;
             }
             
             /* イベントブロックの改善 */
             .event-block {
-                min-height: 50px;
-                padding: 10px 12px;
-                /* タッチ操作を確実にする */
+                min-height: 55px;
+                padding: 12px 15px;
                 touch-action: manipulation;
+                -webkit-touch-callout: none;
             }
             
             .event-block.edit-mode .resize-handle {
                 opacity: 1;
-                background: rgba(255, 215, 0, 0.9);
+                background: rgba(255, 215, 0, 1);
+                border: 2px solid #fff;
             }
             
             /* その他のモバイル調整 */
@@ -736,31 +725,31 @@
         @media (hover: none) and (pointer: coarse) {
             .delete-day-btn {
                 display: flex !important;
-                opacity: 0.8;
-                width: 35px;
-                height: 35px;
-                /* 確実なタッチ操作のため */
+                opacity: 0.9;
+                width: 40px;
+                height: 40px;
                 position: absolute;
-                z-index: 1002;
+                z-index: 3000;
+                background: rgba(255, 99, 99, 1);
             }
             
             .day-tabs .nav-link {
-                /* タッチ遅延を削除 */
                 -webkit-tap-highlight-color: transparent;
                 tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
             
             .event-block {
-                /* タッチ操作用の余白調整 */
-                padding: 12px 15px;
-                min-height: 55px;
+                padding: 15px;
+                min-height: 60px;
+                touch-action: manipulation;
             }
             
             /* リサイズハンドルを常時表示 */
             .event-block.edit-mode .resize-handle {
                 opacity: 1;
                 background: rgba(255, 215, 0, 1);
-                border: 2px solid #fff;
+                border: 3px solid #fff;
             }
         }
     </style>
@@ -815,9 +804,8 @@
                         :class="{ 'dragging-tab': draggingTabIndex === index }">
                         <a class="nav-link" 
                            :class="{ active: activeDay === index }"
-                           @click="handleTabClick(index)"
-                           @touchstart="handleTabTouchStart(index)"
-                           @touchend="handleTabTouchEnd(index)"
+                           @click="handleTabClick($event, index)"
+                           @touchend="handleTabTouch($event, index)"
                            href="#"
                            @click.prevent>
                             <div class="drag-handle">
@@ -826,12 +814,13 @@
                             <div class="tab-content-wrapper">
                                 <div>{{ day.dayNumber }}日目</div>
                                 <small v-if="!day.isEditing" 
-                                       @click.stop="startDateEdit(index)"
+                                       @click.stop="startDateEdit($event, index)"
+                                       @touchend.stop="startDateEditTouch($event, index)"
                                        class="date-display">
                                     {{ day.date }}
                                     <i class="fas fa-edit date-edit-icon"></i>
                                 </small>
-                                <div v-if="day.isEditing" class="date-edit-container" @click.stop>
+                                <div v-if="day.isEditing" class="date-edit-container" @click.stop @touchend.stop>
                                     <input type="date" 
                                            v-model="day.editingDate"
                                            @blur="saveDateEdit(index)"
@@ -843,8 +832,8 @@
                             </div>
                             <button class="delete-day-btn" 
                                     v-if="tripDays.length > 1"
-                                    @click="handleDeleteClick(index)"
-                                    @touchend="handleDeleteTouch(index)"
+                                    @click.stop.prevent="handleDeleteClick($event, index)"
+                                    @touchend.stop.prevent="handleDeleteTouch($event, index)"
                                     title="日程を削除">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -852,8 +841,8 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link add-day-btn" 
-                           @click="handleAddClick"
-                           @touchend="handleAddTouch"
+                           @click.prevent.stop="handleAddClick($event)"
+                           @touchend.prevent.stop="handleAddTouch($event)"
                            href="#" 
                            title="日程を追加">
                             <i class="fas fa-plus"></i>
@@ -879,7 +868,7 @@
                             </div>
                         </div>
                         
-                        <div class="schedule-area" @click="handleScheduleClick">
+                        <div class="schedule-area" @click="handleScheduleClick" @touchend="handleScheduleTouch">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
                                     <div class="quarter-line"></div>
@@ -910,11 +899,11 @@
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'top')"
-                                     @touchstart="startResize($event, event, 'top')"></div>
+                                     @touchstart="startResizeTouch($event, event, 'top')"></div>
                                 
                                 <div class="event-title">
                                     <i :class="getCategoryIcon(event.category)"></i>
-                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
+                                    <span class="title-text" @click="handleTitleClick($event, event)" @touchend="handleTitleTouch($event, event)">{{ event.title }}</span>
                                 </div>
                                 <div class="event-time">
                                     {{ event.startTime }} - {{ event.endTime }}
@@ -926,7 +915,7 @@
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'bottom')"
-                                     @touchstart="startResize($event, event, 'bottom')"></div>
+                                     @touchstart="startResizeTouch($event, event, 'bottom')"></div>
                             </div>
                         </div>
                     </div>
@@ -938,7 +927,7 @@
             <strong>📝 編集モード</strong><br>
             • 上下端をドラッグ：時間調整<br>
             • 中央を長押しドラッグ：移動<br>
-            • 空のエリアをクリック：終了
+            • 空のエリアをタップ：終了
         </div>
         
         <!-- 日程追加モーダル -->
@@ -1107,8 +1096,7 @@
                     selectedEventForDetail: null,
                     editingEvent: null,
                     isMobile: false,
-                    tabTouchStartTime: null,
-                    tabTouchIndex: null,
+                    isTouch: false,
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1179,42 +1167,86 @@
                 },
                 
                 detectMobile() {
-                    this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+                    this.isMobile = window.innerWidth <= 768;
+                    this.isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
                 },
                 
-                // タブ関連のタッチ処理メソッド
-                handleTabClick(index) {
-                    this.setActiveDay(index);
-                },
-                
-                handleTabTouchStart(index) {
-                    this.tabTouchStartTime = Date.now();
-                    this.tabTouchIndex = index;
-                },
-                
-                handleTabTouchEnd(index) {
-                    const touchDuration = Date.now() - (this.tabTouchStartTime || 0);
-                    if (touchDuration < 500 && this.tabTouchIndex === index) {
+                // **修正1: タブクリック・タッチ処理の完全分離**
+                handleTabClick(event, index) {
+                    // デスクトップ用のクリック処理
+                    if (!this.isTouch) {
+                        event.preventDefault();
                         this.setActiveDay(index);
                     }
                 },
                 
-                // ボタン関連のタッチ処理メソッド
-                handleDeleteClick(index) {
+                handleTabTouch(event, index) {
+                    // モバイル用のタッチ処理（完全独立）
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.setActiveDay(index);
+                },
+                
+                // **修正2: 日付編集の完全分離**
+                startDateEdit(event, index) {
+                    // デスクトップ用
+                    if (!this.isTouch) {
+                        event.stopPropagation();
+                        this.tripDays[index].isEditing = true;
+                        this.tripDays[index].editingDate = this.tripDays[index].fullDate;
+                        this.$nextTick(() => {
+                            const inputs = this.$refs.dateEditInput;
+                            if (inputs && inputs[0]) {
+                                inputs[0].focus();
+                            }
+                        });
+                    }
+                },
+                
+                startDateEditTouch(event, index) {
+                    // モバイル用（完全独立）
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.tripDays[index].isEditing = true;
+                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
+                    this.$nextTick(() => {
+                        const inputs = this.$refs.dateEditInput;
+                        if (inputs && inputs[0]) {
+                            inputs[0].focus();
+                        }
+                    });
+                },
+                
+                // **修正3: ボタン処理の完全分離**
+                handleDeleteClick(event, index) {
+                    // デスクトップ用
+                    if (!this.isTouch) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.deleteDay(index);
+                    }
+                },
+                
+                handleDeleteTouch(event, index) {
+                    // モバイル用（完全独立）
+                    event.preventDefault();
+                    event.stopPropagation();
                     this.deleteDay(index);
                 },
                 
-                handleDeleteTouch(index) {
-                    // タッチイベントでの削除処理
-                    this.deleteDay(index);
+                handleAddClick(event) {
+                    // デスクトップ用
+                    if (!this.isTouch) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.addDayImmediately();
+                    }
                 },
                 
-                handleAddClick() {
-                    this.addDayImmediately();
-                },
-                
-                handleAddTouch() {
-                    // タッチイベントでの追加処理
+                handleAddTouch(event) {
+                    // モバイル用（完全独立）
+                    event.preventDefault();
+                    event.stopPropagation();
                     this.addDayImmediately();
                 },
                 
@@ -1306,7 +1338,6 @@
                         
                         this.tripDays.splice(index, 1);
                         
-                        // 削除後の日付を即座に再計算
                         this.recalculateAllDatesAfterDeletion();
                         
                         this.tripDays.forEach((day, i) => {
@@ -1333,24 +1364,6 @@
                         newDate.setDate(baseDate.getDate() + index);
                         
                         this.updateDayData(index, newDate);
-                    });
-                },
-                
-                startDateEdit(index) {
-                    this.tripDays.forEach((day, i) => {
-                        if (i !== index && day.isEditing) {
-                            this.cancelDateEdit(i);
-                        }
-                    });
-                    
-                    this.tripDays[index].isEditing = true;
-                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
-                    
-                    this.$nextTick(() => {
-                        const inputs = this.$refs.dateEditInput;
-                        if (inputs && inputs[0]) {
-                            inputs[0].focus();
-                        }
                     });
                 },
                 
@@ -1403,7 +1416,6 @@
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
                     
-                    // ドラッグ中の視覚的フィードバックを追加
                     event.target.closest('.nav-item').classList.add('dragging-tab');
                 },
                 
@@ -1414,12 +1426,10 @@
                     if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
                         this.dragOverTabIndex = index;
                         
-                        // 全てのドロップゾーンハイライトをクリア
                         document.querySelectorAll('.nav-item').forEach(item => {
                             item.classList.remove('drag-over');
                         });
                         
-                        // 現在のドロップゾーンをハイライト
                         event.target.closest('.nav-item').classList.add('drag-over');
                     }
                 },
@@ -1427,7 +1437,6 @@
                 handleTabDrop(event, dropIndex) {
                     event.preventDefault();
                     
-                    // 全ての視覚的フィードバックをクリア
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
                     });
@@ -1443,7 +1452,6 @@
                 },
                 
                 handleTabDragEnd() {
-                    // 全ての視覚的フィードバックをクリア
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
                     });
@@ -1543,7 +1551,19 @@
                     };
                 },
                 
+                // **修正4: タイトルクリック・タッチの分離**
                 handleTitleClick(event, eventData) {
+                    if (!this.isTouch) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        this.selectedEventForDetail = eventData;
+                        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                        modal.show();
+                    }
+                },
+                
+                handleTitleTouch(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
                     
@@ -1593,7 +1613,10 @@
                     }
                 },
                 
+                // **修正5: 予定操作の完全分離（デスクトップ用）**
                 handleEventMouseDown(event, eventData) {
+                    if (this.isTouch) return; // モバイルでは無効
+                    
                     if (event.target.closest('.title-text')) {
                         return;
                     }
@@ -1601,7 +1624,6 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // 既に編集モードの場合は即座にドラッグ移動を開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         this.startDragMove(event, eventData);
                         return;
@@ -1610,7 +1632,7 @@
                     this.startEditModeLongPress(event, eventData);
                 },
                 
-                // タッチイベント専用ハンドラーを追加
+                // **修正6: 予定操作の完全分離（モバイル用）**
                 handleEventTouchStart(event, eventData) {
                     if (event.target.closest('.title-text')) {
                         return;
@@ -1619,10 +1641,8 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // タッチイベントの座標取得
                     const touch = event.touches[0];
                     
-                    // 既に編集モードの場合は即座にドラッグ移動を開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         this.startDragMoveTouch(touch, eventData);
                         return;
@@ -1631,6 +1651,7 @@
                     this.startEditModeLongPressTouch(touch, eventData);
                 },
                 
+                // デスクトップ用長押し処理
                 startEditModeLongPress(event, eventData) {
                     this.longPressSucceeded = false;
                     
@@ -1643,11 +1664,6 @@
                         this.longPressSucceeded = true;
                         this.editModeEvent = eventData;
                         
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
-                        }
-                        
-                        // 長押し成功後にドラッグ移動を開始
                         this.startDragMove(event, eventData);
                     }, 500);
                     
@@ -1658,6 +1674,7 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
+                // モバイル用長押し処理（完全独立）
                 startEditModeLongPressTouch(touch, eventData) {
                     this.longPressSucceeded = false;
                     
@@ -1666,17 +1683,16 @@
                         y: touch.clientY
                     };
                     
-                    // モバイル用の長押し時間を長めに設定
                     this.longPressTimer = setTimeout(() => {
                         this.longPressSucceeded = true;
                         this.editModeEvent = eventData;
                         
                         if (navigator.vibrate) {
-                            navigator.vibrate([50, 10, 50]); // より強い振動パターン
+                            navigator.vibrate([100, 50, 100]); // より強い振動
                         }
                         
                         this.clearLongPress();
-                    }, 800); // モバイル用に800msに延長
+                    }, 600); // モバイル用に600msに設定
                     
                     const moveHandler = (e) => this.handleLongPressMoveTouch(e);
                     const endHandler = (e) => this.handleLongPressEndTouch(e, moveHandler, endHandler);
@@ -1695,8 +1711,7 @@
                     const deltaX = Math.abs(currentX - this.startPosition.x);
                     const deltaY = Math.abs(currentY - this.startPosition.y);
                     
-                    // モバイル用に許容範囲を広げる
-                    if (deltaX > 15 || deltaY > 15) {
+                    if (deltaX > 20 || deltaY > 20) { // モバイル用に許容範囲を拡大
                         this.clearLongPress();
                     }
                 },
@@ -1714,6 +1729,7 @@
                     }
                 },
                 
+                // デスクトップ用ドラッグ移動
                 startDragMove(event, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
@@ -1730,6 +1746,7 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
+                // モバイル用ドラッグ移動（完全独立）
                 startDragMoveTouch(touch, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
@@ -1768,6 +1785,8 @@
                 handleDragMoveTouch(event, startY, initialTop) {
                     const touch = event.touches[0];
                     if (!touch) return;
+                    
+                    event.preventDefault(); // スクロール防止
                     
                     const deltaY = touch.clientY - startY;
                     const rect = this.$refs.scrollContainer.getBoundingClientRect();
@@ -1831,26 +1850,29 @@
                     }
                 },
                 
+                // **修正7: リサイズ処理の分離**
                 startResize(event, eventData, direction) {
+                    if (this.isTouch) return; // モバイルでは無効
+                    
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // タッチイベントかマウスイベントかを判定
-                    const isTouch = event.type === 'touchstart';
+                    const moveHandler = (e) => this.handleResizeMove(e, direction);
+                    const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
                     
-                    if (isTouch) {
-                        const moveHandler = (e) => this.handleResizeMoveTouch(e, direction);
-                        const endHandler = (e) => this.handleResizeEndTouch(e, moveHandler, endHandler);
-                        
-                        document.addEventListener('touchmove', moveHandler, { passive: false });
-                        document.addEventListener('touchend', endHandler);
-                    } else {
-                        const moveHandler = (e) => this.handleResizeMove(e, direction);
-                        const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
-                        
-                        document.addEventListener('mousemove', moveHandler);
-                        document.addEventListener('mouseup', endHandler);
-                    }
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', endHandler);
+                },
+                
+                startResizeTouch(event, eventData, direction) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const moveHandler = (e) => this.handleResizeMoveTouch(e, direction);
+                    const endHandler = (e) => this.handleResizeEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
                 },
                 
                 handleResizeMove(event, direction) {
@@ -1909,12 +1931,17 @@
                     this.saveData();
                 },
                 
+                // **修正8: スケジュールクリック・タッチの分離**
                 handleScheduleClick(event) {
-                    if (this.longPressSucceeded) {
-                        return;
+                    if (!this.isTouch && !this.longPressSucceeded) {
+                        this.editModeEvent = null;
                     }
-                    
-                    this.editModeEvent = null;
+                },
+                
+                handleScheduleTouch(event) {
+                    if (!this.longPressSucceeded) {
+                        this.editModeEvent = null;
+                    }
                 },
                 
                 getCategoryIcon(category) {
@@ -1990,20 +2017,16 @@
                     this.saveData();
                     this.editModeEvent = null;
                     
-                    // フォーカス管理とaria-hidden属性の適切な処理
                     const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                     const modalElement = document.getElementById('eventModal');
                     
-                    // モーダル非表示前にフォーカスをクリア
                     const focusedElement = modalElement.querySelector(':focus');
                     if (focusedElement) {
                         focusedElement.blur();
                     }
                     
-                    // モーダルを非表示
                     modal.hide();
                     
-                    // モーダル完全非表示後にaria-hidden属性をクリア
                     modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
                         modalElement.removeAttribute('aria-hidden');
                         modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
@@ -2016,20 +2039,16 @@
                         this.saveData();
                         this.editModeEvent = null;
                         
-                        // フォーカス管理とaria-hidden属性の適切な処理
                         const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
                         const modalElement = document.getElementById('eventModal');
                         
-                        // モーダル非表示前にフォーカスをクリア
                         const focusedElement = modalElement.querySelector(':focus');
                         if (focusedElement) {
                             focusedElement.blur();
                         }
                         
-                        // モーダルを非表示
                         modal.hide();
                         
-                        // モーダル完全非表示後にaria-hidden属性をクリア
                         modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
                             modalElement.removeAttribute('aria-hidden');
                             modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
