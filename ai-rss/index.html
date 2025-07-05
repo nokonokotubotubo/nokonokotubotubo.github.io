@@ -202,7 +202,7 @@
           display: none;
         }
 
-        /* ✅ 更新時・タブ切り替え時のみアニメーション */
+        /* ✅ タブ切り替え時のみのアニメーション */
         .articles-container.show-animation {
           animation: slideInUp 0.6s ease;
         }
@@ -491,7 +491,7 @@
                     articles: articlesWithUserPreferences
                 };
                 
-                renderDashboard(currentData, true);
+                renderDashboard(currentData);
                 
             } catch (error) {
                 console.error('❌ データ読み込み失敗:', error);
@@ -835,8 +835,8 @@
             });
         }
         
-        // ✅ タブ状態管理修正版
-        function renderDashboard(data, isUpdate = false) {
+        // ✅ ページ読み込み時エフェクト削除版
+        function renderDashboard(data) {
             const articles = data.articles;
             const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
             const categories = [...new Set(articles.map(article => article.category))];
@@ -889,19 +889,19 @@
                 </div>
             </div>
 
-            <div id="articles-all" class="articles-container ${currentTab === 'all' ? '' : 'hidden'} ${isUpdate && currentTab === 'all' ? 'show-animation' : ''}">
+            <div id="articles-all" class="articles-container ${currentTab === 'all' ? '' : 'hidden'}">
                 ${articles.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-interested" class="articles-container ${currentTab === 'interested' ? '' : 'hidden'} ${isUpdate && currentTab === 'interested' ? 'show-animation' : ''}">
+            <div id="articles-interested" class="articles-container ${currentTab === 'interested' ? '' : 'hidden'}">
                 ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-neutral" class="articles-container ${currentTab === 'neutral' ? '' : 'hidden'} ${isUpdate && currentTab === 'neutral' ? 'show-animation' : ''}">
+            <div id="articles-neutral" class="articles-container ${currentTab === 'neutral' ? '' : 'hidden'}">
                 ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
             </div>
 
-            <div id="articles-not-interested" class="articles-container ${currentTab === 'not-interested' ? '' : 'hidden'} ${isUpdate && currentTab === 'not-interested' ? 'show-animation' : ''}">
+            <div id="articles-not-interested" class="articles-container ${currentTab === 'not-interested' ? '' : 'hidden'}">
                 ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
             </div>`;
             
@@ -911,15 +911,6 @@
             
             setupEventListeners();
             restoreUserRatings();
-            
-            if (isUpdate) {
-                const activeContainer = document.querySelector('.articles-container:not(.hidden)');
-                if (activeContainer) {
-                    activeContainer.querySelectorAll('.article-card').forEach(card => {
-                        card.classList.add('show-animation');
-                    });
-                }
-            }
         }
         
         function generateArticleCard(article) {
@@ -958,7 +949,7 @@
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
-                        <div class="rating-label">この記事を評価（タブ状態保持）</div>
+                        <div class="rating-label">この記事を評価（タブ切り替え時のみエフェクト）</div>
                     </div>
                 </div>
             </div>`;
@@ -992,7 +983,6 @@
         }
         
         function setupEventListeners() {
-            // ✅ タブ切り替え時のアニメーション
             document.querySelectorAll('.stat-tab-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const tabType = card.dataset.tab;
@@ -1006,6 +996,7 @@
             });
         }
 
+        // ✅ タブ切り替え時のみアニメーション
         function switchTab(tabType) {
             currentTab = tabType;
             
@@ -1017,7 +1008,6 @@
             const targetContainer = document.getElementById('articles-' + tabType);
             if (targetContainer) {
                 targetContainer.classList.remove('hidden');
-                // ✅ タブ切り替え時のアニメーション
                 targetContainer.classList.add('show-animation');
                 targetContainer.querySelectorAll('.article-card').forEach(card => {
                     card.classList.add('show-animation');
