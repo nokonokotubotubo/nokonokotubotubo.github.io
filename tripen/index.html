@@ -167,6 +167,7 @@
             outline: none;
         }
         
+        /* ＋ボタン専用のスタイル（修正版） */
         .day-tabs .nav-link.add-day-btn {
             background: transparent !important;
             color: var(--accent-color) !important;
@@ -176,7 +177,12 @@
             justify-content: center;
             min-width: 60px;
             transition: all 0.3s ease;
-            padding-left: 20px;
+            padding-left: 20px !important; /* 通常のタブと同じ */
+        }
+        
+        /* ＋ボタンのドラッグハンドルを非表示 */
+        .day-tabs .nav-link.add-day-btn .drag-handle {
+            display: none;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -569,12 +575,6 @@
         </div>
         
         <div v-if="tripInitialized" class="container-fluid">
-            <div class="d-flex justify-content-end mb-2">
-                <button class="btn btn-outline-primary btn-sm" @click="showTripSettingsModal">
-                    <i class="fas fa-cog"></i> 旅程設定変更
-                </button>
-            </div>
-            
             <div class="day-tabs-container">
                 <ul class="nav nav-tabs day-tabs">
                     <li class="nav-item" 
@@ -622,6 +622,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link add-day-btn" @click.prevent="showAddDayModal" href="#" title="日程を追加">
+                            <div class="drag-handle" style="display: none;"></div>
                             <i class="fas fa-plus"></i>
                         </a>
                     </li>
@@ -709,34 +710,7 @@
             • 空のエリアをクリック：終了
         </div>
         
-        <!-- モーダル群 -->
-        <div class="modal fade" id="tripSettingsModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-cog"></i> 旅程設定変更</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">開始日</label>
-                            <input type="date" class="form-control" v-model="newTripStartDate" :min="today">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">終了日</label>
-                            <input type="date" class="form-control" v-model="newTripEndDate" :min="newTripStartDate">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" @click="updateTripSettings">
-                            <i class="fas fa-save"></i> 変更を保存
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
+        <!-- 日程追加モーダル -->
         <div class="modal fade" id="addDayModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -760,6 +734,7 @@
             </div>
         </div>
         
+        <!-- 予定詳細モーダル -->
         <div class="modal fade" id="detailModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -797,6 +772,7 @@
             </div>
         </div>
         
+        <!-- 予定追加/編集モーダル -->
         <div class="modal fade" id="eventModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -886,8 +862,6 @@
                     tripEndDate: '',
                     today: new Date().toISOString().split('T')[0],
                     hasExistingData: false,
-                    newTripStartDate: '',
-                    newTripEndDate: '',
                     tripDays: [],
                     activeDay: 0,
                     newDayDate: '',
@@ -971,46 +945,6 @@
                     this.activeDay = index;
                 },
                 
-                showTripSettingsModal() {
-                    if (this.tripDays.length > 0) {
-                        const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                        this.newTripStartDate = sortedDays[0].fullDate;
-                        this.newTripEndDate = sortedDays[sortedDays.length - 1].fullDate;
-                    }
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('tripSettingsModal'));
-                    modal.show();
-                },
-                
-                updateTripSettings() {
-                    if (!this.newTripStartDate || !this.newTripEndDate) {
-                        alert('開始日と終了日を選択してください');
-                        return;
-                    }
-                    
-                    if (this.newTripStartDate > this.newTripEndDate) {
-                        alert('終了日は開始日以降を選択してください');
-                        return;
-                    }
-                    
-                    const newTripDays = this.generateTripDays(this.newTripStartDate, this.newTripEndDate);
-                    const validDayIndices = new Set(Array.from({length: newTripDays.length}, (_, i) => i));
-                    this.events = this.events.filter(event => validDayIndices.has(event.dayIndex));
-                    
-                    this.tripDays = newTripDays;
-                    
-                    if (this.activeDay >= this.tripDays.length) {
-                        this.activeDay = 0;
-                    }
-                    
-                    this.saveData();
-                    
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('tripSettingsModal'));
-                    modal.hide();
-                    
-                    alert('旅程設定を更新しました');
-                },
-                
                 detectMobile() {
                     this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
@@ -1067,6 +1001,7 @@
                     modal.hide();
                 },
                 
+                // 修正版：タブ削除時の日付自動再設定機能
                 deleteDay(index) {
                     if (this.tripDays.length <= 1) {
                         alert('最低1つの日程は必要です');
@@ -1074,25 +1009,67 @@
                     }
                     
                     if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
+                        // 予定を削除
                         this.events = this.events.filter(event => event.dayIndex !== index);
                         
+                        // 予定のindexを更新
                         this.events.forEach(event => {
                             if (event.dayIndex > index) {
                                 event.dayIndex--;
                             }
                         });
                         
+                        // タブを削除
                         this.tripDays.splice(index, 1);
                         
+                        // 日付の自動再設定
+                        this.recalculateDatesAfterDeletion(index);
+                        
+                        // dayNumberを再計算
                         this.tripDays.forEach((day, i) => {
                             day.dayNumber = i + 1;
                         });
                         
+                        // アクティブタブの調整
                         if (this.activeDay >= this.tripDays.length) {
                             this.activeDay = this.tripDays.length - 1;
                         }
                         
                         this.saveData();
+                    }
+                },
+                
+                // 新規追加：削除後の日付自動再設定メソッド
+                recalculateDatesAfterDeletion(deletedIndex) {
+                    if (this.tripDays.length === 0) return;
+                    
+                    // 削除された位置から右側のタブが存在する場合
+                    if (deletedIndex < this.tripDays.length) {
+                        let baseDate = null;
+                        
+                        // 左側のタブが存在する場合
+                        if (deletedIndex > 0) {
+                            // 左側の日付の翌日を基準とする
+                            baseDate = new Date(this.tripDays[deletedIndex - 1].fullDate);
+                            baseDate.setDate(baseDate.getDate() + 1);
+                        } else {
+                            // 左側がない場合、右側のタブの前日を基準とする
+                            baseDate = new Date(this.tripDays[0].fullDate);
+                            baseDate.setDate(baseDate.getDate() - 1);
+                        }
+                        
+                        // 削除された位置以降のタブの日付を再設定
+                        for (let i = deletedIndex; i < this.tripDays.length; i++) {
+                            const targetDate = new Date(baseDate);
+                            if (deletedIndex > 0) {
+                                // 左側がある場合：左側の翌日から連続
+                                targetDate.setDate(baseDate.getDate() + (i - deletedIndex + 1));
+                            } else {
+                                // 左側がない場合：右側の前日から連続
+                                targetDate.setDate(baseDate.getDate() + (i + 1));
+                            }
+                            this.updateDayData(i, targetDate);
+                        }
                     }
                 },
                 
