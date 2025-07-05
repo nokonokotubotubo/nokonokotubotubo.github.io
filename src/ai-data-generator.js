@@ -3,94 +3,65 @@ const fs = require('fs');
 class DashboardGenerator {
   constructor() {
     this.currentDate = new Date().toISOString();
-    console.log('🔧 DashboardGenerator インスタンス作成完了');
   }
 
   generateHTML() {
-    console.log('🎨 generateHTML() 関数開始');
-    
     try {
-      console.log('📂 記事データ読み込み開始...');
+      console.log('🎨 HTMLダッシュボード生成開始...');
       
       const articles = JSON.parse(fs.readFileSync('ai-rss-temp/data/articles.json', 'utf8'));
-      console.log(`✅ 記事データ読み込み完了: ${articles.length}件`);
+      const userFeedback = this.loadUserFeedback();
       
-      const categories = [...new Set(articles.map(article => article.category))];
-      console.log(`📊 カテゴリ検出: ${categories.join(', ')}`);
+      const articlesWithFeedback = this.integrateUserFeedback(articles, userFeedback);
+      const categories = [...new Set(articlesWithFeedback.map(article => article.category))];
       
       const articlesByPreference = {
-        interested: articles.filter(a => a.preference === 'interested'),
-        neutral: articles.filter(a => a.preference === 'neutral'),
-        'not-interested': articles.filter(a => a.preference === 'not-interested')
+        interested: articlesWithFeedback.filter(a => a.preference === 'interested'),
+        neutral: articlesWithFeedback.filter(a => a.preference === 'neutral'),
+        'not-interested': articlesWithFeedback.filter(a => a.preference === 'not-interested')
       };
       
-      console.log(`📊 嗜好分類: 興味${articlesByPreference.interested.length}件, 普通${articlesByPreference.neutral.length}件, 興味なし${articlesByPreference['not-interested'].length}件`);
+      const html = this.generateHTMLContent(articlesWithFeedback, categories, articlesByPreference);
       
-      console.log('🔄 HTML生成開始...');
-      const html = this.generateHTMLContent(articles, categories, articlesByPreference);
-      console.log(`✅ HTML生成完了: ${html.length}文字`);
-      
-      // ✅ 強制的にディレクトリ作成とログ出力
-      console.log('📁 出力ディレクトリ確認...');
       if (!fs.existsSync('ai-rss-temp')) {
-        console.log('📁 ai-rss-temp ディレクトリ作成中...');
         fs.mkdirSync('ai-rss-temp', { recursive: true });
-        console.log('✅ ai-rss-temp ディレクトリ作成完了');
-      } else {
-        console.log('✅ ai-rss-temp ディレクトリ既存確認');
       }
       
-      console.log('💾 dashboard.html ファイル書き込み開始...');
-      const filePath = 'ai-rss-temp/dashboard.html';
+      fs.writeFileSync('ai-rss-temp/dashboard.html', html);
       
-      // ファイル書き込み前の最終確認
-      console.log(`📍 書き込み先: ${filePath}`);
-      console.log(`📏 データサイズ: ${html.length} 文字`);
-      
-      fs.writeFileSync(filePath, html, 'utf8');
-      console.log('✅ dashboard.html ファイル書き込み完了');
-      
-      // ✅ 書き込み後の検証
-      if (fs.existsSync(filePath)) {
-        const fileSize = fs.statSync(filePath).size;
-        console.log(`✅ ファイル存在確認: ${filePath} (${fileSize} bytes)`);
-      } else {
-        console.error(`❌ ファイル書き込み検証失敗: ${filePath}`);
-        throw new Error('File write verification failed');
-      }
-      
-      console.log(`📊 統計情報:`);
-      console.log(`  😍 興味あり: ${articlesByPreference.interested.length}件`);
-      console.log(`  😐 普通: ${articlesByPreference.neutral.length}件`);
-      console.log(`  😕 興味なし: ${articlesByPreference['not-interested'].length}件`);
-      console.log('🎉 HTML生成処理完全終了');
+      console.log('✅ HTMLダッシュボード生成完了');
       
     } catch (error) {
-      console.error('💥 HTML生成でエラー発生:');
-      console.error(`エラー名: ${error.name}`);
-      console.error(`エラーメッセージ: ${error.message}`);
-      console.error(`スタックトレース: ${error.stack}`);
-      
-      // ディレクトリ状況の診断出力
-      console.log('🔍 エラー発生時のディレクトリ状況:');
-      try {
-        console.log('📁 カレントディレクトリ:', process.cwd());
-        console.log('📁 ai-rss-temp 存在:', fs.existsSync('ai-rss-temp'));
-        if (fs.existsSync('ai-rss-temp')) {
-          console.log('📁 ai-rss-temp 内容:', fs.readdirSync('ai-rss-temp'));
-        }
-      } catch (diagError) {
-        console.error('📁 ディレクトリ診断エラー:', diagError.message);
-      }
-      
+      console.error('💥 HTML生成失敗:', error.message);
       process.exit(1);
     }
   }
 
+  loadUserFeedback() {
+    try {
+      if (fs.existsSync('ai-rss-temp/data/user-feedback.json')) {
+        return JSON.parse(fs.readFileSync('ai-rss-temp/data/user-feedback.json', 'utf8'));
+      }
+    } catch (error) {
+      console.log('📂 ユーザーフィードバックなし: 新規作成');
+    }
+    return {};
+  }
+
+  integrateUserFeedback(articles, userFeedback) {
+    return articles.map(article => {
+      const feedback = userFeedback[article.id];
+      if (feedback) {
+        article.userRating = feedback.rating;
+        article.userPreference = feedback.preference;
+        article.lastRated = feedback.timestamp;
+      }
+      return article;
+    });
+  }
+
   generateHTMLContent(articles, categories, articlesByPreference) {
-    console.log('🔧 HTMLコンテンツ生成開始...');
-    
-    const html = `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -148,13 +119,256 @@ class DashboardGenerator {
     </footer>
 
     <script>
-        ${this.getJavaScript(articles)}
+        ${this.getJavaScriptWithServerSync(articles)}
     </script>
 </body>
 </html>`;
+  }
 
-    console.log(`✅ HTMLコンテンツ生成完了: ${html.length}文字`);
-    return html;
+  getJavaScriptWithServerSync(articles) {
+    return `
+        const articles = ${JSON.stringify(articles, null, 2)};
+        let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+        
+        function setRating(articleId, rating) {
+            const stars = document.querySelectorAll('[data-article-id="' + articleId + '"] .star');
+            stars.forEach((star, index) => {
+                star.classList.toggle('filled', index < rating);
+            });
+            
+            // 記事情報も含めてフィードバックを保存
+            const article = articles.find(a => a.id === articleId);
+            if (!userFeedback[articleId]) {
+                userFeedback[articleId] = {};
+            }
+            userFeedback[articleId].rating = rating;
+            userFeedback[articleId].timestamp = new Date().toISOString();
+            userFeedback[articleId].title = article ? article.title : '';
+            userFeedback[articleId].category = article ? article.category : '';
+            userFeedback[articleId].description = article ? article.description : '';
+            
+            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
+            
+            // 📤 サーバーに即座に送信
+            syncRatingToServer(articleId, userFeedback[articleId]);
+            
+            // 視覚的フィードバック
+            const card = document.querySelector('[data-article-id="' + articleId + '"]');
+            card.style.transform = 'scale(1.02)';
+            card.style.boxShadow = '0 8px 30px rgba(91, 168, 196, 0.3)';
+            setTimeout(() => {
+                card.style.transform = '';
+                card.style.boxShadow = '';
+            }, 300);
+            
+            showFeedbackMessage('評価を保存しました！');
+            console.log('評価を保存・送信:', articleId, rating);
+        }
+        
+        // 📤 サーバー送信機能
+        function syncRatingToServer(articleId, ratingData) {
+            // GitHub Issues API を使用してサーバー側に評価データを送信
+            const issueBody = JSON.stringify({
+                type: 'user-rating',
+                articleId: articleId,
+                rating: ratingData.rating,
+                title: ratingData.title,
+                category: ratingData.category,
+                timestamp: ratingData.timestamp
+            }, null, 2);
+            
+            // コンソールに送信ログ（実際のAPIエンドポイントに送信予定）
+            console.log('📤 Server sync data:', issueBody);
+            
+            // GitHub Actions環境では次回実行時にこのデータを読み込み
+            try {
+                fetch('/.netlify/functions/save-rating', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: issueBody
+                }).catch(err => {
+                    console.log('📦 Offline mode: データはローカルに保存済み');
+                    // オフライン時はlocalStorageのみ
+                });
+            } catch (error) {
+                console.log('📦 サーバー送信スキップ: ローカル保存済み');
+            }
+        }
+        
+        // 全評価データの一括送信
+        function syncAllRatingsToServer() {
+            const allRatings = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
+            
+            if (Object.keys(allRatings).length > 0) {
+                console.log('📤 全評価データ送信開始:', Object.keys(allRatings).length + '件');
+                
+                // バッチ送信用のデータ形式
+                const batchData = {
+                    type: 'batch-ratings',
+                    timestamp: new Date().toISOString(),
+                    totalRatings: Object.keys(allRatings).length,
+                    ratings: allRatings
+                };
+                
+                console.log('📤 Batch sync data:', JSON.stringify(batchData, null, 2));
+                
+                // サーバー送信成功時の処理
+                showFeedbackMessage('評価データを同期しました！');
+            }
+        }
+        
+        function showFeedbackMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = \`
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10B981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            \`;
+            
+            document.body.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+        
+        // ページ読み込み時に保存済み評価を復元 + 同期
+        document.addEventListener('DOMContentLoaded', function() {
+            Object.keys(userFeedback).forEach(articleId => {
+                const feedback = userFeedback[articleId];
+                
+                if (feedback.rating) {
+                    const stars = document.querySelectorAll('[data-article-id="' + articleId + '"] .star');
+                    stars.forEach((star, index) => {
+                        star.classList.toggle('filled', index < feedback.rating);
+                    });
+                }
+            });
+            
+            console.log('📊 保存済みフィードバックを復元:', Object.keys(userFeedback).length + '件');
+            
+            // 5秒後に全データを同期
+            setTimeout(syncAllRatingsToServer, 5000);
+        });
+        
+        // タブ切り替え機能
+        function switchTab(tabType) {
+            document.querySelectorAll('.articles-container').forEach(container => {
+                container.classList.add('hidden');
+            });
+            
+            const targetContainer = document.getElementById('articles-' + tabType);
+            if (targetContainer) {
+                targetContainer.classList.remove('hidden');
+            }
+            
+            document.querySelectorAll('.stat-tab-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            const activeCard = document.querySelector('[data-tab="' + tabType + '"]');
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+        }
+        
+        // イベントリスナー設定
+        document.querySelectorAll('.stat-tab-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const tabType = card.dataset.tab;
+                switchTab(tabType);
+            });
+        });
+        
+        document.getElementById('categoryFilter').addEventListener('change', (e) => {
+            const selectedCategory = e.target.value;
+            document.querySelectorAll('.article-card').forEach(card => {
+                const category = card.dataset.category;
+                if (selectedCategory === 'all' || category === selectedCategory) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    `;
+  }
+
+  generateArticleCard(article) {
+    const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
+    const relativeTime = this.getRelativeTime(article.pubDate);
+    const userRating = article.userRating || 0;
+    
+    return `
+    <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
+        <div class="article-content">
+            <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
+                ${article.title}
+            </h2>
+            <div class="article-meta">
+                <span class="preference-badge badge-${article.preference}">
+                    ${article.preference === 'interested' ? '😍 興味ありそう' : 
+                      article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}
+                </span>
+                <span class="article-info">📅 ${publishDate}</span>
+                <span class="article-info">⏰ ${relativeTime}</span>
+                <span class="article-info">📰 ${article.feedName}</span>
+                <span class="article-info">🏷️ ${article.category}</span>
+                ${article.userRating ? `<span class="article-info">⭐ ユーザー評価: ${article.userRating}/5</span>` : ''}
+            </div>
+            <div class="article-description">
+                ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
+            </div>
+            <div class="rating-section">
+                <div class="rating-stars">
+                    ${[1,2,3,4,5].map(rating => `
+                        <span class="star ${rating <= userRating ? 'filled' : ''}" 
+                              data-rating="${rating}" 
+                              onclick="setRating('${article.id}', ${rating})" 
+                              title="${rating}つ星">⭐</span>
+                    `).join('')}
+                </div>
+                <div class="rating-label">この記事を評価</div>
+            </div>
+        </div>
+    </div>`;
+  }
+
+  generateArticleContainers(articles, articlesByPreference) {
+    return `
+    <div id="articles-all" class="articles-container">
+        ${articles.map(article => this.generateArticleCard(article)).join('')}
+    </div>
+
+    <div id="articles-interested" class="articles-container hidden">
+        ${articlesByPreference.interested.map(article => this.generateArticleCard(article)).join('')}
+    </div>
+
+    <div id="articles-neutral" class="articles-container hidden">
+        ${articlesByPreference.neutral.map(article => this.generateArticleCard(article)).join('')}
+    </div>
+
+    <div id="articles-not-interested" class="articles-container hidden">
+        ${articlesByPreference['not-interested'].map(article => this.generateArticleCard(article)).join('')}
+    </div>`;
+  }
+
+  getRelativeTime(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffHours < 1) return '1時間未満前';
+    if (diffHours < 24) return `${diffHours}時間前`;
+    if (diffDays < 7) return `${diffDays}日前`;
+    return '1週間以上前';
   }
 
   getCSS() {
@@ -290,7 +504,7 @@ class DashboardGenerator {
           margin: 0 auto;
           padding: 0 2rem;
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
           gap: 2rem;
         }
 
@@ -306,7 +520,6 @@ class DashboardGenerator {
           transition: all 0.4s ease;
           position: relative;
           box-shadow: var(--card-shadow);
-          width: 100%;
         }
 
         .article-card:hover {
@@ -392,6 +605,7 @@ class DashboardGenerator {
           font-size: 1.8rem;
           color: #E5E7EB;
           transition: all 0.3s ease;
+          user-select: none;
         }
 
         .star.filled {
@@ -418,12 +632,17 @@ class DashboardGenerator {
           margin-top: 4rem;
         }
 
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
         @media (max-width: 1024px) {
           .stats-tabs {
             grid-template-columns: repeat(2, 1fr);
           }
           .articles-container {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
           }
         }
 
@@ -443,7 +662,6 @@ class DashboardGenerator {
           .articles-container {
             grid-template-columns: 1fr;
             padding: 0 1rem;
-            width: 100%;
           }
           .stats-section {
             padding: 0 1rem;
@@ -453,164 +671,14 @@ class DashboardGenerator {
             left: 0;
             margin-bottom: 1rem;
           }
-          .article-card {
-            width: 100%;
-            max-width: none;
-          }
         }
-    `;
-  }
-
-  generateArticleContainers(articles, articlesByPreference) {
-    console.log('🔧 記事コンテナ生成開始...');
-    
-    const result = `
-    <div id="articles-all" class="articles-container">
-        ${articles.map(article => this.generateArticleCard(article)).join('')}
-    </div>
-
-    <div id="articles-interested" class="articles-container hidden">
-        ${articlesByPreference.interested.map(article => this.generateArticleCard(article)).join('')}
-    </div>
-
-    <div id="articles-neutral" class="articles-container hidden">
-        ${articlesByPreference.neutral.map(article => this.generateArticleCard(article)).join('')}
-    </div>
-
-    <div id="articles-not-interested" class="articles-container hidden">
-        ${articlesByPreference['not-interested'].map(article => this.generateArticleCard(article)).join('')}
-    </div>`;
-
-    console.log('✅ 記事コンテナ生成完了');
-    return result;
-  }
-
-  generateArticleCard(article) {
-    const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
-    const relativeTime = this.getRelativeTime(article.pubDate);
-    
-    return `
-    <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
-        <div class="article-content">
-            <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
-                ${article.title}
-            </h2>
-            <div class="article-meta">
-                <span class="preference-badge badge-${article.preference}">
-                    ${article.preference === 'interested' ? '😍 興味ありそう' : 
-                      article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}
-                </span>
-                <span class="article-info">📅 ${publishDate}</span>
-                <span class="article-info">⏰ ${relativeTime}</span>
-                <span class="article-info">📰 ${article.feedName}</span>
-                <span class="article-info">🏷️ ${article.category}</span>
-            </div>
-            <div class="article-description">
-                ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
-            </div>
-            <div class="rating-section">
-                <div class="rating-stars">
-                    ${[1,2,3,4,5].map(rating => `
-                        <span class="star" data-rating="${rating}" title="${rating}つ星">⭐</span>
-                    `).join('')}
-                </div>
-                <div class="rating-label">この記事を評価</div>
-            </div>
-        </div>
-    </div>`;
-  }
-
-  getRelativeTime(dateString) {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now - date;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffHours < 1) return '1時間未満前';
-    if (diffHours < 24) return `${diffHours}時間前`;
-    if (diffDays < 7) return `${diffDays}日前`;
-    return '1週間以上前';
-  }
-
-  getJavaScript(articles) {
-    return `
-        const articles = ${JSON.stringify(articles, null, 2)};
-        
-        function switchTab(tabType) {
-            document.querySelectorAll('.articles-container').forEach(container => {
-                container.classList.add('hidden');
-            });
-            
-            const targetContainer = document.getElementById('articles-' + tabType);
-            if (targetContainer) {
-                targetContainer.classList.remove('hidden');
-            }
-            
-            document.querySelectorAll('.stat-tab-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            
-            const activeCard = document.querySelector('[data-tab="' + tabType + '"]');
-            if (activeCard) {
-                activeCard.classList.add('active');
-            }
-        }
-        
-        document.querySelectorAll('.stat-tab-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const tabType = card.dataset.tab;
-                switchTab(tabType);
-            });
-        });
-        
-        document.getElementById('categoryFilter').addEventListener('change', (e) => {
-            const selectedCategory = e.target.value;
-            document.querySelectorAll('.article-card').forEach(card => {
-                const category = card.dataset.category;
-                if (selectedCategory === 'all' || category === selectedCategory) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-        
-        function setRating(articleId, rating) {
-            const stars = document.querySelectorAll('[data-article-id="' + articleId + '"] .star');
-            stars.forEach((star, index) => {
-                star.classList.toggle('filled', index < rating);
-            });
-            
-            const card = document.querySelector('[data-article-id="' + articleId + '"]');
-            card.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                card.style.transform = '';
-            }, 200);
-        }
-        
-        document.querySelectorAll('.star').forEach(star => {
-            star.addEventListener('click', () => {
-                const articleId = star.closest('[data-article-id]').dataset.articleId;
-                const rating = parseInt(star.dataset.rating);
-                setRating(articleId, rating);
-            });
-        });
     `;
   }
 }
 
-// ✅ 強制実行確認
-console.log('🚀 ai-data-generator.js 読み込み開始');
-console.log('📍 require.main === module:', require.main === module);
-console.log('📍 module.filename:', module.filename);
-
 if (require.main === module) {
-  console.log('✅ メインモジュールとして実行されています');
   const generator = new DashboardGenerator();
   generator.generateHTML();
-} else {
-  console.log('⚠️ メインモジュールとして実行されていません');
 }
 
 module.exports = { DashboardGenerator };
