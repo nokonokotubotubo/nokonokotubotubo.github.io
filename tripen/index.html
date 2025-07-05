@@ -1797,4 +1797,127 @@
                         food: 'fas fa-utensils',
                         sightseeing: 'fas fa-camera',
                         accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star
+                        custom: 'fas fa-star'
+                    };
+                    return icons[category] || 'fas fa-calendar';
+                },
+                
+                getCategoryName(category) {
+                    const names = {
+                        travel: '移動',
+                        food: '食事',
+                        sightseeing: '観光',
+                        accommodation: '宿泊',
+                        custom: 'その他'
+                    };
+                    return names[category] || 'その他';
+                },
+                
+                // イベント操作
+                openEventModal(event = null) {
+                    this.editingEvent = event;
+                    
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
+                        this.eventForm = {
+                            title: '',
+                            dayIndex: this.activeDay,
+                            startTime: '09:00',
+                            endTime: '10:00',
+                            category: 'travel',
+                            description: ''
+                        };
+                    }
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    modal.show();
+                },
+                
+                saveEvent() {
+                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
+                        alert('必須項目を入力してください');
+                        return;
+                    }
+                    
+                    if (this.eventForm.startTime >= this.eventForm.endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const eventData = {
+                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
+                        title: this.eventForm.title,
+                        dayIndex: this.eventForm.dayIndex,
+                        startTime: this.eventForm.startTime,
+                        endTime: this.eventForm.endTime,
+                        category: this.eventForm.category,
+                        description: this.eventForm.description
+                    };
+                    
+                    if (this.editingEvent) {
+                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
+                        this.events[index] = eventData;
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
+                    this.saveData();
+                    this.editModeEvent = null;
+                    
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                    modal.hide();
+                },
+                
+                deleteEvent() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
+                        this.saveData();
+                        this.editModeEvent = null;
+                        
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+                        modal.hide();
+                    }
+                },
+                
+                // データ保存・読み込み
+                saveData() {
+                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    localStorage.setItem('trippenInitialized', 'true');
+                },
+                
+                loadData() {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    const savedInitialized = localStorage.getItem('trippenInitialized');
+                    
+                    if (savedEvents) {
+                        this.events = JSON.parse(savedEvents);
+                    }
+                    
+                    if (savedDays) {
+                        this.tripDays = JSON.parse(savedDays);
+                    }
+                    
+                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
+                }
+            },
+            
+            mounted() {
+                this.detectMobile();
+                this.checkExistingData();
+                this.loadData();
+                
+                window.addEventListener('resize', this.detectMobile);
+            },
+            
+            unmounted() {
+                window.removeEventListener('resize', this.detectMobile);
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
