@@ -177,7 +177,8 @@
             justify-content: center;
             min-width: 60px;
             transition: all 0.3s ease;
-            padding: 12px 20px !important; /* 通常のタブと同じパディング */
+            padding-left: 20px !important;
+            padding-right: 20px !important;
         }
         
         .day-tabs .nav-link.add-day-btn:hover {
@@ -1002,30 +1003,22 @@
                     }
                     
                     if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
-                        // 該当日の予定を削除
                         this.events = this.events.filter(event => event.dayIndex !== index);
                         
-                        // 削除されたタブより後のタブの予定のdayIndexを調整
                         this.events.forEach(event => {
                             if (event.dayIndex > index) {
                                 event.dayIndex--;
                             }
                         });
                         
-                        // タブを削除
                         this.tripDays.splice(index, 1);
                         
-                        // 日付自動再設定ロジック
-                        if (this.tripDays.length > 0) {
-                            this.autoRecalculateDatesAfterDeletion(index);
-                        }
+                        this.recalculateDatesAfterDeletion(index);
                         
-                        // dayNumberを再計算
                         this.tripDays.forEach((day, i) => {
                             day.dayNumber = i + 1;
                         });
                         
-                        // アクティブタブの調整
                         if (this.activeDay >= this.tripDays.length) {
                             this.activeDay = this.tripDays.length - 1;
                         }
@@ -1034,29 +1027,27 @@
                     }
                 },
                 
-                // タブ削除後の日付自動再設定
-                autoRecalculateDatesAfterDeletion(deletedIndex) {
-                    // 削除されたタブの右側にタブがある場合
+                recalculateDatesAfterDeletion(deletedIndex) {
+                    if (this.tripDays.length === 0) return;
+                    
                     if (deletedIndex < this.tripDays.length) {
-                        let baseDate;
+                        let baseDate = null;
                         
-                        // 左側のタブがある場合は左側の日付の翌日を設定
                         if (deletedIndex > 0) {
-                            const leftTab = this.tripDays[deletedIndex - 1];
-                            baseDate = new Date(leftTab.fullDate);
+                            baseDate = new Date(this.tripDays[deletedIndex - 1].fullDate);
                             baseDate.setDate(baseDate.getDate() + 1);
-                        } 
-                        // 左側がない場合は右側のタブの前日を設定
-                        else {
-                            const rightTab = this.tripDays[deletedIndex];
-                            baseDate = new Date(rightTab.fullDate);
+                        } else {
+                            baseDate = new Date(this.tripDays[0].fullDate);
                             baseDate.setDate(baseDate.getDate() - 1);
                         }
                         
-                        // 削除されたタブの位置から右側の全てのタブの日付を連続で設定
                         for (let i = deletedIndex; i < this.tripDays.length; i++) {
                             const targetDate = new Date(baseDate);
-                            targetDate.setDate(baseDate.getDate() + (i - deletedIndex + (deletedIndex > 0 ? 1 : 0)));
+                            if (deletedIndex > 0) {
+                                targetDate.setDate(baseDate.getDate() + (i - deletedIndex + 1));
+                            } else {
+                                targetDate.setDate(baseDate.getDate() + (i + 1));
+                            }
                             this.updateDayData(i, targetDate);
                         }
                     }
