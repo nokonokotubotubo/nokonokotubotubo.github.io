@@ -56,8 +56,9 @@ body {
   50% { opacity: 0.6; }
 }
 
+/* ✅ 修正：確実に動作するヘッダー色指定 */
 .header {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-accent) 100%);
+  background: linear-gradient(135deg, #87CEEB 0%, #5BA8C4 100%);
   padding: 2rem;
   text-align: center;
   margin-bottom: 3rem;
@@ -65,7 +66,7 @@ body {
 }
 
 .header h1 {
-  color: #fff;
+  color: #ffffff;
   font-size: 3.5rem;
   font-weight: 900;
   margin-bottom: 1rem;
@@ -114,19 +115,19 @@ body {
 
 .category-filter {
   padding: 0.8rem 1.2rem;
-  border: 2px solid var(--border-color);
+  border: 2px solid #E8F4F8;
   border-radius: 8px;
   background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  color: var(--text-secondary);
+  color: #5A6C7D;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
 }
 
 .category-filter:hover {
-  border-color: var(--border-hover);
+  border-color: #B8E6FF;
   transform: translateY(-2px);
 }
 
@@ -139,11 +140,11 @@ body {
 
 .stat-tab-card {
   background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  border: 2px solid var(--border-color);
+  border: 2px solid #E8F4F8;
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
   transition: all 0.4s ease;
   position: relative;
   overflow: hidden;
@@ -153,27 +154,27 @@ body {
 
 .stat-tab-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: var(--card-shadow-hover);
-  border-color: var(--border-hover);
+  box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
+  border-color: #B8E6FF;
 }
 
 .stat-tab-card.active {
-  background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
-  border-color: var(--primary-accent);
+  background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
+  border-color: #5BA8C4;
   color: #fff;
   transform: translateY(-8px) scale(1.05);
 }
 
 .stat-tab-card.interested.active {
-  background: linear-gradient(135deg, var(--interested-color), #059669);
+  background: linear-gradient(135deg, #10B981, #059669);
 }
 
 .stat-tab-card.neutral.active {
-  background: linear-gradient(135deg, var(--neutral-color), #D97706);
+  background: linear-gradient(135deg, #F59E0B, #D97706);
 }
 
 .stat-tab-card.not-interested.active {
-  background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+  background: linear-gradient(135deg, #EF4444, #DC2626);
 }
 
 .stat-number {
@@ -222,30 +223,30 @@ body {
 
 .article-card {
   background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  border: 2px solid var(--border-color);
+  border: 2px solid #E8F4F8;
   border-radius: 24px;
   overflow: hidden;
   transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
 }
 
 .article-card:hover {
-  border-color: var(--border-hover);
+  border-color: #B8E6FF;
   transform: translateY(-8px) scale(1.02);
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
 }
 
 .article-card.interested {
-  border-left: 4px solid var(--interested-color);
+  border-left: 4px solid #10B981;
 }
 
 .article-card.neutral {
-  border-left: 4px solid var(--neutral-color);
+  border-left: 4px solid #F59E0B;
 }
 
 .article-card.not-interested {
-  border-left: 4px solid var(--not-interested-color);
+  border-left: 4px solid #EF4444;
 }
 
 .article-card.moving-out {
@@ -291,7 +292,7 @@ body {
 .article-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #2C3E50;
   margin-bottom: 1rem;
   line-height: 1.4;
   cursor: pointer;
@@ -299,7 +300,7 @@ body {
 }
 
 .article-title:hover {
-  color: var(--primary-accent);
+  color: #5BA8C4;
 }
 
 .article-meta {
@@ -320,25 +321,25 @@ body {
 }
 
 .badge-interested {
-  background: linear-gradient(135deg, var(--interested-color), #059669);
+  background: linear-gradient(135deg, #10B981, #059669);
 }
 
 .badge-neutral {
-  background: linear-gradient(135deg, var(--neutral-color), #D97706);
+  background: linear-gradient(135deg, #F59E0B, #D97706);
 }
 
 .badge-not-interested {
-  background: linear-gradient(135deg, var(--not-interested-color), #DC2626);
+  background: linear-gradient(135deg, #EF4444, #DC2626);
 }
 
 .article-info {
   font-size: 0.9rem;
-  color: var(--text-light);
+  color: #8FA0B3;
   font-weight: 500;
 }
 
 .article-description {
-  color: var(--text-secondary);
+  color: #5A6C7D;
   font-size: 1rem;
   line-height: 1.8;
   margin-bottom: 2rem;
@@ -349,7 +350,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding-top: 1.5rem;
-  border-top: 2px solid var(--border-color);
+  border-top: 2px solid #E8F4F8;
 }
 
 .rating-stars {
@@ -378,7 +379,7 @@ body {
 
 .rating-label {
   font-size: 0.9rem;
-  color: var(--text-light);
+  color: #8FA0B3;
   font-weight: 600;
 }
 
@@ -386,7 +387,7 @@ body {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: var(--interested-color);
+  background: #10B981;
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
@@ -399,7 +400,7 @@ body {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: var(--interested-color);
+  background: #10B981;
   color: white;
   padding: 12px 20px;
   border-radius: 8px;
@@ -428,7 +429,7 @@ body {
   right: 20px;
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
   border: none;
   border-radius: 50%;
   color: white;
