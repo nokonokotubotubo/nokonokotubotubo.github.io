@@ -644,34 +644,36 @@
         
         .event-actions {
             position: absolute;
-            top: -15px;
-            right: -15px;
+            top: -12px;
+            left: -12px;
             display: flex;
             gap: 5px;
             z-index: 20;
         }
         
         .event-action-btn {
-            width: 25px;
-            height: 25px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            border: none;
+            border: 2px solid white;
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         
         .event-action-btn.cut {
-            background: #FF6B6B;
+            background: #FF4444;
         }
         
         .event-action-btn.cut:hover {
-            background: #FF5252;
-            transform: scale(1.1);
+            background: #FF2222;
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.5);
         }
         
         .edit-mode-indicator {
@@ -690,62 +692,36 @@
             font-weight: bold;
         }
         
-        .paste-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
+        .paste-status {
             background: #4CAF50;
             color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 15px;
             font-size: 0.8rem;
             font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            animation: pulse 2s infinite;
         }
         
-        .paste-indicator:hover {
-            background: #45a049;
-            transform: scale(1.05);
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
         }
         
-        .paste-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-left: 10px;
-        }
-        
-        .paste-btn:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-        
-        .mobile-paste-fab {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #4CAF50;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        
-        .mobile-paste-fab:active {
-            transform: scale(0.9);
+        .paste-area-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
         }
         
         .resize-handle {
@@ -997,10 +973,8 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
-                    <div v-if="clipboardEvent">
-                        <button class="paste-btn" @click="pasteEvent(activeDay)">
-                            <i class="fas fa-paste"></i> 貼り付け
-                        </button>
+                    <div v-if="clipboardEvent" class="paste-status">
+                        <i class="fas fa-clipboard"></i> 切り取り済み
                     </div>
                 </div>
                 
@@ -1012,7 +986,9 @@
                             </div>
                         </div>
                         
-                        <div class="schedule-area" @click="handleScheduleClick">
+                        <div class="schedule-area" 
+                             @click="handleScheduleClick"
+                             @contextmenu="handleScheduleContextMenu">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
                                     <div class="quarter-line"></div>
@@ -1119,6 +1095,9 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
+                    <div v-if="clipboardEvent" class="paste-status">
+                        <i class="fas fa-clipboard"></i> 切り取り済み
+                    </div>
                 </div>
                 
                 <div class="timeline-content">
@@ -1129,7 +1108,10 @@
                             </div>
                         </div>
                         
-                        <div class="schedule-area" @click="handleScheduleClick">
+                        <div class="schedule-area" 
+                             @click="handleScheduleClick"
+                             @touchstart="handleScheduleTouchStart"
+                             @touchend="handleScheduleTouchEnd">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
                                     <div class="quarter-line"></div>
@@ -1188,13 +1170,6 @@
             <button class="mobile-fab" @click="openEventModal()">
                 <i class="fas fa-plus"></i>
             </button>
-
-            <button class="mobile-paste-fab" 
-                    v-if="clipboardEvent && isMobile"
-                    @click="pasteEvent(activeDay)"
-                    title="貼り付け">
-                <i class="fas fa-paste"></i>
-            </button>
         </div>
         
         <!-- モバイル専用ポップアップメニュー -->
@@ -1235,7 +1210,8 @@
             • 上下端をドラッグ：時間調整<br>
             • 中央をドラッグ：移動<br>
             • 右クリック：編集モード切替<br>
-            • 空のエリアをクリック：終了
+            • 空のエリアをクリック：終了<br>
+            <span v-if="clipboardEvent">• 空エリア右クリック：貼り付け</span>
         </div>
         
         <!-- 開始日編集モーダル -->
@@ -1412,6 +1388,7 @@
                     events: [],
                     editModeEvent: null,
                     clipboardEvent: null, // 切り取った予定を保存
+                    scheduleTouchTimer: null, // モバイル用長押しタイマー
                     selectedEventForDetail: null,
                     editingEvent: null,
                     editingStartDate: '',
@@ -1439,6 +1416,72 @@
                         clientX: event.clientX,
                         clientY: event.clientY
                     };
+                },
+                
+                // 時間の検証とサニタイゼーション
+                validateTime(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    
+                    // 時間範囲のチェック（4:00-23:45）
+                    if (hours < 4 || hours > 23) {
+                        return false;
+                    }
+                    
+                    // 23時台は45分まで
+                    if (hours === 23 && minutes > 45) {
+                        return false;
+                    }
+                    
+                    // 15分単位チェック
+                    if (minutes % 15 !== 0) {
+                        return false;
+                    }
+                    
+                    return true;
+                },
+                
+                // 時間を15分単位に調整
+                snapTimeToQuarter(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    const snappedMinutes = Math.round(minutes / 15) * 15;
+                    
+                    let finalHours = hours;
+                    let finalMinutes = snappedMinutes;
+                    
+                    // 60分を超えた場合の処理
+                    if (finalMinutes >= 60) {
+                        finalHours += 1;
+                        finalMinutes = 0;
+                    }
+                    
+                    // 時間範囲の調整
+                    finalHours = Math.max(4, Math.min(23, finalHours));
+                    
+                    // 23時台は45分まで
+                    if (finalHours === 23 && finalMinutes > 45) {
+                        finalMinutes = 45;
+                    }
+                    
+                    return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+                },
+                
+                // 時間差計算（分単位）
+                getTimeDifferenceInMinutes(startTime, endTime) {
+                    const [startHour, startMin] = startTime.split(':').map(Number);
+                    const [endHour, endMin] = endTime.split(':').map(Number);
+                    
+                    const startTotalMin = startHour * 60 + startMin;
+                    const endTotalMin = endHour * 60 + endMin;
+                    
+                    return endTotalMin - startTotalMin;
+                },
+                
+                // 分から時間文字列に変換
+                minutesToTimeString(totalMinutes) {
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 },
                 
                 checkExistingData() {
@@ -1810,6 +1853,24 @@
                     }
                 },
                 
+                // 空のエリアでの右クリック処理（貼り付け用）
+                handleScheduleContextMenu(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    if (!this.clipboardEvent) {
+                        return;
+                    }
+                    
+                    // 右クリック位置から時間を計算
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    this.pasteEventAtTime(this.activeDay, newTime);
+                },
+                
                 startDragMove(event, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
@@ -1975,6 +2036,33 @@
                     }
                 },
                 
+                // モバイル用の長押し処理
+                handleScheduleTouchStart(event) {
+                    if (!this.clipboardEvent) {
+                        return;
+                    }
+                    
+                    this.scheduleTouchTimer = setTimeout(() => {
+                        const rect = this.$refs.mobileTimelineContainer.getBoundingClientRect();
+                        const y = event.touches[0].clientY - rect.top + this.$refs.mobileTimelineContainer.scrollTop;
+                        const snappedY = Math.round(y / 15) * 15;
+                        const newTime = this.pixelsToTime(snappedY);
+                        
+                        if (navigator.vibrate) {
+                            navigator.vibrate(100);
+                        }
+                        
+                        this.pasteEventAtTime(this.activeDay, newTime);
+                    }, 800);
+                },
+                
+                handleScheduleTouchEnd(event) {
+                    if (this.scheduleTouchTimer) {
+                        clearTimeout(this.scheduleTouchTimer);
+                        this.scheduleTouchTimer = null;
+                    }
+                },
+                
                 // ===== 切り取り・貼り付け機能 =====
                 cutEvent(event) {
                     this.clipboardEvent = { ...event };
@@ -2004,6 +2092,76 @@
                     // 貼り付け完了の視覚フィードバック
                     if (navigator.vibrate) {
                         navigator.vibrate([50, 50, 50]);
+                    }
+                },
+                
+                // 指定した時間に貼り付け（安定化機能付き）
+                pasteEventAtTime(targetDayIndex, startTime) {
+                    if (!this.clipboardEvent) return;
+                    
+                    try {
+                        // 開始時間をサニタイズ
+                        const sanitizedStartTime = this.snapTimeToQuarter(startTime);
+                        
+                        // 元のイベントの時間差を計算
+                        const originalDuration = this.getTimeDifferenceInMinutes(
+                            this.clipboardEvent.startTime, 
+                            this.clipboardEvent.endTime
+                        );
+                        
+                        // 新しい開始時間から終了時間を計算
+                        const [startHour, startMin] = sanitizedStartTime.split(':').map(Number);
+                        const startTotalMinutes = startHour * 60 + startMin;
+                        const endTotalMinutes = startTotalMinutes + originalDuration;
+                        
+                        // 終了時間が範囲を超える場合の調整
+                        const maxEndMinutes = 23 * 60 + 45; // 23:45
+                        let finalEndTotalMinutes = endTotalMinutes;
+                        let finalStartTime = sanitizedStartTime;
+                        
+                        if (endTotalMinutes > maxEndMinutes) {
+                            // 終了時間を23:45に設定し、開始時間を逆算
+                            finalEndTotalMinutes = maxEndMinutes;
+                            const adjustedStartMinutes = finalEndTotalMinutes - originalDuration;
+                            
+                            if (adjustedStartMinutes < 4 * 60) {
+                                // 時間範囲に収まらない場合はエラー
+                                alert('この予定は時間範囲内に収まりません。時間を短縮してから再度お試しください。');
+                                return;
+                            }
+                            
+                            finalStartTime = this.minutesToTimeString(adjustedStartMinutes);
+                            finalStartTime = this.snapTimeToQuarter(finalStartTime);
+                        }
+                        
+                        const endTime = this.minutesToTimeString(finalEndTotalMinutes);
+                        
+                        // 最終検証
+                        if (!this.validateTime(finalStartTime) || !this.validateTime(endTime)) {
+                            alert('貼り付け位置が無効です。4:00-23:45の範囲で15分単位の時間を指定してください。');
+                            return;
+                        }
+                        
+                        const newEvent = {
+                            ...this.clipboardEvent,
+                            id: Date.now() + Math.random(),
+                            dayIndex: targetDayIndex,
+                            startTime: finalStartTime,
+                            endTime: endTime
+                        };
+                        
+                        this.events.push(newEvent);
+                        this.clipboardEvent = null;
+                        this.saveData();
+                        
+                        // 貼り付け完了の視覚フィードバック
+                        if (navigator.vibrate) {
+                            navigator.vibrate([50, 50, 50]);
+                        }
+                        
+                    } catch (error) {
+                        console.error('貼り付け処理でエラーが発生しました:', error);
+                        alert('貼り付け処理中にエラーが発生しました。再度お試しください。');
                     }
                 },
                 
