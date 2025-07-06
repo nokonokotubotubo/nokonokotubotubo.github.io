@@ -649,7 +649,7 @@
                             </div>
                             <div class="tab-content-wrapper">
                                 <div>{{ day.dayNumber }}日目</div>
-                                <small @click.stop="openStartDateModal(index)" 
+                                <small @click.stop="handleDateClick(index)" 
                                        :class="{ 'editable-date': index === 0 }"
                                        class="date-display">
                                     {{ day.date }}
@@ -1008,6 +1008,15 @@
                     return days;
                 },
                 
+                handleDateClick(index) {
+                    if (index === 0) {
+                        this.openStartDateModal(index);
+                    } else {
+                        // 2日目以降はタブ切り替えのみ
+                        this.setActiveDay(index);
+                    }
+                },
+                
                 openStartDateModal(index) {
                     if (index !== 0) return; // 1日目のみ編集可能
                     
@@ -1133,10 +1142,9 @@
                     const movedTab = this.tripDays.splice(fromIndex, 1)[0];
                     this.tripDays.splice(toIndex, 0, movedTab);
                     
-                    // dayNumberを更新
-                    this.tripDays.forEach((day, index) => {
-                        day.dayNumber = index + 1;
-                    });
+                    // 日付を連続に再計算
+                    const startDate = this.tripDays[0].fullDate;
+                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length);
                     
                     // 予定のdayIndexを新しい順序に合わせて更新
                     this.events.forEach(event => {
