@@ -1027,6 +1027,7 @@
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
+                                 @contextmenu.prevent
                                  @contextmenu="handleEventContextMenu($event, event)"
                                  @mousedown="handleEventMouseDown($event, event)">
                                 
@@ -1149,6 +1150,7 @@
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
+                                 @contextmenu.prevent
                                  @touchstart="handleEventTouchStart($event, event)">
                                 
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
@@ -1425,6 +1427,7 @@
                     touchStartTime: 0,
                     touchStartPosition: { x: 0, y: 0 },
                     longPressTimer: null,
+                    longPressExecuted: false,
                     
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
@@ -1894,35 +1897,70 @@
                         y: coords.clientY - eventRect.top
                     };
                     
+                    // 既に編集モードの場合はドラッグ移動開始
                     if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         this.startDragMoveTouch(event, eventData);
                         return;
                     }
                     
-                    this.startEditModeLongPressTouch(event, eventData);
-                },
-                
-                startEditModeLongPressTouch(event, eventData) {
-                    this.longPressSucceeded = false;
-                    const coords = this.getEventCoordinates(event);
-                    this.startPosition = { x: coords.clientX, y: coords.clientY };
+                    // 長押し判定用の変数を初期化
+                    this.touchStartTime = Date.now();
+                    this.touchStartPosition = {
+                        x: coords.clientX,
+                        y: coords.clientY
+                    };
+                    this.longPressExecuted = false;
                     
+                    // 長押しタイマーを設定（500ms後に編集モードに入る）
                     this.longPressTimer = setTimeout(() => {
-                        this.longPressSucceeded = true;
+                        this.longPressExecuted = true;
                         this.editModeEvent = eventData;
                         
+                        // バイブレーション（対応デバイスのみ）
                         if (navigator.vibrate) {
                             navigator.vibrate(50);
                         }
                         
+                        // 編集モードに入った後、ドラッグ移動を開始
                         this.startDragMoveTouch(event, eventData);
                     }, 500);
                     
-                    const moveHandler = (e) => this.handleLongPressMoveTouch(e);
-                    const endHandler = (e) => this.handleLongPressEndTouch(e, moveHandler, endHandler);
+                    // タッチ移動とタッチ終了のイベントリスナーを追加
+                    const handleTouchMove = (e) => {
+                        const moveCoords = this.getEventCoordinates(e);
+                        const deltaX = Math.abs(moveCoords.clientX - this.touchStartPosition.x);
+                        const deltaY = Math.abs(moveCoords.clientY - this.touchStartPosition.y);
+                        
+                        // 10px以上移動したら長押しをキャンセル
+                        if (deltaX > 10 || deltaY > 10) {
+                            this.clearLongPressTimer();
+                            document.removeEventListener('touchmove', handleTouchMove);
+                            document.removeEventListener('touchend', handleTouchEnd);
+                        }
+                    };
                     
-                    document.addEventListener('touchmove', moveHandler, { passive: false });
-                    document.addEventListener('touchend', endHandler);
+                    const handleTouchEnd = (e) => {
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        this.clearLongPressTimer();
+                        
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                        
+                        // 長押しが実行されなかった場合の処理
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            // 短いタップの場合は何もしない（詳細表示はタイトルクリックで行う）
+                        }
+                    };
+                    
+                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    document.addEventListener('touchend', handleTouchEnd);
+                },
+                
+                clearLongPressTimer() {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
+                    }
                 },
                 
                 startDragMoveTouch(event, eventData) {
@@ -1944,7 +1982,7 @@
                     document.addEventListener('touchend', endHandler);
                 },
                 
-                handleDragMoveTouch(event, startY, initialTop) {
+                                handleDragMoveTouch(event, startY, initialTop) {
                     event.preventDefault();
                     const coords = this.getEventCoordinates(event);
                     const deltaY = coords.clientY - startY;
@@ -1968,36 +2006,6 @@
                     document.removeEventListener('touchmove', moveHandler);
                     document.removeEventListener('touchend', endHandler);
                     this.saveData();
-                },
-                
-                handleLongPressMoveTouch(event) {
-                    event.preventDefault();
-                    const coords = this.getEventCoordinates(event);
-                    const deltaX = Math.abs(coords.clientX - this.startPosition.x);
-                    const deltaY = Math.abs(coords.clientY - this.startPosition.y);
-                    
-                    if (deltaX > 10 || deltaY > 10) {
-                        this.clearLongPress();
-                    }
-                },
-                
-                handleLongPressEndTouch(event, moveHandler, endHandler) {
-                    document.removeEventListener('touchmove', moveHandler);
-                    document.removeEventListener('touchend', endHandler);
-                    this.clearLongPress();
-                    
-                    if (this.longPressSucceeded) {
-                        setTimeout(() => {
-                            this.longPressSucceeded = false;
-                        }, 100);
-                    }
-                },
-                
-                clearLongPress() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
                 },
                 
                 // ===== 切り取り・貼り付け機能 =====
@@ -2028,7 +2036,7 @@
                         const targetMinutes = this.timeToMinutes(targetTime);
                         const endMinutes = targetMinutes + originalDuration;
                         
-                                                newEvent.startTime = targetTime;
+                        newEvent.startTime = targetTime;
                         newEvent.endTime = this.minutesToTime(endMinutes);
                     }
                     
