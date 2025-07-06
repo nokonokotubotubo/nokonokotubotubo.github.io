@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-06T05:16:28.620Z",
+  "updated": "2025-07-06T06:23:22.083Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049839",
+      "title": "ADFI（アドファイ）とは？株式会社カラクライが提供するノーコードAI開発プラットフォーム【生成AI・画像認識・異常検知】",
+      "link": "https://qiita.com/karakurai_rena/items/7fcca54b7bfa35cd73f0",
+      "published": "2025-07-06T05:54:55.000Z",
+      "description": "ADFI（アドファイ）は、株式会社カラクライが開発・運営するノーコードAI開発プラットフォームです。本記事では、ADFIの特徴、提供サービス、活用例、始め方、FAQまでをまとめています。 目次 ADFIとは？ ADFIの構成サービス ADFI生成AI ADFI画像...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "ADFI（アドファイ）は、株式会社カラクライが開発・運営するノーコードAI開発プラットフォームです。本記事では、ADFIの特徴、提供サービス、活用例、始め方、FAQまでをまとめています。 目次 ADFIとは？ ADFIの構成サービス ADFI生成AI ADFI画像...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/ignission/articles/366a9866215340",
+      "title": "ローカルLLMモデル入門：基礎知識編",
+      "link": "https://zenn.dev/ignission/articles/366a9866215340",
+      "published": "2025-07-06T04:44:27.000Z",
+      "description": "ローカルLLMにハマった 2025年1月、Roo Cline（今のRoo Code）の自律的なタスク遂行にめちゃくちゃ感動していて、その時は本当にアプリを雰囲気で複数並行して作らせていたので、気づいたらAPI課金額が5万円超えることもありました。当然動かないゴミができあがりました。 課金せずにガンガン動かしたいと思ってローカルLLMを試し始めたんですが、MacBook Air 24GBじゃ遅すぎて、結局Mac Mini、Mac Studio、RTX5060Ti...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "ローカルLLMにハマった 2025年1月、Roo Cline（今のRoo Code）の自律的なタスク遂行にめちゃくちゃ感動していて、その時は本当にアプリを雰囲気で複数並行して作らせていたので、気づいたらAPI課金額が5万円超えることもありました。当然動かないゴミができあがりました。 課金せずにガンガ",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2049787",
       "title": "OpenAI API o3 deep researchを試してみた",
@@ -61,15 +85,15 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2049706",
+      "id": "https://zenn.dev/takaaki3333/articles/8336c134d0db8f",
       "title": "個人開発、いつも途中で終わってしまうあなたへ　― 20回以上の挫折を経て、ようやくMVPをリリースできた話 ―",
-      "link": "https://qiita.com/takaaki431/items/fe079b8a0f2d9c5f3fda",
-      "published": "2025-07-05T23:53:23.000Z",
-      "description": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチ...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチ...",
+      "link": "https://zenn.dev/takaaki3333/articles/8336c134d0db8f",
+      "published": "2025-07-05T23:56:53.000Z",
+      "description": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチベが落ちる 普段の仕事ではアウトプットが早い人でも、個人開発となると途中で止まってしまう。そんな経験、ありませんか？ 私もこれまでに20個以上のアイデアを形にしようとしては挫折し、中途半端なリポジトリだけがGitHub...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチベが落ちる 普段の仕事ではア",
       "thumbnail": null
     },
     {
@@ -109,18 +133,6 @@
       "thumbnail": null
     },
     {
-      "id": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
-      "title": "【非エンジニア向け】Chrome MCP 概要について",
-      "link": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
-      "published": "2025-07-04T23:08:55.000Z",
-      "description": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに 「AIアシスタントがブラウザを直接操作してくれたら便利なのに...」と思ったことはありませんか？ Chrome MCP Serverは、そんな願いを叶える革新的なツールです。Model...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに ",
-      "thumbnail": null
-    },
-    {
       "id": "5nbwyb-1751668200000",
       "title": "え、これがChromebook？--気づけばWindowsやMacを凌ぐ「AI全部入りPC」になってた話",
       "link": "https://japan.cnet.com/article/35235143/",
@@ -130,18 +142,6 @@
       "sourceColor": "#C41E3A",
       "sourceFeed": "cnet",
       "summary": "Googleとレノボが共同開発した「Lenovo Chromebook Plus 14」は、小型で軽量ながら、AIタスクを丸一日ストレスなくこなせる性能を備えている。",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
-      "title": "Google Prompting Essentials（全4回シリーズ｜#1）",
-      "link": "https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09",
-      "published": "2025-07-04T09:58:01.000Z",
-      "description": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリーズの 第1回 として、プロンプト設計の核心である TCREI フレームワーク を解説します。 シリーズ構成 プロフェッショナルなプロンプトを書くには ←...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリー",
       "thumbnail": null
     },
     {
