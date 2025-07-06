@@ -289,6 +289,8 @@
             transition: all 0.3s ease;
             flex-shrink: 0;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .mobile-day-btn.active {
@@ -301,61 +303,90 @@
             transform: scale(0.95);
         }
         
-        .mobile-controls {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-bottom: 1px solid #dee2e6;
-            flex-shrink: 0;
-        }
-        
-        .mobile-control-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-        
-        .mobile-control-buttons::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .mobile-control-btn {
-            flex: 0 0 auto;
-            min-width: 110px;
-            height: 44px;
-            border: none;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: bold;
+        /* モバイル専用ポップアップメニュー */
+        .mobile-popup-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            opacity: 0;
+            visibility: hidden;
             transition: all 0.3s ease;
             -webkit-tap-highlight-color: transparent;
-            white-space: nowrap;
         }
         
-        .mobile-control-btn:active {
-            transform: scale(0.95);
+        .mobile-popup-menu.show {
+            opacity: 1;
+            visibility: visible;
         }
         
-        .mobile-control-btn.primary {
+        .mobile-popup-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .mobile-popup-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+        
+        .mobile-popup-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .mobile-popup-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        .mobile-popup-btn.primary {
             background: var(--primary-color);
             color: white;
         }
         
-        .mobile-control-btn.success {
+        .mobile-popup-btn.success {
             background: #28a745;
             color: white;
         }
         
-        .mobile-control-btn.danger {
+        .mobile-popup-btn.danger {
             background: #dc3545;
             color: white;
+        }
+        
+        .mobile-popup-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .mobile-popup-btn:active {
+            transform: scale(0.95);
         }
         
         .mobile-fab {
@@ -859,31 +890,11 @@
                             :key="`mobile-day-${day.id || index}`"
                             class="mobile-day-btn"
                             :class="{ active: activeDay === index }"
-                            @click="setActiveDay(index)">
+                            @click="handleMobileDayClick(index)"
+                            @touchstart="handleMobileDayTouchStart($event, index)"
+                            @touchend="handleMobileDayTouchEnd($event, index)">
                         <div>{{ day.dayNumber }}日目</div>
                         <small>{{ day.date }}</small>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="mobile-controls">
-                <div class="mobile-control-buttons">
-                    <button class="mobile-control-btn primary" 
-                            v-if="activeDay === 0"
-                            @click="openStartDateModal(0)">
-                        <i class="fas fa-calendar-edit"></i>
-                        開始日変更
-                    </button>
-                    <button class="mobile-control-btn success" 
-                            @click="addDayImmediately">
-                        <i class="fas fa-plus"></i>
-                        日程追加
-                    </button>
-                    <button class="mobile-control-btn danger" 
-                            v-if="tripDays.length > 1"
-                            @click="deleteDay(activeDay)">
-                        <i class="fas fa-trash"></i>
-                        この日を削除
                     </button>
                 </div>
             </div>
@@ -922,15 +933,19 @@
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @click="handleMobileEventClick(event)">
+                                 @touchstart="handleEventTouchStart($event, event)">
                                 
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
                                     ✎
                                 </div>
                                 
+                                <div class="resize-handle top" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'top')"></div>
+                                
                                 <div class="event-title">
                                     <i :class="getCategoryIcon(event.category)"></i>
-                                    <span>{{ event.title }}</span>
+                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
                                 </div>
                                 <div class="event-time">
                                     {{ event.startTime }} - {{ event.endTime }}
@@ -938,6 +953,10 @@
                                 <div class="event-description" v-if="event.description">
                                     {{ event.description }}
                                 </div>
+                                
+                                <div class="resize-handle bottom" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'bottom')"></div>
                             </div>
                         </div>
                     </div>
@@ -947,6 +966,39 @@
             <button class="mobile-fab" @click="openEventModal()">
                 <i class="fas fa-plus"></i>
             </button>
+        </div>
+        
+        <!-- モバイル専用ポップアップメニュー -->
+        <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
+            <div class="mobile-popup-content" @click.stop>
+                <div class="mobile-popup-title">
+                    {{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}
+                </div>
+                <div class="mobile-popup-buttons">
+                    <button class="mobile-popup-btn primary" 
+                            v-if="selectedDayForPopup && selectedDayIndex === 0"
+                            @click="openStartDateModalFromPopup">
+                        <i class="fas fa-calendar-edit"></i>
+                        開始日を変更
+                    </button>
+                    <button class="mobile-popup-btn success" 
+                            @click="addDayFromPopup">
+                        <i class="fas fa-plus"></i>
+                        日程を追加
+                    </button>
+                    <button class="mobile-popup-btn danger" 
+                            v-if="selectedDayForPopup && tripDays.length > 1"
+                            @click="deleteDayFromPopup">
+                        <i class="fas fa-trash"></i>
+                        この日程を削除
+                    </button>
+                    <button class="mobile-popup-btn secondary" 
+                            @click="closeMobilePopup">
+                        <i class="fas fa-times"></i>
+                        キャンセル
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div class="edit-mode-help" :class="{ show: editModeEvent }" v-if="!isMobile">
@@ -1110,6 +1162,16 @@
                     draggingTabIndex: null,
                     dragOverTabIndex: null,
                     
+                    // モバイル専用
+                    mobileTabLongPressTimer: null,
+                    mobileTabTouchStartTime: 0,
+                    showMobilePopup: false,
+                    selectedDayForPopup: null,
+                    selectedDayIndex: null,
+                    
+                    // 予定ドラッグ関連
+                    eventTouchOffset: { x: 0, y: 0 },
+                    
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
                     editModeEvent: null,
@@ -1132,6 +1194,19 @@
             },
             
             methods: {
+                getEventCoordinates(event) {
+                    if (event.touches && event.touches.length > 0) {
+                        return {
+                            clientX: event.touches[0].clientX,
+                            clientY: event.touches[0].clientY
+                        };
+                    }
+                    return {
+                        clientX: event.clientX,
+                        clientY: event.clientY
+                    };
+                },
+                
                 checkExistingData() {
                     const savedEvents = localStorage.getItem('trippenEvents');
                     const savedDays = localStorage.getItem('trippenDays');
@@ -1247,6 +1322,72 @@
                     }
                 },
                 
+                // ===== モバイル専用：日付タブ長押しメニュー =====
+                handleMobileDayClick(index) {
+                    // 短いタップの場合はタブ切り替え
+                    this.setActiveDay(index);
+                },
+                
+                handleMobileDayTouchStart(event, index) {
+                    event.preventDefault();
+                    this.mobileTabTouchStartTime = Date.now();
+                    
+                    this.mobileTabLongPressTimer = setTimeout(() => {
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
+                        this.showMobilePopupForDay(index);
+                    }, 800);
+                },
+                
+                handleMobileDayTouchEnd(event, index) {
+                    if (this.mobileTabLongPressTimer) {
+                        clearTimeout(this.mobileTabLongPressTimer);
+                        this.mobileTabLongPressTimer = null;
+                    }
+                    
+                    const touchDuration = Date.now() - this.mobileTabTouchStartTime;
+                    if (touchDuration < 500) {
+                        // 短いタップの場合はタブ切り替え
+                        this.setActiveDay(index);
+                    }
+                },
+                
+                showMobilePopupForDay(index) {
+                    this.selectedDayForPopup = this.tripDays[index];
+                    this.selectedDayIndex = index;
+                    this.showMobilePopup = true;
+                },
+                
+                closeMobilePopup() {
+                    this.showMobilePopup = false;
+                    this.selectedDayForPopup = null;
+                    this.selectedDayIndex = null;
+                },
+                
+                openStartDateModalFromPopup() {
+                    this.closeMobilePopup();
+                    setTimeout(() => {
+                        this.openStartDateModal(0);
+                    }, 300);
+                },
+                
+                addDayFromPopup() {
+                    this.closeMobilePopup();
+                    setTimeout(() => {
+                        this.addDayImmediately();
+                    }, 300);
+                },
+                
+                deleteDayFromPopup() {
+                    this.closeMobilePopup();
+                    setTimeout(() => {
+                        if (this.selectedDayIndex !== null) {
+                            this.deleteDay(this.selectedDayIndex);
+                        }
+                    }, 300);
+                },
+                
                 // ===== デスクトップ専用メソッド =====
                 handleDateClick(index) {
                     if (index === 0) {
@@ -1333,6 +1474,7 @@
                     this.saveData();
                 },
                 
+                // ===== 予定イベント（デスクトップ用） =====
                 handleEventMouseDown(event, eventData) {
                     if (event.target.closest('.title-text')) {
                         return;
@@ -1439,6 +1581,125 @@
                     }
                 },
                 
+                // ===== 予定イベント（モバイル用） =====
+                handleEventTouchStart(event, eventData) {
+                    if (event.target.closest('.title-text')) {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // タッチ開始時の予定ブロック内での相対位置を記録
+                    const coords = this.getEventCoordinates(event);
+                    const eventElement = event.currentTarget;
+                    const eventRect = eventElement.getBoundingClientRect();
+                    
+                    this.eventTouchOffset = {
+                        x: coords.clientX - eventRect.left,
+                        y: coords.clientY - eventRect.top
+                    };
+                    
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        this.startDragMoveTouch(event, eventData);
+                        return;
+                    }
+                    
+                    this.startEditModeLongPressTouch(event, eventData);
+                },
+                
+                startEditModeLongPressTouch(event, eventData) {
+                    this.longPressSucceeded = false;
+                    const coords = this.getEventCoordinates(event);
+                    this.startPosition = { x: coords.clientX, y: coords.clientY };
+                    
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressSucceeded = true;
+                        this.editModeEvent = eventData;
+                        
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
+                        
+                        this.startDragMoveTouch(event, eventData);
+                    }, 500);
+                    
+                    const moveHandler = (e) => this.handleLongPressMoveTouch(e);
+                    const endHandler = (e) => this.handleLongPressEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
+                startDragMoveTouch(event, eventData) {
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
+                    const coords = this.getEventCoordinates(event);
+                    const rect = this.$refs.mobileScrollContainer.getBoundingClientRect();
+                    
+                    // タッチ位置から相対位置を引いた位置を初期位置とする
+                    const initialTop = coords.clientY - rect.top + this.$refs.mobileScrollContainer.scrollTop - this.eventTouchOffset.y;
+                    const startY = coords.clientY;
+                    
+                    const moveHandler = (e) => this.handleDragMoveTouch(e, startY, initialTop);
+                    const endHandler = (e) => this.handleDragEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
+                handleDragMoveTouch(event, startY, initialTop) {
+                    event.preventDefault();
+                    const coords = this.getEventCoordinates(event);
+                    const deltaY = coords.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedTop);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && endTime <= '23:45') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    }
+                },
+                
+                handleDragEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.saveData();
+                },
+                
+                handleLongPressMoveTouch(event) {
+                    event.preventDefault();
+                    const coords = this.getEventCoordinates(event);
+                    const deltaX = Math.abs(coords.clientX - this.startPosition.x);
+                    const deltaY = Math.abs(coords.clientY - this.startPosition.y);
+                    
+                    if (deltaX > 10 || deltaY > 10) {
+                        this.clearLongPress();
+                    }
+                },
+                
+                handleLongPressEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.clearLongPress();
+                    
+                    if (this.longPressSucceeded) {
+                        setTimeout(() => {
+                            this.longPressSucceeded = false;
+                        }, 100);
+                    }
+                },
+                
+                // ===== リサイズハンドル =====
                 startResize(event, eventData, direction) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -1450,9 +1711,22 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
+                startResizeTouch(event, eventData, direction) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const moveHandler = (e) => this.handleResizeMoveTouch(e, direction);
+                    const endHandler = (e) => this.handleResizeEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
                 handleResizeMove(event, direction) {
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
+                    const coords = this.getEventCoordinates(event);
+                    const scrollRef = this.isMobile ? this.$refs.mobileScrollContainer : this.$refs.scrollContainer;
+                    const rect = scrollRef.getBoundingClientRect();
+                    const y = coords.clientY - rect.top + scrollRef.scrollTop;
                     const snappedY = Math.round(y / 15) * 15;
                     const newTime = this.pixelsToTime(snappedY);
                     
@@ -1470,17 +1744,21 @@
                     }
                 },
                 
+                handleResizeMoveTouch(event, direction) {
+                    event.preventDefault();
+                    this.handleResizeMove(event, direction);
+                },
+                
                 handleResizeEnd(event, moveHandler, endHandler) {
                     document.removeEventListener('mousemove', moveHandler);
                     document.removeEventListener('mouseup', endHandler);
                     this.saveData();
                 },
                 
-                // ===== モバイル専用メソッド =====
-                handleMobileEventClick(event) {
-                    this.selectedEventForDetail = event;
-                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-                    modal.show();
+                handleResizeEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.saveData();
                 },
                 
                 // ===== 共通メソッド =====
