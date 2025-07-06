@@ -921,6 +921,7 @@
                     touchStartPosition: { x: 0, y: 0 },
                     longPressTimer: null,
                     longPressExecuted: false,
+                    eventTouchOffset: { x: 0, y: 0 },
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1186,6 +1187,10 @@
                 
                 // 修正されたモバイルイベント処理
                 handleEventTouchStart(event, eventData) {
+                    // イベントの伝播を最初から止める
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
                     if (event.target.closest('.title-text')) {
                         // タイトルタップは詳細モーダルのみ
                         this.openDetailModal(eventData);
@@ -1198,12 +1203,19 @@
                     }
                     
                     const coords = event.touches[0];
+                    const eventElement = event.currentTarget;
+                    const eventRect = eventElement.getBoundingClientRect();
+                    
+                    // タッチオフセットを正確に計算
+                    this.eventTouchOffset = {
+                        x: coords.clientX - eventRect.left,
+                        y: coords.clientY - eventRect.top
+                    };
+                    
                     this.touchStartPosition = { x: coords.clientX, y: coords.clientY };
                     
                     if (this.editModeEvent?.id === eventData.id) {
                         // 既に編集モードの場合はドラッグ開始
-                        event.preventDefault();
-                        event.stopPropagation();
                         this.startDragMoveTouch(event, eventData);
                         return;
                     }
@@ -1261,7 +1273,9 @@
                     const coords = event.touches[0];
                     const container = this.$refs.mobileTimelineContainer;
                     const rect = container.getBoundingClientRect();
-                    const initialTop = coords.clientY - rect.top + container.scrollTop;
+                    
+                    // オフセットを考慮した初期位置計算
+                    const initialTop = coords.clientY - rect.top + container.scrollTop - (this.eventTouchOffset?.y || 0);
                     const startY = coords.clientY;
                     
                     const moveHandler = (e) => {
@@ -1394,13 +1408,20 @@
                 
                 hideContextMenu() { this.showContextMenu = false; },
                 
-                // スケジュールタッチ処理
+                // 修正されたスケジュールタッチ処理
                 handleScheduleTouchStart(event) {
                     if (!this.isMobile) return;
+                    
+                    // 予定ブロック内のタッチは無視（貼り付けメニューを出さない）
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
                     this.touchStartTime = Date.now();
                     this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
                     
                     this.longPressTimer = setTimeout(() => {
+                        // 空白エリアの長押し時のみコンテキストメニューを表示
                         this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
                         if (navigator.vibrate) navigator.vibrate(50);
                     }, 500);
@@ -1408,6 +1429,11 @@
                 
                 handleScheduleTouchMove(event) {
                     if (!this.isMobile) return;
+                    
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
                     const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
                     const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
                     if (deltaX > 10 || deltaY > 10) this.clearLongPress();
@@ -1415,6 +1441,11 @@
                 
                 handleScheduleTouchEnd(event) {
                     if (!this.isMobile) return;
+                    
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
                     this.clearLongPress();
                     if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
                 },
@@ -1498,18 +1529,70 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // モーダル処理
+                // 修正されたモーダル処理
                 openDetailModal(event) {
+                    // イベントデータの安全な取得
+                    const eventData = typeof event === 'string' ? this.events.find(e => e.id === event) : event;
+                    if (!eventData) {
+                        alert('予定データが見つかりません');
+                        return;
+                    }
+                    
                     this.openModal('詳細', `
-                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(event.category)}"></i> ${event.title}</h6></div>
-                        <div class="mb-3"><strong>日付:</strong> ${this.tripDays[event.dayIndex]?.date}</div>
-                        <div class="mb-3"><strong>時間:</strong> ${event.startTime} - ${event.endTime}</div>
-                        ${event.description ? `<div class="mb-3"><strong>詳細:</strong><br>${event.description}</div>` : ''}
+                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${eventData.title}</h6></div>
+                        <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+                        <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+                        ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${eventData.description}</div>` : ''}
                     `, `
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                        <button type="button" class="btn btn-danger" onclick="app.deleteEventById('${event.id}')">削除</button>
-                        <button type="button" class="btn btn-primary" onclick="app.editEventById('${event.id}')">編集</button>
+                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${eventData.id}')">削除</button>
+                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${eventData.id}')">編集</button>
                     `);
+                },
+                
+                deleteEventFromDetail(eventId) {
+                    try {
+                        if (!confirm('この予定を削除しますか？')) {
+                            return;
+                        }
+                        
+                        const eventIndex = this.events.findIndex(e => e.id === eventId);
+                        if (eventIndex === -1) {
+                            alert('予定が見つかりません');
+                            return;
+                        }
+                        
+                        this.events.splice(eventIndex, 1);
+                        this.saveData();
+                        this.editModeEvent = null;
+                        this.closeAllModals();
+                        
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        
+                    } catch (error) {
+                        console.error('予定の削除中にエラーが発生しました:', error);
+                        alert('予定の削除に失敗しました。もう一度お試しください。');
+                    }
+                },
+                
+                editEventFromDetail(eventId) {
+                    try {
+                        const event = this.events.find(e => e.id === eventId);
+                        if (!event) {
+                            alert('予定が見つかりません');
+                            return;
+                        }
+                        
+                        this.closeAllModals();
+                        
+                        setTimeout(() => {
+                            this.openEventModal(event);
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('予定の編集準備中にエラーが発生しました:', error);
+                        alert('予定の編集準備に失敗しました。もう一度お試しください。');
+                    }
                 },
                 
                 openEventModal(event = null) {
@@ -1625,7 +1708,7 @@
                         }
                         
                         const eventData = {
-                            id: eventId || `event_${Date.now()}_${Math.random()}`,
+                            id: eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
                             title: title.trim(),
                             dayIndex: dayIndex,
                             startTime: startTime,
@@ -1638,6 +1721,10 @@
                             const index = this.events.findIndex(e => e.id === eventId);
                             if (index !== -1) {
                                 this.events[index] = eventData;
+                            } else {
+                                console.error('編集対象の予定が見つかりません:', eventId);
+                                alert('編集対象の予定が見つかりません');
+                                return;
                             }
                         } else {
                             this.events.push(eventData);
