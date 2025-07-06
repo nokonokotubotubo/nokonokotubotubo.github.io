@@ -1532,40 +1532,55 @@
                 // 修正されたモーダル処理
                 openDetailModal(event) {
                     // イベントデータの安全な取得
-                    const eventData = typeof event === 'string' ? this.events.find(e => e.id === event) : event;
+                    const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
                     if (!eventData) {
+                        console.error('openDetailModal: 予定データが見つかりません:', event);
                         alert('予定データが見つかりません');
                         return;
                     }
                     
+                    console.log('詳細モーダルを開きます:', eventData);
+                    
+                    // HTMLエスケープ処理
+                    const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+                    const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    
                     this.openModal('詳細', `
-                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${eventData.title}</h6></div>
+                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
                         <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
                         <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-                        ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${eventData.description}</div>` : ''}
+                        ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
                     `, `
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${eventData.id}')">削除</button>
-                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${eventData.id}')">編集</button>
+                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${safeEventId}')">削除</button>
+                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${safeEventId}')">編集</button>
                     `);
                 },
                 
                 deleteEventFromDetail(eventId) {
                     try {
+                        console.log('詳細画面からの削除対象ID:', eventId);
+                        
                         if (!confirm('この予定を削除しますか？')) {
                             return;
                         }
                         
-                        const eventIndex = this.events.findIndex(e => e.id === eventId);
+                        // より厳密な検索
+                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
                         if (eventIndex === -1) {
-                            alert('予定が見つかりません');
+                            console.error('削除対象の予定が見つかりません:', eventId);
+                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
+                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
+                        const deletedEvent = this.events[eventIndex];
                         this.events.splice(eventIndex, 1);
                         this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
+                        
+                        console.log('詳細画面から予定を削除しました:', deletedEvent);
                         
                         if (navigator.vibrate) navigator.vibrate(100);
                         
@@ -1577,15 +1592,21 @@
                 
                 editEventFromDetail(eventId) {
                     try {
-                        const event = this.events.find(e => e.id === eventId);
+                        console.log('詳細画面からの編集対象ID:', eventId);
+                        
+                        // より厳密な検索
+                        const event = this.events.find(e => String(e.id) === String(eventId));
                         if (!event) {
-                            alert('予定が見つかりません');
+                            console.error('編集対象の予定が見つかりません:', eventId);
+                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
+                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
                         this.closeAllModals();
                         
                         setTimeout(() => {
+                            console.log('詳細画面から編集モーダルを開きます:', event);
                             this.openEventModal(event);
                         }, 100);
                         
@@ -1610,10 +1631,15 @@
                         };
                     }
                     
+                    // HTMLエスケープ処理
+                    const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+                    const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+                    const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
+                    
                     this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
                         <div class="mb-3">
                             <label class="form-label">予定名</label>
-                            <input type="text" class="form-control" id="eventTitle" value="${this.eventForm.title}" required>
+                            <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">日付</label>
@@ -1647,12 +1673,12 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">詳細</label>
-                            <textarea class="form-control" id="eventDescription" rows="3">${this.eventForm.description || ''}</textarea>
+                            <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
                         </div>
                     `, `
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${event.id}')">削除</button>` : ''}
-                        <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${event.id}'` : 'null'})">保存</button>
+                        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+                        <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
                     `);
                 },
                 
@@ -1707,8 +1733,11 @@
                             return;
                         }
                         
+                        // IDを文字列として統一
+                        const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                        
                         const eventData = {
-                            id: eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+                            id: finalEventId,
                             title: title.trim(),
                             dayIndex: dayIndex,
                             startTime: startTime,
@@ -1718,16 +1747,20 @@
                         };
                         
                         if (eventId) {
-                            const index = this.events.findIndex(e => e.id === eventId);
+                            // 編集の場合 - より厳密な検索
+                            const index = this.events.findIndex(e => String(e.id) === String(eventId));
                             if (index !== -1) {
                                 this.events[index] = eventData;
+                                console.log('予定を更新しました:', eventData);
                             } else {
-                                console.error('編集対象の予定が見つかりません:', eventId);
+                                console.error('編集対象の予定が見つかりません:', eventId, 'イベント一覧:', this.events.map(e => e.id));
                                 alert('編集対象の予定が見つかりません');
                                 return;
                             }
                         } else {
+                            // 新規追加の場合
                             this.events.push(eventData);
+                            console.log('新しい予定を追加しました:', eventData);
                         }
                         
                         this.saveData();
@@ -1756,20 +1789,29 @@
                 
                 deleteEventById(eventId) {
                     try {
+                        console.log('削除対象のイベントID:', eventId);
+                        console.log('現在のイベント一覧:', this.events.map(e => ({ id: e.id, title: e.title })));
+                        
                         if (!confirm('この予定を削除しますか？')) {
                             return;
                         }
                         
-                        const eventIndex = this.events.findIndex(e => e.id === eventId);
+                        // より厳密な検索
+                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
                         if (eventIndex === -1) {
-                            alert('予定が見つかりません');
+                            console.error('削除対象の予定が見つかりません:', eventId);
+                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
+                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
+                        const deletedEvent = this.events[eventIndex];
                         this.events.splice(eventIndex, 1);
                         this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
+                        
+                        console.log('予定を削除しました:', deletedEvent);
                         
                         if (navigator.vibrate) navigator.vibrate(100);
                         
@@ -1781,15 +1823,22 @@
                 
                 editEventById(eventId) {
                     try {
-                        const event = this.events.find(e => e.id === eventId);
+                        console.log('編集対象のイベントID:', eventId);
+                        console.log('現在のイベント一覧:', this.events.map(e => ({ id: e.id, title: e.title })));
+                        
+                        // より厳密な検索
+                        const event = this.events.find(e => String(e.id) === String(eventId));
                         if (!event) {
-                            alert('予定が見つかりません');
+                            console.error('編集対象の予定が見つかりません:', eventId);
+                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
+                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
                         this.closeAllModals();
                         
                         setTimeout(() => {
+                            console.log('編集モーダルを開きます:', event);
                             this.openEventModal(event);
                         }, 100);
                         
@@ -1806,7 +1855,7 @@
                     });
                 },
                 
-                // データ保存・読み込み
+                // データ保存・読み込み（整合性チェック追加）
                 saveData() {
                     localStorage.setItem('trippenEvents', JSON.stringify(this.events));
                     localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
@@ -1819,11 +1868,29 @@
                         const savedDays = localStorage.getItem('trippenDays');
                         const savedInitialized = localStorage.getItem('trippenInitialized');
                         
-                        if (savedEvents) this.events = JSON.parse(savedEvents);
-                        if (savedDays) this.tripDays = JSON.parse(savedDays);
+                        if (savedEvents) {
+                            this.events = JSON.parse(savedEvents);
+                            // イベントIDを文字列に統一
+                            this.events = this.events.map(event => ({
+                                ...event,
+                                id: String(event.id)
+                            }));
+                        }
+                        
+                        if (savedDays) {
+                            this.tripDays = JSON.parse(savedDays);
+                        }
+                        
                         if (savedInitialized === 'true' && this.tripDays.length > 0) {
                             this.tripInitialized = true;
                         }
+                        
+                        console.log('データを読み込みました:', {
+                            events: this.events.length,
+                            days: this.tripDays.length,
+                            eventIds: this.events.map(e => e.id)
+                        });
+                        
                     } catch (error) {
                         console.error('データの読み込みに失敗しました:', error);
                     }
