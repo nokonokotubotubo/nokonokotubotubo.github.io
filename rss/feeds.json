@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-06T07:14:57.725Z",
+  "updated": "2025-07-06T08:19:55.795Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,42 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049890",
+      "title": "OpenAI Codex を使ってみた",
+      "link": "https://qiita.com/Toyo355/items/b150d0790f9532073736",
+      "published": "2025-07-06T08:17:17.000Z",
+      "description": "はじめに OpenAI Codex（以下 Codex）は、自然言語からコードを自動生成・補完するAIモデルで、いわゆる最近話題のコーディングエージェントである。本記事では、Codex(CLIではなくWeb版)の導入から簡単なサンプルまでを実践してみる。 公式サイト： ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "はじめに OpenAI Codex（以下 Codex）は、自然言語からコードを自動生成・補完するAIモデルで、いわゆる最近話題のコーディングエージェントである。本記事では、Codex(CLIではなくWeb版)の導入から簡単なサンプルまでを実践してみる。 公式サイト： ...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049899",
+      "title": "Gemini CLIにローグライクゲームを作ってもらったら、気が利くことが分かった",
+      "link": "https://qiita.com/U53R/items/6c32652e31891013cab8",
+      "published": "2025-07-06T08:11:00.000Z",
+      "description": "今回やったこと Gemini CLIについて学ぶため、Gemini CLIにローグライクゲームを作ってもらいました。 Gemini CLIのバージョンは0.1.9でした。 今回分かったこと Gemini CLIは、頼まれていないことも、気を利かせて？いろいろ実装してくれ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "今回やったこと Gemini CLIについて学ぶため、Gemini CLIにローグライクゲームを作ってもらいました。 Gemini CLIのバージョンは0.1.9でした。 今回分かったこと Gemini CLIは、頼まれていないことも、気を利かせて？いろいろ実装してくれ...",
+      "thumbnail": null
+    },
+    {
+      "id": "https://zenn.dev/acrosstudioblog/articles/054d1f53aafbd1",
+      "title": "2025年、RAG技術の中間レビュー",
+      "link": "https://zenn.dev/acrosstudioblog/articles/054d1f53aafbd1",
+      "published": "2025-07-06T06:59:46.000Z",
+      "description": "2025年、AI技術の中間レビュー：RAGとAgentの進化の行方 前回の年末総括から半年が経過し、年初に起きた大きな技術革新の波が次第に落ち着くにつれて、AIは再び発展の踊り場に入ったように見えます。これは**RAG（Retrieval-Augmented...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "2025年、AI技術の中間レビュー：RAGとAgentの進化の行方 前回の年末総括から半年が経過し、年初に起きた大きな技術革新の波が次第に落ち着くにつれて、AIは再び発展の踊り場に入ったように見えます。これは**RAG（Retrieval-Augmented...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2049850",
       "title": "PKSHAハッカソン　B日程に参加しました",
@@ -49,27 +85,15 @@
       "thumbnail": null
     },
     {
-      "id": "tag:qiita.com,2005:PublicArticle/2049787",
-      "title": "OpenAI API o3 deep researchを試してみた",
-      "link": "https://qiita.com/tama_genai/items/fae479a11ae2592538fe",
-      "published": "2025-07-06T04:04:26.000Z",
-      "description": "OpenAIのDeep Researchモデル「o3-deep-research」は、数十ステップにわたるウェブ調査を自動で行い、複雑な課題に対して高品質な要約や引用付きレポートを短時間で生成する驚異的なクオリティを誇ります。 そしてなんと、そんなo3-deep-resea...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "OpenAIのDeep Researchモデル「o3-deep-research」は、数十ステップにわたるウェブ調査を自動で行い、複雑な課題に対して高品質な要約や引用付きレポートを短時間で生成する驚異的なクオリティを誇ります。 そしてなんと、そんなo3-deep-resea...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2049783",
-      "title": "生成AIが変革する業務アプリ開発：最新動向と未来展望",
-      "link": "https://qiita.com/karakurai_rena/items/e9029a60c700e8ff8112",
-      "published": "2025-07-06T03:55:48.000Z",
-      "description": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが業務アプリケーション開発にもたらしている変革についてご紹介します。生成AI（Generative AI）の進化はめざましく、業務アプリの開発手順にも大きな影響を与えています。 生成AIの業務ア...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "こんにちは、株式会社カラクライのAIエージェントのレナです！ 今回は、生成AIが業務アプリケーション開発にもたらしている変革についてご紹介します。生成AI（Generative AI）の進化はめざましく、業務アプリの開発手順にも大きな影響を与えています。 生成AIの業務ア...",
+      "id": "https://zenn.dev/ignission/articles/366a9866215340",
+      "title": "ローカルLLMモデル入門：基礎知識編",
+      "link": "https://zenn.dev/ignission/articles/366a9866215340",
+      "published": "2025-07-06T04:44:27.000Z",
+      "description": "ローカルLLMにハマった 2025年1月、Roo Cline（今のRoo Code）の自律的なタスク遂行にめちゃくちゃ感動していて、その時は本当にアプリを雰囲気で複数並行して作らせていたので、気づいたらAPI課金額が5万円超えることもありました。当然動かないゴミができあがりました。 課金せずにガンガン動かしたいと思ってローカルLLMを試し始めたんですが、MacBook Air 24GBじゃ遅すぎて、結局Mac Mini、Mac Studio、RTX5060Ti...",
+      "source": "Zenn",
+      "sourceColor": "#3EA8FF",
+      "sourceFeed": "zenn",
+      "summary": "ローカルLLMにハマった 2025年1月、Roo Cline（今のRoo Code）の自律的なタスク遂行にめちゃくちゃ感動していて、その時は本当にアプリを雰囲気で複数並行して作らせていたので、気づいたらAPI課金額が5万円超えることもありました。当然動かないゴミができあがりました。 課金せずにガンガ",
       "thumbnail": null
     },
     {
@@ -106,30 +130,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "何を作ったのか 動画を入れれば、そこから勝手にGoogleDocsに画像付きでマニュアルを生成してくれる物を作りました。 https://youtu.be/0RSgHJjRlJM 使い方 以下を参考につかってください！ めちゃかんたんです！GoogleDocsにすぐに出力されます！...",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/takahasuma/articles/ea07b5c9458597",
-      "title": "Amazon Q Developerで始めるシステム開発：要件定義からアーキテクチャ決定まで",
-      "link": "https://zenn.dev/takahasuma/articles/ea07b5c9458597",
-      "published": "2025-07-05T07:00:05.000Z",
-      "description": "はじめに システム開発の中でAmazon Q Developerをどのように活用できるのかを実際に検証してみます。 今回は要件定義からアーキテクチャの決定までを対象に、曖昧な要件を具体化し最適なAWSアーキテクチャを効率的に設計できるのか？を確認します。 関連記事 https://zenn.dev/takahasuma/articles/79c83bdcc2d937 設計フェーズにおけるAmazon Q...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "はじめに システム開発の中でAmazon Q Developerをどのように活用できるのかを実際に検証してみます。 今回は要件定義からアーキテクチャの決定までを対象に、曖昧な要件を具体化し最適なAWSアーキテクチャを効率的に設計できるのか？を確認します。 関連記事 https://zenn.dev/",
-      "thumbnail": null
-    },
-    {
-      "id": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
-      "title": "【非エンジニア向け】Chrome MCP 概要について",
-      "link": "https://zenn.dev/nouchinho/articles/5b118ef205890e",
-      "published": "2025-07-04T23:08:55.000Z",
-      "description": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに 「AIアシスタントがブラウザを直接操作してくれたら便利なのに...」と思ったことはありませんか？ Chrome MCP Serverは、そんな願いを叶える革新的なツールです。Model...",
-      "source": "Zenn",
-      "sourceColor": "#3EA8FF",
-      "sourceFeed": "zenn",
-      "summary": "うぇっす！ノウチーニョです！ この記事のポイント Chrome MCP Serverの基本概念と仕組みを理解できる 従来のブラウザ自動化ツールとの違いが分かる 実際の導入方法と設定手順を学べる AIアシスタントとブラウザの連携活用法を知れる 非エンジニアでも始められる具体的な使い方を紹介 はじめに ",
       "thumbnail": null
     },
     {
