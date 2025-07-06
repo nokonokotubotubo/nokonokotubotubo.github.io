@@ -7,598 +7,589 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-<style>
-:root {
-    --primary-color: #87CEEB;
-    --secondary-color: #B0E0E6;
-    --accent-color: #4682B4;
-    --text-color: #2F4F4F;
-    --bg-color: #F0F8FF;
-    --time-grid-color: #E6F3FF;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-    overflow: hidden;
-}
-
-body {
-    background: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-#app {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 15px 0;
-    text-align: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    flex-shrink: 0;
-}
-
-.penguin-icon {
-    font-size: 2rem;
-    margin-right: 10px;
-}
-
-.container-fluid {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.day-tabs-container {
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: var(--secondary-color) transparent;
-    pointer-events: auto;
-    flex-shrink: 0;
-}
-
-.day-tabs-container::-webkit-scrollbar {
-    height: 6px;
-}
-
-.day-tabs-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.day-tabs-container::-webkit-scrollbar-thumb {
-    background: var(--secondary-color);
-    border-radius: 3px;
-}
-
-.day-tabs {
-    background: white;
-    border-radius: 15px 15px 0 0;
-    margin: 20px 0 0 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    display: flex;
-    flex-wrap: nowrap;
-    min-width: max-content;
-    pointer-events: auto;
-}
-
-.day-tabs .nav-item {
-    transition: all 0.3s ease;
-    cursor: move;
-    flex-shrink: 0;
-    position: relative;
-    pointer-events: auto;
-}
-
-.day-tabs .nav-item.dragging-tab {
-    opacity: 0.7;
-    transform: scale(1.05) rotate(3deg);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    z-index: 999;
-    border: 3px dashed var(--accent-color);
-    background: rgba(135, 206, 235, 0.1);
-    border-radius: 15px;
-}
-
-.day-tabs .nav-item.drag-over {
-    background: rgba(135, 206, 235, 0.2);
-    transform: scale(1.02);
-    border: 2px solid var(--accent-color);
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
-}
-
-.day-tabs .nav-item.dragging-tab .nav-link {
-    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
-    color: white !important;
-    animation: drag-pulse 1s infinite alternate;
-}
-
-@keyframes drag-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7); }
-    100% { box-shadow: 0 0 0 10px rgba(135, 206, 235, 0); }
-}
-
-.drag-placeholder {
-    width: 120px;
-    height: 60px;
-    border: 3px dashed var(--accent-color);
-    background: rgba(135, 206, 235, 0.1);
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--accent-color);
-    font-weight: bold;
-    animation: placeholder-blink 1s infinite alternate;
-}
-
-@keyframes placeholder-blink {
-    0% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.day-tabs .nav-link {
-    border: none;
-    color: var(--text-color);
-    padding: 12px 20px 12px 30px;
-    border-radius: 15px 15px 0 0;
-    white-space: nowrap;
-    text-align: center;
-    min-width: 120px;
-    transition: all 0.3s ease;
-    position: relative;
-    display: block;
-}
-
-.day-tabs .nav-link.active {
-    background: var(--primary-color);
-    color: white;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.day-tabs .nav-link:hover {
-    background: var(--secondary-color);
-    color: white;
-}
-
-.drag-handle {
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.8rem;
-    cursor: grab;
-}
-
-.tab-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.date-display {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 2px 4px;
-    border-radius: 4px;
-}
-
-.date-display:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.date-edit-icon {
-    opacity: 0;
-    font-size: 0.6rem;
-    margin-left: 4px;
-    transition: opacity 0.2s ease;
-}
-
-.date-display:hover .date-edit-icon {
-    opacity: 0.7;
-}
-
-.date-edit-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 100px;
-}
-
-.date-edit-input {
-    background: white;
-    border: 2px solid var(--accent-color);
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    color: var(--text-color);
-    width: 100px;
-    outline: none;
-}
-
-.day-tabs .nav-link.add-day-btn {
-    background: transparent !important;
-    color: var(--accent-color) !important;
-    border: none !important;
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.day-tabs .nav-link.add-day-btn:hover {
-    background: rgba(70, 130, 180, 0.1) !important;
-    color: var(--accent-color) !important;
-}
-
-.delete-day-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: rgba(255, 99, 99, 0.8);
-    color: white;
-    border: none;
-    font-size: 0.7rem;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    pointer-events: auto;
-}
-
-.delete-day-btn:hover {
-    background: rgba(255, 99, 99, 1);
-    transform: scale(1.1);
-}
-
-.day-tabs .nav-link:hover .delete-day-btn {
-    display: flex;
-}
-
-.timeline-container {
-    background: white;
-    border-radius: 0 0 15px 15px;
-    margin: 0 0 20px 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.timeline-header {
-    background: var(--secondary-color);
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.timeline-content {
-    flex: 1;
-    overflow: hidden;
-}
-
-.timeline-scroll-container {
-    height: 100%;
-    display: flex;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.time-axis {
-    width: 80px;
-    background: var(--time-grid-color);
-    border-right: 2px solid var(--secondary-color);
-    flex-shrink: 0;
-    height: 1200px;
-}
-
-.time-slot {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: var(--text-color);
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.schedule-area {
-    flex: 1;
-    position: relative;
-    height: 1200px;
-}
-
-.schedule-grid {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1200px;
-}
-
-.grid-line {
-    height: 60px;
-    border-bottom: 1px solid #e0e0e0;
-    position: relative;
-}
-
-.grid-line:nth-child(odd) {
-    background: rgba(135, 206, 235, 0.05);
-}
-
-.quarter-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #f0f0f0;
-}
-
-.quarter-line:nth-child(1) { top: 15px; }
-.quarter-line:nth-child(2) { top: 30px; }
-.quarter-line:nth-child(3) { top: 45px; }
-
-.drop-guide-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--accent-color);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 50;
-    border-radius: 2px;
-}
-
-.drop-guide-line.active {
-    opacity: 0.8;
-}
-
-.event-block {
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    background: var(--primary-color);
-    color: white;
-    border-radius: 8px;
-    padding: 8px 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
-    z-index: 10;
-    user-select: none;
-}
-
-.event-block:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border-color: var(--accent-color);
-}
-
-.event-block.edit-mode {
-    border-color: #FFD700;
-    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
-}
-
-.event-category-travel { background: #FF6B6B; }
-.event-category-food { background: #4ECDC4; }
-.event-category-sightseeing { background: #45B7D1; }
-.event-category-accommodation { background: #96CEB4; }
-.event-category-custom { background: #FECA57; }
-
-.event-title {
-    font-weight: bold;
-    margin-bottom: 4px;
-    font-size: 0.9rem;
-    pointer-events: none;
-}
-
-.title-text {
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.event-time {
-    font-size: 0.8rem;
-    opacity: 0.9;
-}
-
-.event-description {
-    font-size: 0.75rem;
-    margin-top: 4px;
-    opacity: 0.8;
-}
-
-.edit-mode-indicator {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 20px;
-    height: 20px;
-    background: #FFD700;
-    color: #333;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: bold;
-}
-
-.resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 10px;
-    background: rgba(255, 215, 0, 0.8);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    cursor: ns-resize;
-}
-
-.resize-handle.top {
-    top: 0;
-    border-radius: 8px 8px 0 0;
-}
-
-.resize-handle.bottom {
-    bottom: 0;
-    border-radius: 0 0 8px 8px;
-}
-
-.event-block.edit-mode .resize-handle {
-    opacity: 1;
-}
-
-.modal-content {
-    border-radius: 15px;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    background: var(--primary-color);
-    color: white;
-    border-radius: 15px 15px 0 0;
-}
-
-.btn-primary {
-    background: var(--accent-color);
-    border: none;
-    border-radius: 20px;
-    padding: 8px 20px;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    background: var(--text-color);
-    transform: translateY(-2px);
-}
-
-.form-control {
-    border-radius: 10px;
-    border: 2px solid #e0e0e0;
-    transition: border-color 0.3s ease;
-}
-
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
-}
-
-.add-event-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: var(--accent-color);
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.add-event-btn:hover {
-    transform: scale(1.1);
-    background: var(--primary-color);
-}
-
-.edit-mode-help {
-    position: fixed;
-    top: 100px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 15px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    opacity: 0;
-    transform: translateX(20px);
-    transition: all 0.3s ease;
-    z-index: 1000;
-    max-width: 280px;
-}
-
-.edit-mode-help.show {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.trip-setup {
-    text-align: center;
-    padding: 40px 20px;
-}
-
-.trip-setup h2 {
-    color: var(--accent-color);
-    margin-bottom: 30px;
-}
-
-.date-input-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-    flex-wrap: wrap;
-}
-
-.date-input-group input[type="date"] {
-    padding: 10px;
-    border: 2px solid var(--secondary-color);
-    border-radius: 8px;
-    font-size: 1rem;
-}
-
-.date-input-group span {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--accent-color);
-}
-
-@media (max-width: 768px) {
-    .time-axis { width: 60px; height: 1000px; }
-    .time-slot { height: 50px; font-size: 0.8rem; }
-    .grid-line { height: 50px; }
-    .schedule-grid { height: 1000px; }
-    .schedule-area { height: 1000px; }
-    .event-block { padding: 6px 8px; }
-    .event-title { font-size: 0.8rem; }
-    .event-time { font-size: 0.7rem; }
-    .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
-    .date-input-group { flex-direction: column; gap: 10px; }
-}
-</style>
-
+    <style>
+        :root {
+            --primary-color: #87CEEB;
+            --secondary-color: #B0E0E6;
+            --accent-color: #4682B4;
+            --text-color: #2F4F4F;
+            --bg-color: #F0F8FF;
+            --time-grid-color: #E6F3FF;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        
+        .penguin-icon {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+        
+        .container-fluid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .day-tabs-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary-color) transparent;
+            pointer-events: auto;
+            flex-shrink: 0;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 3px;
+        }
+        
+        .day-tabs {
+            background: white;
+            border-radius: 15px 15px 0 0;
+            margin: 20px 0 0 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: nowrap;
+            min-width: max-content;
+            pointer-events: auto;
+        }
+        
+        .day-tabs .nav-item {
+            transition: all 0.3s ease;
+            cursor: move;
+            flex-shrink: 0;
+            position: relative;
+            pointer-events: auto;
+        }
+        
+        .day-tabs .nav-item.dragging-tab {
+            opacity: 0.7;
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            z-index: 999;
+            border: 3px dashed var(--accent-color);
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: 15px;
+        }
+        
+        .day-tabs .nav-item.drag-over {
+            background: rgba(135, 206, 235, 0.2);
+            transform: scale(1.02);
+            border: 2px solid var(--accent-color);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
+        }
+        
+        .day-tabs .nav-item.dragging-tab .nav-link {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+            animation: drag-pulse 1s infinite alternate;
+        }
+        
+        @keyframes drag-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(135, 206, 235, 0); }
+        }
+        
+        .drag-placeholder {
+            width: 120px;
+            height: 60px;
+            border: 3px dashed var(--accent-color);
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-weight: bold;
+            animation: placeholder-blink 1s infinite alternate;
+        }
+        
+        @keyframes placeholder-blink {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .day-tabs .nav-link {
+            border: none;
+            color: var(--text-color);
+            padding: 12px 20px 12px 30px;
+            border-radius: 15px 15px 0 0;
+            white-space: nowrap;
+            text-align: center;
+            min-width: 120px;
+            transition: all 0.3s ease;
+            position: relative;
+            display: block;
+        }
+        
+        .day-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .day-tabs .nav-link:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        .drag-handle {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            cursor: grab;
+        }
+        
+        .tab-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .date-display {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        
+        .date-display:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .editable-date {
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .editable-date:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .date-edit-icon {
+            opacity: 0;
+            font-size: 0.6rem;
+            margin-left: 4px;
+            transition: opacity 0.2s ease;
+        }
+        
+        .editable-date:hover .date-edit-icon {
+            opacity: 0.7;
+        }
+        
+        .day-tabs .nav-link.add-day-btn {
+            background: transparent !important;
+            color: var(--accent-color) !important;
+            border: none !important;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .day-tabs .nav-link.add-day-btn:hover {
+            background: rgba(70, 130, 180, 0.1) !important;
+            color: var(--accent-color) !important;
+        }
+        
+        .delete-day-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 99, 99, 0.8);
+            color: white;
+            border: none;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            pointer-events: auto;
+        }
+        
+        .delete-day-btn:hover {
+            background: rgba(255, 99, 99, 1);
+            transform: scale(1.1);
+        }
+        
+        .day-tabs .nav-link:hover .delete-day-btn {
+            display: flex;
+        }
+        
+        .timeline-container {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            margin: 0 0 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .timeline-header {
+            background: var(--secondary-color);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .timeline-scroll-container {
+            height: 100%;
+            display: flex;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .time-axis {
+            width: 80px;
+            background: var(--time-grid-color);
+            border-right: 2px solid var(--secondary-color);
+            flex-shrink: 0;
+            height: 1200px;
+        }
+        
+        .time-slot {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-color);
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .schedule-area {
+            flex: 1;
+            position: relative;
+            height: 1200px;
+        }
+        
+        .schedule-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1200px;
+        }
+        
+        .grid-line {
+            height: 60px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .grid-line:nth-child(odd) {
+            background: rgba(135, 206, 235, 0.05);
+        }
+        
+        .quarter-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #f0f0f0;
+        }
+        
+        .quarter-line:nth-child(1) { top: 15px; }
+        .quarter-line:nth-child(2) { top: 30px; }
+        .quarter-line:nth-child(3) { top: 45px; }
+        
+        .drop-guide-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-color);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 50;
+            border-radius: 2px;
+        }
+        
+        .drop-guide-line.active {
+            opacity: 0.8;
+        }
+        
+        .event-block {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            z-index: 10;
+            user-select: none;
+        }
+        
+        .event-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: var(--accent-color);
+        }
+        
+        .event-block.edit-mode {
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+        }
+        
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        
+        .title-text {
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .event-time {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .event-description {
+            font-size: 0.75rem;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        
+        .edit-mode-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #FFD700;
+            color: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: ns-resize;
+        }
+        
+        .resize-handle.top {
+            top: 0;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .resize-handle.bottom {
+            bottom: 0;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .event-block.edit-mode .resize-handle {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .btn-primary {
+            background: var(--accent-color);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: var(--text-color);
+            transform: translateY(-2px);
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+        }
+        
+        .add-event-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .add-event-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-color);
+        }
+        
+        .edit-mode-help {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            max-width: 280px;
+        }
+        
+        .edit-mode-help.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .trip-setup {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .trip-setup h2 {
+            color: var(--accent-color);
+            margin-bottom: 30px;
+        }
+        
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .date-input-group input[type="date"] {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .date-input-group span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        @media (max-width: 768px) {
+            .time-axis { width: 60px; height: 1000px; }
+            .time-slot { height: 50px; font-size: 0.8rem; }
+            .grid-line { height: 50px; }
+            .schedule-grid { height: 1000px; }
+            .schedule-area { height: 1000px; }
+            .event-block { padding: 6px 8px; }
+            .event-title { font-size: 0.8rem; }
+            .event-time { font-size: 0.7rem; }
+            .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
+            .date-input-group { flex-direction: column; gap: 10px; }
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -658,21 +649,12 @@ body {
                             </div>
                             <div class="tab-content-wrapper">
                                 <div>{{ day.dayNumber }}日目</div>
-                                <small v-if="!day.isEditing" 
-                                       @click.stop="startDateEdit(index)"
+                                <small @click.stop="openStartDateModal(index)" 
+                                       :class="{ 'editable-date': index === 0 }"
                                        class="date-display">
                                     {{ day.date }}
-                                    <i class="fas fa-edit date-edit-icon"></i>
+                                    <i v-if="index === 0" class="fas fa-edit date-edit-icon"></i>
                                 </small>
-                                <div v-if="day.isEditing" class="date-edit-container" @click.stop>
-                                    <input type="date" 
-                                           v-model="day.editingDate"
-                                           @blur="saveDateEdit(index)"
-                                           @keydown.enter="saveDateEdit(index)"
-                                           @keydown.escape="cancelDateEdit(index)"
-                                           class="date-edit-input"
-                                           ref="dateEditInput">
-                                </div>
                             </div>
                             <button class="delete-day-btn" 
                                     v-if="tripDays.length > 1"
@@ -777,30 +759,32 @@ body {
             • 空のエリアをクリック：終了
         </div>
         
-        <!-- モーダル -->
-        <div class="modal fade" id="addDayModal" tabindex="-1">
-            <div class="modal-dialog">
+        <!-- 開始日編集モーダル -->
+        <div class="modal fade" id="startDateModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> 新しい日程を追加</h5>
+                        <h5 class="modal-title">🗓️ 旅行開始日の変更</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">日付を選択</label>
-                            <input type="date" class="form-control" v-model="newDayDate" required>
+                            <label class="form-label">新しい開始日</label>
+                            <input type="date" v-model="editingStartDate" class="form-control" :min="today">
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" @click="addNewDay">
-                            <i class="fas fa-save"></i> 追加
-                        </button>
+                        <button type="button" class="btn btn-primary" @click="saveStartDate">変更</button>
                     </div>
                 </div>
             </div>
         </div>
         
+        <!-- その他既存のモーダル -->
         <div class="modal fade" id="detailModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -938,6 +922,7 @@ body {
                     startPosition: { x: 0, y: 0 },
                     selectedEventForDetail: null,
                     editingEvent: null,
+                    editingStartDate: '',
                     isMobile: false,
                     eventForm: {
                         title: '',
@@ -995,13 +980,56 @@ body {
                             id: Date.now() + dayNumber + Math.random(),
                             dayNumber: dayNumber++,
                             date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
-                            fullDate: date.toISOString().split('T')[0],
-                            isEditing: false,
-                            editingDate: date.toISOString().split('T')[0]
+                            fullDate: date.toISOString().split('T')[0]
                         });
                     }
                     
                     return days;
+                },
+                
+                generateConsecutiveDays(startDate, dayCount) {
+                    const days = [];
+                    const start = new Date(startDate);
+                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                    
+                    for (let i = 0; i < dayCount; i++) {
+                        const date = new Date(start);
+                        date.setDate(start.getDate() + i);
+                        const dayName = dayNames[date.getDay()];
+                        
+                        days.push({
+                            id: Date.now() + i + Math.random(),
+                            dayNumber: i + 1,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
+                            fullDate: date.toISOString().split('T')[0]
+                        });
+                    }
+                    
+                    return days;
+                },
+                
+                openStartDateModal(index) {
+                    if (index !== 0) return; // 1日目のみ編集可能
+                    
+                    this.editingStartDate = this.tripDays[0].fullDate;
+                    const modal = new bootstrap.Modal(document.getElementById('startDateModal'));
+                    modal.show();
+                },
+                
+                saveStartDate() {
+                    if (!this.editingStartDate) {
+                        alert('開始日を選択してください');
+                        return;
+                    }
+                    
+                    const currentDayCount = this.tripDays.length;
+                    const newDays = this.generateConsecutiveDays(this.editingStartDate, currentDayCount);
+                    
+                    // 既存の予定のdayIndexは変更せず、日付のみ更新
+                    this.tripDays = newDays;
+                    
+                    this.saveData();
+                    this.hideModal('startDateModal');
                 },
                 
                 setActiveDay(index) {
@@ -1013,31 +1041,11 @@ body {
                 },
                 
                 addDayImmediately() {
-                    if (this.tripDays.length === 0) {
-                        this.newDayDate = this.today;
-                    } else {
-                        const sortedDays = [...this.tripDays].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                        const lastDay = new Date(sortedDays[sortedDays.length - 1].fullDate);
-                        lastDay.setDate(lastDay.getDate() + 1);
-                        this.newDayDate = lastDay.toISOString().split('T')[0];
-                    }
+                    const currentDayCount = this.tripDays.length;
+                    const startDate = this.tripDays[0].fullDate;
                     
-                    const selectedDate = new Date(this.newDayDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[selectedDate.getDay()];
-                    
-                    const newDay = {
-                        id: Date.now() + Math.random(),
-                        dayNumber: this.tripDays.length + 1,
-                        date: `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}(${dayName})`,
-                        fullDate: this.newDayDate,
-                        isEditing: false,
-                        editingDate: this.newDayDate
-                    };
-                    
-                    this.tripDays.push(newDay);
-                    this.tripDays.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                    this.tripDays.forEach((day, index) => day.dayNumber = index + 1);
+                    // 1日追加した連続日程を再生成
+                    this.tripDays = this.generateConsecutiveDays(startDate, currentDayCount + 1);
                     this.saveData();
                 },
                 
@@ -1048,16 +1056,20 @@ body {
                     }
                     
                     if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
+                        // 該当日の予定を削除
                         this.events = this.events.filter(event => event.dayIndex !== index);
+                        
+                        // 後続の予定のdayIndexを調整
                         this.events.forEach(event => {
                             if (event.dayIndex > index) {
                                 event.dayIndex--;
                             }
                         });
                         
-                        this.tripDays.splice(index, 1);
-                        this.recalculateAllDatesAfterDeletion();
-                        this.tripDays.forEach((day, i) => day.dayNumber = i + 1);
+                        // 日程を1日減らして再生成
+                        const currentDayCount = this.tripDays.length;
+                        const startDate = this.tripDays[0].fullDate;
+                        this.tripDays = this.generateConsecutiveDays(startDate, currentDayCount - 1);
                         
                         if (this.activeDay >= this.tripDays.length) {
                             this.activeDay = this.tripDays.length - 1;
@@ -1065,82 +1077,6 @@ body {
                         
                         this.saveData();
                     }
-                },
-                
-                recalculateAllDatesAfterDeletion() {
-                    if (this.tripDays.length === 0) return;
-                    
-                    const baseDate = new Date(this.tripDays[0].fullDate);
-                    this.tripDays.forEach((day, index) => {
-                        if (index === 0) return;
-                        
-                        const newDate = new Date(baseDate);
-                        newDate.setDate(baseDate.getDate() + index);
-                        this.updateDayData(index, newDate);
-                    });
-                },
-                
-                startDateEdit(index) {
-                    this.tripDays.forEach((day, i) => {
-                        if (i !== index && day.isEditing) {
-                            this.cancelDateEdit(i);
-                        }
-                    });
-                    
-                    this.tripDays[index].isEditing = true;
-                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
-                    
-                    this.$nextTick(() => {
-                        const inputs = this.$refs.dateEditInput;
-                        if (inputs && inputs[0]) {
-                            inputs[0].focus();
-                        }
-                    });
-                },
-                
-                saveDateEdit(index) {
-                    const newDate = this.tripDays[index].editingDate;
-                    
-                    if (!newDate) {
-                        this.cancelDateEdit(index);
-                        return;
-                    }
-                    
-                    this.recalculateAllDates(index, newDate);
-                    this.tripDays[index].isEditing = false;
-                    this.saveData();
-                },
-                
-                cancelDateEdit(index) {
-                    this.tripDays[index].isEditing = false;
-                    this.tripDays[index].editingDate = this.tripDays[index].fullDate;
-                },
-                
-                recalculateAllDates(baseIndex, baseDate) {
-                    const baseDateTime = new Date(baseDate);
-                    
-                    for (let i = baseIndex - 1; i >= 0; i--) {
-                        const targetDate = new Date(baseDateTime);
-                        targetDate.setDate(targetDate.getDate() - (baseIndex - i));
-                        this.updateDayData(i, targetDate);
-                    }
-                    
-                    this.updateDayData(baseIndex, baseDateTime);
-                    
-                    for (let i = baseIndex + 1; i < this.tripDays.length; i++) {
-                        const targetDate = new Date(baseDateTime);
-                        targetDate.setDate(targetDate.getDate() + (i - baseIndex));
-                        this.updateDayData(i, targetDate);
-                    }
-                },
-                
-                updateDayData(index, date) {
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    const dayName = dayNames[date.getDay()];
-                    
-                    this.tripDays[index].date = `${date.getMonth() + 1}/${date.getDate()}(${dayName})`;
-                    this.tripDays[index].fullDate = date.toISOString().split('T')[0];
-                    this.tripDays[index].editingDate = date.toISOString().split('T')[0];
                 },
                 
                 handleTabDragStart(event, index) {
@@ -1187,18 +1123,22 @@ body {
                 },
                 
                 reorderTabs(fromIndex, toIndex) {
+                    // 予定のdayIndexマッピングを作成
                     const eventMapping = new Map();
                     this.events.forEach(event => {
                         eventMapping.set(event.id, event.dayIndex);
                     });
                     
+                    // タブの順序を変更
                     const movedTab = this.tripDays.splice(fromIndex, 1)[0];
                     this.tripDays.splice(toIndex, 0, movedTab);
                     
+                    // dayNumberを更新
                     this.tripDays.forEach((day, index) => {
                         day.dayNumber = index + 1;
                     });
                     
+                    // 予定のdayIndexを新しい順序に合わせて更新
                     this.events.forEach(event => {
                         const oldDayIndex = eventMapping.get(event.id);
                         if (oldDayIndex === fromIndex) {
@@ -1210,6 +1150,7 @@ body {
                         }
                     });
                     
+                    // アクティブデイの調整
                     if (this.activeDay === fromIndex) {
                         this.activeDay = toIndex;
                     } else if (fromIndex < toIndex && this.activeDay > fromIndex && this.activeDay <= toIndex) {
@@ -1218,21 +1159,7 @@ body {
                         this.activeDay++;
                     }
                     
-                    this.autoAdjustDatesAfterReorder();
                     this.saveData();
-                },
-                
-                autoAdjustDatesAfterReorder() {
-                    if (this.tripDays.length <= 1) return;
-                    
-                    const baseDate = new Date(this.tripDays[0].fullDate);
-                    this.tripDays.forEach((day, index) => {
-                        if (index === 0) return;
-                        
-                        const newDate = new Date(baseDate);
-                        newDate.setDate(baseDate.getDate() + index);
-                        this.updateDayData(index, newDate);
-                    });
                 },
                 
                 getCurrentDayEvents() {
@@ -1299,19 +1226,9 @@ body {
                 
                 hideModal(modalId) {
                     const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
-                    const modalElement = document.getElementById(modalId);
-                    
-                    const focusedElement = modalElement.querySelector(':focus');
-                    if (focusedElement) {
-                        focusedElement.blur();
+                    if (modal) {
+                        modal.hide();
                     }
-                    
-                    modal.hide();
-                    
-                    modalElement.addEventListener('hidden.bs.modal', function clearAriaHidden() {
-                        modalElement.removeAttribute('aria-hidden');
-                        modalElement.removeEventListener('hidden.bs.modal', clearAriaHidden);
-                    }, { once: true });
                 },
                 
                 handleEventMouseDown(event, eventData) {
