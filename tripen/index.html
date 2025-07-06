@@ -900,6 +900,7 @@
                     touchStartTime: 0,
                     touchStartPosition: { x: 0, y: 0 },
                     longPressTimer: null,
+                    longPressExecuted: false,
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1165,12 +1166,15 @@
                     container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
                 },
                 
-                // イベント処理
+                // 修正されたモバイルイベント処理
                 handleEventTouchStart(event, eventData) {
                     if (event.target.closest('.title-text')) return;
                     
                     event.preventDefault();
                     event.stopPropagation();
+                    
+                    const coords = event.touches[0];
+                    this.touchStartPosition = { x: coords.clientX, y: coords.clientY };
                     
                     if (this.editModeEvent?.id === eventData.id) {
                         this.startDragMoveTouch(event, eventData);
@@ -1178,11 +1182,50 @@
                     }
                     
                     this.touchStartTime = Date.now();
+                    this.longPressExecuted = false;
+                    
                     this.longPressTimer = setTimeout(() => {
+                        this.longPressExecuted = true;
                         this.editModeEvent = eventData;
                         if (navigator.vibrate) navigator.vibrate(50);
                         this.startDragMoveTouch(event, eventData);
                     }, 500);
+                    
+                    // タッチ移動とタッチ終了のイベントリスナーを追加
+                    const handleTouchMove = (e) => {
+                        const moveCoords = e.touches[0];
+                        const deltaX = Math.abs(moveCoords.clientX - this.touchStartPosition.x);
+                        const deltaY = Math.abs(moveCoords.clientY - this.touchStartPosition.y);
+                        
+                        if (deltaX > 10 || deltaY > 10) {
+                            this.clearEventLongPress();
+                            document.removeEventListener('touchmove', handleTouchMove);
+                            document.removeEventListener('touchend', handleTouchEnd);
+                        }
+                    };
+                    
+                    const handleTouchEnd = (e) => {
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        this.clearEventLongPress();
+                        
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                        
+                        // 短いタップの場合は詳細モーダルを開く
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            this.openDetailModal(eventData);
+                        }
+                    };
+                    
+                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    document.addEventListener('touchend', handleTouchEnd);
+                },
+                
+                clearEventLongPress() {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
+                    }
                 },
                 
                 startDragMoveTouch(event, eventData) {
