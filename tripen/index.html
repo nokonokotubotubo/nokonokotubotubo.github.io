@@ -50,32 +50,11 @@
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             flex-shrink: 0;
-            position: relative;
         }
         
         .penguin-icon {
             font-size: 2rem;
             margin-right: 10px;
-        }
-        
-        .mobile-menu-btn {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 1rem;
-            display: none;
-        }
-        
-        @media (max-width: 768px) {
-            .mobile-menu-btn {
-                display: block;
-            }
         }
         
         .container-fluid {
@@ -93,6 +72,7 @@
             scrollbar-color: var(--secondary-color) transparent;
             pointer-events: auto;
             flex-shrink: 0;
+            position: relative;
         }
         
         .day-tabs-container::-webkit-scrollbar {
@@ -290,10 +270,125 @@
             display: flex;
         }
         
+        /* モバイル専用タブメニュー */
+        .mobile-tab-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-tab-menu.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .mobile-tab-menu-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .mobile-tab-menu-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+        
+        .mobile-tab-menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .mobile-tab-menu-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .mobile-tab-menu-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .mobile-tab-menu-btn.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .mobile-tab-menu-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .mobile-tab-menu-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .mobile-tab-menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* モバイル専用FAB */
+        .mobile-add-day-fab {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #28a745;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            z-index: 1001;
+            display: none;
+        }
+        
+        .mobile-add-day-fab:hover {
+            transform: scale(1.1);
+        }
+        
         @media (max-width: 768px) {
+            .mobile-add-day-fab {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .day-tabs .nav-link.add-day-btn {
+                display: none;
+            }
+            
             .delete-day-btn {
-                display: flex !important;
-                opacity: 0.7;
+                display: none !important;
             }
         }
         
@@ -630,9 +725,6 @@
                 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
                 <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
             </div>
-            <button class="mobile-menu-btn" @click="openMobileMenu" v-if="tripInitialized">
-                <i class="fas fa-cog"></i> 日程管理
-            </button>
         </header>
         
         <div v-if="!tripInitialized" class="container">
@@ -793,33 +885,49 @@
             </div>
         </div>
         
+        <!-- モバイル専用タブメニュー -->
+        <div class="mobile-tab-menu" :class="{ show: showMobileTabMenu }" @click="closeMobileTabMenu" v-if="isMobile">
+            <div class="mobile-tab-menu-content" @click.stop>
+                <div class="mobile-tab-menu-title">
+                    {{ selectedTabForMenu ? `${selectedTabForMenu.dayNumber}日目の編集` : '日程編集' }}
+                </div>
+                <div class="mobile-tab-menu-buttons">
+                    <button class="mobile-tab-menu-btn primary" 
+                            v-if="selectedTabForMenu && selectedTabIndex === 0"
+                            @click="openStartDateModalFromMenu">
+                        <i class="fas fa-calendar-edit"></i>
+                        開始日を変更
+                    </button>
+                    <button class="mobile-tab-menu-btn danger" 
+                            v-if="selectedTabForMenu && tripDays.length > 1"
+                            @click="deleteDayFromMenu">
+                        <i class="fas fa-trash"></i>
+                        この日程を削除
+                    </button>
+                    <button class="mobile-tab-menu-btn success" 
+                            @click="addDayFromMenu">
+                        <i class="fas fa-plus"></i>
+                        日程を追加
+                    </button>
+                    <button class="mobile-tab-menu-btn secondary" 
+                            @click="closeMobileTabMenu">
+                        <i class="fas fa-times"></i>
+                        キャンセル
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- モバイル専用日程追加FAB -->
+        <button class="mobile-add-day-fab" @click="addDayImmediately" v-if="isMobile">
+            <i class="fas fa-plus"></i>
+        </button>
+        
         <div class="edit-mode-help" :class="{ show: editModeEvent }">
             <strong>📝 編集モード</strong><br>
             • 上下端をドラッグ：時間調整<br>
             • 中央を500ms長押しドラッグ：移動<br>
             • 空のエリアをクリック：終了
-        </div>
-        
-        <!-- モバイル用日程管理モーダル -->
-        <div class="modal fade" id="mobileMenuModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-cog"></i> 日程管理</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary" @click="mobileChangeStartDate">
-                                <i class="fas fa-calendar-edit"></i> 旅行開始日を変更
-                            </button>
-                            <button class="btn btn-outline-primary" @click="mobileAddDay">
-                                <i class="fas fa-calendar-plus"></i> 日程を追加
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <!-- 開始日編集モーダル -->
@@ -983,6 +1091,10 @@
                     touchCurrentIndex: null,
                     touchDragStartTime: 0,
                     eventTouchOffset: { x: 0, y: 0 },
+                    showMobileTabMenu: false,
+                    selectedTabForMenu: null,
+                    selectedTabIndex: null,
+                    longPressTabTimer: null,
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
                     editModeEvent: null,
@@ -1016,24 +1128,6 @@
                         clientX: event.clientX,
                         clientY: event.clientY
                     };
-                },
-                
-                // モバイルメニュー関連（シンプル版）
-                openMobileMenu() {
-                    const modal = new bootstrap.Modal(document.getElementById('mobileMenuModal'));
-                    modal.show();
-                },
-                
-                mobileChangeStartDate() {
-                    this.hideModal('mobileMenuModal');
-                    setTimeout(() => {
-                        this.openStartDateModal(0);
-                    }, 300);
-                },
-                
-                mobileAddDay() {
-                    this.hideModal('mobileMenuModal');
-                    this.addDayImmediately();
                 },
                 
                 checkExistingData() {
@@ -1109,11 +1203,14 @@
                 },
                 
                 handleDateClick(index) {
-                    if (index === 0) {
-                        this.openStartDateModal(index);
-                    } else {
-                        this.setActiveDay(index);
+                    if (!this.isMobile) {
+                        if (index === 0) {
+                            this.openStartDateModal(index);
+                        } else {
+                            this.setActiveDay(index);
+                        }
                     }
+                    // モバイルでは何もしない（長押しメニューで対応）
                 },
                 
                 openStartDateModal(index) {
@@ -1122,6 +1219,11 @@
                     this.editingStartDate = this.tripDays[0].fullDate;
                     const modal = new bootstrap.Modal(document.getElementById('startDateModal'));
                     modal.show();
+                },
+                
+                openStartDateModalFromMenu() {
+                    this.closeMobileTabMenu();
+                    this.openStartDateModal(0);
                 },
                 
                 saveStartDate() {
@@ -1155,6 +1257,11 @@
                     this.saveData();
                 },
                 
+                addDayFromMenu() {
+                    this.closeMobileTabMenu();
+                    this.addDayImmediately();
+                },
+                
                 deleteDay(index) {
                     if (this.tripDays.length <= 1) {
                         alert('最低1つの日程は必要です');
@@ -1182,7 +1289,27 @@
                     }
                 },
                 
-                // デスクトップ用ドラッグ&ドロップ（デスクトップのみで動作）
+                deleteDayFromMenu() {
+                    this.closeMobileTabMenu();
+                    if (this.selectedTabIndex !== null) {
+                        this.deleteDay(this.selectedTabIndex);
+                    }
+                },
+                
+                // モバイル専用タブメニュー
+                showMobileTabMenuForTab(index) {
+                    this.selectedTabForMenu = this.tripDays[index];
+                    this.selectedTabIndex = index;
+                    this.showMobileTabMenu = true;
+                },
+                
+                closeMobileTabMenu() {
+                    this.showMobileTabMenu = false;
+                    this.selectedTabForMenu = null;
+                    this.selectedTabIndex = null;
+                },
+                
+                // デスクトップ用ドラッグ&ドロップ（既存）
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
@@ -1226,27 +1353,51 @@
                     this.dragOverTabIndex = null;
                 },
                 
-                // モバイル用タッチイベント（最小限）
+                // モバイル用タッチイベント（修正版）
                 handleTabTouchStart(event, index) {
+                    if (!this.isMobile) return;
+                    
                     const coords = this.getEventCoordinates(event);
                     this.touchStartIndex = index;
                     this.touchStartX = coords.clientX;
                     this.touchStartY = coords.clientY;
                     this.touchCurrentIndex = index;
                     this.touchDragStartTime = Date.now();
+                    
+                    // 長押し判定（800ms）
+                    this.longPressTabTimer = setTimeout(() => {
+                        const deltaX = Math.abs(coords.clientX - this.touchStartX);
+                        const deltaY = Math.abs(coords.clientY - this.touchStartY);
+                        
+                        if (deltaX < 10 && deltaY < 10) {
+                            // 長押し成功
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                            this.showMobileTabMenuForTab(index);
+                        }
+                    }, 800);
                 },
                 
                 handleTabTouchMove(event, index) {
-                    if (this.touchStartIndex === null) return;
+                    if (!this.isMobile || this.touchStartIndex === null) return;
                     
                     const coords = this.getEventCoordinates(event);
                     const deltaX = Math.abs(coords.clientX - this.touchStartX);
+                    const deltaY = Math.abs(coords.clientY - this.touchStartY);
                     
-                    if (deltaX > 20) {
+                    // 移動が大きい場合は長押しキャンセル
+                    if (deltaX > 10 || deltaY > 10) {
+                        if (this.longPressTabTimer) {
+                            clearTimeout(this.longPressTabTimer);
+                            this.longPressTabTimer = null;
+                        }
+                        
+                        // ドラッグ処理（既存のタブドラッグ機能）
                         event.preventDefault();
                         
-                        const tabElements = document.querySelectorAll('.nav-item:not(:last-child)');
                         let newIndex = this.touchStartIndex;
+                        const tabElements = document.querySelectorAll('.nav-item:not(:last-child)');
                         
                         for (let i = 0; i < tabElements.length; i++) {
                             const rect = tabElements[i].getBoundingClientRect();
@@ -1271,7 +1422,13 @@
                 },
                 
                 handleTabTouchEnd(event, index) {
-                    if (this.touchStartIndex === null) return;
+                    if (!this.isMobile || this.touchStartIndex === null) return;
+                    
+                    // 長押しタイマーをクリア
+                    if (this.longPressTabTimer) {
+                        clearTimeout(this.longPressTabTimer);
+                        this.longPressTabTimer = null;
+                    }
                     
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
@@ -1282,9 +1439,11 @@
                     const deltaX = Math.abs(coords.clientX - this.touchStartX);
                     const deltaY = Math.abs(coords.clientY - this.touchStartY);
                     
-                    if (this.touchCurrentIndex !== null && this.touchCurrentIndex !== this.touchStartIndex && deltaX > 20) {
+                    if (this.touchCurrentIndex !== null && this.touchCurrentIndex !== this.touchStartIndex && touchDuration > 150) {
+                        // ドラッグでタブ並び替え
                         this.reorderTabs(this.touchStartIndex, this.touchCurrentIndex);
                     } else if (touchDuration < 300 && deltaX < 10 && deltaY < 10) {
+                        // 短いタップでタブ切り替え
                         this.setActiveDay(index);
                     }
                     
