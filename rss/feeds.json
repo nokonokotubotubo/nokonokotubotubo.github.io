@@ -1,7 +1,7 @@
 {
   "title": "RSS Reader - 生成AI記事フィード",
   "description": "最新の生成AI関連記事をまとめて配信",
-  "updated": "2025-07-05T23:15:37.729Z",
+  "updated": "2025-07-06T01:27:36.680Z",
   "totalEntries": 14,
   "feeds": [
     {
@@ -24,6 +24,30 @@
     }
   ],
   "entries": [
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049725",
+      "title": "君の生成AIの使い方は間違っている　～正しい使い方とその心構え～",
+      "link": "https://qiita.com/EndOfData/items/a16086cab4af175a9e82",
+      "published": "2025-07-06T01:14:02.000Z",
+      "description": "※いいねされない記事は消されます。私はいいねされない記事を断固として拒否します。 ChatGPT、Claude、xのGrokなど、手軽に使えるプロンプト型の生成AIはいくつかの種類が世に出回っている。そんな世界が定着しつつあり、生成AIに依存する人間が増えてきた が...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "※いいねされない記事は消されます。私はいいねされない記事を断固として拒否します。 ChatGPT、Claude、xのGrokなど、手軽に使えるプロンプト型の生成AIはいくつかの種類が世に出回っている。そんな世界が定着しつつあり、生成AIに依存する人間が増えてきた が...",
+      "thumbnail": null
+    },
+    {
+      "id": "tag:qiita.com,2005:PublicArticle/2049706",
+      "title": "個人開発、いつも途中で終わってしまうあなたへ　― 20回以上の挫折を経て、ようやくMVPをリリースできた話 ―",
+      "link": "https://qiita.com/takaaki431/items/fe079b8a0f2d9c5f3fda",
+      "published": "2025-07-05T23:53:23.000Z",
+      "description": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチ...",
+      "source": "Qiita",
+      "sourceColor": "#55C500",
+      "sourceFeed": "qiita",
+      "summary": "エンジニアなら一度は考えたことがある「個人開発して、何かを世に出してみたい」という夢。 でも実際にやってみると、これが驚くほど難しい。 誰にも催促されないから、つい後回しになる 気づけば壮大な構想になり、終わらない開発地獄 「これ、本当に誰か使うのかな…？」と自問してモチ...",
+      "thumbnail": null
+    },
     {
       "id": "tag:qiita.com,2005:PublicArticle/2049678",
       "title": "国内企業の生成AI活用事例と導入ポイント：業務効率化の成功事例を徹底解説",
@@ -82,30 +106,6 @@
       "sourceColor": "#3EA8FF",
       "sourceFeed": "zenn",
       "summary": "はじめに システム開発の中でAmazon Q Developerをどのように活用できるのかを実際に検証してみます。 今回は要件定義からアーキテクチャの決定までを対象に、曖昧な要件を具体化し最適なAWSアーキテクチャを効率的に設計できるのか？を確認します。 関連記事 https://zenn.dev/",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2049407",
-      "title": "家庭のお悩みGenUで解決してみた",
-      "link": "https://qiita.com/zukutakuzu/items/4819878ea433890142e2",
-      "published": "2025-07-05T06:59:30.000Z",
-      "description": "やりたいこと GenUを使って朝のドタバタを解消させたい！ 想定読者 生成AIを使うだけではなくてデプロイする側に回りたい人 GenUをプライベートで試してみたいが値段どれくらいかな、、と気になってる人 家庭/育児のお悩みをサクっと解決したい人 背景 我が家には5...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "やりたいこと GenUを使って朝のドタバタを解消させたい！ 想定読者 生成AIを使うだけではなくてデプロイする側に回りたい人 GenUをプライベートで試してみたいが値段どれくらいかな、、と気になってる人 家庭/育児のお悩みをサクっと解決したい人 背景 我が家には5...",
-      "thumbnail": null
-    },
-    {
-      "id": "tag:qiita.com,2005:PublicArticle/2049365",
-      "title": "VS CodeでGoogle Colabに接続できるのか？…やはり無理のよう (生成AIに聞いてみる)",
-      "link": "https://qiita.com/dl_from_scratch/items/3e697aebbc5f521bf3ba",
-      "published": "2025-07-05T05:02:24.000Z",
-      "description": "ローカルPC上で起動したVS CodeからWebサービスのGoogle Colabに接続できるのか？…ChatGPTに聞いてみましたが、やはり無理のようでした。結果を記載します。 結果的には不可能でしたが、ただ、生成AIに聞いていくと(2回目で)、結構いい所まで進む手順...",
-      "source": "Qiita",
-      "sourceColor": "#55C500",
-      "sourceFeed": "qiita",
-      "summary": "ローカルPC上で起動したVS CodeからWebサービスのGoogle Colabに接続できるのか？…ChatGPTに聞いてみましたが、やはり無理のようでした。結果を記載します。 結果的には不可能でしたが、ただ、生成AIに聞いていくと(2回目で)、結構いい所まで進む手順...",
       "thumbnail": null
     },
     {
