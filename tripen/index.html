@@ -644,8 +644,8 @@
         
         .event-actions {
             position: absolute;
-            top: -12px;
-            left: -12px;
+            bottom: -8px;
+            left: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -654,8 +654,8 @@
         .event-action-btn {
             width: 30px;
             height: 30px;
-            border-radius: 50%;
-            border: 2px solid white;
+            border-radius: 8px;
+            border: none;
             color: white;
             font-size: 0.8rem;
             cursor: pointer;
@@ -663,65 +663,90 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
         .event-action-btn.cut {
-            background: #FF4444;
+            background: #FF6B6B;
+            border: 2px solid #fff;
         }
         
         .event-action-btn.cut:hover {
-            background: #FF2222;
-            transform: scale(1.2);
-            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.5);
+            background: #FF5252;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
         
         .edit-mode-indicator {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
             background: #FFD700;
             color: #333;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-        
-        .paste-status {
-            background: #4CAF50;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
             font-size: 0.8rem;
             font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.8);
+            transition: all 0.2s ease;
+            min-width: 150px;
+        }
+        
+        .context-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+        
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 5px;
-            animation: pulse 2s infinite;
+            gap: 8px;
         }
         
-        @keyframes pulse {
-            0% { opacity: 0.8; }
-            50% { opacity: 1; }
-            100% { opacity: 0.8; }
+        .context-menu-item:last-child {
+            border-bottom: none;
         }
         
-        .paste-area-highlight {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px dashed #4CAF50;
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 5;
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .context-menu-item.paste {
+            color: #4CAF50;
+        }
+        
+        .context-menu-item.paste:hover {
+            background: #e8f5e8;
+        }
+        
+        .context-menu-item.disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .context-menu-item.disabled:hover {
+            background: transparent;
         }
         
         .resize-handle {
@@ -973,9 +998,6 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
-                    <div v-if="clipboardEvent" class="paste-status">
-                        <i class="fas fa-clipboard"></i> 切り取り済み
-                    </div>
                 </div>
                 
                 <div class="timeline-content">
@@ -1016,9 +1038,10 @@
                                             title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
-                                    <div class="edit-mode-indicator">
-                                        ✎
-                                    </div>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    ✎
                                 </div>
                                 
                                 <div class="resize-handle top" 
@@ -1095,9 +1118,6 @@
                         {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
-                    <div v-if="clipboardEvent" class="paste-status">
-                        <i class="fas fa-clipboard"></i> 切り取り済み
-                    </div>
                 </div>
                 
                 <div class="timeline-content">
@@ -1111,7 +1131,8 @@
                         <div class="schedule-area" 
                              @click="handleScheduleClick"
                              @touchstart="handleScheduleTouchStart"
-                             @touchend="handleScheduleTouchEnd">
+                             @touchend="handleScheduleTouchEnd"
+                             @touchmove="handleScheduleTouchMove">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
                                     <div class="quarter-line"></div>
@@ -1138,9 +1159,10 @@
                                             title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
-                                    <div class="edit-mode-indicator">
-                                        ✎
-                                    </div>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    ✎
                                 </div>
                                 
                                 <div class="resize-handle top" 
@@ -1170,6 +1192,24 @@
             <button class="mobile-fab" @click="openEventModal()">
                 <i class="fas fa-plus"></i>
             </button>
+        </div>
+        
+        <!-- コンテキストメニュー -->
+        <div class="context-menu" 
+             :class="{ show: showContextMenu }"
+             :style="contextMenuStyle"
+             ref="contextMenu">
+            <div class="context-menu-item paste" 
+                 :class="{ disabled: !clipboardEvent }"
+                 @click="pasteFromContext"
+                 v-if="clipboardEvent">
+                <i class="fas fa-paste"></i>
+                貼り付け
+            </div>
+            <div class="context-menu-item disabled" v-else>
+                <i class="fas fa-paste"></i>
+                貼り付け（コピー済みアイテムなし）
+            </div>
         </div>
         
         <!-- モバイル専用ポップアップメニュー -->
@@ -1210,8 +1250,7 @@
             • 上下端をドラッグ：時間調整<br>
             • 中央をドラッグ：移動<br>
             • 右クリック：編集モード切替<br>
-            • 空のエリアをクリック：終了<br>
-            <span v-if="clipboardEvent">• 空エリア右クリック：貼り付け</span>
+            • 空のエリアをクリック：終了
         </div>
         
         <!-- 開始日編集モーダル -->
@@ -1383,12 +1422,21 @@
                     
                     // 予定ドラッグ関連
                     eventTouchOffset: { x: 0, y: 0 },
+                    touchStartTime: 0,
+                    touchStartPosition: { x: 0, y: 0 },
+                    longPressTimer: null,
                     
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
                     editModeEvent: null,
-                    clipboardEvent: null, // 切り取った予定を保存
-                    scheduleTouchTimer: null, // モバイル用長押しタイマー
+                    clipboardEvent: null,
+                    
+                    // コンテキストメニュー関連
+                    showContextMenu: false,
+                    contextMenuStyle: {},
+                    contextMenuPosition: { x: 0, y: 0 },
+                    pasteTargetTime: null,
+                    
                     selectedEventForDetail: null,
                     editingEvent: null,
                     editingStartDate: '',
@@ -1416,72 +1464,6 @@
                         clientX: event.clientX,
                         clientY: event.clientY
                     };
-                },
-                
-                // 時間の検証とサニタイゼーション
-                validateTime(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    
-                    // 時間範囲のチェック（4:00-23:45）
-                    if (hours < 4 || hours > 23) {
-                        return false;
-                    }
-                    
-                    // 23時台は45分まで
-                    if (hours === 23 && minutes > 45) {
-                        return false;
-                    }
-                    
-                    // 15分単位チェック
-                    if (minutes % 15 !== 0) {
-                        return false;
-                    }
-                    
-                    return true;
-                },
-                
-                // 時間を15分単位に調整
-                snapTimeToQuarter(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    const snappedMinutes = Math.round(minutes / 15) * 15;
-                    
-                    let finalHours = hours;
-                    let finalMinutes = snappedMinutes;
-                    
-                    // 60分を超えた場合の処理
-                    if (finalMinutes >= 60) {
-                        finalHours += 1;
-                        finalMinutes = 0;
-                    }
-                    
-                    // 時間範囲の調整
-                    finalHours = Math.max(4, Math.min(23, finalHours));
-                    
-                    // 23時台は45分まで
-                    if (finalHours === 23 && finalMinutes > 45) {
-                        finalMinutes = 45;
-                    }
-                    
-                    return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
-                },
-                
-                // 時間差計算（分単位）
-                getTimeDifferenceInMinutes(startTime, endTime) {
-                    const [startHour, startMin] = startTime.split(':').map(Number);
-                    const [endHour, endMin] = endTime.split(':').map(Number);
-                    
-                    const startTotalMin = startHour * 60 + startMin;
-                    const endTotalMin = endHour * 60 + endMin;
-                    
-                    return endTotalMin - startTotalMin;
-                },
-                
-                // 分から時間文字列に変換
-                minutesToTimeString(totalMinutes) {
-                    const hours = Math.floor(totalMinutes / 60);
-                    const minutes = totalMinutes % 60;
-                    
-                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 },
                 
                 checkExistingData() {
@@ -1853,24 +1835,6 @@
                     }
                 },
                 
-                // 空のエリアでの右クリック処理（貼り付け用）
-                handleScheduleContextMenu(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    if (!this.clipboardEvent) {
-                        return;
-                    }
-                    
-                    // 右クリック位置から時間を計算
-                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
-                    const y = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
-                    const snappedY = Math.round(y / 15) * 15;
-                    const newTime = this.pixelsToTime(snappedY);
-                    
-                    this.pasteEventAtTime(this.activeDay, newTime);
-                },
-                
                 startDragMove(event, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
@@ -2036,33 +2000,6 @@
                     }
                 },
                 
-                // モバイル用の長押し処理
-                handleScheduleTouchStart(event) {
-                    if (!this.clipboardEvent) {
-                        return;
-                    }
-                    
-                    this.scheduleTouchTimer = setTimeout(() => {
-                        const rect = this.$refs.mobileTimelineContainer.getBoundingClientRect();
-                        const y = event.touches[0].clientY - rect.top + this.$refs.mobileTimelineContainer.scrollTop;
-                        const snappedY = Math.round(y / 15) * 15;
-                        const newTime = this.pixelsToTime(snappedY);
-                        
-                        if (navigator.vibrate) {
-                            navigator.vibrate(100);
-                        }
-                        
-                        this.pasteEventAtTime(this.activeDay, newTime);
-                    }, 800);
-                },
-                
-                handleScheduleTouchEnd(event) {
-                    if (this.scheduleTouchTimer) {
-                        clearTimeout(this.scheduleTouchTimer);
-                        this.scheduleTouchTimer = null;
-                    }
-                },
-                
                 // ===== 切り取り・貼り付け機能 =====
                 cutEvent(event) {
                     this.clipboardEvent = { ...event };
@@ -2076,7 +2013,7 @@
                     }
                 },
                 
-                pasteEvent(targetDayIndex) {
+                pasteEvent(targetDayIndex, targetTime = null) {
                     if (!this.clipboardEvent) return;
                     
                     const newEvent = {
@@ -2084,6 +2021,16 @@
                         id: Date.now() + Math.random(),
                         dayIndex: targetDayIndex
                     };
+                    
+                    // 貼り付け位置が指定されている場合、時間を調整
+                    if (targetTime) {
+                        const originalDuration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+                        const targetMinutes = this.timeToMinutes(targetTime);
+                        const endMinutes = targetMinutes + originalDuration;
+                        
+                                                newEvent.startTime = targetTime;
+                        newEvent.endTime = this.minutesToTime(endMinutes);
+                    }
                     
                     this.events.push(newEvent);
                     this.clipboardEvent = null;
@@ -2095,73 +2042,112 @@
                     }
                 },
                 
-                // 指定した時間に貼り付け（安定化機能付き）
-                pasteEventAtTime(targetDayIndex, startTime) {
+                // 時間変換ヘルパー
+                timeToMinutes(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    return hours * 60 + minutes;
+                },
+                
+                minutesToTime(minutes) {
+                    const hours = Math.floor(minutes / 60);
+                    const mins = minutes % 60;
+                    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                },
+                
+                // デスクトップ用コンテキストメニュー
+                handleScheduleContextMenu(event) {
+                    if (!this.isMobile) {
+                        event.preventDefault();
+                        this.showContextMenuAt(event.clientX, event.clientY, event);
+                    }
+                },
+                
+                // モバイル用長押しハンドラー（schedule-area用）
+                handleScheduleLongPress(event) {
+                    if (this.isMobile) {
+                        event.preventDefault();
+                        const touch = event.touches[0];
+                        this.showContextMenuAt(touch.clientX, touch.clientY, event);
+                    }
+                },
+                
+                showContextMenuAt(x, y, event) {
+                    this.contextMenuPosition = { x, y };
+                    
+                    // クリック位置から時間を計算
+                    const scrollRef = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = scrollRef.getBoundingClientRect();
+                    const relativeY = y - rect.top + scrollRef.scrollTop;
+                    this.pasteTargetTime = this.pixelsToTime(relativeY);
+                    
+                    this.contextMenuStyle = {
+                        left: `${x}px`,
+                        top: `${y}px`
+                    };
+                    
+                    this.showContextMenu = true;
+                    
+                    // 外部クリックで閉じる
+                    setTimeout(() => {
+                        document.addEventListener('click', this.hideContextMenu, { once: true });
+                    }, 100);
+                },
+                
+                hideContextMenu() {
+                    this.showContextMenu = false;
+                },
+                
+                pasteFromContext() {
                     if (!this.clipboardEvent) return;
                     
-                    try {
-                        // 開始時間をサニタイズ
-                        const sanitizedStartTime = this.snapTimeToQuarter(startTime);
-                        
-                        // 元のイベントの時間差を計算
-                        const originalDuration = this.getTimeDifferenceInMinutes(
-                            this.clipboardEvent.startTime, 
-                            this.clipboardEvent.endTime
-                        );
-                        
-                        // 新しい開始時間から終了時間を計算
-                        const [startHour, startMin] = sanitizedStartTime.split(':').map(Number);
-                        const startTotalMinutes = startHour * 60 + startMin;
-                        const endTotalMinutes = startTotalMinutes + originalDuration;
-                        
-                        // 終了時間が範囲を超える場合の調整
-                        const maxEndMinutes = 23 * 60 + 45; // 23:45
-                        let finalEndTotalMinutes = endTotalMinutes;
-                        let finalStartTime = sanitizedStartTime;
-                        
-                        if (endTotalMinutes > maxEndMinutes) {
-                            // 終了時間を23:45に設定し、開始時間を逆算
-                            finalEndTotalMinutes = maxEndMinutes;
-                            const adjustedStartMinutes = finalEndTotalMinutes - originalDuration;
-                            
-                            if (adjustedStartMinutes < 4 * 60) {
-                                // 時間範囲に収まらない場合はエラー
-                                alert('この予定は時間範囲内に収まりません。時間を短縮してから再度お試しください。');
-                                return;
-                            }
-                            
-                            finalStartTime = this.minutesToTimeString(adjustedStartMinutes);
-                            finalStartTime = this.snapTimeToQuarter(finalStartTime);
-                        }
-                        
-                        const endTime = this.minutesToTimeString(finalEndTotalMinutes);
-                        
-                        // 最終検証
-                        if (!this.validateTime(finalStartTime) || !this.validateTime(endTime)) {
-                            alert('貼り付け位置が無効です。4:00-23:45の範囲で15分単位の時間を指定してください。');
-                            return;
-                        }
-                        
-                        const newEvent = {
-                            ...this.clipboardEvent,
-                            id: Date.now() + Math.random(),
-                            dayIndex: targetDayIndex,
-                            startTime: finalStartTime,
-                            endTime: endTime
-                        };
-                        
-                        this.events.push(newEvent);
-                        this.clipboardEvent = null;
-                        this.saveData();
-                        
-                        // 貼り付け完了の視覚フィードバック
+                    this.hideContextMenu();
+                    this.pasteEvent(this.activeDay, this.pasteTargetTime);
+                },
+                
+                // モバイル用長押し処理
+                handleScheduleTouchStart(event) {
+                    if (!this.isMobile) return;
+                    
+                    this.touchStartTime = Date.now();
+                    this.touchStartPosition = {
+                        x: event.touches[0].clientX,
+                        y: event.touches[0].clientY
+                    };
+                    
+                    this.longPressTimer = setTimeout(() => {
+                        this.handleScheduleLongPress(event);
                         if (navigator.vibrate) {
-                            navigator.vibrate([50, 50, 50]);
+                            navigator.vibrate(50);
                         }
-                        
-                    } catch (error) {
-                        console.error('貼り付け処理でエラーが発生しました:', error);
-                        alert('貼り付け処理中にエラーが発生しました。再度お試しください。');
+                    }, 500);
+                },
+                
+                handleScheduleTouchMove(event) {
+                    if (!this.isMobile) return;
+                    
+                    const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+                    const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+                    
+                    if (deltaX > 10 || deltaY > 10) {
+                        this.clearScheduleLongPress();
+                    }
+                },
+                
+                handleScheduleTouchEnd(event) {
+                    if (!this.isMobile) return;
+                    
+                    this.clearScheduleLongPress();
+                    
+                    const touchDuration = Date.now() - this.touchStartTime;
+                    if (touchDuration < 300) {
+                        this.handleScheduleClick(event);
+                    }
+                },
+                
+                clearScheduleLongPress() {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
                     }
                 },
                 
