@@ -105,6 +105,7 @@
             flex-shrink: 0;
             position: relative;
             pointer-events: auto;
+            touch-action: manipulation;
         }
         
         .day-tabs .nav-item.dragging-tab {
@@ -166,6 +167,9 @@
             transition: all 0.3s ease;
             position: relative;
             display: block;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .day-tabs .nav-link.active {
@@ -201,6 +205,8 @@
             padding: 2px 4px;
             border-radius: 4px;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .date-display:hover {
@@ -285,6 +291,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .mobile-tab-menu.show {
@@ -327,6 +334,8 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
         .mobile-tab-menu-btn.primary {
@@ -349,9 +358,8 @@
             color: white;
         }
         
-        .mobile-tab-menu-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .mobile-tab-menu-btn:active {
+            transform: scale(0.95);
         }
         
         /* モバイル専用FAB */
@@ -370,17 +378,19 @@
             transition: all 0.3s ease;
             z-index: 1001;
             display: none;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
-        .mobile-add-day-fab:hover {
-            transform: scale(1.1);
+        .mobile-add-day-fab:active {
+            transform: scale(0.9);
         }
         
         @media (max-width: 768px) {
             .mobile-add-day-fab {
                 display: flex;
-                align-items: center;
-                justify-content: center;
             }
             
             .day-tabs .nav-link.add-day-btn {
@@ -713,7 +723,7 @@
             .event-block { padding: 6px 8px; }
             .event-title { font-size: 0.8rem; }
             .event-time { font-size: 0.7rem; }
-            .add-event-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.2rem; }
+            .add-event-btn { display: none !important; }
             .date-input-group { flex-direction: column; gap: 10px; }
         }
     </style>
@@ -765,9 +775,9 @@
                         @dragover="handleTabDragOver($event, index)"
                         @drop="handleTabDrop($event, index)"
                         @dragend="handleTabDragEnd"
-                        @touchstart="handleTabTouchStart($event, index)"
-                        @touchmove="handleTabTouchMove($event, index)"
-                        @touchend="handleTabTouchEnd($event, index)"
+                        @touchstart="onTabTouchStart($event, index)"
+                        @touchmove="onTabTouchMove($event, index)"
+                        @touchend="onTabTouchEnd($event, index)"
                         :class="{ 'dragging-tab': draggingTabIndex === index }">
                         <a class="nav-link" 
                            :class="{ active: activeDay === index }"
@@ -796,7 +806,7 @@
                             </button>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" v-if="!isMobile">
                         <a class="nav-link add-day-btn" 
                            @click.prevent.stop="addDayImmediately" 
                            @mousedown.stop
@@ -886,31 +896,31 @@
         </div>
         
         <!-- モバイル専用タブメニュー -->
-        <div class="mobile-tab-menu" :class="{ show: showMobileTabMenu }" @click="closeMobileTabMenu" v-if="isMobile">
-            <div class="mobile-tab-menu-content" @click.stop>
+        <div class="mobile-tab-menu" :class="{ show: showMobileTabMenu }" @touchend="closeMobileTabMenu" v-if="isMobile">
+            <div class="mobile-tab-menu-content" @touchend.stop>
                 <div class="mobile-tab-menu-title">
                     {{ selectedTabForMenu ? `${selectedTabForMenu.dayNumber}日目の編集` : '日程編集' }}
                 </div>
                 <div class="mobile-tab-menu-buttons">
                     <button class="mobile-tab-menu-btn primary" 
                             v-if="selectedTabForMenu && selectedTabIndex === 0"
-                            @click="openStartDateModalFromMenu">
+                            @touchend.prevent.stop="openStartDateModalFromMenu">
                         <i class="fas fa-calendar-edit"></i>
                         開始日を変更
                     </button>
                     <button class="mobile-tab-menu-btn danger" 
                             v-if="selectedTabForMenu && tripDays.length > 1"
-                            @click="deleteDayFromMenu">
+                            @touchend.prevent.stop="deleteDayFromMenu">
                         <i class="fas fa-trash"></i>
                         この日程を削除
                     </button>
                     <button class="mobile-tab-menu-btn success" 
-                            @click="addDayFromMenu">
+                            @touchend.prevent.stop="addDayFromMenu">
                         <i class="fas fa-plus"></i>
                         日程を追加
                     </button>
                     <button class="mobile-tab-menu-btn secondary" 
-                            @click="closeMobileTabMenu">
+                            @touchend.prevent.stop="closeMobileTabMenu">
                         <i class="fas fa-times"></i>
                         キャンセル
                     </button>
@@ -919,7 +929,7 @@
         </div>
         
         <!-- モバイル専用日程追加FAB -->
-        <button class="mobile-add-day-fab" @click="addDayImmediately" v-if="isMobile">
+        <button class="mobile-add-day-fab" @touchend.prevent.stop="addDayImmediately" v-if="isMobile">
             <i class="fas fa-plus"></i>
         </button>
         
@@ -1062,7 +1072,7 @@
             </div>
         </div>
         
-        <button v-if="tripInitialized" class="add-event-btn" @click="openEventModal()">
+        <button v-if="tripInitialized && !isMobile" class="add-event-btn" @click="openEventModal()">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -1085,16 +1095,19 @@
                     newDayDate: '',
                     draggingTabIndex: null,
                     dragOverTabIndex: null,
-                    touchStartIndex: null,
-                    touchStartX: 0,
-                    touchStartY: 0,
-                    touchCurrentIndex: null,
-                    touchDragStartTime: 0,
+                    
+                    // モバイルタブタッチ制御
+                    tabTouchTimer: null,
+                    tabTouchMoved: false,
+                    tabTouchStartTime: 0,
+                    tabTouchStartIndex: null,
+                    tabTouchStartX: 0,
+                    tabTouchStartY: 0,
+                    
                     eventTouchOffset: { x: 0, y: 0 },
                     showMobileTabMenu: false,
                     selectedTabForMenu: null,
                     selectedTabIndex: null,
-                    longPressTabTimer: null,
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
                     editModeEvent: null,
@@ -1210,7 +1223,6 @@
                             this.setActiveDay(index);
                         }
                     }
-                    // モバイルでは何もしない（長押しメニューで対応）
                 },
                 
                 openStartDateModal(index) {
@@ -1223,7 +1235,9 @@
                 
                 openStartDateModalFromMenu() {
                     this.closeMobileTabMenu();
-                    this.openStartDateModal(0);
+                    setTimeout(() => {
+                        this.openStartDateModal(0);
+                    }, 300);
                 },
                 
                 saveStartDate() {
@@ -1259,7 +1273,9 @@
                 
                 addDayFromMenu() {
                     this.closeMobileTabMenu();
-                    this.addDayImmediately();
+                    setTimeout(() => {
+                        this.addDayImmediately();
+                    }, 300);
                 },
                 
                 deleteDay(index) {
@@ -1291,9 +1307,81 @@
                 
                 deleteDayFromMenu() {
                     this.closeMobileTabMenu();
-                    if (this.selectedTabIndex !== null) {
-                        this.deleteDay(this.selectedTabIndex);
+                    setTimeout(() => {
+                        if (this.selectedTabIndex !== null) {
+                            this.deleteDay(this.selectedTabIndex);
+                        }
+                    }, 300);
+                },
+                
+                // モバイル専用タブタッチイベント（完全に新しい実装）
+                onTabTouchStart(e, index) {
+                    if (!this.isMobile) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const coords = this.getEventCoordinates(e);
+                    this.tabTouchMoved = false;
+                    this.tabTouchStartTime = Date.now();
+                    this.tabTouchStartIndex = index;
+                    this.tabTouchStartX = coords.clientX;
+                    this.tabTouchStartY = coords.clientY;
+                    
+                    // 長押し判定タイマー (700ms)
+                    this.tabTouchTimer = setTimeout(() => {
+                        if (!this.tabTouchMoved) {
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                            this.showMobileTabMenuForTab(index);
+                        }
+                    }, 700);
+                },
+                
+                onTabTouchMove(e, index) {
+                    if (!this.isMobile || this.tabTouchStartIndex === null) return;
+                    
+                    e.preventDefault();
+                    
+                    const coords = this.getEventCoordinates(e);
+                    const deltaX = Math.abs(coords.clientX - this.tabTouchStartX);
+                    const deltaY = Math.abs(coords.clientY - this.tabTouchStartY);
+                    
+                    // 移動判定
+                    if (deltaX > 10 || deltaY > 10) {
+                        this.tabTouchMoved = true;
+                        
+                        // 長押しタイマーをクリア
+                        if (this.tabTouchTimer) {
+                            clearTimeout(this.tabTouchTimer);
+                            this.tabTouchTimer = null;
+                        }
                     }
+                },
+                
+                onTabTouchEnd(e, index) {
+                    if (!this.isMobile || this.tabTouchStartIndex === null) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // 長押しタイマーをクリア
+                    if (this.tabTouchTimer) {
+                        clearTimeout(this.tabTouchTimer);
+                        this.tabTouchTimer = null;
+                    }
+                    
+                    const touchDuration = Date.now() - this.tabTouchStartTime;
+                    
+                    // 短いタップでタブ切り替え（移動が少なく、時間が短い場合）
+                    if (!this.tabTouchMoved && touchDuration < 500) {
+                        this.setActiveDay(index);
+                    }
+                    
+                    // リセット
+                    this.tabTouchMoved = false;
+                    this.tabTouchStartIndex = null;
                 },
                 
                 // モバイル専用タブメニュー
@@ -1311,12 +1399,14 @@
                 
                 // デスクトップ用ドラッグ&ドロップ（既存）
                 handleTabDragStart(event, index) {
+                    if (this.isMobile) return;
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
                     event.target.closest('.nav-item').classList.add('dragging-tab');
                 },
                 
                 handleTabDragOver(event, index) {
+                    if (this.isMobile) return;
                     event.preventDefault();
                     event.dataTransfer.dropEffect = 'move';
                     
@@ -1330,6 +1420,7 @@
                 },
                 
                 handleTabDrop(event, dropIndex) {
+                    if (this.isMobile) return;
                     event.preventDefault();
                     
                     document.querySelectorAll('.nav-item').forEach(item => {
@@ -1346,110 +1437,12 @@
                 },
                 
                 handleTabDragEnd() {
+                    if (this.isMobile) return;
                     document.querySelectorAll('.nav-item').forEach(item => {
                         item.classList.remove('dragging-tab', 'drag-over');
                     });
                     this.draggingTabIndex = null;
                     this.dragOverTabIndex = null;
-                },
-                
-                // モバイル用タッチイベント（修正版）
-                handleTabTouchStart(event, index) {
-                    if (!this.isMobile) return;
-                    
-                    const coords = this.getEventCoordinates(event);
-                    this.touchStartIndex = index;
-                    this.touchStartX = coords.clientX;
-                    this.touchStartY = coords.clientY;
-                    this.touchCurrentIndex = index;
-                    this.touchDragStartTime = Date.now();
-                    
-                    // 長押し判定（800ms）
-                    this.longPressTabTimer = setTimeout(() => {
-                        const deltaX = Math.abs(coords.clientX - this.touchStartX);
-                        const deltaY = Math.abs(coords.clientY - this.touchStartY);
-                        
-                        if (deltaX < 10 && deltaY < 10) {
-                            // 長押し成功
-                            if (navigator.vibrate) {
-                                navigator.vibrate(50);
-                            }
-                            this.showMobileTabMenuForTab(index);
-                        }
-                    }, 800);
-                },
-                
-                handleTabTouchMove(event, index) {
-                    if (!this.isMobile || this.touchStartIndex === null) return;
-                    
-                    const coords = this.getEventCoordinates(event);
-                    const deltaX = Math.abs(coords.clientX - this.touchStartX);
-                    const deltaY = Math.abs(coords.clientY - this.touchStartY);
-                    
-                    // 移動が大きい場合は長押しキャンセル
-                    if (deltaX > 10 || deltaY > 10) {
-                        if (this.longPressTabTimer) {
-                            clearTimeout(this.longPressTabTimer);
-                            this.longPressTabTimer = null;
-                        }
-                        
-                        // ドラッグ処理（既存のタブドラッグ機能）
-                        event.preventDefault();
-                        
-                        let newIndex = this.touchStartIndex;
-                        const tabElements = document.querySelectorAll('.nav-item:not(:last-child)');
-                        
-                        for (let i = 0; i < tabElements.length; i++) {
-                            const rect = tabElements[i].getBoundingClientRect();
-                            if (coords.clientX >= rect.left && coords.clientX <= rect.right) {
-                                newIndex = i;
-                                break;
-                            }
-                        }
-                        
-                        if (newIndex !== this.touchCurrentIndex) {
-                            document.querySelectorAll('.nav-item').forEach(item => {
-                                item.classList.remove('drag-over');
-                            });
-                            
-                            if (newIndex !== this.touchStartIndex) {
-                                tabElements[newIndex].classList.add('drag-over');
-                            }
-                            
-                            this.touchCurrentIndex = newIndex;
-                        }
-                    }
-                },
-                
-                handleTabTouchEnd(event, index) {
-                    if (!this.isMobile || this.touchStartIndex === null) return;
-                    
-                    // 長押しタイマーをクリア
-                    if (this.longPressTabTimer) {
-                        clearTimeout(this.longPressTabTimer);
-                        this.longPressTabTimer = null;
-                    }
-                    
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
-                    
-                    const touchDuration = Date.now() - this.touchDragStartTime;
-                    const coords = this.getEventCoordinates(event);
-                    const deltaX = Math.abs(coords.clientX - this.touchStartX);
-                    const deltaY = Math.abs(coords.clientY - this.touchStartY);
-                    
-                    if (this.touchCurrentIndex !== null && this.touchCurrentIndex !== this.touchStartIndex && touchDuration > 150) {
-                        // ドラッグでタブ並び替え
-                        this.reorderTabs(this.touchStartIndex, this.touchCurrentIndex);
-                    } else if (touchDuration < 300 && deltaX < 10 && deltaY < 10) {
-                        // 短いタップでタブ切り替え
-                        this.setActiveDay(index);
-                    }
-                    
-                    this.touchStartIndex = null;
-                    this.touchCurrentIndex = null;
-                    this.touchDragStartTime = 0;
                 },
                 
                 reorderTabs(fromIndex, toIndex) {
