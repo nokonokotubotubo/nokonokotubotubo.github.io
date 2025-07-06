@@ -285,6 +285,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            max-height: calc(100vh - 200px);
         }
         
         .timeline-header {
@@ -300,15 +301,16 @@
             position: relative;
             flex: 1;
             overflow: hidden;
-            min-height: 400px;
+            min-height: 1250px;
         }
         
         .timeline-scroll-container {
             display: flex;
             height: 100%;
-            overflow-y: auto;
+            overflow-y: scroll !important;
             overflow-x: hidden;
-            max-height: none;
+            min-height: 1200px;
+            position: relative;
         }
         
         .time-axis {
@@ -335,6 +337,7 @@
             flex: 1;
             position: relative;
             min-height: 1200px;
+            height: 1200px;
         }
         
         .schedule-grid {
@@ -597,7 +600,9 @@
             .grid-line { height: 50px; }
             .schedule-grid { height: 1000px; min-height: 1000px; }
             .time-axis { min-height: 1000px; height: 1000px; }
-            .schedule-area { min-height: 1000px; }
+            .schedule-area { min-height: 1000px; height: 1000px; }
+            .timeline-content { min-height: 1050px; }
+            .timeline-scroll-container { min-height: 1000px; }
             .event-block { padding: 6px 8px; }
             .event-title { font-size: 0.8rem; }
             .event-time { font-size: 0.7rem; }
