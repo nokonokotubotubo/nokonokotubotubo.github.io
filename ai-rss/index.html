@@ -11,483 +11,557 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
-　:root {
-  --primary-light: #E0F7FF;
-  --primary-medium: #B8E6FF;
-  --primary-dark: #87CEEB;
-  --primary-accent: #5BA8C4;
-  --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
-  --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-  --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
-  --text-primary: #2C3E50;
-  --text-secondary: #5A6C7D;
-  --text-light: #8FA0B3;
-  --border-color: #E8F4F8;
-  --border-hover: #B8E6FF;
-  --interested-color: #10B981;
-  --neutral-color: #F59E0B;
-  --not-interested-color: #EF4444;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Noto Sans JP', sans-serif;
-  background: var(--background-gradient);
-  color: var(--text-primary);
-  line-height: 1.7;
-  min-height: 100vh;
-}
-
-.loading {
-  text-align: center;
-  padding: 4rem;
-  font-size: 1.5rem;
-  color: var(--primary-accent);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-/* ✅ 修正：確実に動作するヘッダー色指定 */
-.header {
-  background: linear-gradient(135deg, #87CEEB 0%, #5BA8C4 100%);
-  padding: 2rem;
-  text-align: center;
-  margin-bottom: 3rem;
-  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
-}
-
-.header h1 {
-  color: #ffffff;
-  font-size: 3.5rem;
-  font-weight: 900;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  animation: slideInDown 0.8s ease;
-}
-
-.header p {
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
-}
-
-.header-stats {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-  animation: fadeIn 1s ease 0.5s both;
-}
-
-@keyframes slideInDown {
-  from { transform: translateY(-50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.stats-section {
-  max-width: 1200px;
-  margin: 0 auto 3rem;
-  padding: 0 2rem;
-  position: relative;
-}
-
-.category-filter-wrapper {
-  position: absolute;
-  top: -6rem;
-  left: 2rem;
-  z-index: 10;
-}
-
-.category-filter {
-  padding: 0.8rem 1.2rem;
-  border: 2px solid #E8F4F8;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  color: #5A6C7D;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-}
-
-.category-filter:hover {
-  border-color: #B8E6FF;
-  transform: translateY(-2px);
-}
-
-.stats-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin-top: 3rem;
-}
-
-.stat-tab-card {
-  background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  border: 2px solid #E8F4F8;
-  border-radius: 20px;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-  transition: all 0.4s ease;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  user-select: none;
-}
-
-.stat-tab-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
-  border-color: #B8E6FF;
-}
-
-.stat-tab-card.active {
-  background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
-  border-color: #5BA8C4;
-  color: #fff;
-  transform: translateY(-8px) scale(1.05);
-}
-
-.stat-tab-card.interested.active {
-  background: linear-gradient(135deg, #10B981, #059669);
-}
-
-.stat-tab-card.neutral.active {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
-}
-
-.stat-tab-card.not-interested.active {
-  background: linear-gradient(135deg, #EF4444, #DC2626);
-}
-
-.stat-number {
-  font-size: 3rem;
-  font-weight: 900;
-  margin-bottom: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-.stat-label {
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.articles-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  gap: 2rem;
-}
-
-.hidden {
-  display: none;
-}
-
-.articles-container.show-animation {
-  animation: slideInUp 0.6s ease;
-}
-
-.article-card.show-animation {
-  animation: fadeInScale 0.6s ease;
-}
-
-@keyframes slideInUp {
-  from { transform: translateY(50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes fadeInScale {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.article-card {
-  background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-  border: 2px solid #E8F4F8;
-  border-radius: 24px;
-  overflow: hidden;
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  position: relative;
-  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-}
-
-.article-card:hover {
-  border-color: #B8E6FF;
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
-}
-
-.article-card.interested {
-  border-left: 4px solid #10B981;
-}
-
-.article-card.neutral {
-  border-left: 4px solid #F59E0B;
-}
-
-.article-card.not-interested {
-  border-left: 4px solid #EF4444;
-}
-
-.article-card.moving-out {
-  animation: cardMoveOut 0.5s ease-in-out forwards;
-}
-
-.article-card.moving-in {
-  animation: cardMoveIn 0.5s ease-in-out forwards;
-}
-
-@keyframes cardMoveOut {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.8); opacity: 0; }
-}
-
-@keyframes cardMoveIn {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.article-card.light-scale {
-  animation: lightScale 0.2s ease;
-}
-
-@keyframes lightScale {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.01); }
-}
-
-.category-highlight {
-  animation: categoryPulse 1s ease-in-out;
-}
-
-@keyframes categoryPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
-}
-
-.article-content {
-  padding: 2.5rem;
-}
-
-.article-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #2C3E50;
-  margin-bottom: 1rem;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.article-title:hover {
-  color: #5BA8C4;
-}
-
-.article-meta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.preference-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #fff;
-  transition: all 0.3s ease;
-}
-
-.badge-interested {
-  background: linear-gradient(135deg, #10B981, #059669);
-}
-
-.badge-neutral {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
-}
-
-.badge-not-interested {
-  background: linear-gradient(135deg, #EF4444, #DC2626);
-}
-
-.article-info {
-  font-size: 0.9rem;
-  color: #8FA0B3;
-  font-weight: 500;
-}
-
-.article-description {
-  color: #5A6C7D;
-  font-size: 1rem;
-  line-height: 1.8;
-  margin-bottom: 2rem;
-}
-
-.rating-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1.5rem;
-  border-top: 2px solid #E8F4F8;
-}
-
-.rating-stars {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.star {
-  cursor: pointer;
-  font-size: 1.8rem;
-  color: #E5E7EB;
-  transition: all 0.3s ease;
-  user-select: none;
-}
-
-.star.filled {
-  color: #FBBF24;
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
-}
-
-.star:hover {
-  color: #FBBF24;
-  transform: scale(1.2);
-}
-
-.rating-label {
-  font-size: 0.9rem;
-  color: #8FA0B3;
-  font-weight: 600;
-}
-
-.user-rated-mark {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #10B981;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.rating-feedback {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #10B981;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-  z-index: 1000;
-  animation: slideInRight 0.3s ease;
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.particle-effect {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.scroll-to-top {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(91, 168, 196, 0.3);
-  transition: all 0.3s ease;
-  z-index: 1000;
-  opacity: 0;
-  visibility: hidden;
-}
-
-.scroll-to-top.visible {
-  opacity: 1;
-  visibility: visible;
-}
-
-.scroll-to-top:hover {
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 8px 30px rgba(91, 168, 196, 0.4);
-}
-
-@media (max-width: 1024px) {
-  .stats-tabs {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .articles-container {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .header h1 {
-    font-size: 2.8rem;
-  }
-  .header-stats {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .stats-tabs {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-  .articles-container {
-    grid-template-columns: 1fr;
-    padding: 0 1rem;
-  }
-  .stats-section {
-    padding: 0 1rem;
-  }
-  .category-filter-wrapper {
-    position: relative;
-    left: 0;
-    top: 0;
-    margin-bottom: 1rem;
-  }
-}
+        :root {
+          --primary-light: #E0F7FF;
+          --primary-medium: #B8E6FF;
+          --primary-dark: #87CEEB;
+          --primary-accent: #5BA8C4;
+          --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
+          --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+          --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
+          --text-primary: #2C3E50;
+          --text-secondary: #5A6C7D;
+          --text-light: #8FA0B3;
+          --border-color: #E8F4F8;
+          --border-hover: #B8E6FF;
+          --interested-color: #10B981;
+          --neutral-color: #F59E0B;
+          --not-interested-color: #EF4444;
+        }
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: 'Noto Sans JP', sans-serif;
+          background: var(--background-gradient);
+          color: var(--text-primary);
+          line-height: 1.7;
+          min-height: 100vh;
+        }
+
+        .loading {
+          text-align: center;
+          padding: 4rem;
+          font-size: 1.5rem;
+          color: var(--primary-accent);
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
+        .header {
+          background: linear-gradient(135deg, #87CEEB 0%, #5BA8C4 100%);
+          padding: 2rem;
+          text-align: center;
+          margin-bottom: 3rem;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
+        }
+
+        .header h1 {
+          color: #ffffff;
+          font-size: 3.5rem;
+          font-weight: 900;
+          margin-bottom: 1rem;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          animation: slideInDown 0.8s ease;
+        }
+
+        .header p {
+          color: rgba(255, 255, 255, 0.95);
+          font-size: 1.3rem;
+          margin-bottom: 1rem;
+        }
+
+        .header-stats {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+          animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes slideInDown {
+          from { transform: translateY(-50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .stats-section {
+          max-width: 1200px;
+          margin: 0 auto 3rem;
+          padding: 0 2rem;
+          position: relative;
+        }
+
+        .category-filter-wrapper {
+          position: absolute;
+          top: -2rem;
+          left: 2rem;
+          z-index: 10;
+        }
+
+        .category-filter {
+          padding: 0.8rem 1.2rem;
+          border: 2px solid #E8F4F8;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          color: #5A6C7D;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+        }
+
+        .category-filter:hover {
+          border-color: #B8E6FF;
+          transform: translateY(-2px);
+        }
+
+        /* ✅ 既読フィルターボタン */
+        .read-filter-button {
+          position: absolute;
+          top: -2rem;
+          right: 2rem;
+          padding: 0.8rem 1.2rem;
+          border: 2px solid #E8F4F8;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          color: #5A6C7D;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+        }
+
+        .read-filter-button:hover {
+          border-color: #B8E6FF;
+          transform: translateY(-2px);
+        }
+
+        .read-filter-button.active {
+          background: #6B7280;
+          color: white;
+          border-color: #6B7280;
+        }
+
+        .stats-tabs {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+          margin-top: 3rem;
+        }
+
+        .stat-tab-card {
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          border: 2px solid #E8F4F8;
+          border-radius: 20px;
+          padding: 2rem;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+          transition: all 0.4s ease;
+          position: relative;
+          overflow: hidden;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .stat-tab-card:hover {
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
+          border-color: #B8E6FF;
+        }
+
+        .stat-tab-card.active {
+          background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
+          border-color: #5BA8C4;
+          color: #fff;
+          transform: translateY(-8px) scale(1.05);
+        }
+
+        .stat-tab-card.interested.active {
+          background: linear-gradient(135deg, #10B981, #059669);
+        }
+
+        .stat-tab-card.neutral.active {
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+        }
+
+        .stat-tab-card.not-interested.active {
+          background: linear-gradient(135deg, #EF4444, #DC2626);
+        }
+
+        .stat-number {
+          font-size: 3rem;
+          font-weight: 900;
+          margin-bottom: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .stat-label {
+          font-size: 1rem;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .articles-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+          gap: 2rem;
+        }
+
+        .hidden {
+          display: none;
+        }
+
+        .articles-container.show-animation {
+          animation: slideInUp 0.6s ease;
+        }
+
+        .article-card.show-animation {
+          animation: fadeInScale 0.6s ease;
+        }
+
+        @keyframes slideInUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInScale {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        .article-card {
+          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
+          border: 2px solid #E8F4F8;
+          border-radius: 24px;
+          overflow: hidden;
+          transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          position: relative;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
+        }
+
+        .article-card:hover {
+          border-color: #B8E6FF;
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
+        }
+
+        /* ✅ 既読記事のスタイル */
+        .article-card.read {
+          opacity: 0.6;
+          transition: opacity 0.3s ease;
+        }
+
+        .article-card.read:hover {
+          opacity: 0.8;
+        }
+
+        .article-card.interested {
+          border-left: 4px solid #10B981;
+        }
+
+        .article-card.neutral {
+          border-left: 4px solid #F59E0B;
+        }
+
+        .article-card.not-interested {
+          border-left: 4px solid #EF4444;
+        }
+
+        .article-card.moving-out {
+          animation: cardMoveOut 0.5s ease-in-out forwards;
+        }
+
+        .article-card.moving-in {
+          animation: cardMoveIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes cardMoveOut {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        @keyframes cardMoveIn {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .article-card.light-scale {
+          animation: lightScale 0.2s ease;
+        }
+
+        @keyframes lightScale {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.01); }
+        }
+
+        .category-highlight {
+          animation: categoryPulse 1s ease-in-out;
+        }
+
+        @keyframes categoryPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
+        }
+
+        /* ✅ 既読ボタン */
+        .read-button {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          background: #6B7280;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          z-index: 5;
+        }
+
+        .read-button:hover {
+          background: #4B5563;
+          transform: scale(1.05);
+        }
+
+        .read-button.read {
+          background: #10B981;
+        }
+
+        .read-button.read:hover {
+          background: #059669;
+        }
+
+        .article-content {
+          padding: 2.5rem;
+        }
+
+        .article-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #2C3E50;
+          margin-bottom: 1rem;
+          line-height: 1.4;
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+
+        .article-title:hover {
+          color: #5BA8C4;
+        }
+
+        .article-meta {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .preference-badge {
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #fff;
+          transition: all 0.3s ease;
+        }
+
+        .badge-interested {
+          background: linear-gradient(135deg, #10B981, #059669);
+        }
+
+        .badge-neutral {
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+        }
+
+        .badge-not-interested {
+          background: linear-gradient(135deg, #EF4444, #DC2626);
+        }
+
+        .article-info {
+          font-size: 0.9rem;
+          color: #8FA0B3;
+          font-weight: 500;
+        }
+
+        .article-description {
+          color: #5A6C7D;
+          font-size: 1rem;
+          line-height: 1.8;
+          margin-bottom: 2rem;
+        }
+
+        .rating-section {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 1.5rem;
+          border-top: 2px solid #E8F4F8;
+        }
+
+        .rating-stars {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .star {
+          cursor: pointer;
+          font-size: 1.8rem;
+          color: #E5E7EB;
+          transition: all 0.3s ease;
+          user-select: none;
+        }
+
+        .star.filled {
+          color: #FBBF24;
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+        }
+
+        .star:hover {
+          color: #FBBF24;
+          transform: scale(1.2);
+        }
+
+        .rating-label {
+          font-size: 0.9rem;
+          color: #8FA0B3;
+          font-weight: 600;
+        }
+
+        .user-rated-mark {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: #10B981;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: bold;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .rating-feedback {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #10B981;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+          z-index: 1000;
+          animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
+        .particle-effect {
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 1000;
+        }
+
+        .scroll-to-top {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 60px;
+          height: 60px;
+          background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
+          border: none;
+          border-radius: 50%;
+          color: white;
+          font-size: 24px;
+          cursor: pointer;
+          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.3);
+          transition: all 0.3s ease;
+          z-index: 1000;
+          opacity: 0;
+          visibility: hidden;
+        }
+
+        .scroll-to-top.visible {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .scroll-to-top:hover {
+          transform: translateY(-5px) scale(1.1);
+          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.4);
+        }
+
+        @media (max-width: 1024px) {
+          .stats-tabs {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .articles-container {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          }
+        }
+
+        @media (max-width: 768px) {
+          .header h1 {
+            font-size: 2.8rem;
+          }
+          .header-stats {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          .stats-tabs {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+          }
+          .articles-container {
+            grid-template-columns: 1fr;
+            padding: 0 1rem;
+          }
+          .stats-section {
+            padding: 0 1rem;
+          }
+          .category-filter-wrapper {
+            position: relative;
+            left: 0;
+            top: 0;
+            margin-bottom: 1rem;
+          }
+          .read-filter-button {
+            position: relative;
+            right: 0;
+            top: 0;
+            margin-bottom: 1rem;
+            margin-left: 1rem;
+          }
+        }
     </style>
 </head>
 <body>
@@ -501,8 +575,10 @@ body {
         let currentData = null;
         let currentTab = 'all';
         let currentCategory = 'all';
+        let hideReadArticles = false;
         
         const USER_RATING_EXPIRY_DAYS = 30;
+        const READ_STATUS_EXPIRY_DAYS = 30;
 
         async function loadLatestData() {
             try {
@@ -577,6 +653,95 @@ body {
             return validFeedback;
         }
 
+        // ✅ 既読管理関数
+        function getReadStatusWithinExpiry() {
+            const allReadStatus = JSON.parse(localStorage.getItem('ai-rss-read-status') || '{}');
+            const currentTime = new Date().getTime();
+            const expiryTime = READ_STATUS_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+            
+            const validReadStatus = {};
+            let expiredCount = 0;
+            
+            Object.keys(allReadStatus).forEach(articleId => {
+                const readData = allReadStatus[articleId];
+                const readTime = new Date(readData.timestamp).getTime();
+                
+                if (currentTime - readTime < expiryTime) {
+                    validReadStatus[articleId] = readData;
+                } else {
+                    expiredCount++;
+                }
+            });
+            
+            if (expiredCount > 0) {
+                localStorage.setItem('ai-rss-read-status', JSON.stringify(validReadStatus));
+            }
+            
+            return validReadStatus;
+        }
+
+        function setReadStatus(articleId, isRead = true) {
+            let readStatus = JSON.parse(localStorage.getItem('ai-rss-read-status') || '{}');
+            
+            if (isRead) {
+                const article = currentData.articles.find(a => a.id === articleId);
+                readStatus[articleId] = {
+                    isRead: true,
+                    timestamp: new Date().toISOString(),
+                    title: article ? article.title : '',
+                    expiresAt: new Date(Date.now() + (READ_STATUS_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
+                };
+            } else {
+                delete readStatus[articleId];
+            }
+            
+            localStorage.setItem('ai-rss-read-status', JSON.stringify(readStatus));
+            
+            updateArticleReadState(articleId, isRead);
+            applyFilters();
+            
+            console.log(`📖 既読状態更新: ${articleId} → ${isRead ? '既読' : '未読'}`);
+        }
+
+        function updateArticleReadState(articleId, isRead) {
+            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
+            
+            cards.forEach(card => {
+                const readButton = card.querySelector('.read-button');
+                
+                if (isRead) {
+                    card.classList.add('read');
+                    if (readButton) {
+                        readButton.textContent = '✓ 既読';
+                        readButton.classList.add('read');
+                        readButton.title = '既読を解除';
+                    }
+                } else {
+                    card.classList.remove('read');
+                    if (readButton) {
+                        readButton.textContent = '未読';
+                        readButton.classList.remove('read');
+                        readButton.title = '既読にする';
+                    }
+                }
+            });
+        }
+
+        function toggleReadFilter() {
+            hideReadArticles = !hideReadArticles;
+            const filterButton = document.querySelector('.read-filter-button');
+            
+            if (hideReadArticles) {
+                filterButton.textContent = '📖 既読を表示';
+                filterButton.classList.add('active');
+            } else {
+                filterButton.textContent = '📖 既読を非表示';
+                filterButton.classList.remove('active');
+            }
+            
+            applyFilters();
+        }
+
         function calculatePreferenceFromRating(rating) {
             if (rating >= 4) return 'interested';
             if (rating <= 2) return 'not-interested';
@@ -628,6 +793,17 @@ body {
                     card.classList.remove('light-scale');
                 }, 200);
             });
+        }
+
+        // ✅ 星1・星2で既読になる評価関数
+        function setRatingWithRead(articleId, rating) {
+            // 星1または星2の場合は既読にする
+            if (rating === 1 || rating === 2) {
+                setReadStatus(articleId, true);
+            }
+            
+            // 既存の評価処理を実行
+            setRating(articleId, rating);
         }
 
         function setRating(articleId, rating) {
@@ -774,16 +950,32 @@ body {
             stars.forEach(star => {
                 const articleId = card.dataset.articleId;
                 const rating = star.dataset.rating;
-                star.onclick = () => setRating(articleId, parseInt(rating));
+                star.onclick = () => setRatingWithRead(articleId, parseInt(rating));
             });
             
             const title = card.querySelector('.article-title');
             if (title) {
                 const onclickAttr = title.getAttribute('onclick');
                 if (onclickAttr) {
-                    const link = onclickAttr.match(/'([^']+)'/)[1];
-                    title.onclick = () => window.open(link, '_blank');
+                    const match = onclickAttr.match(/'([^']+)'/);
+                    if (match) {
+                        const link = match[1];
+                        title.onclick = () => {
+                            setReadStatus(card.dataset.articleId, true);
+                            window.open(link, '_blank');
+                        };
+                    }
                 }
+            }
+
+            const readButton = card.querySelector('.read-button');
+            if (readButton) {
+                readButton.onclick = (e) => {
+                    e.stopPropagation();
+                    const articleId = card.dataset.articleId;
+                    const isCurrentlyRead = card.classList.contains('read');
+                    setReadStatus(articleId, !isCurrentlyRead);
+                };
             }
         }
 
@@ -865,15 +1057,12 @@ body {
             });
         }
 
-        // ✅ 2. 全タブのカテゴリー切り替え時カウント更新
         function updateAllTabCountsForCategory() {
             if (!currentData || !currentData.articles) return;
 
             if (currentCategory === 'all') {
-                // 全カテゴリ表示時は元の数に戻す
                 updateTabCountsFromCurrentData();
             } else {
-                // フィルター適用時は各タブの該当カテゴリ記事数を計算
                 const filteredArticlesByPreference = {
                     interested: currentData.articles.filter(a => a.preference === 'interested' && a.category === currentCategory),
                     neutral: currentData.articles.filter(a => a.preference === 'neutral' && a.category === currentCategory),
@@ -881,7 +1070,6 @@ body {
                     all: currentData.articles.filter(a => a.category === currentCategory)
                 };
 
-                // 各タブの数を更新
                 Object.keys(filteredArticlesByPreference).forEach(preference => {
                     const tabCard = document.querySelector(`[data-tab="${preference}"]`);
                     if (tabCard) {
@@ -904,6 +1092,8 @@ body {
             };
             
             const userRatedCount = articles.filter(a => a.userOverride).length;
+            const readStatus = getReadStatusWithinExpiry();
+            const readCount = Object.keys(readStatus).filter(id => readStatus[id].isRead).length;
             
             const html = `
             <header class="header">
@@ -913,6 +1103,7 @@ body {
                     <span>最終更新: ${updateTime}</span>
                     <span>総記事数: ${articles.length}件</span>
                     <span>ユーザー評価済み: ${userRatedCount}件</span>
+                    <span>既読記事: ${readCount}件</span>
                     <span>🔄 リアルタイム更新</span>
                 </div>
             </header>
@@ -924,6 +1115,10 @@ body {
                         ${categories.map(cat => `<option value="${cat}">🏷️ ${cat}</option>`).join('')}
                     </select>
                 </div>
+
+                <button class="read-filter-button" onclick="toggleReadFilter()">
+                    📖 既読を非表示
+                </button>
 
                 <div class="stats-tabs">
                     <div class="stat-tab-card interested ${currentTab === 'interested' ? 'active' : ''}" data-tab="interested">
@@ -967,6 +1162,7 @@ body {
             
             setupEventListeners();
             restoreUserRatings();
+            restoreReadStatus();
             setupScrollToTop();
         }
         
@@ -976,11 +1172,18 @@ body {
             const userRating = article.userRating || 0;
             const isUserRated = article.userOverride || false;
             
+            // 既読状態をチェック
+            const readStatus = getReadStatusWithinExpiry();
+            const isRead = readStatus[article.id]?.isRead || false;
+            
             return `
-            <div class="article-card ${article.preference}" data-category="${article.category}" data-article-id="${article.id}">
+            <div class="article-card ${article.preference} ${isRead ? 'read' : ''}" data-category="${article.category}" data-article-id="${article.id}">
                 ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
+                <button class="read-button ${isRead ? 'read' : ''}" title="${isRead ? '既読を解除' : '既読にする'}">
+                    ${isRead ? '✓ 既読' : '未読'}
+                </button>
                 <div class="article-content">
-                    <h2 class="article-title" onclick="window.open('${article.link}', '_blank')" title="${article.title}">
+                    <h2 class="article-title" onclick="setReadStatus('${article.id}', true); window.open('${article.link}', '_blank')" title="${article.title}">
                         ${article.title}
                     </h2>
                     <div class="article-meta">
@@ -1002,11 +1205,11 @@ body {
                             ${[1,2,3,4,5].map(rating => 
                                 `<span class="star ${rating <= userRating ? 'filled' : ''}" 
                                       data-rating="${rating}" 
-                                      onclick="setRating('${article.id}', ${rating})" 
+                                      onclick="setRatingWithRead('${article.id}', ${rating})" 
                                       title="${rating}つ星">⭐</span>`
                             ).join('')}
                         </div>
-                        <div class="rating-label">この記事を評価</div>
+                        <div class="rating-label">この記事を評価（⭐⭐で既読）</div>
                     </div>
                 </div>
             </div>`;
@@ -1114,10 +1317,27 @@ body {
             const activeContainer = document.querySelector('.articles-container:not(.hidden)');
             if (!activeContainer) return;
 
+            const readStatus = getReadStatusWithinExpiry();
             let visibleCount = 0;
+
             activeContainer.querySelectorAll('.article-card').forEach(card => {
                 const category = card.dataset.category;
-                if (currentCategory === 'all' || category === currentCategory) {
+                const articleId = card.dataset.articleId;
+                const isRead = readStatus[articleId]?.isRead || false;
+                
+                let shouldShow = true;
+                
+                // カテゴリフィルター
+                if (currentCategory !== 'all' && category !== currentCategory) {
+                    shouldShow = false;
+                }
+                
+                // 既読フィルター
+                if (hideReadArticles && isRead) {
+                    shouldShow = false;
+                }
+                
+                if (shouldShow) {
                     card.style.display = 'block';
                     visibleCount++;
                 } else {
@@ -1125,8 +1345,17 @@ body {
                 }
             });
 
-            // ✅ 全タブの記事数を更新
             updateAllTabCountsForCategory();
+        }
+
+        function restoreReadStatus() {
+            const readStatus = getReadStatusWithinExpiry();
+            Object.keys(readStatus).forEach(articleId => {
+                const readData = readStatus[articleId];
+                if (readData.isRead) {
+                    updateArticleReadState(articleId, true);
+                }
+            });
         }
         
         function restoreUserRatings() {
