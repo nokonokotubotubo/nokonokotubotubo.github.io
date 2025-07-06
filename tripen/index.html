@@ -353,7 +353,6 @@
             min-height: 35px;
             display: flex;
             align-items: center;
-            justify-content: center;
         }
         
         .event-block:hover {
@@ -367,11 +366,23 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
         }
         
-        /* 1行表示用のコンテンツ */
+        /* ドラッグ中の状態 */
+        .event-block.dragging {
+            z-index: 1000;
+            opacity: 0.8;
+            transform: scale(1.02);
+        }
+        
+        /* ドラッグ中は切り取りボタンを非表示 */
+        .event-block.dragging .event-actions {
+            display: none !important;
+        }
+        
+        /* 1行表示用のコンテンツ（左寄せに修正） */
         .event-content-inline {
             font-size: 0.9rem;
             line-height: 1.2;
-            text-align: center;
+            text-align: left;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -740,7 +751,8 @@
                                  :key="event.id"
                                  :class="[
                                      'event-category-' + event.category,
-                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
@@ -854,7 +866,8 @@
                                  :key="event.id"
                                  :class="[
                                      'event-category-' + event.category,
-                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
                                  @click="handleEventClick($event, event)"
@@ -991,6 +1004,7 @@
                     longPressTimer: null,
                     longPressExecuted: false,
                     eventTouchOffset: { x: 0, y: 0 },
+                    draggingEvent: null, // ドラッグ中のイベントを追跡
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1161,13 +1175,15 @@
                         });
                 },
                 
-                // ドラッグハンドル用のイベントハンドラー
+                // ドラッグハンドル用のイベントハンドラー（修正版）
                 handleDragHandleMouseDown(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
                     
                     // 編集モードに設定
                     this.editModeEvent = eventData;
+                    // ドラッグ開始を明示
+                    this.draggingEvent = eventData;
                     
                     // ドラッグ開始
                     this.startDragMove(event, eventData);
@@ -1179,13 +1195,20 @@
                     
                     // 編集モードに設定
                     this.editModeEvent = eventData;
+                    // ドラッグ開始を明示
+                    this.draggingEvent = eventData;
                     
                     // タッチドラッグ開始
                     this.startDragMoveTouch(event, eventData);
                 },
                 
-                // 予定クリックハンドリング
+                // 予定クリックハンドリング（修正版）
                 handleEventClick(event, eventData) {
+                    // ドラッグ後のクリックは無視
+                    if (this.draggingEvent) {
+                        return;
+                    }
+                    
                     // ハンドルクリック以外での動作
                     if (!event.target.closest('.drag-handle-mini') && 
                         !event.target.closest('.event-action-btn') && 
@@ -1229,6 +1252,8 @@
                     const endHandler = () => {
                         document.removeEventListener('mousemove', moveHandler);
                         document.removeEventListener('mouseup', endHandler);
+                        // ドラッグ終了
+                        this.draggingEvent = null;
                         this.saveData();
                     };
                     
@@ -1295,8 +1320,13 @@
                     container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
                 },
                 
-                // モバイルイベント処理
+                // モバイルイベント処理（修正版）
                 handleEventTouchStart(event, eventData) {
+                    // ドラッグ後のタッチは無視
+                    if (this.draggingEvent) {
+                        return;
+                    }
+                    
                     // ハンドル以外からのタッチは無効、クリックのみ処理
                     if (!event.target.closest('.drag-handle-mini') && 
                         !event.target.closest('.event-action-btn') && 
@@ -1355,6 +1385,10 @@
                     const endHandler = () => {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
+                        // ドラッグ終了
+                        setTimeout(() => {
+                            this.draggingEvent = null;
+                        }, 100);
                         this.saveData();
                     };
                     
