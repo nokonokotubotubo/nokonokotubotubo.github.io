@@ -336,6 +336,7 @@
         .quarter-line:nth-child(2) { top: 30px; }
         .quarter-line:nth-child(3) { top: 45px; }
         
+        /* 全予定共通の1行表示スタイル */
         .event-block {
             position: absolute;
             left: 10px;
@@ -343,17 +344,22 @@
             background: var(--primary);
             color: white;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 6px 8px 6px 25px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
             transition: var(--transition);
             z-index: 10;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            min-height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
         
         .event-block:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             border-color: var(--accent);
         }
@@ -363,26 +369,66 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
         }
         
-        .event-category-travel { background: #FF6B6B; }
-        .event-category-food { background: #4ECDC4; }
-        .event-category-sightseeing { background: #45B7D1; }
-        .event-category-accommodation { background: #96CEB4; }
-        .event-category-custom { background: #FECA57; }
-        
-        .event-title { font: bold 0.9rem/1 sans-serif; margin-bottom: 4px; pointer-events: none; }
-        .title-text { 
-            cursor: pointer; 
-            pointer-events: auto; 
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
+        /* 1行表示用のコンテンツ */
+        .event-content-inline {
+            font-size: 0.85rem;
+            line-height: 1.2;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            font-weight: bold;
         }
-        .event-time { font-size: 0.8rem; opacity: 0.9; }
-        .event-description { font-size: 0.75rem; margin-top: 4px; opacity: 0.8; }
         
+        /* 従来の表示要素を非表示 */
+        .event-title,
+        .event-time,
+        .event-description {
+            display: none;
+        }
+        
+        /* ドラッグハンドル */
+        .drag-handle-mini {
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            font-size: 0.7rem;
+            color: rgba(0, 0, 0, 0.6);
+            transition: var(--transition);
+            z-index: 15;
+        }
+        
+        .drag-handle-mini:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+        }
+        
+        .drag-handle-mini:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+        
+        /* 編集モード時のハンドル強調 */
+        .event-block.edit-mode .drag-handle-mini {
+            background: #FFD700;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        /* 編集アクション位置調整 */
         .event-actions {
             position: absolute;
             bottom: -8px;
-            left: 5px;
+            right: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -424,6 +470,38 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
+        /* リサイズハンドルは右端に移動 */
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            width: 10px;
+            background: rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: var(--transition);
+            cursor: ns-resize;
+        }
+        
+        .resize-handle.top { 
+            top: 0; 
+            height: 10px;
+            border-radius: 0 8px 0 0; 
+        }
+        
+        .resize-handle.bottom { 
+            bottom: 0; 
+            height: 10px;
+            border-radius: 0 0 8px 0; 
+        }
+        
+        .event-block.edit-mode .resize-handle { opacity: 1; }
+        
+        /* カテゴリ別の色は維持 */
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
         .context-menu {
             position: fixed;
             background: white;
@@ -456,21 +534,6 @@
         .context-menu-item.paste:hover { background: #e8f5e8; }
         .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
         .context-menu-item.disabled:hover { background: transparent; }
-        
-        .resize-handle {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 10px;
-            background: rgba(255, 215, 0, 0.8);
-            opacity: 0;
-            transition: var(--transition);
-            cursor: ns-resize;
-        }
-        
-        .resize-handle.top { top: 0; border-radius: 8px 8px 0 0; }
-        .resize-handle.bottom { bottom: 0; border-radius: 0 0 8px 8px; }
-        .event-block.edit-mode .resize-handle { opacity: 1; }
         
         .modal-content { border-radius: var(--radius); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .modal-header { background: var(--primary); color: white; border-radius: var(--radius) var(--radius) 0 0; }
@@ -535,15 +598,30 @@
         
         .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
         
+        /* モバイル用の調整 */
         @media (max-width: 768px) {
             .time-axis { width: 60px; height: 1000px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
             .grid-line { height: 50px; }
             .schedule-grid, .schedule-area { height: 1000px; }
-            .event-block { padding: 6px 8px; }
-            .event-title { font-size: 0.8rem; }
-            .event-time { font-size: 0.7rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
+            
+            .event-block {
+                min-height: 32px;
+                padding: 5px 6px 5px 22px;
+            }
+            
+            .event-content-inline {
+                font-size: 0.75rem;
+            }
+            
+            .drag-handle-mini {
+                width: 14px;
+                height: 14px;
+                font-size: 0.6rem;
+                left: 2px;
+                top: 2px;
+            }
             
             .event-action-btn {
                 width: 35px;
@@ -688,8 +766,22 @@
                                  ]"
                                  :style="getEventStyle(event)"
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
-                                 @mousedown="handleEventMouseDown($event, event)">
+                                 @click="handleEventClick($event, event)">
                                 
+                                <!-- ドラッグハンドル（全予定共通） -->
+                                <div class="drag-handle-mini"
+                                     @mousedown="handleDragHandleMouseDown($event, event)"
+                                     title="ドラッグして移動">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <!-- 1行表示コンテンツ（全予定共通） -->
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <!-- 編集時のアクションボタン -->
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
                                             @click="handleCutButtonClick($event, event)"
@@ -699,18 +791,13 @@
                                     </button>
                                 </div>
                                 
+                                <!-- 編集モードインジケータ -->
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
+                                <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'top')"></div>
-                                
-                                <div class="event-title">
-                                    <i :class="getCategoryIcon(event.category)"></i>
-                                    <span class="title-text" @click="openDetailModal(event)">{{ event.title }}</span>
-                                </div>
-                                <div class="event-time">{{ event.startTime }} - {{ event.endTime }}</div>
-                                <div class="event-description" v-if="event.description">{{ event.description }}</div>
                                 
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -795,29 +882,39 @@
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
+                                 @click="handleEventClick($event, event)"
                                  @touchstart="handleEventTouchStart($event, event)">
                                 
+                                <!-- ドラッグハンドル（全予定共通） -->
+                                <div class="drag-handle-mini"
+                                     @touchstart="handleDragHandleTouchStart($event, event)"
+                                     title="ドラッグして移動">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <!-- 1行表示コンテンツ（全予定共通） -->
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <!-- 編集時のアクションボタン -->
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
                                             @click="handleCutButtonClick($event, event)"
-                                            @touchstart="handleCutButtonClick($event, event)"
+                                            @touchstart.stop
                                             title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
                                 </div>
                                 
+                                <!-- 編集モードインジケータ -->
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
+                                <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @touchstart="startResizeTouch($event, event, 'top')"></div>
-                                
-                                <div class="event-title">
-                                    <i :class="getCategoryIcon(event.category)"></i>
-                                    <span class="title-text" @click="openDetailModal(event)" @touchstart.stop="openDetailModal(event)">{{ event.title }}</span>
-                                </div>
-                                <div class="event-time">{{ event.startTime }} - {{ event.endTime }}</div>
-                                <div class="event-description" v-if="event.description">{{ event.description }}</div>
                                 
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -1077,17 +1174,58 @@
                     this.saveData();
                 },
                 
-                // デスクトップイベント処理
-                handleEventMouseDown(event, eventData) {
-                    if (this.editModeEvent?.id === eventData.id && !event.target.closest('.title-text')) {
-                        this.startDragMove(event, eventData);
+                // getCurrentDayEvents メソッドを修正（1行表示用）
+                getCurrentDayEvents() {
+                    return this.events
+                        .filter(event => event.dayIndex === this.activeDay)
+                        .map(event => {
+                            // 全予定に1行表示用のテキスト生成
+                            const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+                            
+                            return {
+                                ...event,
+                                inlineText
+                            };
+                        });
+                },
+                
+                // ドラッグハンドル用のイベントハンドラー
+                handleDragHandleMouseDown(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // 編集モードに設定
+                    this.editModeEvent = eventData;
+                    
+                    // ドラッグ開始
+                    this.startDragMove(event, eventData);
+                },
+                
+                handleDragHandleTouchStart(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // 編集モードに設定
+                    this.editModeEvent = eventData;
+                    
+                    // タッチドラッグ開始
+                    this.startDragMoveTouch(event, eventData);
+                },
+                
+                // 予定クリックハンドリング
+                handleEventClick(event, eventData) {
+                    // ハンドルクリック以外での動作
+                    if (!event.target.closest('.drag-handle-mini') && 
+                        !event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        this.openDetailModal(eventData);
                     }
                 },
                 
                 handleEventContextMenu(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (!event.target.closest('.title-text')) {
+                    if (!event.target.closest('.drag-handle-mini')) {
                         this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
                         if (navigator.vibrate) navigator.vibrate(50);
                     }
@@ -1185,83 +1323,40 @@
                     container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
                 },
                 
-                // 修正されたモバイルイベント処理
+                // モバイルイベント処理
                 handleEventTouchStart(event, eventData) {
-                    // イベントの伝播を最初から止める
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    if (event.target.closest('.title-text')) {
-                        // タイトルタップは詳細モーダルのみ
-                        this.openDetailModal(eventData);
-                        return;
-                    }
-                    
-                    if (event.target.closest('.event-action-btn')) {
-                        // ボタンタップは処理をそのまま通す
-                        return;
-                    }
-                    
-                    const coords = event.touches[0];
-                    const eventElement = event.currentTarget;
-                    const eventRect = eventElement.getBoundingClientRect();
-                    
-                    // タッチオフセットを正確に計算
-                    this.eventTouchOffset = {
-                        x: coords.clientX - eventRect.left,
-                        y: coords.clientY - eventRect.top
-                    };
-                    
-                    this.touchStartPosition = { x: coords.clientX, y: coords.clientY };
-                    
-                    if (this.editModeEvent?.id === eventData.id) {
-                        // 既に編集モードの場合はドラッグ開始
-                        this.startDragMoveTouch(event, eventData);
-                        return;
-                    }
-                    
-                    this.touchStartTime = Date.now();
-                    this.longPressExecuted = false;
-                    
-                    this.longPressTimer = setTimeout(() => {
-                        this.longPressExecuted = true;
-                        this.editModeEvent = eventData;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }, 500);
-                    
-                    const handleTouchMove = (e) => {
-                        const moveCoords = e.touches[0];
-                        const deltaX = Math.abs(moveCoords.clientX - this.touchStartPosition.x);
-                        const deltaY = Math.abs(moveCoords.clientY - this.touchStartPosition.y);
+                    // ハンドル以外からのタッチは無効、クリックのみ処理
+                    if (!event.target.closest('.drag-handle-mini') && 
+                        !event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
                         
-                        if (deltaX > 10 || deltaY > 10) {
-                            this.clearEventLongPress();
-                            document.removeEventListener('touchmove', handleTouchMove);
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        this.touchStartTime = Date.now();
+                        this.longPressExecuted = false;
+                        
+                        this.longPressTimer = setTimeout(() => {
+                            this.longPressExecuted = true;
+                            this.editModeEvent = eventData;
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }, 500);
+                        
+                        const handleTouchEnd = () => {
+                            if (this.longPressTimer) {
+                                clearTimeout(this.longPressTimer);
+                                this.longPressTimer = null;
+                            }
+                            
+                            const touchDuration = Date.now() - this.touchStartTime;
+                            if (!this.longPressExecuted && touchDuration < 500) {
+                                this.openDetailModal(eventData);
+                            }
+                            
                             document.removeEventListener('touchend', handleTouchEnd);
-                        }
-                    };
-                    
-                    const handleTouchEnd = (e) => {
-                        const touchDuration = Date.now() - this.touchStartTime;
-                        this.clearEventLongPress();
+                        };
                         
-                        document.removeEventListener('touchmove', handleTouchMove);
-                        document.removeEventListener('touchend', handleTouchEnd);
-                        
-                        // 短いタップで詳細モーダル
-                        if (!this.longPressExecuted && touchDuration < 500) {
-                            this.openDetailModal(eventData);
-                        }
-                    };
-                    
-                    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                },
-                
-                clearEventLongPress() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
+                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
                     }
                 },
                 
@@ -1273,9 +1368,7 @@
                     const coords = event.touches[0];
                     const container = this.$refs.mobileTimelineContainer;
                     const rect = container.getBoundingClientRect();
-                    
-                    // オフセットを考慮した初期位置計算
-                    const initialTop = coords.clientY - rect.top + container.scrollTop - (this.eventTouchOffset?.y || 0);
+                    const initialTop = coords.clientY - rect.top + container.scrollTop;
                     const startY = coords.clientY;
                     
                     const moveHandler = (e) => {
@@ -1318,7 +1411,6 @@
                     this.cutEvent(eventData);
                 },
                 
-                // 修正された切り取り・貼り付け
                 cutEvent(event) {
                     try {
                         this.clipboardEvent = { ...event };
@@ -1408,11 +1500,10 @@
                 
                 hideContextMenu() { this.showContextMenu = false; },
                 
-                // 修正されたスケジュールタッチ処理
+                // スケジュールタッチ処理
                 handleScheduleTouchStart(event) {
                     if (!this.isMobile) return;
                     
-                    // 予定ブロック内のタッチは無視（貼り付けメニューを出さない）
                     if (event.target.closest('.event-block')) {
                         return;
                     }
@@ -1421,7 +1512,6 @@
                     this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
                     
                     this.longPressTimer = setTimeout(() => {
-                        // 空白エリアの長押し時のみコンテキストメニューを表示
                         this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
                         if (navigator.vibrate) navigator.vibrate(50);
                     }, 500);
@@ -1502,10 +1592,6 @@
                 },
                 
                 // ヘルパー関数
-                getCurrentDayEvents() {
-                    return this.events.filter(event => event.dayIndex === this.activeDay);
-                },
-                
                 getEventStyle(event) {
                     const startPixels = this.timeToPixels(event.startTime);
                     const endPixels = this.timeToPixels(event.endTime);
@@ -1514,7 +1600,7 @@
                     return {
                         top: `${startPixels}px`,
                         height: `${duration}px`,
-                        minHeight: this.isMobile ? '25px' : '30px'
+                        minHeight: this.isMobile ? '32px' : '35px'
                     };
                 },
                 
@@ -1529,9 +1615,8 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // 修正されたモーダル処理
+                // モーダル処理
                 openDetailModal(event) {
-                    // イベントデータの安全な取得
                     const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
                     if (!eventData) {
                         console.error('openDetailModal: 予定データが見つかりません:', event);
@@ -1539,9 +1624,6 @@
                         return;
                     }
                     
-                    console.log('詳細モーダルを開きます:', eventData);
-                    
-                    // HTMLエスケープ処理
                     const safeEventId = String(eventData.id).replace(/'/g, "\\'");
                     const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     
@@ -1559,28 +1641,20 @@
                 
                 deleteEventFromDetail(eventId) {
                     try {
-                        console.log('詳細画面からの削除対象ID:', eventId);
-                        
                         if (!confirm('この予定を削除しますか？')) {
                             return;
                         }
                         
-                        // より厳密な検索
                         const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
                         if (eventIndex === -1) {
-                            console.error('削除対象の予定が見つかりません:', eventId);
-                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
                             alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
-                        const deletedEvent = this.events[eventIndex];
                         this.events.splice(eventIndex, 1);
                         this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
-                        
-                        console.log('詳細画面から予定を削除しました:', deletedEvent);
                         
                         if (navigator.vibrate) navigator.vibrate(100);
                         
@@ -1592,13 +1666,8 @@
                 
                 editEventFromDetail(eventId) {
                     try {
-                        console.log('詳細画面からの編集対象ID:', eventId);
-                        
-                        // より厳密な検索
                         const event = this.events.find(e => String(e.id) === String(eventId));
                         if (!event) {
-                            console.error('編集対象の予定が見つかりません:', eventId);
-                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
                             alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
@@ -1606,7 +1675,6 @@
                         this.closeAllModals();
                         
                         setTimeout(() => {
-                            console.log('詳細画面から編集モーダルを開きます:', event);
                             this.openEventModal(event);
                         }, 100);
                         
@@ -1631,7 +1699,6 @@
                         };
                     }
                     
-                    // HTMLエスケープ処理
                     const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
                     const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
                     const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
@@ -1713,7 +1780,6 @@
                     });
                 },
                 
-                // 修正されたモーダルから呼び出される関数
                 saveEventFromModal(eventId) {
                     try {
                         const title = document.getElementById('eventTitle')?.value || '';
@@ -1733,7 +1799,6 @@
                             return;
                         }
                         
-                        // IDを文字列として統一
                         const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
                         
                         const eventData = {
@@ -1747,20 +1812,15 @@
                         };
                         
                         if (eventId) {
-                            // 編集の場合 - より厳密な検索
                             const index = this.events.findIndex(e => String(e.id) === String(eventId));
                             if (index !== -1) {
                                 this.events[index] = eventData;
-                                console.log('予定を更新しました:', eventData);
                             } else {
-                                console.error('編集対象の予定が見つかりません:', eventId, 'イベント一覧:', this.events.map(e => e.id));
                                 alert('編集対象の予定が見つかりません');
                                 return;
                             }
                         } else {
-                            // 新規追加の場合
                             this.events.push(eventData);
-                            console.log('新しい予定を追加しました:', eventData);
                         }
                         
                         this.saveData();
@@ -1789,29 +1849,20 @@
                 
                 deleteEventById(eventId) {
                     try {
-                        console.log('削除対象のイベントID:', eventId);
-                        console.log('現在のイベント一覧:', this.events.map(e => ({ id: e.id, title: e.title })));
-                        
                         if (!confirm('この予定を削除しますか？')) {
                             return;
                         }
                         
-                        // より厳密な検索
                         const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
                         if (eventIndex === -1) {
-                            console.error('削除対象の予定が見つかりません:', eventId);
-                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
                             alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
                         
-                        const deletedEvent = this.events[eventIndex];
                         this.events.splice(eventIndex, 1);
                         this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
-                        
-                        console.log('予定を削除しました:', deletedEvent);
                         
                         if (navigator.vibrate) navigator.vibrate(100);
                         
@@ -1823,14 +1874,8 @@
                 
                 editEventById(eventId) {
                     try {
-                        console.log('編集対象のイベントID:', eventId);
-                        console.log('現在のイベント一覧:', this.events.map(e => ({ id: e.id, title: e.title })));
-                        
-                        // より厳密な検索
                         const event = this.events.find(e => String(e.id) === String(eventId));
                         if (!event) {
-                            console.error('編集対象の予定が見つかりません:', eventId);
-                            console.error('利用可能なID一覧:', this.events.map(e => e.id));
                             alert('予定が見つかりません。ページを再読み込みしてお試しください。');
                             return;
                         }
@@ -1838,7 +1883,6 @@
                         this.closeAllModals();
                         
                         setTimeout(() => {
-                            console.log('編集モーダルを開きます:', event);
                             this.openEventModal(event);
                         }, 100);
                         
@@ -1855,7 +1899,6 @@
                     });
                 },
                 
-                // データ保存・読み込み（整合性チェック追加）
                 saveData() {
                     localStorage.setItem('trippenEvents', JSON.stringify(this.events));
                     localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
@@ -1870,7 +1913,6 @@
                         
                         if (savedEvents) {
                             this.events = JSON.parse(savedEvents);
-                            // イベントIDを文字列に統一
                             this.events = this.events.map(event => ({
                                 ...event,
                                 id: String(event.id)
@@ -1884,12 +1926,6 @@
                         if (savedInitialized === 'true' && this.tripDays.length > 0) {
                             this.tripInitialized = true;
                         }
-                        
-                        console.log('データを読み込みました:', {
-                            events: this.events.length,
-                            days: this.tripDays.length,
-                            eventIds: this.events.map(e => e.id)
-                        });
                         
                     } catch (error) {
                         console.error('データの読み込みに失敗しました:', error);
