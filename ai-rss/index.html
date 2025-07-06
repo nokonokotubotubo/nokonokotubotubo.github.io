@@ -105,6 +105,7 @@
           position: relative;
         }
 
+        /* ✅ カテゴリープルダウン位置調整 */
         .category-filter-wrapper {
           position: absolute;
           top: -7rem;
@@ -130,7 +131,7 @@
           transform: translateY(-2px);
         }
 
-        /* ✅ 既読フィルターボタン */
+        /* ✅ 既読フィルターボタン位置調整 */
         .read-filter-button {
           position: absolute;
           top: -7rem;
@@ -162,7 +163,7 @@
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 1.5rem;
-          margin-top: 3rem;
+          margin-top: 8rem; /* ✅ プルダウンが-7remなので8rem分のスペース確保 */
         }
 
         .stat-tab-card {
@@ -264,7 +265,6 @@
           box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
         }
 
-        /* ✅ 既読記事のスタイル */
         .article-card.read {
           opacity: 0.6;
           transition: opacity 0.3s ease;
@@ -322,7 +322,6 @@
           50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
         }
 
-        /* ✅ 既読ボタン */
         .read-button {
           position: absolute;
           top: 10px;
@@ -653,7 +652,6 @@
             return validFeedback;
         }
 
-        // ✅ 既読管理関数
         function getReadStatusWithinExpiry() {
             const allReadStatus = JSON.parse(localStorage.getItem('ai-rss-read-status') || '{}');
             const currentTime = new Date().getTime();
@@ -795,14 +793,11 @@
             });
         }
 
-        // ✅ 星1・星2で既読になる評価関数
         function setRatingWithRead(articleId, rating) {
-            // 星1または星2の場合は既読にする
             if (rating === 1 || rating === 2) {
                 setReadStatus(articleId, true);
             }
             
-            // 既存の評価処理を実行
             setRating(articleId, rating);
         }
 
@@ -966,16 +961,6 @@
                         };
                     }
                 }
-            }
-
-            const readButton = card.querySelector('.read-button');
-            if (readButton) {
-                readButton.onclick = (e) => {
-                    e.stopPropagation();
-                    const articleId = card.dataset.articleId;
-                    const isCurrentlyRead = card.classList.contains('read');
-                    setReadStatus(articleId, !isCurrentlyRead);
-                };
             }
         }
 
@@ -1166,20 +1151,20 @@
             setupScrollToTop();
         }
         
+        // ✅ 既読ボタン修正版
         function generateArticleCard(article) {
             const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
             const relativeTime = getRelativeTime(article.pubDate);
             const userRating = article.userRating || 0;
             const isUserRated = article.userOverride || false;
             
-            // 既読状態をチェック
             const readStatus = getReadStatusWithinExpiry();
             const isRead = readStatus[article.id]?.isRead || false;
             
             return `
             <div class="article-card ${article.preference} ${isRead ? 'read' : ''}" data-category="${article.category}" data-article-id="${article.id}">
                 ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
-                <button class="read-button ${isRead ? 'read' : ''}" title="${isRead ? '既読を解除' : '既読にする'}">
+                <button class="read-button ${isRead ? 'read' : ''}" onclick="setReadStatus('${article.id}', ${!isRead})" title="${isRead ? '既読を解除' : '既読にする'}">
                     ${isRead ? '✓ 既読' : '未読'}
                 </button>
                 <div class="article-content">
@@ -1327,12 +1312,10 @@
                 
                 let shouldShow = true;
                 
-                // カテゴリフィルター
                 if (currentCategory !== 'all' && category !== currentCategory) {
                     shouldShow = false;
                 }
                 
-                // 既読フィルター
                 if (hideReadArticles && isRead) {
                     shouldShow = false;
                 }
