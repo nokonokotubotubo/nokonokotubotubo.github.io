@@ -370,7 +370,12 @@
         .event-category-custom { background: #FECA57; }
         
         .event-title { font: bold 0.9rem/1 sans-serif; margin-bottom: 4px; pointer-events: none; }
-        .title-text { cursor: pointer; pointer-events: auto; }
+        .title-text { 
+            cursor: pointer; 
+            pointer-events: auto; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
         .event-time { font-size: 0.8rem; opacity: 0.9; }
         .event-description { font-size: 0.75rem; margin-top: 4px; opacity: 0.8; }
         
@@ -396,6 +401,8 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .event-action-btn.cut { background: #FF6B6B; border: 2px solid #fff; }
@@ -537,6 +544,18 @@
             .event-title { font-size: 0.8rem; }
             .event-time { font-size: 0.7rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
+            
+            .event-action-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            .edit-mode-indicator {
+                width: 28px;
+                height: 28px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -673,7 +692,7 @@
                                 
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
-                                            @click="cutEvent(event)"
+                                            @click="handleCutButtonClick($event, event)"
                                             @mousedown.stop
                                             title="切り取り">
                                         <i class="fas fa-cut"></i>
@@ -780,7 +799,8 @@
                                 
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
-                                            @click="cutEvent(event)"
+                                            @click="handleCutButtonClick($event, event)"
+                                            @touchstart="handleCutButtonClick($event, event)"
                                             title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
@@ -794,7 +814,7 @@
                                 
                                 <div class="event-title">
                                     <i :class="getCategoryIcon(event.category)"></i>
-                                    <span class="title-text" @click="openDetailModal(event)">{{ event.title }}</span>
+                                    <span class="title-text" @click="openDetailModal(event)" @touchstart.stop="openDetailModal(event)">{{ event.title }}</span>
                                 </div>
                                 <div class="event-time">{{ event.startTime }} - {{ event.endTime }}</div>
                                 <div class="event-description" v-if="event.description">{{ event.description }}</div>
@@ -1002,7 +1022,7 @@
                     else this.setActiveDay(index);
                 },
                 
-                // タブドラッグ処理（重複削除・簡略化）
+                // タブドラッグ処理
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
@@ -1042,7 +1062,6 @@
                     
                     this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length);
                     
-                    // イベントのdayIndex更新処理を簡略化
                     this.events.forEach(event => {
                         if (event.dayIndex === fromIndex) {
                             event.dayIndex = toIndex;
@@ -1057,7 +1076,7 @@
                     this.saveData();
                 },
                 
-                // イベント処理（大幅簡略化）
+                // デスクトップイベント処理
                 handleEventMouseDown(event, eventData) {
                     if (this.editModeEvent?.id === eventData.id && !event.target.closest('.title-text')) {
                         this.startDragMove(event, eventData);
@@ -1106,7 +1125,7 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
-                // モバイル処理（簡略化）
+                // モバイル日程選択処理
                 handleMobileDayTouchStart(event, index) {
                     this.touchStartTime = Date.now();
                     this.longPressTimer = setTimeout(() => {
@@ -1135,7 +1154,6 @@
                     this.selectedDayIndex = null;
                 },
                 
-                // 各種アクション処理
                 openStartDateModalFromPopup() {
                     this.closeMobilePopup();
                     setTimeout(() => this.openStartDateModal(), 300);
@@ -1168,15 +1186,24 @@
                 
                 // 修正されたモバイルイベント処理
                 handleEventTouchStart(event, eventData) {
-                    if (event.target.closest('.title-text')) return;
+                    if (event.target.closest('.title-text')) {
+                        // タイトルタップは詳細モーダルのみ
+                        this.openDetailModal(eventData);
+                        return;
+                    }
                     
-                    event.preventDefault();
-                    event.stopPropagation();
+                    if (event.target.closest('.event-action-btn')) {
+                        // ボタンタップは処理をそのまま通す
+                        return;
+                    }
                     
                     const coords = event.touches[0];
                     this.touchStartPosition = { x: coords.clientX, y: coords.clientY };
                     
                     if (this.editModeEvent?.id === eventData.id) {
+                        // 既に編集モードの場合はドラッグ開始
+                        event.preventDefault();
+                        event.stopPropagation();
                         this.startDragMoveTouch(event, eventData);
                         return;
                     }
@@ -1188,10 +1215,8 @@
                         this.longPressExecuted = true;
                         this.editModeEvent = eventData;
                         if (navigator.vibrate) navigator.vibrate(50);
-                        this.startDragMoveTouch(event, eventData);
                     }, 500);
                     
-                    // タッチ移動とタッチ終了のイベントリスナーを追加
                     const handleTouchMove = (e) => {
                         const moveCoords = e.touches[0];
                         const deltaX = Math.abs(moveCoords.clientX - this.touchStartPosition.x);
@@ -1211,14 +1236,14 @@
                         document.removeEventListener('touchmove', handleTouchMove);
                         document.removeEventListener('touchend', handleTouchEnd);
                         
-                        // 短いタップの場合は詳細モーダルを開く
+                        // 短いタップで詳細モーダル
                         if (!this.longPressExecuted && touchDuration < 500) {
                             this.openDetailModal(eventData);
                         }
                     };
                     
-                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    document.addEventListener('touchend', handleTouchEnd);
+                    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
                 },
                 
                 clearEventLongPress() {
@@ -1229,16 +1254,21 @@
                 },
                 
                 startDragMoveTouch(event, eventData) {
-                    // タッチ移動処理（簡略化）
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
                     const coords = event.touches[0];
                     const container = this.$refs.mobileTimelineContainer;
                     const rect = container.getBoundingClientRect();
                     const initialTop = coords.clientY - rect.top + container.scrollTop;
+                    const startY = coords.clientY;
                     
                     const moveHandler = (e) => {
                         e.preventDefault();
                         const touch = e.touches[0];
-                        const newTop = initialTop + (touch.clientY - coords.clientY);
+                        const deltaY = touch.clientY - startY;
+                        const newTop = initialTop + deltaY;
                         const snappedTop = Math.round(newTop / 15) * 15;
                         this.updateEventTime(eventData, snappedTop);
                     };
@@ -1250,7 +1280,7 @@
                     };
                     
                     document.addEventListener('touchmove', moveHandler, { passive: false });
-                    document.addEventListener('touchend', endHandler);
+                    document.addEventListener('touchend', endHandler, { passive: true });
                 },
                 
                 updateEventTime(eventData, snappedTop) {
@@ -1267,13 +1297,31 @@
                     }
                 },
                 
-                // 切り取り・貼り付け
+                // 切り取りボタン処理
+                handleCutButtonClick(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.cutEvent(eventData);
+                },
+                
+                // 修正された切り取り・貼り付け
                 cutEvent(event) {
-                    this.clipboardEvent = { ...event };
-                    this.events = this.events.filter(e => e.id !== event.id);
-                    this.editModeEvent = null;
-                    this.saveData();
-                    if (navigator.vibrate) navigator.vibrate(100);
+                    try {
+                        this.clipboardEvent = { ...event };
+                        const eventIndex = this.events.findIndex(e => e.id === event.id);
+                        
+                        if (eventIndex !== -1) {
+                            this.events.splice(eventIndex, 1);
+                            this.editModeEvent = null;
+                            this.saveData();
+                            
+                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                        }
+                        
+                    } catch (error) {
+                        console.error('予定の切り取り中にエラーが発生しました:', error);
+                        alert('予定の切り取りに失敗しました。');
+                    }
                 },
                 
                 pasteFromContext() {
@@ -1297,7 +1345,7 @@
                     this.saveData();
                 },
                 
-                // 時間変換ヘルパー（簡略化）
+                // 時間変換ヘルパー
                 timeToMinutes(timeString) {
                     const [hours, minutes] = timeString.split(':').map(Number);
                     return hours * 60 + minutes;
@@ -1378,7 +1426,7 @@
                     }
                 },
                 
-                // リサイズ処理（統合）
+                // リサイズ処理
                 startResize(event, eventData, direction) {
                     this.startResizeHandler(event, direction, 'mouse');
                 },
@@ -1450,7 +1498,7 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // モーダル処理（統合・簡略化）
+                // モーダル処理
                 openDetailModal(event) {
                     this.openModal('詳細', `
                         <div class="mb-3"><h6><i class="${this.getCategoryIcon(event.category)}"></i> ${event.title}</h6></div>
@@ -1556,35 +1604,55 @@
                     });
                 },
                 
-                // モーダルから呼び出される関数
+                // 修正されたモーダルから呼び出される関数
                 saveEventFromModal(eventId) {
-                    const title = document.getElementById('eventTitle').value;
-                    const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
-                    const startTime = document.getElementById('eventStartTime').value;
-                    const endTime = document.getElementById('eventEndTime').value;
-                    const category = document.getElementById('eventCategory').value;
-                    const description = document.getElementById('eventDescription').value;
-                    
-                    if (!title || !startTime || !endTime || startTime >= endTime) {
-                        alert('正しい情報を入力してください');
-                        return;
+                    try {
+                        const title = document.getElementById('eventTitle')?.value || '';
+                        const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
+                        const startTime = document.getElementById('eventStartTime')?.value || '';
+                        const endTime = document.getElementById('eventEndTime')?.value || '';
+                        const category = document.getElementById('eventCategory')?.value || 'travel';
+                        const description = document.getElementById('eventDescription')?.value || '';
+                        
+                        if (!title.trim() || !startTime || !endTime) {
+                            alert('予定名、開始時間、終了時間は必須です');
+                            return;
+                        }
+                        
+                        if (startTime >= endTime) {
+                            alert('終了時間は開始時間より後に設定してください');
+                            return;
+                        }
+                        
+                        const eventData = {
+                            id: eventId || `event_${Date.now()}_${Math.random()}`,
+                            title: title.trim(),
+                            dayIndex: dayIndex,
+                            startTime: startTime,
+                            endTime: endTime,
+                            category: category,
+                            description: description.trim()
+                        };
+                        
+                        if (eventId) {
+                            const index = this.events.findIndex(e => e.id === eventId);
+                            if (index !== -1) {
+                                this.events[index] = eventData;
+                            }
+                        } else {
+                            this.events.push(eventData);
+                        }
+                        
+                        this.saveData();
+                        this.editModeEvent = null;
+                        this.closeAllModals();
+                        
+                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                        
+                    } catch (error) {
+                        console.error('予定の保存中にエラーが発生しました:', error);
+                        alert('予定の保存に失敗しました。もう一度お試しください。');
                     }
-                    
-                    const eventData = {
-                        id: eventId || Date.now(),
-                        title, dayIndex, startTime, endTime, category, description
-                    };
-                    
-                    if (eventId) {
-                        const index = this.events.findIndex(e => e.id === eventId);
-                        this.events[index] = eventData;
-                    } else {
-                        this.events.push(eventData);
-                    }
-                    
-                    this.saveData();
-                    this.editModeEvent = null;
-                    this.closeAllModals();
                 },
                 
                 saveStartDateFromModal() {
@@ -1600,19 +1668,47 @@
                 },
                 
                 deleteEventById(eventId) {
-                    if (confirm('この予定を削除しますか？')) {
-                        this.events = this.events.filter(e => e.id !== eventId);
+                    try {
+                        if (!confirm('この予定を削除しますか？')) {
+                            return;
+                        }
+                        
+                        const eventIndex = this.events.findIndex(e => e.id === eventId);
+                        if (eventIndex === -1) {
+                            alert('予定が見つかりません');
+                            return;
+                        }
+                        
+                        this.events.splice(eventIndex, 1);
                         this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
+                        
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        
+                    } catch (error) {
+                        console.error('予定の削除中にエラーが発生しました:', error);
+                        alert('予定の削除に失敗しました。もう一度お試しください。');
                     }
                 },
                 
                 editEventById(eventId) {
-                    const event = this.events.find(e => e.id === eventId);
-                    if (event) {
+                    try {
+                        const event = this.events.find(e => e.id === eventId);
+                        if (!event) {
+                            alert('予定が見つかりません');
+                            return;
+                        }
+                        
                         this.closeAllModals();
-                        setTimeout(() => this.openEventModal(event), 300);
+                        
+                        setTimeout(() => {
+                            this.openEventModal(event);
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('予定の編集準備中にエラーが発生しました:', error);
+                        alert('予定の編集準備に失敗しました。もう一度お試しください。');
                     }
                 },
                 
@@ -1652,7 +1748,6 @@
                 this.checkExistingData();
                 this.loadData();
                 
-                // グローバル参照を設定
                 window.app = this;
                 
                 window.addEventListener('resize', this.detectMobile);
