@@ -259,24 +259,44 @@
         
         .mobile-day-selector {
             background: white;
-            padding: 12px 15px;
+            padding: 12px 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             flex-shrink: 0;
             margin-bottom: 0;
+            position: relative;
+        }
+        
+        .mobile-scroll-container {
+            position: relative;
+            padding: 0 50px;
         }
         
         .mobile-day-buttons {
             display: flex;
             gap: 10px;
             overflow-x: auto;
-            padding-bottom: 10px;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary-color) transparent;
+            padding: 0 15px 10px 15px;
         }
         
         .mobile-day-buttons::-webkit-scrollbar {
-            display: none;
+            height: 4px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 2px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
         }
         
         .mobile-day-btn {
@@ -308,6 +328,66 @@
         
         .mobile-day-btn:active {
             transform: scale(0.95);
+        }
+        
+        /* スクロールナビゲーションボタン */
+        .mobile-scroll-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--secondary-color);
+            color: var(--accent-color);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mobile-scroll-nav:active {
+            transform: translateY(-50%) scale(0.9);
+        }
+        
+        .mobile-scroll-nav.left {
+            left: 5px;
+        }
+        
+        .mobile-scroll-nav.right {
+            right: 5px;
+        }
+        
+        .mobile-scroll-nav.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .mobile-scroll-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+        }
+        
+        .mobile-scroll-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: background 0.3s ease;
+        }
+        
+        .mobile-scroll-dot.active {
+            background: var(--accent-color);
         }
         
         /* モバイル専用ポップアップメニュー */
@@ -892,17 +972,38 @@
         <!-- ===== モバイル専用UI ===== -->
         <div v-if="tripInitialized && isMobile" class="mobile-ui">
             <div class="mobile-day-selector">
-                <div class="mobile-day-buttons">
-                    <button v-for="(day, index) in tripDays" 
-                            :key="`mobile-day-${day.id || index}`"
-                            class="mobile-day-btn"
-                            :class="{ active: activeDay === index }"
-                            @touchstart="handleMobileDayTouchStart($event, index)"
-                            @touchmove="handleMobileDayTouchMove($event, index)"
-                            @touchend="handleMobileDayTouchEnd($event, index)">
-                        <div>{{ day.dayNumber }}日目</div>
-                        <small>{{ day.date }}</small>
+                <div class="mobile-scroll-container">
+                    <button class="mobile-scroll-nav left" 
+                            :class="{ disabled: scrollPosition <= 0 }"
+                            @click="scrollToDirection('left')">
+                        <i class="fas fa-chevron-left"></i>
                     </button>
+                    
+                    <div class="mobile-day-buttons" ref="mobileScrollContainer" @scroll="updateScrollPosition">
+                        <button v-for="(day, index) in tripDays" 
+                                :key="`mobile-day-${day.id || index}`"
+                                class="mobile-day-btn"
+                                :class="{ active: activeDay === index }"
+                                @click="handleMobileDayClick(index)"
+                                @touchstart="handleMobileDayTouchStart($event, index)"
+                                @touchend="handleMobileDayTouchEnd($event, index)">
+                            <div>{{ day.dayNumber }}日目</div>
+                            <small>{{ day.date }}</small>
+                        </button>
+                    </div>
+                    
+                    <button class="mobile-scroll-nav right" 
+                            :class="{ disabled: scrollPosition >= maxScrollPosition }"
+                            @click="scrollToDirection('right')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="mobile-scroll-indicator" v-if="tripDays.length > 3">
+                    <div v-for="(dot, index) in scrollDots" 
+                         :key="`dot-${index}`"
+                         class="mobile-scroll-dot"
+                         :class="{ active: currentScrollDot === index }"></div>
                 </div>
             </div>
             
@@ -916,7 +1017,7 @@
                 </div>
                 
                 <div class="timeline-content">
-                    <div class="timeline-scroll-container" ref="mobileScrollContainer">
+                    <div class="timeline-scroll-container" ref="mobileTimelineContainer">
                         <div class="time-axis">
                             <div class="time-slot" v-for="hour in timeSlots" :key="hour">
                                 {{ hour }}:00
@@ -1172,12 +1273,15 @@
                     // モバイル専用
                     mobileTabLongPressTimer: null,
                     mobileTabTouchStartTime: 0,
-                    mobileTabTouchStartX: 0,
-                    mobileTabTouchStartY: 0,
-                    mobileTabScrolled: false,
                     showMobilePopup: false,
                     selectedDayForPopup: null,
                     selectedDayIndex: null,
+                    
+                    // モバイルスクロール制御
+                    scrollPosition: 0,
+                    maxScrollPosition: 0,
+                    currentScrollDot: 0,
+                    scrollDots: [],
                     
                     // 予定ドラッグ関連
                     eventTouchOffset: { x: 0, y: 0 },
@@ -1245,6 +1349,10 @@
                     this.activeDay = 0;
                     this.tripInitialized = true;
                     this.saveData();
+                    
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
                 },
                 
                 generateTripDays(startDate, endDate) {
@@ -1303,6 +1411,10 @@
                     
                     this.tripDays = this.generateConsecutiveDays(startDate, currentDayCount + 1);
                     this.saveData();
+                    
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
                 },
                 
                 deleteDay(index) {
@@ -1329,44 +1441,80 @@
                         }
                         
                         this.saveData();
+                        
+                        this.$nextTick(() => {
+                            this.updateScrollDots();
+                        });
                     }
                 },
                 
-                // ===== モバイル専用：日付タブタッチ処理（修正版） =====
-                handleMobileDayTouchStart(event, index) {
-                    event.preventDefault();
+                // ===== モバイル専用：スクロール制御 =====
+                updateScrollPosition() {
+                    if (!this.$refs.mobileScrollContainer) return;
                     
-                    const coords = this.getEventCoordinates(event);
+                    const container = this.$refs.mobileScrollContainer;
+                    this.scrollPosition = container.scrollLeft;
+                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+                    
+                    // スクロールドット更新
+                    if (this.scrollDots.length > 1) {
+                        const scrollRatio = this.scrollPosition / this.maxScrollPosition;
+                        this.currentScrollDot = Math.round(scrollRatio * (this.scrollDots.length - 1));
+                    }
+                },
+                
+                scrollToDirection(direction) {
+                    if (!this.$refs.mobileScrollContainer) return;
+                    
+                    const container = this.$refs.mobileScrollContainer;
+                    const scrollAmount = 120; // 1つのボタン幅程度
+                    
+                    if (direction === 'left') {
+                        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                    } else {
+                        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                    }
+                },
+                
+                updateScrollDots() {
+                    if (!this.isMobile || this.tripDays.length <= 3) {
+                        this.scrollDots = [];
+                        return;
+                    }
+                    
+                    this.$nextTick(() => {
+                        if (!this.$refs.mobileScrollContainer) return;
+                        
+                        const container = this.$refs.mobileScrollContainer;
+                        const totalWidth = container.scrollWidth;
+                        const viewWidth = container.clientWidth;
+                        
+                        if (totalWidth <= viewWidth) {
+                            this.scrollDots = [];
+                            return;
+                        }
+                        
+                        // 3-5個程度のドットを生成
+                        const dotCount = Math.min(5, Math.max(3, Math.ceil(this.tripDays.length / 2)));
+                        this.scrollDots = Array(dotCount).fill(0);
+                        this.currentScrollDot = 0;
+                    });
+                },
+                
+                // ===== モバイル専用：日付タブタッチ処理（簡素化版） =====
+                handleMobileDayClick(index) {
+                    this.setActiveDay(index);
+                },
+                
+                handleMobileDayTouchStart(event, index) {
                     this.mobileTabTouchStartTime = Date.now();
-                    this.mobileTabTouchStartX = coords.clientX;
-                    this.mobileTabTouchStartY = coords.clientY;
-                    this.mobileTabScrolled = false;
                     
                     this.mobileTabLongPressTimer = setTimeout(() => {
-                        if (!this.mobileTabScrolled) {
-                            if (navigator.vibrate) {
-                                navigator.vibrate(50);
-                            }
-                            this.showMobilePopupForDay(index);
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
                         }
+                        this.showMobilePopupForDay(index);
                     }, 800);
-                },
-                
-                handleMobileDayTouchMove(event, index) {
-                    event.preventDefault();
-                    
-                    const coords = this.getEventCoordinates(event);
-                    const deltaX = Math.abs(coords.clientX - this.mobileTabTouchStartX);
-                    const deltaY = Math.abs(coords.clientY - this.mobileTabTouchStartY);
-                    
-                    // スクロール判定（横移動が15px以上）
-                    if (deltaX > 15 || deltaY > 15) {
-                        this.mobileTabScrolled = true;
-                        if (this.mobileTabLongPressTimer) {
-                            clearTimeout(this.mobileTabLongPressTimer);
-                            this.mobileTabLongPressTimer = null;
-                        }
-                    }
                 },
                 
                 handleMobileDayTouchEnd(event, index) {
@@ -1376,13 +1524,9 @@
                     }
                     
                     const touchDuration = Date.now() - this.mobileTabTouchStartTime;
-                    
-                    // スクロールしていない短いタップの場合はタブ切り替え
-                    if (!this.mobileTabScrolled && touchDuration < 500) {
+                    if (touchDuration < 500) {
                         this.setActiveDay(index);
                     }
-                    
-                    this.mobileTabScrolled = false;
                 },
                 
                 showMobilePopupForDay(index) {
@@ -1671,10 +1815,10 @@
                     }
                     
                     const coords = this.getEventCoordinates(event);
-                    const rect = this.$refs.mobileScrollContainer.getBoundingClientRect();
+                    const rect = this.$refs.mobileTimelineContainer.getBoundingClientRect();
                     
                     // タッチ位置から相対位置を引いた位置を初期位置とする
-                    const initialTop = coords.clientY - rect.top + this.$refs.mobileScrollContainer.scrollTop - this.eventTouchOffset.y;
+                    const initialTop = coords.clientY - rect.top + this.$refs.mobileTimelineContainer.scrollTop - this.eventTouchOffset.y;
                     const startY = coords.clientY;
                     
                     const moveHandler = (e) => this.handleDragMoveTouch(e, startY, initialTop);
@@ -1758,7 +1902,7 @@
                 
                 handleResizeMove(event, direction) {
                     const coords = this.getEventCoordinates(event);
-                    const scrollRef = this.isMobile ? this.$refs.mobileScrollContainer : this.$refs.scrollContainer;
+                    const scrollRef = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
                     const rect = scrollRef.getBoundingClientRect();
                     const y = coords.clientY - rect.top + scrollRef.scrollTop;
                     const snappedY = Math.round(y / 15) * 15;
@@ -2000,6 +2144,9 @@
                     
                     if (savedInitialized === 'true' && this.tripDays.length > 0) {
                         this.tripInitialized = true;
+                        this.$nextTick(() => {
+                            this.updateScrollDots();
+                        });
                     }
                 }
             },
@@ -2009,7 +2156,12 @@
                 this.checkExistingData();
                 this.loadData();
                 
-                window.addEventListener('resize', this.detectMobile);
+                window.addEventListener('resize', () => {
+                    this.detectMobile();
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
+                });
             },
             
             unmounted() {
