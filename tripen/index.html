@@ -271,6 +271,12 @@
             overflow-x: auto;
             padding-bottom: 10px;
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar {
+            display: none;
         }
         
         .mobile-day-btn {
@@ -291,6 +297,7 @@
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
         }
         
         .mobile-day-btn.active {
@@ -890,8 +897,8 @@
                             :key="`mobile-day-${day.id || index}`"
                             class="mobile-day-btn"
                             :class="{ active: activeDay === index }"
-                            @click="handleMobileDayClick(index)"
                             @touchstart="handleMobileDayTouchStart($event, index)"
+                            @touchmove="handleMobileDayTouchMove($event, index)"
                             @touchend="handleMobileDayTouchEnd($event, index)">
                         <div>{{ day.dayNumber }}日目</div>
                         <small>{{ day.date }}</small>
@@ -1165,6 +1172,9 @@
                     // モバイル専用
                     mobileTabLongPressTimer: null,
                     mobileTabTouchStartTime: 0,
+                    mobileTabTouchStartX: 0,
+                    mobileTabTouchStartY: 0,
+                    mobileTabScrolled: false,
                     showMobilePopup: false,
                     selectedDayForPopup: null,
                     selectedDayIndex: null,
@@ -1322,22 +1332,41 @@
                     }
                 },
                 
-                // ===== モバイル専用：日付タブ長押しメニュー =====
-                handleMobileDayClick(index) {
-                    // 短いタップの場合はタブ切り替え
-                    this.setActiveDay(index);
-                },
-                
+                // ===== モバイル専用：日付タブタッチ処理（修正版） =====
                 handleMobileDayTouchStart(event, index) {
                     event.preventDefault();
+                    
+                    const coords = this.getEventCoordinates(event);
                     this.mobileTabTouchStartTime = Date.now();
+                    this.mobileTabTouchStartX = coords.clientX;
+                    this.mobileTabTouchStartY = coords.clientY;
+                    this.mobileTabScrolled = false;
                     
                     this.mobileTabLongPressTimer = setTimeout(() => {
-                        if (navigator.vibrate) {
-                            navigator.vibrate(50);
+                        if (!this.mobileTabScrolled) {
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                            this.showMobilePopupForDay(index);
                         }
-                        this.showMobilePopupForDay(index);
                     }, 800);
+                },
+                
+                handleMobileDayTouchMove(event, index) {
+                    event.preventDefault();
+                    
+                    const coords = this.getEventCoordinates(event);
+                    const deltaX = Math.abs(coords.clientX - this.mobileTabTouchStartX);
+                    const deltaY = Math.abs(coords.clientY - this.mobileTabTouchStartY);
+                    
+                    // スクロール判定（横移動が15px以上）
+                    if (deltaX > 15 || deltaY > 15) {
+                        this.mobileTabScrolled = true;
+                        if (this.mobileTabLongPressTimer) {
+                            clearTimeout(this.mobileTabLongPressTimer);
+                            this.mobileTabLongPressTimer = null;
+                        }
+                    }
                 },
                 
                 handleMobileDayTouchEnd(event, index) {
@@ -1347,10 +1376,13 @@
                     }
                     
                     const touchDuration = Date.now() - this.mobileTabTouchStartTime;
-                    if (touchDuration < 500) {
-                        // 短いタップの場合はタブ切り替え
+                    
+                    // スクロールしていない短いタップの場合はタブ切り替え
+                    if (!this.mobileTabScrolled && touchDuration < 500) {
                         this.setActiveDay(index);
                     }
+                    
+                    this.mobileTabScrolled = false;
                 },
                 
                 showMobilePopupForDay(index) {
@@ -1380,10 +1412,12 @@
                 },
                 
                 deleteDayFromPopup() {
+                    const indexToDelete = this.selectedDayIndex;
                     this.closeMobilePopup();
+                    
                     setTimeout(() => {
-                        if (this.selectedDayIndex !== null) {
-                            this.deleteDay(this.selectedDayIndex);
+                        if (indexToDelete !== null && indexToDelete < this.tripDays.length) {
+                            this.deleteDay(indexToDelete);
                         }
                     }, 300);
                 },
