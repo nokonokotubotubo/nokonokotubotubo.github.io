@@ -336,7 +336,6 @@
         .quarter-line:nth-child(2) { top: 30px; }
         .quarter-line:nth-child(3) { top: 45px; }
         
-        /* 全予定共通の1行表示スタイル */
         .event-block {
             position: absolute;
             left: 10px;
@@ -344,7 +343,7 @@
             background: var(--primary);
             color: white;
             border-radius: 8px;
-            padding: 6px 8px 6px 25px;
+            padding: 8px 12px 8px 25px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
             transition: var(--transition);
@@ -355,11 +354,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
         
         .event-block:hover {
-            transform: translateY(-1px);
+            transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             border-color: var(--accent);
         }
@@ -371,7 +369,7 @@
         
         /* 1行表示用のコンテンツ */
         .event-content-inline {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             line-height: 1.2;
             text-align: center;
             overflow: hidden;
@@ -424,11 +422,16 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
-        /* 編集アクション位置調整 */
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
         .event-actions {
             position: absolute;
             bottom: -8px;
-            right: 5px;
+            left: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -470,38 +473,6 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
-        /* リサイズハンドルは右端に移動 */
-        .resize-handle {
-            position: absolute;
-            right: 0;
-            width: 10px;
-            background: rgba(255, 215, 0, 0.8);
-            opacity: 0;
-            transition: var(--transition);
-            cursor: ns-resize;
-        }
-        
-        .resize-handle.top { 
-            top: 0; 
-            height: 10px;
-            border-radius: 0 8px 0 0; 
-        }
-        
-        .resize-handle.bottom { 
-            bottom: 0; 
-            height: 10px;
-            border-radius: 0 0 8px 0; 
-        }
-        
-        .event-block.edit-mode .resize-handle { opacity: 1; }
-        
-        /* カテゴリ別の色は維持 */
-        .event-category-travel { background: #FF6B6B; }
-        .event-category-food { background: #4ECDC4; }
-        .event-category-sightseeing { background: #45B7D1; }
-        .event-category-accommodation { background: #96CEB4; }
-        .event-category-custom { background: #FECA57; }
-        
         .context-menu {
             position: fixed;
             background: white;
@@ -534,6 +505,21 @@
         .context-menu-item.paste:hover { background: #e8f5e8; }
         .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
         .context-menu-item.disabled:hover { background: transparent; }
+        
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: var(--transition);
+            cursor: ns-resize;
+        }
+        
+        .resize-handle.top { top: 0; border-radius: 8px 8px 0 0; }
+        .resize-handle.bottom { bottom: 0; border-radius: 0 0 8px 8px; }
+        .event-block.edit-mode .resize-handle { opacity: 1; }
         
         .modal-content { border-radius: var(--radius); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .modal-header { background: var(--primary); color: white; border-radius: var(--radius) var(--radius) 0 0; }
@@ -598,22 +584,14 @@
         
         .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
         
-        /* モバイル用の調整 */
         @media (max-width: 768px) {
             .time-axis { width: 60px; height: 1000px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
             .grid-line { height: 50px; }
             .schedule-grid, .schedule-area { height: 1000px; }
+            .event-block { padding: 6px 8px 6px 22px; min-height: 32px; }
+            .event-content-inline { font-size: 0.8rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
-            
-            .event-block {
-                min-height: 32px;
-                padding: 5px 6px 5px 22px;
-            }
-            
-            .event-content-inline {
-                font-size: 0.75rem;
-            }
             
             .drag-handle-mini {
                 width: 14px;
@@ -768,20 +746,19 @@
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
                                  @click="handleEventClick($event, event)">
                                 
-                                <!-- ドラッグハンドル（全予定共通） -->
+                                <!-- ドラッグハンドル -->
                                 <div class="drag-handle-mini"
                                      @mousedown="handleDragHandleMouseDown($event, event)"
                                      title="ドラッグして移動">
                                     <i class="fas fa-grip-vertical"></i>
                                 </div>
                                 
-                                <!-- 1行表示コンテンツ（全予定共通） -->
+                                <!-- 1行表示コンテンツ -->
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.inlineText }}
                                 </div>
                                 
-                                <!-- 編集時のアクションボタン -->
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
                                             @click="handleCutButtonClick($event, event)"
@@ -791,10 +768,8 @@
                                     </button>
                                 </div>
                                 
-                                <!-- 編集モードインジケータ -->
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
-                                <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'top')"></div>
@@ -885,20 +860,19 @@
                                  @click="handleEventClick($event, event)"
                                  @touchstart="handleEventTouchStart($event, event)">
                                 
-                                <!-- ドラッグハンドル（全予定共通） -->
+                                <!-- ドラッグハンドル -->
                                 <div class="drag-handle-mini"
                                      @touchstart="handleDragHandleTouchStart($event, event)"
                                      title="ドラッグして移動">
                                     <i class="fas fa-grip-vertical"></i>
                                 </div>
                                 
-                                <!-- 1行表示コンテンツ（全予定共通） -->
+                                <!-- 1行表示コンテンツ -->
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.inlineText }}
                                 </div>
                                 
-                                <!-- 編集時のアクションボタン -->
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
                                             @click="handleCutButtonClick($event, event)"
@@ -908,10 +882,8 @@
                                     </button>
                                 </div>
                                 
-                                <!-- 編集モードインジケータ -->
                                 <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
-                                <!-- リサイズハンドル -->
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @touchstart="startResizeTouch($event, event, 'top')"></div>
@@ -1615,7 +1587,7 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // モーダル処理
+                // モーダル処理（変更なし）
                 openDetailModal(event) {
                     const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
                     if (!eventData) {
