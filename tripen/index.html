@@ -66,33 +66,14 @@
         
         .day-tabs .nav-item {
             transition: var(--transition);
-            cursor: move;
             flex-shrink: 0;
             position: relative;
-        }
-        
-        .day-tabs .nav-item.dragging-tab {
-            opacity: 0.7;
-            transform: scale(1.05) rotate(3deg);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            z-index: 999;
-            border: 3px dashed var(--accent);
-            background: rgba(135, 206, 235, 0.1);
-            border-radius: var(--radius);
-        }
-        
-        .day-tabs .nav-item.drag-over {
-            background: rgba(135, 206, 235, 0.2);
-            transform: scale(1.02);
-            border: 2px solid var(--accent);
-            border-radius: var(--radius);
-            box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
         }
         
         .day-tabs .nav-link {
             border: none;
             color: var(--text);
-            padding: 12px 20px 12px 30px;
+            padding: 12px 20px;
             border-radius: var(--radius) var(--radius) 0 0;
             white-space: nowrap;
             text-align: center;
@@ -104,16 +85,6 @@
         
         .day-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: var(--shadow); }
         .day-tabs .nav-link:hover { background: var(--secondary); color: white; }
-        
-        .drag-handle {
-            position: absolute;
-            left: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.8rem;
-            cursor: grab;
-        }
         
         .delete-day-btn {
             position: absolute;
@@ -433,7 +404,6 @@
         .event-category-accommodation { background: #96CEB4; }
         .event-category-custom { background: #FECA57; }
         
-        /* 修正1：切り取りボタンを左下に配置 */
         .event-actions {
             position: absolute;
             bottom: -8px;
@@ -509,6 +479,8 @@
         .context-menu-item:hover { background: #f5f5f5; }
         .context-menu-item.paste { color: #4CAF50; }
         .context-menu-item.paste:hover { background: #e8f5e8; }
+        .context-menu-item.add-event { color: #4CAF50; }
+        .context-menu-item.add-event:hover { background: #e8f5e8; }
         .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
         .context-menu-item.disabled:hover { background: transparent; }
         
@@ -623,7 +595,7 @@
 </head>
 <body>
     <div id="app">
-　　        <header class="header">
+        <header class="header">
             <div class="container">
                 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
                 <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
@@ -663,27 +635,24 @@
                 <ul class="nav nav-tabs day-tabs">
                     <li class="nav-item" 
                         v-for="(day, index) in tripDays" 
-                        :key="`day-${day.id || index}`"
-                        draggable="true"
-                        @dragstart="handleTabDragStart($event, index)"
-                        @dragover="handleTabDragOver($event, index)"
-                        @drop="handleTabDrop($event, index)"
-                        @dragend="handleTabDragEnd"
-                        :class="{ 'dragging-tab': draggingTabIndex === index }">
+                        :key="`day-${day.id || index}`">
                         <a class="nav-link" 
                            :class="{ active: activeDay === index }"
                            @click="setActiveDay(index)"
                            href="#"
                            @click.prevent>
-                            <div class="drag-handle">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
                             <div>
                                 <div>{{ day.dayNumber }}日目</div>
-                                <small @click.stop="handleDateClick(index)" 
-                                       :class="{ 'editable-date': index === 0 }">
+                                <small :class="{ 'editable-date': index === 0 }">
                                     {{ day.date }}
-                                    <i v-if="index === 0" class="fas fa-edit"></i>
+                                    <i v-if="index === 0" 
+                                       class="fas fa-edit" 
+                                       @click.stop="handleDateClick(index)"
+                                       style="cursor: pointer; margin-left: 4px; padding: 2px; border-radius: 3px; transition: background 0.2s;"
+                                       @mouseover="$event.target.style.background='rgba(255,255,255,0.2)'"
+                                       @mouseout="$event.target.style.background='transparent'"
+                                       title="開始日を変更">
+                                    </i>
                                 </small>
                             </div>
                             <button class="delete-day-btn" 
@@ -701,9 +670,6 @@
                            @mousedown.stop
                            href="#" 
                            title="日程を追加">
-                            <div class="drag-handle" style="visibility: hidden;">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
                             <div>
                                 <div style="font-size: 1.5rem; font-weight: bold;">＋</div>
                                 <small style="visibility: hidden;">日程追加</small>
@@ -910,6 +876,10 @@
         <div class="context-menu" 
              :class="{ show: showContextMenu }"
              :style="contextMenuStyle">
+            <div class="context-menu-item add-event" 
+                 @click="addEventFromContext">
+                <i class="fas fa-plus"></i>新しい予定を追加
+            </div>
             <div class="context-menu-item paste" 
                  :class="{ disabled: !clipboardEvent }"
                  @click="pasteFromContext"
@@ -960,444 +930,219 @@
             </div>
         </div>
     </div>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script>
-        const { createApp } = Vue;
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+    const { createApp } = Vue;
+    
+    const app = createApp({
+        data() {
+            return {
+                tripInitialized: false,
+                tripStartDate: '',
+                tripEndDate: '',
+                today: new Date().toISOString().split('T')[0],
+                hasExistingData: false,
+                tripDays: [],
+                activeDay: 0,
+                showMobilePopup: false,
+                selectedDayForPopup: null,
+                selectedDayIndex: null,
+                scrollPosition: 0,
+                maxScrollPosition: 0,
+                timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+                events: [],
+                editModeEvent: null,
+                clipboardEvent: null,
+                showContextMenu: false,
+                contextMenuStyle: {},
+                pasteTargetTime: null,
+                isMobile: false,
+                touchStartTime: 0,
+                touchStartPosition: { x: 0, y: 0 },
+                longPressTimer: null,
+                longPressExecuted: false,
+                eventTouchOffset: { x: 0, y: 0 },
+                draggingEvent: null,
+                isDragComplete: false,
+                isResizeComplete: false,
+                eventForm: {
+                    title: '',
+                    dayIndex: 0,
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    category: 'travel',
+                    description: ''
+                },
+                modals: []
+            };
+        },
         
-        createApp({
-            data() {
-                return {
-                    tripInitialized: false,
-                    tripStartDate: '',
-                    tripEndDate: '',
-                    today: new Date().toISOString().split('T')[0],
-                    hasExistingData: false,
-                    tripDays: [],
-                    activeDay: 0,
-                    draggingTabIndex: null,
-                    showMobilePopup: false,
-                    selectedDayForPopup: null,
-                    selectedDayIndex: null,
-                    scrollPosition: 0,
-                    maxScrollPosition: 0,
-                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-                    events: [],
-                    editModeEvent: null,
-                    clipboardEvent: null,
-                    showContextMenu: false,
-                    contextMenuStyle: {},
-                    pasteTargetTime: null,
-                    isMobile: false,
-                    touchStartTime: 0,
-                    touchStartPosition: { x: 0, y: 0 },
-                    longPressTimer: null,
-                    longPressExecuted: false,
-                    eventTouchOffset: { x: 0, y: 0 },
-                    draggingEvent: null,
-                    isDragComplete: false,
-                    isResizeComplete: false, // 修正2：リサイズ完了フラグを追加
-                    eventForm: {
-                        title: '',
-                        dayIndex: 0,
-                        startTime: '09:00',
-                        endTime: '10:00',
-                        category: 'travel',
-                        description: ''
-                    },
-                    modals: []
-                };
+        methods: {
+            checkExistingData() {
+                this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
             },
             
-            methods: {
-                checkExistingData() {
-                    this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
-                },
+            loadExistingData() {
+                this.loadData();
+                if (this.tripDays.length > 0) this.tripInitialized = true;
+            },
+            
+            initializeTripDays() {
+                if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
+                    alert('正しい日付を選択してください');
+                    return;
+                }
                 
-                loadExistingData() {
-                    this.loadData();
-                    if (this.tripDays.length > 0) this.tripInitialized = true;
-                },
+                this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+                this.activeDay = 0;
+                this.tripInitialized = true;
+                this.saveData();
+            },
+            
+            generateTripDays(startDate, endDate) {
+                const days = [];
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                let dayNumber = 1;
                 
-                initializeTripDays() {
-                    if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
-                        alert('正しい日付を選択してください');
-                        return;
-                    }
-                    
-                    this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
-                    this.activeDay = 0;
-                    this.tripInitialized = true;
-                    this.saveData();
-                },
-                
-                generateTripDays(startDate, endDate) {
-                    const days = [];
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    let dayNumber = 1;
-                    
-                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-                        days.push({
-                            id: Date.now() + dayNumber + Math.random(),
-                            dayNumber: dayNumber++,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
-                            fullDate: date.toISOString().split('T')[0]
-                        });
-                    }
-                    return days;
-                },
-                
-                setActiveDay(index) { this.activeDay = index; },
-                
-                detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
-                
-                addDayImmediately() {
-                    const startDate = this.tripDays[0].fullDate;
-                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
-                    this.saveData();
-                },
-                
-                deleteDay(index) {
-                    if (this.tripDays.length <= 1) {
-                        alert('最低1つの日程は必要です');
-                        return;
-                    }
-                    
-                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
-                        this.events = this.events.filter(event => event.dayIndex !== index)
-                            .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
-                        
-                        this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
-                        if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
-                        this.saveData();
-                    }
-                },
-                
-                generateConsecutiveDays(startDate, dayCount) {
-                    const days = [];
-                    const start = new Date(startDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    
-                    for (let i = 0; i < dayCount; i++) {
-                        const date = new Date(start);
-                        date.setDate(start.getDate() + i);
-                        days.push({
-                            id: Date.now() + i + Math.random(),
-                            dayNumber: i + 1,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
-                            fullDate: date.toISOString().split('T')[0]
-                        });
-                    }
-                    return days;
-                },
-                
-                handleDateClick(index) {
-                    if (index === 0) this.openStartDateModal();
-                    else this.setActiveDay(index);
-                },
-                
-                handleTabDragStart(event, index) {
-                    this.draggingTabIndex = index;
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.target.closest('.nav-item').classList.add('dragging-tab');
-                },
-                
-                handleTabDragOver(event, index) {
-                    event.preventDefault();
-                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
-                        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('drag-over'));
-                        event.target.closest('.nav-item').classList.add('drag-over');
-                    }
-                },
-                
-                handleTabDrop(event, dropIndex) {
-                    event.preventDefault();
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
+                for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                    days.push({
+                        id: Date.now() + dayNumber + Math.random(),
+                        dayNumber: dayNumber++,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
                     });
-                    
-                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== dropIndex) {
-                        this.reorderTabs(this.draggingTabIndex, dropIndex);
-                    }
-                    this.draggingTabIndex = null;
-                },
+                }
+                return days;
+            },
+            
+            setActiveDay(index) { this.activeDay = index; },
+            
+            detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
+            
+            addDayImmediately() {
+                const startDate = this.tripDays[0].fullDate;
+                this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
+                this.saveData();
+            },
+            
+            deleteDay(index) {
+                if (this.tripDays.length <= 1) {
+                    alert('最低1つの日程は必要です');
+                    return;
+                }
                 
-                handleTabDragEnd() {
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
-                    this.draggingTabIndex = null;
-                },
-                
-                reorderTabs(fromIndex, toIndex) {
-                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
-                    this.tripDays.splice(toIndex, 0, movedTab);
+                if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
+                    this.events = this.events.filter(event => event.dayIndex !== index)
+                        .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
                     
-                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length);
-                    
-                    this.events.forEach(event => {
-                        if (event.dayIndex === fromIndex) {
-                            event.dayIndex = toIndex;
-                        } else if (fromIndex < toIndex && event.dayIndex > fromIndex && event.dayIndex <= toIndex) {
-                            event.dayIndex--;
-                        } else if (fromIndex > toIndex && event.dayIndex >= toIndex && event.dayIndex < fromIndex) {
-                            event.dayIndex++;
-                        }
-                    });
-                    
-                    if (this.activeDay === fromIndex) this.activeDay = toIndex;
+                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
+                    if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
                     this.saveData();
-                },
+                }
+            },
+            
+            generateConsecutiveDays(startDate, dayCount) {
+                const days = [];
+                const start = new Date(startDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                 
-                getCurrentDayEvents() {
-                    return this.events
-                        .filter(event => event.dayIndex === this.activeDay)
-                        .map(event => {
-                            const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
-                            return {
-                                ...event,
-                                inlineText
-                            };
-                        });
-                },
-                
-                handleDragHandleMouseDown(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.editModeEvent = eventData;
-                    this.draggingEvent = eventData;
-                    this.isDragComplete = false;
-                    
-                    this.startDragMove(event, eventData);
-                },
-                
-                handleDragHandleTouchStart(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.editModeEvent = eventData;
-                    this.draggingEvent = eventData;
-                    this.isDragComplete = false;
-                    
-                    this.startDragMoveTouch(event, eventData);
-                },
-                
-                // 修正2：リサイズ完了後のクリックも無視
-                handleEventClick(event, eventData) {
-                    if (this.isDragComplete) {
-                        this.isDragComplete = false;
-                        return;
-                    }
-                    
-                    if (this.isResizeComplete) {
-                        this.isResizeComplete = false;
-                        return;
-                    }
-                    
-                    if (this.draggingEvent) {
-                        return;
-                    }
-                    
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        this.openDetailModal(eventData);
-                    }
-                },
-                
-                handleEventContextMenu(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (!event.target.closest('.drag-handle-mini')) {
-                        this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }
-                },
-                
-                startDragMove(event, eventData) {
-                    const startY = event.clientY;
-                    const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
-                    const rect = container.getBoundingClientRect();
-                    const initialTop = event.clientY - rect.top + container.scrollTop;
-                    
-                    const moveHandler = (e) => {
-                        const newTop = initialTop + (e.clientY - startY);
-                        const snappedTop = Math.round(newTop / 15) * 15;
-                        const newTime = this.pixelsToTime(snappedTop);
-                        
-                        const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                        if (eventIndex === -1) return;
-                        
-                        const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-                        const endTime = this.pixelsToTime(snappedTop + duration);
-                        
-                        if (newTime >= '04:00' && endTime <= '23:45') {
-                            this.events[eventIndex].startTime = newTime;
-                            this.events[eventIndex].endTime = endTime;
-                        }
-                    };
-                    
-                    const endHandler = () => {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', endHandler);
-                        
-                        this.draggingEvent = null;
-                        this.isDragComplete = true;
-                        this.saveData();
-                        
-                        setTimeout(() => {
-                            this.isDragComplete = false;
-                        }, 150);
-                    };
-                    
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
-                },
-                
-                handleMobileDayTouchStart(event, index) {
-                    this.touchStartTime = Date.now();
-                    this.longPressTimer = setTimeout(() => {
-                        if (navigator.vibrate) navigator.vibrate(50);
-                        this.showMobilePopupForDay(index);
-                    }, 800);
-                },
-                
-                handleMobileDayTouchEnd(event, index) {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                    if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
-                },
-                
-                showMobilePopupForDay(index) {
-                    this.selectedDayForPopup = this.tripDays[index];
-                    this.selectedDayIndex = index;
-                    this.showMobilePopup = true;
-                },
-                
-                closeMobilePopup() {
-                    this.showMobilePopup = false;
-                    this.selectedDayForPopup = null;
-                    this.selectedDayIndex = null;
-                },
-                
-                openStartDateModalFromPopup() {
-                    this.closeMobilePopup();
-                    setTimeout(() => this.openStartDateModal(), 300);
-                },
-                
-                addDayFromPopup() {
-                    this.closeMobilePopup();
-                    setTimeout(() => this.addDayImmediately(), 300);
-                },
-                
-                deleteDayFromPopup() {
-                    const index = this.selectedDayIndex;
-                    this.closeMobilePopup();
-                    setTimeout(() => index !== null && this.deleteDay(index), 300);
-                },
-                
-                updateScrollPosition() {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    this.scrollPosition = container.scrollLeft;
-                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
-                },
-                
-                scrollToDirection(direction) {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
-                },
-                
-                handleEventTouchStart(event, eventData) {
-                    if (this.isDragComplete) {
-                        return;
-                    }
-                    
-                    if (this.draggingEvent) {
-                        return;
-                    }
-                    
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        
-                        event.preventDefault();
-                        event.stopPropagation();
-                        
-                        this.touchStartTime = Date.now();
-                        this.longPressExecuted = false;
-                        
-                        this.longPressTimer = setTimeout(() => {
-                            this.longPressExecuted = true;
-                            this.editModeEvent = eventData;
-                            if (navigator.vibrate) navigator.vibrate(50);
-                        }, 500);
-                        
-                        const handleTouchEnd = () => {
-                            if (this.longPressTimer) {
-                                clearTimeout(this.longPressTimer);
-                                this.longPressTimer = null;
-                            }
-                            
-                            const touchDuration = Date.now() - this.touchStartTime;
-                            if (!this.longPressExecuted && touchDuration < 500) {
-                                this.openDetailModal(eventData);
-                            }
-                            
-                            document.removeEventListener('touchend', handleTouchEnd);
+                for (let i = 0; i < dayCount; i++) {
+                    const date = new Date(start);
+                    date.setDate(start.getDate() + i);
+                    days.push({
+                        id: Date.now() + i + Math.random(),
+                        dayNumber: i + 1,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            },
+            
+            handleDateClick(index) {
+                if (index === 0) this.openStartDateModal();
+                else this.setActiveDay(index);
+            },
+            
+            getCurrentDayEvents() {
+                return this.events
+                    .filter(event => event.dayIndex === this.activeDay)
+                    .map(event => {
+                        const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+                        return {
+                            ...event,
+                            inlineText
                         };
-                        
-                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                    }
-                },
+                    });
+            },
+            
+            handleDragHandleMouseDown(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
                 
-                startDragMoveTouch(event, eventData) {
-                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
-                        return;
-                    }
-                    
-                    const coords = event.touches[0];
-                    const container = this.$refs.mobileTimelineContainer;
-                    const rect = container.getBoundingClientRect();
-                    const initialTop = coords.clientY - rect.top + container.scrollTop;
-                    const startY = coords.clientY;
-                    
-                    const moveHandler = (e) => {
-                        e.preventDefault();
-                        const touch = e.touches[0];
-                        const deltaY = touch.clientY - startY;
-                        const newTop = initialTop + deltaY;
-                        const snappedTop = Math.round(newTop / 15) * 15;
-                        this.updateEventTime(eventData, snappedTop);
-                    };
-                    
-                    const endHandler = () => {
-                        document.removeEventListener('touchmove', moveHandler);
-                        document.removeEventListener('touchend', endHandler);
-                        
-                        this.draggingEvent = null;
-                        this.editModeEvent = null;
-                        this.isDragComplete = true;
-                        this.saveData();
-                        
-                        setTimeout(() => {
-                            this.isDragComplete = false;
-                        }, 150);
-                    };
-                    
-                    document.addEventListener('touchmove', moveHandler, { passive: false });
-                    document.addEventListener('touchend', endHandler, { passive: true });
-                },
+                this.editModeEvent = eventData;
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
                 
-                updateEventTime(eventData, snappedTop) {
+                this.startDragMove(event, eventData);
+            },
+            
+            handleDragHandleTouchStart(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                this.editModeEvent = eventData;
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
+                
+                this.startDragMoveTouch(event, eventData);
+            },
+            
+            handleEventClick(event, eventData) {
+                if (this.isDragComplete) {
+                    this.isDragComplete = false;
+                    return;
+                }
+                
+                if (this.isResizeComplete) {
+                    this.isResizeComplete = false;
+                    return;
+                }
+                
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    this.openDetailModal(eventData);
+                }
+            },
+            
+            handleEventContextMenu(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!event.target.closest('.drag-handle-mini')) {
+                    this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            },
+            
+            startDragMove(event, eventData) {
+                const startY = event.clientY;
+                const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
+                const rect = container.getBoundingClientRect();
+                const initialTop = event.clientY - rect.top + container.scrollTop;
+                
+                const moveHandler = (e) => {
+                    const newTop = initialTop + (e.clientY - startY);
+                    const snappedTop = Math.round(newTop / 15) * 15;
                     const newTime = this.pixelsToTime(snappedTop);
+                    
                     const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
                     if (eventIndex === -1) return;
                     
@@ -1408,290 +1153,505 @@
                         this.events[eventIndex].startTime = newTime;
                         this.events[eventIndex].endTime = endTime;
                     }
-                },
+                };
                 
-                handleCutButtonClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.cutEvent(eventData);
-                },
-                
-                cutEvent(event) {
-                    try {
-                        this.clipboardEvent = { ...event };
-                        const eventIndex = this.events.findIndex(e => e.id === event.id);
-                        
-                        if (eventIndex !== -1) {
-                            this.events.splice(eventIndex, 1);
-                            this.editModeEvent = null;
-                            this.saveData();
-                            
-                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                        }
-                        
-                    } catch (error) {
-                        console.error('予定の切り取り中にエラーが発生しました:', error);
-                        alert('予定の切り取りに失敗しました。');
-                    }
-                },
-                
-                pasteFromContext() {
-                    if (!this.clipboardEvent) return;
+                const endHandler = () => {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
                     
-                    const newEvent = {
-                        ...this.clipboardEvent,
-                        id: Date.now() + Math.random(),
-                        dayIndex: this.activeDay
-                    };
-                    
-                    if (this.pasteTargetTime) {
-                        const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
-                        newEvent.startTime = this.pasteTargetTime;
-                        newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
-                    }
-                    
-                    this.events.push(newEvent);
-                    this.clipboardEvent = null;
-                    this.hideContextMenu();
+                    this.draggingEvent = null;
+                    this.isDragComplete = true;
                     this.saveData();
-                },
-                
-                timeToMinutes(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    return hours * 60 + minutes;
-                },
-                
-                minutesToTime(minutes) {
-                    const hours = Math.floor(minutes / 60);
-                    const mins = minutes % 60;
-                    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-                },
-                
-                timeToPixels(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    const totalMinutes = (hours - 4) * 60 + minutes;
-                    return totalMinutes * (this.isMobile ? 50/60 : 1);
-                },
-                
-                pixelsToTime(pixels) {
-                    const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
-                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                    const hours = Math.max(4, Math.min(23, Math.floor(roundedMinutes / 60) + 4));
-                    const minutes = hours === 23 ? Math.min(45, roundedMinutes % 60) : roundedMinutes % 60;
-                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                },
-                
-                handleScheduleContextMenu(event) {
-                    if (!this.isMobile) {
-                        event.preventDefault();
-                        this.showContextMenuAt(event.clientX, event.clientY, event);
-                    }
-                },
-                
-                showContextMenuAt(x, y, event) {
-                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                    const rect = container.getBoundingClientRect();
-                    this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
-                    
-                    this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
-                    this.showContextMenu = true;
                     
                     setTimeout(() => {
-                        document.addEventListener('click', this.hideContextMenu, { once: true });
-                    }, 100);
-                },
+                        this.isDragComplete = false;
+                    }, 150);
+                };
                 
-                hideContextMenu() { this.showContextMenu = false; },
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', endHandler);
+            },
+            
+            handleMobileDayTouchStart(event, index) {
+                this.touchStartTime = Date.now();
+                this.longPressTimer = setTimeout(() => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    this.showMobilePopupForDay(index);
+                }, 800);
+            },
+            
+            handleMobileDayTouchEnd(event, index) {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+                if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+            },
+            
+            showMobilePopupForDay(index) {
+                this.selectedDayForPopup = this.tripDays[index];
+                this.selectedDayIndex = index;
+                this.showMobilePopup = true;
+            },
+            
+            closeMobilePopup() {
+                this.showMobilePopup = false;
+                this.selectedDayForPopup = null;
+                this.selectedDayIndex = null;
+            },
+            
+            openStartDateModalFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.openStartDateModal(), 300);
+            },
+            
+            addDayFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.addDayImmediately(), 300);
+            },
+            
+            deleteDayFromPopup() {
+                const index = this.selectedDayIndex;
+                this.closeMobilePopup();
+                setTimeout(() => index !== null && this.deleteDay(index), 300);
+            },
+            
+            updateScrollPosition() {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                this.scrollPosition = container.scrollLeft;
+                this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+            },
+            
+            scrollToDirection(direction) {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+            },
+            
+            handleEventTouchStart(event, eventData) {
+                if (this.isDragComplete) {
+                    return;
+                }
                 
-                handleScheduleTouchStart(event) {
-                    if (!this.isMobile) return;
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
                     
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
-                    
-                    this.touchStartTime = Date.now();
-                    this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-                    
-                    this.longPressTimer = setTimeout(() => {
-                        this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }, 500);
-                },
-                
-                handleScheduleTouchMove(event) {
-                    if (!this.isMobile) return;
-                    
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
-                    
-                    const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
-                    const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
-                    if (deltaX > 10 || deltaY > 10) this.clearLongPress();
-                },
-                
-                handleScheduleTouchEnd(event) {
-                    if (!this.isMobile) return;
-                    
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
-                    
-                    this.clearLongPress();
-                    if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
-                },
-                
-                clearLongPress() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                },
-                
-                startResize(event, eventData, direction) {
-                    this.startResizeHandler(event, direction, 'mouse');
-                },
-                
-                startResizeTouch(event, eventData, direction) {
-                    this.startResizeHandler(event, direction, 'touch');
-                },
-                
-                // 修正2：リサイズ完了フラグを設定
-                startResizeHandler(event, direction, type) {
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
-                    const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+                    this.touchStartTime = Date.now();
+                    this.longPressExecuted = false;
                     
-                    const moveHandler = (e) => {
-                        const coords = type === 'touch' ? e.touches[0] : e;
-                        const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                        const rect = container.getBoundingClientRect();
-                        const y = coords.clientY - rect.top + container.scrollTop;
-                        const snappedY = Math.round(y / 15) * 15;
-                        const newTime = this.pixelsToTime(snappedY);
-                        
-                        const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
-                        if (eventIndex === -1) return;
-                        
-                        if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
-                            this.events[eventIndex].startTime = newTime;
-                        } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
-                            this.events[eventIndex].endTime = newTime;
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressExecuted = true;
+                        this.editModeEvent = eventData;
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }, 500);
+                    
+                    const handleTouchEnd = () => {
+                        if (this.longPressTimer) {
+                            clearTimeout(this.longPressTimer);
+                            this.longPressTimer = null;
                         }
+                        
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            this.openDetailModal(eventData);
+                        }
+                        
+                        document.removeEventListener('touchend', handleTouchEnd);
                     };
                     
-                    const endHandler = () => {
-                        document.removeEventListener(moveEvent, moveHandler);
-                        document.removeEventListener(endEvent, endHandler);
-                        
-                        this.isResizeComplete = true;
+                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                }
+            },
+            
+            startDragMoveTouch(event, eventData) {
+                if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                    return;
+                }
+                
+                const coords = event.touches[0];
+                const container = this.$refs.mobileTimelineContainer;
+                const rect = container.getBoundingClientRect();
+                const initialTop = coords.clientY - rect.top + container.scrollTop;
+                const startY = coords.clientY;
+                
+                const moveHandler = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    this.updateEventTime(eventData, snappedTop);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    
+                    this.draggingEvent = null;
+                    this.editModeEvent = null;
+                    this.isDragComplete = true;
+                    this.saveData();
+                    
+                    setTimeout(() => {
+                        this.isDragComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', endHandler, { passive: true });
+            },
+            
+            updateEventTime(eventData, snappedTop) {
+                const newTime = this.pixelsToTime(snappedTop);
+                const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                if (eventIndex === -1) return;
+                
+                const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                const endTime = this.pixelsToTime(snappedTop + duration);
+                
+                if (newTime >= '04:00' && endTime <= '23:45') {
+                    this.events[eventIndex].startTime = newTime;
+                    this.events[eventIndex].endTime = endTime;
+                }
+            },
+            
+            handleCutButtonClick(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.cutEvent(eventData);
+            },
+            
+            cutEvent(event) {
+                try {
+                    this.clipboardEvent = { ...event };
+                    const eventIndex = this.events.findIndex(e => e.id === event.id);
+                    
+                    if (eventIndex !== -1) {
+                        this.events.splice(eventIndex, 1);
+                        this.editModeEvent = null;
                         this.saveData();
                         
-                        setTimeout(() => {
-                            this.isResizeComplete = false;
-                        }, 150);
-                    };
+                        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    }
                     
-                    document.addEventListener(moveEvent, moveHandler, { passive: false });
-                    document.addEventListener(endEvent, endHandler);
-                },
+                } catch (error) {
+                    console.error('予定の切り取り中にエラーが発生しました:', error);
+                    alert('予定の切り取りに失敗しました。');
+                }
+            },
+            
+            pasteFromContext() {
+                if (!this.clipboardEvent) return;
                 
-                getEventStyle(event) {
-                    const startPixels = this.timeToPixels(event.startTime);
-                    const endPixels = this.timeToPixels(event.endTime);
-                    const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+                const newEvent = {
+                    ...this.clipboardEvent,
+                    id: Date.now() + Math.random(),
+                    dayIndex: this.activeDay
+                };
+                
+                if (this.pasteTargetTime) {
+                    const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+                    newEvent.startTime = this.pasteTargetTime;
+                    newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
+                }
+                
+                this.events.push(newEvent);
+                this.clipboardEvent = null;
+                this.hideContextMenu();
+                this.saveData();
+            },
+            
+            addEventFromContext() {
+                if (!this.pasteTargetTime) return;
+                
+                // 終了時間を開始時間の1時間後に設定
+                const startMinutes = this.timeToMinutes(this.pasteTargetTime);
+                const endTime = this.minutesToTime(startMinutes + 60);
+                
+                // フォームに初期値を設定
+                this.eventForm = {
+                    title: '',
+                    dayIndex: this.activeDay,
+                    startTime: this.pasteTargetTime,
+                    endTime: endTime,
+                    category: 'travel',
+                    description: ''
+                };
+                
+                this.hideContextMenu();
+                
+                // 少し遅延してモーダルを開く（コンテキストメニューから呼ばれたことを示すフラグを追加）
+                setTimeout(() => {
+                    this.openEventModal(null, true);  // 第二引数でコンテキストメニューから呼ばれたことを示す
+                }, 100);
+            },
+            
+            timeToMinutes(timeString) {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                return hours * 60 + minutes;
+            },
+            
+            minutesToTime(minutes) {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            },
+            
+            timeToPixels(timeString) {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                const totalMinutes = (hours - 4) * 60 + minutes;
+                return totalMinutes * (this.isMobile ? 50/60 : 1);
+            },
+            
+            pixelsToTime(pixels) {
+                const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
+                const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+                const hours = Math.max(4, Math.min(23, Math.floor(roundedMinutes / 60) + 4));
+                const minutes = hours === 23 ? Math.min(45, roundedMinutes % 60) : roundedMinutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            },
+            
+            handleScheduleContextMenu(event) {
+                if (!this.isMobile) {
+                    event.preventDefault();
+                    this.showContextMenuAt(event.clientX, event.clientY, event);
+                }
+            },
+            
+            showContextMenuAt(x, y, event) {
+                // より正確な座標計算のため、timeline-header の高さも考慮
+                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                const timelineHeader = container.querySelector('.timeline-header');
+                const scheduleArea = container.querySelector('.schedule-area');
+                
+                if (!scheduleArea) {
+                    // フォールバック
+                    const containerRect = container.getBoundingClientRect();
+                    this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
+                } else {
+                    // 正確な座標計算
+                    const containerRect = container.getBoundingClientRect();
+                    const scheduleAreaRect = scheduleArea.getBoundingClientRect();
                     
-                    return {
-                        top: `${startPixels}px`,
-                        height: `${duration}px`,
-                        minHeight: this.isMobile ? '32px' : '35px'
-                    };
-                },
+                    // timeline-header の高さを除外した相対位置を計算
+                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                    const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+                    
+                    // 15分単位にスナップ
+                    const snappedY = Math.round(relativeY / 15) * 15;
+                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
+                }
                 
-                getCategoryIcon(category) {
-                    const icons = {
-                        travel: 'fas fa-car',
-                        food: 'fas fa-utensils',
-                        sightseeing: 'fas fa-camera',
-                        accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star'
-                    };
-                    return icons[category] || 'fas fa-calendar';
-                },
+                this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
+                this.showContextMenu = true;
                 
-                openDetailModal(event) {
-                    const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
-                    if (!eventData) {
-                        console.error('openDetailModal: 予定データが見つかりません:', event);
-                        alert('予定データが見つかりません');
+                setTimeout(() => {
+                    document.addEventListener('click', this.hideContextMenu, { once: true });
+                }, 100);
+            },
+            
+            hideContextMenu() { this.showContextMenu = false; },
+            
+            handleScheduleTouchStart(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                this.touchStartTime = Date.now();
+                this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+                
+                this.longPressTimer = setTimeout(() => {
+                    this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, 500);
+            },
+            
+            handleScheduleTouchMove(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+                const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+                if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+            },
+            
+            handleScheduleTouchEnd(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                this.clearLongPress();
+                if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
+            },
+            
+            clearLongPress() {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            },
+            
+            startResize(event, eventData, direction) {
+                this.startResizeHandler(event, direction, 'mouse');
+            },
+            
+            startResizeTouch(event, eventData, direction) {
+                this.startResizeHandler(event, direction, 'touch');
+            },
+            
+            startResizeHandler(event, direction, type) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
+                const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+                
+                const moveHandler = (e) => {
+                    const coords = type === 'touch' ? e.touches[0] : e;
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = container.getBoundingClientRect();
+                    const y = coords.clientY - rect.top + container.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+                        this.events[eventIndex].startTime = newTime;
+                    } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+                        this.events[eventIndex].endTime = newTime;
+                    }
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener(moveEvent, moveHandler);
+                    document.removeEventListener(endEvent, endHandler);
+                    
+                    this.isResizeComplete = true;
+                    this.saveData();
+                    
+                    setTimeout(() => {
+                        this.isResizeComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener(moveEvent, moveHandler, { passive: false });
+                document.addEventListener(endEvent, endHandler);
+            },
+            
+            getEventStyle(event) {
+                const startPixels = this.timeToPixels(event.startTime);
+                const endPixels = this.timeToPixels(event.endTime);
+                const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+                
+                return {
+                    top: `${startPixels}px`,
+                    height: `${duration}px`,
+                    minHeight: this.isMobile ? '32px' : '35px'
+                };
+            },
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    travel: 'fas fa-car',
+                    food: 'fas fa-utensils',
+                    sightseeing: 'fas fa-camera',
+                    accommodation: 'fas fa-bed',
+                    custom: 'fas fa-star'
+                };
+                return icons[category] || 'fas fa-calendar';
+            },
+            
+            openDetailModal(event) {
+                const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+                if (!eventData) {
+                    console.error('openDetailModal: 予定データが見つかりません:', event);
+                    alert('予定データが見つかりません');
+                    return;
+                }
+                
+                const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+                const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                
+                this.openModal('詳細', `
+                    <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+                    <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+                    <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+                    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
+                `);
+            },
+            
+            deleteEventFromDetail(eventId) {
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
                         return;
                     }
                     
-                    const safeEventId = String(eventData.id).replace(/'/g, "\\'");
-                    const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
                     
-                    this.openModal('詳細', `
-                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
-                        <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
-                        <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-                        ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${safeEventId}')">削除</button>
-                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${safeEventId}')">編集</button>
-                    `);
-                },
-                
-                deleteEventFromDetail(eventId) {
-                    try {
-                        if (!confirm('この予定を削除しますか？')) {
-                            return;
-                        }
-                        
-                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                        if (eventIndex === -1) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.events.splice(eventIndex, 1);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('予定の削除中にエラーが発生しました:', error);
-                        alert('予定の削除に失敗しました。もう一度お試しください。');
+                    this.events.splice(eventIndex, 1);
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の削除中にエラーが発生しました:', error);
+                    alert('予定の削除に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            editEventFromDetail(eventId) {
+                try {
+                    const event = this.events.find(e => String(e.id) === String(eventId));
+                    if (!event) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
                     }
-                },
+                    
+                    this.closeAllModals();
+                    
+                    setTimeout(() => {
+                        this.openEventModal(event);
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('予定の編集準備中にエラーが発生しました:', error);
+                    alert('予定の編集準備に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            openEventModal(event = null, fromContextMenu = false) {
+                const isEdit = !!event;
                 
-                editEventFromDetail(eventId) {
-                    try {
-                        const event = this.events.find(e => String(e.id) === String(eventId));
-                        if (!event) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.closeAllModals();
-                        
-                        setTimeout(() => {
-                            this.openEventModal(event);
-                        }, 100);
-                        
-                    } catch (error) {
-                        console.error('予定の編集準備中にエラーが発生しました:', error);
-                        alert('予定の編集準備に失敗しました。もう一度お試しください。');
-                    }
-                },
-                
-                openEventModal(event = null) {
-                    const isEdit = !!event;
+                // コンテキストメニューから呼ばれた場合は、既に設定されている eventForm を使用
+                if (!fromContextMenu) {
                     if (event) {
                         this.eventForm = { ...event };
                     } else {
@@ -1704,255 +1664,266 @@
                             description: ''
                         };
                     }
-                    
-                    const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
-                    const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
-                    const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
-                    
-                    this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
-                        <div class="mb-3">
-                            <label class="form-label">予定名</label>
-                            <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">日付</label>
-                            <select class="form-control" id="eventDayIndex">
-                                ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">開始時間</label>
-                                    <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">終了時間</label>
-                                    <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
-                                </div>
+                }
+                
+                const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+                const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+                const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
+                
+                this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
+                    <div class="mb-3">
+                        <label class="form-label">予定名</label>
+                        <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">日付</label>
+                        <select class="form-control" id="eventDayIndex">
+                            ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始時間</label>
+                                <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">カテゴリ</label>
-                            <select class="form-control" id="eventCategory">
-                                <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
-                                <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
-                                <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
-                                <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
-                                <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
-                            </select>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">終了時間</label>
+                                <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">詳細</label>
-                            <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
-                        </div>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${safeEventId}')">削除</button>` : ''}
-                        <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
-                    `);
-                },
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">カテゴリ</label>
+                        <select class="form-control" id="eventCategory">
+                            <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+                            <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+                            <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
+                            <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+                            <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">詳細</label>
+                        <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
+                    </div>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
+                `);
+            },
+            
+            openStartDateModal() {
+                this.openModal('旅行開始日の変更', `
+                    <div class="mb-3">
+                        <label class="form-label">新しい開始日</label>
+                        <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
+                    </div>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
+                `, 'modal-sm');
+            },
+            
+            openModal(title, body, footer, size = '') {
+                const modalId = `modal-${Date.now()}`;
+                const modal = { id: modalId, title, body, footer, size };
+                this.modals.push(modal);
                 
-                openStartDateModal() {
-                    this.openModal('旅行開始日の変更', `
-                        <div class="mb-3">
-                            <label class="form-label">新しい開始日</label>
-                            <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
-                        </div>
-                        <div class="alert alert-info" role="alert">
-                            <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
-                        </div>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" onclick="app.saveStartDateFromModal()">変更</button>
-                    `, 'modal-sm');
-                },
-                
-                openModal(title, body, footer, size = '') {
-                    const modalId = `modal-${Date.now()}`;
-                    const modal = { id: modalId, title, body, footer, size };
-                    this.modals.push(modal);
+                this.$nextTick(() => {
+                    const modalElement = document.getElementById(modalId);
+                    const bootstrapModal = new bootstrap.Modal(modalElement);
+                    bootstrapModal.show();
                     
-                    this.$nextTick(() => {
-                        const modalElement = document.getElementById(modalId);
-                        const bootstrapModal = new bootstrap.Modal(modalElement);
-                        bootstrapModal.show();
-                        
-                        modalElement.addEventListener('hidden.bs.modal', () => {
-                            this.modals = this.modals.filter(m => m.id !== modalId);
-                        }, { once: true });
-                    });
-                },
-                
-                saveEventFromModal(eventId) {
-                    try {
-                        const title = document.getElementById('eventTitle')?.value || '';
-                        const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
-                        const startTime = document.getElementById('eventStartTime')?.value || '';
-                        const endTime = document.getElementById('eventEndTime')?.value || '';
-                        const category = document.getElementById('eventCategory')?.value || 'travel';
-                        const description = document.getElementById('eventDescription')?.value || '';
-                        
-                        if (!title.trim() || !startTime || !endTime) {
-                            alert('予定名、開始時間、終了時間は必須です');
-                            return;
-                        }
-                        
-                        if (startTime >= endTime) {
-                            alert('終了時間は開始時間より後に設定してください');
-                            return;
-                        }
-                        
-                        const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-                        
-                        const eventData = {
-                            id: finalEventId,
-                            title: title.trim(),
-                            dayIndex: dayIndex,
-                            startTime: startTime,
-                            endTime: endTime,
-                            category: category,
-                            description: description.trim()
-                        };
-                        
-                        if (eventId) {
-                            const index = this.events.findIndex(e => String(e.id) === String(eventId));
-                            if (index !== -1) {
-                                this.events[index] = eventData;
-                            } else {
-                                alert('編集対象の予定が見つかりません');
-                                return;
-                            }
-                        } else {
-                            this.events.push(eventData);
-                        }
-                        
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                        
-                    } catch (error) {
-                        console.error('予定の保存中にエラーが発生しました:', error);
-                        alert('予定の保存に失敗しました。もう一度お試しください。');
-                    }
-                },
-                
-                saveStartDateFromModal() {
-                    const newStartDate = document.getElementById('newStartDate').value;
-                    if (!newStartDate) {
-                        alert('開始日を選択してください');
+                    modalElement.addEventListener('hidden.bs.modal', () => {
+                        this.modals = this.modals.filter(m => m.id !== modalId);
+                    }, { once: true });
+                });
+            },
+            
+            saveEventFromModal(eventId) {
+                try {
+                    const title = document.getElementById('eventTitle')?.value || '';
+                    const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
+                    const startTime = document.getElementById('eventStartTime')?.value || '';
+                    const endTime = document.getElementById('eventEndTime')?.value || '';
+                    const category = document.getElementById('eventCategory')?.value || 'travel';
+                    const description = document.getElementById('eventDescription')?.value || '';
+                    
+                    if (!title.trim() || !startTime || !endTime) {
+                        alert('予定名、開始時間、終了時間は必須です');
                         return;
                     }
                     
-                    this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+                    if (startTime >= endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                    
+                    const eventData = {
+                        id: finalEventId,
+                        title: title.trim(),
+                        dayIndex: dayIndex,
+                        startTime: startTime,
+                        endTime: endTime,
+                        category: category,
+                        description: description.trim()
+                    };
+                    
+                    if (eventId) {
+                        const index = this.events.findIndex(e => String(e.id) === String(eventId));
+                        if (index !== -1) {
+                            this.events[index] = eventData;
+                        } else {
+                            alert('編集対象の予定が見つかりません');
+                            return;
+                        }
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
                     this.saveData();
+                    this.editModeEvent = null;
                     this.closeAllModals();
-                },
-                
-                deleteEventById(eventId) {
-                    try {
-                        if (!confirm('この予定を削除しますか？')) {
-                            return;
-                        }
-                        
-                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                        if (eventIndex === -1) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.events.splice(eventIndex, 1);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('予定の削除中にエラーが発生しました:', error);
-                        alert('予定の削除に失敗しました。もう一度お試しください。');
-                    }
-                },
-                
-                editEventById(eventId) {
-                    try {
-                        const event = this.events.find(e => String(e.id) === String(eventId));
-                        if (!event) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.closeAllModals();
-                        
-                        setTimeout(() => {
-                            this.openEventModal(event);
-                        }, 100);
-                        
-                    } catch (error) {
-                        console.error('予定の編集準備中にエラーが発生しました:', error);
-                        alert('予定の編集準備に失敗しました。もう一度お試しください。');
-                    }
-                },
-                
-                closeAllModals() {
-                    document.querySelectorAll('.modal').forEach(modal => {
-                        const instance = bootstrap.Modal.getInstance(modal);
-                        if (instance) instance.hide();
-                    });
-                },
-                
-                saveData() {
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-                    localStorage.setItem('trippenInitialized', 'true');
-                },
-                
-                loadData() {
-                    try {
-                        const savedEvents = localStorage.getItem('trippenEvents');
-                        const savedDays = localStorage.getItem('trippenDays');
-                        const savedInitialized = localStorage.getItem('trippenInitialized');
-                        
-                        if (savedEvents) {
-                            this.events = JSON.parse(savedEvents);
-                            this.events = this.events.map(event => ({
-                                ...event,
-                                id: String(event.id)
-                            }));
-                        }
-                        
-                        if (savedDays) {
-                            this.tripDays = JSON.parse(savedDays);
-                        }
-                        
-                        if (savedInitialized === 'true' && this.tripDays.length > 0) {
-                            this.tripInitialized = true;
-                        }
-                        
-                    } catch (error) {
-                        console.error('データの読み込みに失敗しました:', error);
-                    }
+                    
+                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                    
+                } catch (error) {
+                    console.error('予定の保存中にエラーが発生しました:', error);
+                    alert('予定の保存に失敗しました。もう一度お試しください。');
                 }
             },
             
-            mounted() {
-                this.detectMobile();
-                this.checkExistingData();
-                this.loadData();
+            saveStartDateFromModal() {
+                const newStartDate = document.getElementById('newStartDate').value;
+                if (!newStartDate) {
+                    alert('開始日を選択してください');
+                    return;
+                }
                 
-                window.app = this;
-                
-                window.addEventListener('resize', this.detectMobile);
+                this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+                this.saveData();
+                this.closeAllModals();
             },
             
-            unmounted() {
-                window.removeEventListener('resize', this.detectMobile);
+            deleteEventById(eventId) {
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.events.splice(eventIndex, 1);
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の削除中にエラーが発生しました:', error);
+                    alert('予定の削除に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            editEventById(eventId) {
+                try {
+                    const event = this.events.find(e => String(e.id) === String(eventId));
+                    if (!event) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.closeAllModals();
+                    
+                    setTimeout(() => {
+                        this.openEventModal(event);
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('予定の編集準備中にエラーが発生しました:', error);
+                    alert('予定の編集準備に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            closeAllModals() {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    const instance = bootstrap.Modal.getInstance(modal);
+                    if (instance) instance.hide();
+                });
+            },
+            
+            saveData() {
+                localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                localStorage.setItem('trippenInitialized', 'true');
+            },
+            
+            loadData() {
+                try {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    const savedInitialized = localStorage.getItem('trippenInitialized');
+                    
+                    if (savedEvents) {
+                        this.events = JSON.parse(savedEvents);
+                        this.events = this.events.map(event => ({
+                            ...event,
+                            id: String(event.id)
+                        }));
+                    }
+                    
+                    if (savedDays) {
+                        this.tripDays = JSON.parse(savedDays);
+                    }
+                    
+                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
+                    
+                } catch (error) {
+                    console.error('データの読み込みに失敗しました:', error);
+                }
             }
-        }).mount('#app');
-    </script>
+        },
+        
+        mounted() {
+            this.detectMobile();
+            this.checkExistingData();
+            this.loadData();
+            
+            window.addEventListener('resize', () => {
+                this.detectMobile();
+                this.updateScrollPosition();
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.context-menu')) {
+                    this.hideContextMenu();
+                }
+            });
+            
+            this.$nextTick(() => {
+                this.updateScrollPosition();
+            });
+        }
+    });
+    
+    const vm = app.mount('#app');
+    window.app = vm;
+</script>
 </body>
 </html>
