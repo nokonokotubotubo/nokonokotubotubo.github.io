@@ -378,7 +378,7 @@
             display: none !important;
         }
         
-        /* 1行表示用のコンテンツ（左寄せに修正） */
+        /* 1行表示用のコンテンツ（左寄せ） */
         .event-content-inline {
             font-size: 0.9rem;
             line-height: 1.2;
@@ -439,10 +439,11 @@
         .event-category-accommodation { background: #96CEB4; }
         .event-category-custom { background: #FECA57; }
         
+        /* 修正：切り取りボタンを右下に移動 */
         .event-actions {
             position: absolute;
             bottom: -8px;
-            left: 5px;
+            right: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -1004,7 +1005,8 @@
                     longPressTimer: null,
                     longPressExecuted: false,
                     eventTouchOffset: { x: 0, y: 0 },
-                    draggingEvent: null, // ドラッグ中のイベントを追跡
+                    draggingEvent: null,
+                    isDragComplete: false, // ドラッグ完了フラグを追加
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1160,14 +1162,12 @@
                     this.saveData();
                 },
                 
-                // getCurrentDayEvents メソッドを修正（1行表示用）
+                // getCurrentDayEvents メソッド
                 getCurrentDayEvents() {
                     return this.events
                         .filter(event => event.dayIndex === this.activeDay)
                         .map(event => {
-                            // 全予定に1行表示用のテキスト生成
                             const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
-                            
                             return {
                                 ...event,
                                 inlineText
@@ -1175,17 +1175,15 @@
                         });
                 },
                 
-                // ドラッグハンドル用のイベントハンドラー（修正版）
+                // 修正：ドラッグハンドル用のイベントハンドラー
                 handleDragHandleMouseDown(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // 編集モードに設定
                     this.editModeEvent = eventData;
-                    // ドラッグ開始を明示
                     this.draggingEvent = eventData;
+                    this.isDragComplete = false;
                     
-                    // ドラッグ開始
                     this.startDragMove(event, eventData);
                 },
                 
@@ -1193,18 +1191,22 @@
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    // 編集モードに設定
                     this.editModeEvent = eventData;
-                    // ドラッグ開始を明示
                     this.draggingEvent = eventData;
+                    this.isDragComplete = false;
                     
-                    // タッチドラッグ開始
                     this.startDragMoveTouch(event, eventData);
                 },
                 
-                // 予定クリックハンドリング（修正版）
+                // 修正：予定クリックハンドリング
                 handleEventClick(event, eventData) {
-                    // ドラッグ後のクリックは無視
+                    // ドラッグ完了直後のクリックは無視
+                    if (this.isDragComplete) {
+                        this.isDragComplete = false;
+                        return;
+                    }
+                    
+                    // ドラッグ中のクリックは無視
                     if (this.draggingEvent) {
                         return;
                     }
@@ -1252,9 +1254,16 @@
                     const endHandler = () => {
                         document.removeEventListener('mousemove', moveHandler);
                         document.removeEventListener('mouseup', endHandler);
-                        // ドラッグ終了
+                        
+                        // 修正：ドラッグ終了処理
                         this.draggingEvent = null;
+                        this.isDragComplete = true;
                         this.saveData();
+                        
+                        // 少し遅れてドラッグ完了フラグをリセット
+                        setTimeout(() => {
+                            this.isDragComplete = false;
+                        }, 150);
                     };
                     
                     document.addEventListener('mousemove', moveHandler);
@@ -1320,9 +1329,14 @@
                     container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
                 },
                 
-                // モバイルイベント処理（修正版）
+                // 修正：モバイルイベント処理
                 handleEventTouchStart(event, eventData) {
-                    // ドラッグ後のタッチは無視
+                    // ドラッグ完了直後のタッチは無視
+                    if (this.isDragComplete) {
+                        return;
+                    }
+                    
+                    // ドラッグ中のタッチは無視
                     if (this.draggingEvent) {
                         return;
                     }
@@ -1385,11 +1399,17 @@
                     const endHandler = () => {
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
-                        // ドラッグ終了
-                        setTimeout(() => {
-                            this.draggingEvent = null;
-                        }, 100);
+                        
+                        // 修正：モバイルドラッグ終了処理（編集モードを解除）
+                        this.draggingEvent = null;
+                        this.editModeEvent = null; // 通常モードに戻す
+                        this.isDragComplete = true;
                         this.saveData();
+                        
+                        // 少し遅れてドラッグ完了フラグをリセット
+                        setTimeout(() => {
+                            this.isDragComplete = false;
+                        }, 150);
                     };
                     
                     document.addEventListener('touchmove', moveHandler, { passive: false });
@@ -1929,7 +1949,7 @@
                             this.tripDays = JSON.parse(savedDays);
                         }
                         
-                        if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                                                if (savedInitialized === 'true' && this.tripDays.length > 0) {
                             this.tripInitialized = true;
                         }
                         
