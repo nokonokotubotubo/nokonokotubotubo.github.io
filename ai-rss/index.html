@@ -3,1365 +3,1960 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 AI RSS ダッシュボード</title>
-    
-    <meta http-equiv="Cache-Control" content="no-cache">
-    <meta http-equiv="Pragma" content="no-cache">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <title>とりっぺんちゃん - 旅行予定調整サイト</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root {
-          --primary-light: #E0F7FF;
-          --primary-medium: #B8E6FF;
-          --primary-dark: #87CEEB;
-          --primary-accent: #5BA8C4;
-          --background-gradient: linear-gradient(135deg, #E0F7FF 0%, #F0FBFF 100%);
-          --card-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-          --card-shadow-hover: 0 8px 30px rgba(91, 168, 196, 0.2);
-          --text-primary: #2C3E50;
-          --text-secondary: #5A6C7D;
-          --text-light: #8FA0B3;
-          --border-color: #E8F4F8;
-          --border-hover: #B8E6FF;
-          --interested-color: #10B981;
-          --neutral-color: #F59E0B;
-          --not-interested-color: #EF4444;
+            --primary: #87CEEB;
+            --secondary: #B0E0E6;
+            --accent: #4682B4;
+            --text: #2F4F4F;
+            --bg: #F0F8FF;
+            --time-bg: #E6F3FF;
+            --transition: all 0.3s ease;
+            --radius: 15px;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
+        
+        * { box-sizing: border-box; }
+        
+        html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; }
+        
         body {
-          font-family: 'Noto Sans JP', sans-serif;
-          background: var(--background-gradient);
-          color: var(--text-primary);
-          line-height: 1.7;
-          min-height: 100vh;
-        }
-
-        .loading {
-          text-align: center;
-          padding: 4rem;
-          font-size: 1.5rem;
-          color: var(--primary-accent);
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-
-        .header {
-          background: linear-gradient(135deg, #87CEEB 0%, #5BA8C4 100%);
-          padding: 2rem;
-          text-align: center;
-          margin-bottom: 3rem;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.2);
-        }
-
-        .header h1 {
-          color: #ffffff;
-          font-size: 3.5rem;
-          font-weight: 900;
-          margin-bottom: 1rem;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-          animation: slideInDown 0.8s ease;
-        }
-
-        .header p {
-          color: rgba(255, 255, 255, 0.95);
-          font-size: 1.3rem;
-          margin-bottom: 1rem;
-        }
-
-        .header-stats {
-          display: flex;
-          justify-content: center;
-          gap: 2rem;
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 0.9rem;
-          animation: fadeIn 1s ease 0.5s both;
-        }
-
-        @keyframes slideInDown {
-          from { transform: translateY(-50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .stats-section {
-          max-width: 1200px;
-          margin: 0 auto 3rem;
-          padding: 0 2rem;
-          position: relative;
-        }
-
-        /* ✅ カテゴリープルダウン位置調整 */
-        .category-filter-wrapper {
-          position: absolute;
-          top: -7rem;
-          left: 2rem;
-          z-index: 10;
-        }
-
-        .category-filter {
-          padding: 0.8rem 1.2rem;
-          border: 2px solid #E8F4F8;
-          border-radius: 8px;
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          color: #5A6C7D;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-        }
-
-        .category-filter:hover {
-          border-color: #B8E6FF;
-          transform: translateY(-2px);
-        }
-
-        /* ✅ 既読フィルターボタン位置調整 */
-        .read-filter-button {
-          position: absolute;
-          top: -7rem;
-          right: 2rem;
-          padding: 0.8rem 1.2rem;
-          border: 2px solid #E8F4F8;
-          border-radius: 8px;
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          color: #5A6C7D;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-        }
-
-        .read-filter-button:hover {
-          border-color: #B8E6FF;
-          transform: translateY(-2px);
-        }
-
-        .read-filter-button.active {
-          background: #6B7280;
-          color: white;
-          border-color: #6B7280;
-        }
-
-        .stats-tabs {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
-          margin-top: 8rem; /* ✅ プルダウンが-7remなので8rem分のスペース確保 */
-        }
-
-        .stat-tab-card {
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          border: 2px solid #E8F4F8;
-          border-radius: 20px;
-          padding: 2rem;
-          text-align: center;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-          transition: all 0.4s ease;
-          position: relative;
-          overflow: hidden;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .stat-tab-card:hover {
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
-          border-color: #B8E6FF;
-        }
-
-        .stat-tab-card.active {
-          background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
-          border-color: #5BA8C4;
-          color: #fff;
-          transform: translateY(-8px) scale(1.05);
-        }
-
-        .stat-tab-card.interested.active {
-          background: linear-gradient(135deg, #10B981, #059669);
-        }
-
-        .stat-tab-card.neutral.active {
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-        }
-
-        .stat-tab-card.not-interested.active {
-          background: linear-gradient(135deg, #EF4444, #DC2626);
-        }
-
-        .stat-number {
-          font-size: 3rem;
-          font-weight: 900;
-          margin-bottom: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .stat-label {
-          font-size: 1rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .articles-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 2rem;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-          gap: 2rem;
-        }
-
-        .hidden {
-          display: none;
-        }
-
-        .articles-container.show-animation {
-          animation: slideInUp 0.6s ease;
-        }
-
-        .article-card.show-animation {
-          animation: fadeInScale 0.6s ease;
-        }
-
-        @keyframes slideInUp {
-          from { transform: translateY(50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeInScale {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-
-        .article-card {
-          background: linear-gradient(135deg, #fff 0%, #F8FDFF 100%);
-          border: 2px solid #E8F4F8;
-          border-radius: 24px;
-          overflow: hidden;
-          transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          position: relative;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.12);
-        }
-
-        .article-card:hover {
-          border-color: #B8E6FF;
-          transform: translateY(-8px) scale(1.02);
-          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.2);
-        }
-
-        .article-card.read {
-          opacity: 0.6;
-          transition: opacity 0.3s ease;
-        }
-
-        .article-card.read:hover {
-          opacity: 0.8;
-        }
-
-        .article-card.interested {
-          border-left: 4px solid #10B981;
-        }
-
-        .article-card.neutral {
-          border-left: 4px solid #F59E0B;
-        }
-
-        .article-card.not-interested {
-          border-left: 4px solid #EF4444;
-        }
-
-        .article-card.moving-out {
-          animation: cardMoveOut 0.5s ease-in-out forwards;
-        }
-
-        .article-card.moving-in {
-          animation: cardMoveIn 0.5s ease-in-out forwards;
-        }
-
-        @keyframes cardMoveOut {
-          0% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(0.8); opacity: 0; }
-        }
-
-        @keyframes cardMoveIn {
-          0% { transform: scale(0.8); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-
-        .article-card.light-scale {
-          animation: lightScale 0.2s ease;
-        }
-
-        @keyframes lightScale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.01); }
-        }
-
-        .category-highlight {
-          animation: categoryPulse 1s ease-in-out;
-        }
-
-        @keyframes categoryPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(91, 168, 196, 0.4); }
-        }
-
-        .read-button {
-          position: absolute;
-          top: 10px;
-          left: 10px;
-          background: #6B7280;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          z-index: 5;
-        }
-
-        .read-button:hover {
-          background: #4B5563;
-          transform: scale(1.05);
-        }
-
-        .read-button.read {
-          background: #10B981;
-        }
-
-        .read-button.read:hover {
-          background: #059669;
-        }
-
-        .article-content {
-          padding: 2.5rem;
-        }
-
-        .article-title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: #2C3E50;
-          margin-bottom: 1rem;
-          line-height: 1.4;
-          cursor: pointer;
-          transition: color 0.3s ease;
-        }
-
-        .article-title:hover {
-          color: #5BA8C4;
-        }
-
-        .article-meta {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .preference-badge {
-          padding: 0.5rem 1rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: #fff;
-          transition: all 0.3s ease;
-        }
-
-        .badge-interested {
-          background: linear-gradient(135deg, #10B981, #059669);
-        }
-
-        .badge-neutral {
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-        }
-
-        .badge-not-interested {
-          background: linear-gradient(135deg, #EF4444, #DC2626);
-        }
-
-        .article-info {
-          font-size: 0.9rem;
-          color: #8FA0B3;
-          font-weight: 500;
-        }
-
-        .article-description {
-          color: #5A6C7D;
-          font-size: 1rem;
-          line-height: 1.8;
-          margin-bottom: 2rem;
-        }
-
-        .rating-section {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 1.5rem;
-          border-top: 2px solid #E8F4F8;
-        }
-
-        .rating-stars {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .star {
-          cursor: pointer;
-          font-size: 1.8rem;
-          color: #E5E7EB;
-          transition: all 0.3s ease;
-          user-select: none;
-        }
-
-        .star.filled {
-          color: #FBBF24;
-          transform: scale(1.1);
-          filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
-        }
-
-        .star:hover {
-          color: #FBBF24;
-          transform: scale(1.2);
-        }
-
-        .rating-label {
-          font-size: 0.9rem;
-          color: #8FA0B3;
-          font-weight: 600;
-        }
-
-        .user-rated-mark {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: #10B981;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: bold;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-        }
-
-        .rating-feedback {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #10B981;
-          color: white;
-          padding: 12px 20px;
-          border-radius: 8px;
-          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
-          z-index: 1000;
-          animation: slideInRight 0.3s ease;
-        }
-
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-
-        .particle-effect {
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 1000;
-        }
-
-        .scroll-to-top {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          width: 60px;
-          height: 60px;
-          background: linear-gradient(135deg, #5BA8C4 0%, #87CEEB 100%);
-          border: none;
-          border-radius: 50%;
-          color: white;
-          font-size: 24px;
-          cursor: pointer;
-          box-shadow: 0 4px 20px rgba(91, 168, 196, 0.3);
-          transition: all 0.3s ease;
-          z-index: 1000;
-          opacity: 0;
-          visibility: hidden;
-        }
-
-        .scroll-to-top.visible {
-          opacity: 1;
-          visibility: visible;
-        }
-
-        .scroll-to-top:hover {
-          transform: translateY(-5px) scale(1.1);
-          box-shadow: 0 8px 30px rgba(91, 168, 196, 0.4);
-        }
-
-        @media (max-width: 1024px) {
-          .stats-tabs {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .articles-container {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          }
-        }
-
-        @media (max-width: 768px) {
-          .header h1 {
-            font-size: 2.8rem;
-          }
-          .header-stats {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, sans-serif;
+            display: flex;
             flex-direction: column;
-            gap: 0.5rem;
-          }
-          .stats-tabs {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-            margin-top: 2rem;
-          }
-          .articles-container {
-            grid-template-columns: 1fr;
-            padding: 0 1rem;
-          }
-          .stats-section {
-            padding: 0 1rem;
-          }
-          .category-filter-wrapper {
+        }
+        
+        #app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 8px 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+        }
+        
+        .penguin-icon { font-size: 2rem; margin-right: 10px; }
+        
+        .desktop-ui, .mobile-ui { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .day-tabs-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) transparent;
+            flex-shrink: 0;
+        }
+        
+        .day-tabs {
+            background: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+            margin: 10px 0 0 0;
+            box-shadow: var(--shadow);
+            display: flex;
+            min-width: max-content;
+        }
+        
+        .day-tabs .nav-item {
+            transition: var(--transition);
+            flex-shrink: 0;
             position: relative;
+        }
+        
+        .day-tabs .nav-link {
+            border: none;
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            white-space: nowrap;
+            text-align: center;
+            min-width: 120px;
+            transition: var(--transition);
+            position: relative;
+            display: block;
+        }
+        
+        .day-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: var(--shadow); }
+        .day-tabs .nav-link:hover { background: var(--secondary); color: white; }
+        
+        .delete-day-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 99, 99, 0.8);
+            color: white;
+            border: none;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .delete-day-btn:hover { background: rgba(255, 99, 99, 1); transform: scale(1.1); }
+        .day-tabs .nav-link:hover .delete-day-btn { display: flex; }
+        
+        .mobile-day-selector {
+            background: white;
+            padding: 12px 0;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .mobile-scroll-container { position: relative; padding: 0 50px; }
+        
+        .mobile-day-buttons {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) transparent;
+            padding: 0 15px 10px 15px;
+        }
+        
+        .mobile-day-btn {
+            min-width: 100px;
+            height: 60px;
+            border: 2px solid var(--secondary);
+            background: white;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font: bold 0.9rem/1 sans-serif;
+            color: var(--text);
+            transition: var(--transition);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .mobile-day-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .mobile-day-btn:active { transform: scale(0.95); }
+        
+        .mobile-scroll-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--secondary);
+            color: var(--accent);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .mobile-scroll-nav:active { transform: translateY(-50%) scale(0.9); }
+        .mobile-scroll-nav.left { left: 5px; }
+        .mobile-scroll-nav.right { right: 5px; }
+        .mobile-scroll-nav.disabled { opacity: 0.3; pointer-events: none; }
+        
+        .mobile-popup-menu {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .mobile-popup-menu.show { opacity: 1; visibility: visible; }
+        
+        .mobile-popup-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .mobile-popup-title { font: bold 1.2rem/1 sans-serif; color: var(--accent); margin-bottom: 20px; }
+        .mobile-popup-buttons { display: flex; flex-direction: column; gap: 15px; }
+        
+        .mobile-popup-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: var(--radius);
+            font: bold 1rem/1 sans-serif;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        .mobile-popup-btn.primary { background: var(--primary); color: white; }
+        .mobile-popup-btn.success { background: #28a745; color: white; }
+        .mobile-popup-btn.danger { background: #dc3545; color: white; }
+        .mobile-popup-btn.secondary { background: #6c757d; color: white; }
+        .mobile-popup-btn:active { transform: scale(0.95); }
+        
+        .mobile-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: var(--transition);
+            z-index: 1000;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .mobile-fab:active { transform: scale(0.9); }
+        
+        .timeline-container {
+            background: white;
+            border-radius: 0 0 var(--radius) var(--radius);
+            margin: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .timeline-header {
+            background: var(--secondary);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .timeline-header h5 {
+            font-size: 1rem;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .timeline-header h5 small {
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+        
+        .timeline-content { flex: 1; overflow: hidden; }
+        .timeline-scroll-container { height: 100%; display: flex; overflow-y: auto; overflow-x: hidden; }
+        
+        .time-axis {
+            width: 80px;
+            background: var(--time-bg);
+            border-right: 2px solid var(--secondary);
+            flex-shrink: 0;
+            height: 1200px;
+        }
+        
+        .time-slot {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: bold 0.9rem/1 sans-serif;
+            color: var(--text);
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .schedule-area { flex: 1; position: relative; height: 1200px; }
+        .schedule-grid { position: absolute; inset: 0; height: 1200px; }
+        
+        .grid-line {
+            height: 60px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .grid-line:nth-child(odd) { background: rgba(135, 206, 235, 0.05); }
+        
+        .quarter-line {
+            position: absolute;
             left: 0;
-            top: 0;
-            margin-bottom: 1rem;
-          }
-          .read-filter-button {
-            position: relative;
             right: 0;
-            top: 0;
-            margin-bottom: 1rem;
-            margin-left: 1rem;
-          }
+            height: 1px;
+            background: #f0f0f0;
+        }
+        
+        .quarter-line:nth-child(1) { top: 15px; }
+        .quarter-line:nth-child(2) { top: 30px; }
+        .quarter-line:nth-child(3) { top: 45px; }
+        
+        .event-block {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px 8px 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid transparent;
+            transition: var(--transition);
+            z-index: 10;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 35px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .event-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: var(--accent);
+        }
+        
+        .event-block.edit-mode {
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+        }
+        
+        .event-block.dragging {
+            z-index: 1000;
+            opacity: 0.8;
+            transform: scale(1.02);
+        }
+        
+        .event-block.dragging .event-actions {
+            display: none !important;
+        }
+        
+        .event-content-inline {
+            font-size: 0.9rem;
+            line-height: 1.2;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            font-weight: bold;
+        }
+        
+        .event-title,
+        .event-time,
+        .event-description {
+            display: none;
+        }
+        
+        .drag-handle-mini {
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            font-size: 0.7rem;
+            color: rgba(0, 0, 0, 0.6);
+            transition: var(--transition);
+            z-index: 15;
+        }
+        
+        .drag-handle-mini:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+        }
+        
+        .drag-handle-mini:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+        
+        .event-block.edit-mode .drag-handle-mini {
+            background: #FFD700;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
+        .event-actions {
+            position: absolute;
+            bottom: -8px;
+            left: 2px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+        
+        .event-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .event-action-btn.cut { background: #FF6B6B; border: 2px solid #fff; }
+        .event-action-btn.cut:hover { background: #FF5252; transform: scale(1.1); }
+        
+        .edit-mode-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #FFD700;
+            color: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: bold 0.8rem/1 sans-serif;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.8);
+            transition: var(--transition);
+            min-width: 150px;
+        }
+        
+        .context-menu.show { opacity: 1; visibility: visible; transform: scale(1); }
+        
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background: #f5f5f5; }
+        .context-menu-item.paste { color: #4CAF50; }
+        .context-menu-item.paste:hover { background: #e8f5e8; }
+        .context-menu-item.add-event { color: #4CAF50; }
+        .context-menu-item.add-event:hover { background: #e8f5e8; }
+        .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
+        .context-menu-item.disabled:hover { background: transparent; }
+        
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: var(--transition);
+            cursor: ns-resize;
+        }
+        
+        .resize-handle.top { top: 0; border-radius: 8px 8px 0 0; }
+        .resize-handle.bottom { bottom: 0; border-radius: 0 0 8px 8px; }
+        .event-block.edit-mode .resize-handle { opacity: 1; }
+        
+        .modal-content { border-radius: var(--radius); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-header { background: var(--primary); color: white; border-radius: var(--radius) var(--radius) 0 0; }
+        
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: var(--transition);
+        }
+        
+        .btn-primary:hover { background: var(--text); transform: translateY(-2px); }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+        }
+        
+        .add-event-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: var(--transition);
+            z-index: 1000;
+        }
+        
+        .add-event-btn:hover { transform: scale(1.1); background: var(--primary); }
+        
+        .trip-setup { text-align: center; padding: 40px 20px; }
+        .trip-setup h2 { color: var(--accent); margin-bottom: 30px; }
+        
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .date-input-group input[type="date"] {
+            padding: 10px;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 6px 0;
+            }
+            
+            .timeline-header {
+                padding: 6px 15px;
+            }
+            
+            .timeline-header h5 {
+                font-size: 0.9rem;
+            }
+            
+            .timeline-header h5 small {
+                font-size: 0.75rem;
+                display: block;
+                margin-left: 0;
+                margin-top: 2px;
+            }
+            
+            .day-tabs {
+                margin: 8px 0 0 0;
+            }
+            
+            .time-axis { width: 60px; height: 1000px; }
+            .time-slot { height: 50px; font-size: 0.8rem; }
+            .grid-line { height: 50px; }
+            .schedule-grid, .schedule-area { height: 1000px; }
+            .event-block { padding: 6px 8px 6px 22px; min-height: 32px; }
+            .event-content-inline { font-size: 0.8rem; }
+            .date-input-group { flex-direction: column; gap: 10px; }
+            
+            .drag-handle-mini {
+                width: 14px;
+                height: 14px;
+                font-size: 0.6rem;
+                left: 2px;
+                top: 2px;
+            }
+            
+            .event-action-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            .edit-mode-indicator {
+                width: 28px;
+                height: 28px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading">
-        🤖 最新のAI分析ニュースを読み込み中...
-    </div>
-    
-    <div id="dashboard-container" style="display: none;"></div>
-
-    <script>
-        let currentData = null;
-        let currentTab = 'all';
-        let currentCategory = 'all';
-        let hideReadArticles = false;
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+                <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
+            </div>
+        </header>
         
-        const USER_RATING_EXPIRY_DAYS = 30;
-        const READ_STATUS_EXPIRY_DAYS = 30;
-
-        async function loadLatestData() {
-            try {
-                const cacheBuster = Date.now();
-                const response = await fetch(`./data/articles.json?v=${cacheBuster}`, {
-                    headers: { 'Cache-Control': 'no-cache' }
-                });
+        <div v-if="!tripInitialized" class="container">
+            <div class="trip-setup">
+                <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
+                <p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
                 
-                const data = await response.json();
-                console.log('✅ データ読み込み完了:', data.articles.length + '件');
+                <div class="date-input-group">
+                    <label for="startDate"><strong>開始日:</strong></label>
+                    <input type="date" id="startDate" v-model="tripStartDate" :min="today">
+                    <span>〜</span>
+                    <label for="endDate"><strong>終了日:</strong></label>
+                    <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
+                </div>
                 
-                const articlesWithUserPreferences = applyUserPreferencesToFeed(data.articles);
+                <div class="mt-4">
+                    <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
+                        <i class="fas fa-check"></i> 旅行スケジュールを作成
+                    </button>
+                </div>
                 
-                currentData = {
-                    ...data,
-                    articles: articlesWithUserPreferences
-                };
-                
-                renderDashboard(currentData);
-                
-            } catch (error) {
-                console.error('❌ データ読み込み失敗:', error);
-                document.getElementById('loading').innerHTML = '⚠️ データの読み込みに失敗しました<br><button onclick="loadLatestData()">🔄 再試行</button>';
-            }
-        }
-
-        function applyUserPreferencesToFeed(articles) {
-            const userFeedback = getUserFeedbackWithinExpiry();
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
+                        <i class="fas fa-folder-open"></i> 既存のデータを読み込む
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- デスクトップ専用UI -->
+        <div v-if="tripInitialized && !isMobile" class="desktop-ui">
+            <div class="day-tabs-container">
+                <ul class="nav nav-tabs day-tabs">
+                    <li class="nav-item" 
+                        v-for="(day, index) in tripDays" 
+                        :key="`day-${day.id || index}`">
+                        <a class="nav-link" 
+                           :class="{ active: activeDay === index }"
+                           @click="setActiveDay(index)"
+                           href="#"
+                           @click.prevent>
+                            <div>
+                                <div>{{ day.dayNumber }}日目</div>
+                                <small :class="{ 'editable-date': index === 0 }">
+                                    {{ day.date }}
+                                    <i v-if="index === 0" 
+                                       class="fas fa-edit" 
+                                       @click.stop="handleDateClick(index)"
+                                       style="cursor: pointer; margin-left: 4px; padding: 2px; border-radius: 3px; transition: background 0.2s;"
+                                       @mouseover="$event.target.style.background='rgba(255,255,255,0.2)'"
+                                       @mouseout="$event.target.style.background='transparent'"
+                                       title="開始日を変更">
+                                    </i>
+                                </small>
+                            </div>
+                            <button class="delete-day-btn" 
+                                    v-if="tripDays.length > 1"
+                                    @click.stop.prevent="deleteDay(index)"
+                                    @mousedown.stop
+                                    title="日程を削除">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link add-day-btn" 
+                           @click.prevent.stop="addDayImmediately" 
+                           @mousedown.stop
+                           href="#" 
+                           title="日程を追加">
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: bold;">＋</div>
+                                <small style="visibility: hidden;">日程追加</small>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
             
-            return articles.map(article => {
-                const userRating = userFeedback[article.id];
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h5>
+                        <i class="fas fa-calendar-day"></i>
+                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
+                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                    </h5>
+                </div>
                 
-                if (userRating && userRating.rating) {
-                    const newPreference = calculatePreferenceFromRating(userRating.rating);
+                <div class="timeline-content">
+                    <div class="timeline-scroll-container" ref="scrollContainer">
+                        <div class="time-axis">
+                            <div class="time-slot" v-for="hour in timeSlots" :key="hour">
+                                {{ hour }}:00
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-area" 
+                             @click="editModeEvent = null"
+                             @contextmenu="handleScheduleContextMenu">
+                            <div class="schedule-grid">
+                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="event-block" 
+                                 v-for="event in getCurrentDayEvents()" 
+                                 :key="event.id"
+                                 :class="[
+                                     'event-category-' + event.category,
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                 ]"
+                                 :style="getEventStyle(event)"
+                                 @contextmenu.prevent="handleEventContextMenu($event, event)"
+                                 @click="handleEventClick($event, event)">
+                                
+                                <div class="drag-handle-mini"
+                                     @mousedown="handleDragHandleMouseDown($event, event)"
+                                     title="ドラッグして移動">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    <button class="event-action-btn cut" 
+                                            @click="handleCutButtonClick($event, event)"
+                                            @mousedown.stop
+                                            title="切り取り">
+                                        <i class="fas fa-cut"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
+                                
+                                <div class="resize-handle top" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @mousedown="startResize($event, event, 'top')"></div>
+                                
+                                <div class="resize-handle bottom" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @mousedown="startResize($event, event, 'bottom')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="add-event-btn" @click="openEventModal()">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        
+        <!-- モバイル専用UI -->
+        <div v-if="tripInitialized && isMobile" class="mobile-ui">
+            <div class="mobile-day-selector">
+                <div class="mobile-scroll-container">
+                    <button class="mobile-scroll-nav left" 
+                            :class="{ disabled: scrollPosition <= 0 }"
+                            @click="scrollToDirection('left')">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                     
-                    return {
-                        ...article,
-                        preference: newPreference,
-                        userRating: userRating.rating,
-                        userOverride: true,
-                        lastRatedAt: userRating.timestamp
-                    };
-                }
+                    <div class="mobile-day-buttons" ref="mobileScrollContainer" @scroll="updateScrollPosition">
+                        <button v-for="(day, index) in tripDays" 
+                                :key="`mobile-day-${day.id || index}`"
+                                class="mobile-day-btn"
+                                :class="{ active: activeDay === index }"
+                                @click="setActiveDay(index)"
+                                @touchstart="handleMobileDayTouchStart($event, index)"
+                                @touchend="handleMobileDayTouchEnd($event, index)">
+                            <div>{{ day.dayNumber }}日目</div>
+                            <small>{{ day.date }}</small>
+                        </button>
+                    </div>
+                    
+                    <button class="mobile-scroll-nav right" 
+                            :class="{ disabled: scrollPosition >= maxScrollPosition }"
+                            @click="scrollToDirection('right')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h5>
+                        <i class="fas fa-calendar-day"></i>
+                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
+                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                    </h5>
+                </div>
                 
-                return article;
-            });
-        }
-
-        function getUserFeedbackWithinExpiry() {
-            const allFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
-            const currentTime = new Date().getTime();
-            const expiryTime = USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+                <div class="timeline-content">
+                    <div class="timeline-scroll-container" ref="mobileTimelineContainer">
+                        <div class="time-axis">
+                            <div class="time-slot" v-for="hour in timeSlots" :key="hour">
+                                {{ hour }}:00
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-area" 
+                             @click="editModeEvent = null"
+                             @touchstart="handleScheduleTouchStart"
+                             @touchend="handleScheduleTouchEnd"
+                             @touchmove="handleScheduleTouchMove">
+                            <div class="schedule-grid">
+                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="event-block" 
+                                 v-for="event in getCurrentDayEvents()" 
+                                 :key="event.id"
+                                 :class="[
+                                     'event-category-' + event.category,
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                 ]"
+                                 :style="getEventStyle(event)"
+                                 @click="handleEventClick($event, event)"
+                                 @touchstart="handleEventTouchStart($event, event)">
+                                
+                                <div class="drag-handle-mini"
+                                     @touchstart="handleDragHandleTouchStart($event, event)"
+                                     title="ドラッグして移動">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    <button class="event-action-btn cut" 
+                                            @click="handleCutButtonClick($event, event)"
+                                            @touchstart.stop
+                                            title="切り取り">
+                                        <i class="fas fa-cut"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
+                                
+                                <div class="resize-handle top" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'top')"></div>
+                                
+                                <div class="resize-handle bottom" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'bottom')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            const validFeedback = {};
-            let expiredCount = 0;
-            
-            Object.keys(allFeedback).forEach(articleId => {
-                const feedback = allFeedback[articleId];
-                const feedbackTime = new Date(feedback.timestamp).getTime();
-                
-                if (currentTime - feedbackTime < expiryTime) {
-                    validFeedback[articleId] = feedback;
-                } else {
-                    expiredCount++;
-                }
-            });
-            
-            if (expiredCount > 0) {
-                localStorage.setItem('ai-rss-feedback', JSON.stringify(validFeedback));
-            }
-            
-            return validFeedback;
-        }
-
-        function getReadStatusWithinExpiry() {
-            const allReadStatus = JSON.parse(localStorage.getItem('ai-rss-read-status') || '{}');
-            const currentTime = new Date().getTime();
-            const expiryTime = READ_STATUS_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-            
-            const validReadStatus = {};
-            let expiredCount = 0;
-            
-            Object.keys(allReadStatus).forEach(articleId => {
-                const readData = allReadStatus[articleId];
-                const readTime = new Date(readData.timestamp).getTime();
-                
-                if (currentTime - readTime < expiryTime) {
-                    validReadStatus[articleId] = readData;
-                } else {
-                    expiredCount++;
-                }
-            });
-            
-            if (expiredCount > 0) {
-                localStorage.setItem('ai-rss-read-status', JSON.stringify(validReadStatus));
-            }
-            
-            return validReadStatus;
-        }
-
-        function setReadStatus(articleId, isRead = true) {
-            let readStatus = JSON.parse(localStorage.getItem('ai-rss-read-status') || '{}');
-            
-            if (isRead) {
-                const article = currentData.articles.find(a => a.id === articleId);
-                readStatus[articleId] = {
-                    isRead: true,
-                    timestamp: new Date().toISOString(),
-                    title: article ? article.title : '',
-                    expiresAt: new Date(Date.now() + (READ_STATUS_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
-                };
-            } else {
-                delete readStatus[articleId];
-            }
-            
-            localStorage.setItem('ai-rss-read-status', JSON.stringify(readStatus));
-            
-            updateArticleReadState(articleId, isRead);
-            applyFilters();
-            
-            console.log(`📖 既読状態更新: ${articleId} → ${isRead ? '既読' : '未読'}`);
-        }
-
-        function updateArticleReadState(articleId, isRead) {
-            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
-            
-            cards.forEach(card => {
-                const readButton = card.querySelector('.read-button');
-                
-                if (isRead) {
-                    card.classList.add('read');
-                    if (readButton) {
-                        readButton.textContent = '✓ 既読';
-                        readButton.classList.add('read');
-                        readButton.title = '既読を解除';
-                    }
-                } else {
-                    card.classList.remove('read');
-                    if (readButton) {
-                        readButton.textContent = '未読';
-                        readButton.classList.remove('read');
-                        readButton.title = '既読にする';
-                    }
-                }
-            });
-        }
-
-        function toggleReadFilter() {
-            hideReadArticles = !hideReadArticles;
-            const filterButton = document.querySelector('.read-filter-button');
-            
-            if (hideReadArticles) {
-                filterButton.textContent = '📖 既読を表示';
-                filterButton.classList.add('active');
-            } else {
-                filterButton.textContent = '📖 既読を非表示';
-                filterButton.classList.remove('active');
-            }
-            
-            applyFilters();
-        }
-
-        function calculatePreferenceFromRating(rating) {
-            if (rating >= 4) return 'interested';
-            if (rating <= 2) return 'not-interested';
-            return 'neutral';
-        }
-
-        function getCurrentPreference(articleId) {
-            if (currentData && currentData.articles) {
-                const article = currentData.articles.find(a => a.id === articleId);
-                if (article) {
-                    return article.preference;
-                }
-            }
-            
-            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (articleCard) {
-                if (articleCard.classList.contains('interested')) return 'interested';
-                if (articleCard.classList.contains('neutral')) return 'neutral';
-                if (articleCard.classList.contains('not-interested')) return 'not-interested';
-            }
-            
-            return 'neutral';
-        }
-
-        function updateUserRatingMark(articleId, rating) {
-            const cards = document.querySelectorAll(`[data-article-id="${articleId}"]`);
-            
-            cards.forEach(card => {
-                let userMark = card.querySelector('.user-rated-mark');
-                if (!userMark) {
-                    userMark = document.createElement('span');
-                    userMark.className = 'user-rated-mark';
-                    userMark.textContent = '✓ ユーザー評価';
-                    card.appendChild(userMark);
-                }
-                
-                let ratingInfo = card.querySelector('.article-info[data-rating]');
-                if (!ratingInfo) {
-                    const metaDiv = card.querySelector('.article-meta');
-                    ratingInfo = document.createElement('span');
-                    ratingInfo.className = 'article-info';
-                    ratingInfo.setAttribute('data-rating', 'true');
-                    metaDiv.appendChild(ratingInfo);
-                }
-                ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-                
-                card.classList.add('light-scale');
-                setTimeout(() => {
-                    card.classList.remove('light-scale');
-                }, 200);
-            });
-        }
-
-        function setRatingWithRead(articleId, rating) {
-            if (rating === 1 || rating === 2) {
-                setReadStatus(articleId, true);
-            }
-            
-            setRating(articleId, rating);
-        }
-
-        function setRating(articleId, rating) {
-            let userFeedback = JSON.parse(localStorage.getItem('ai-rss-feedback') || '{}');
-            
-            if (!userFeedback[articleId]) {
-                userFeedback[articleId] = {};
-            }
-            
-            const currentPreference = getCurrentPreference(articleId);
-            const newPreference = calculatePreferenceFromRating(rating);
-            
-            const article = currentData.articles.find(a => a.id === articleId);
-            
-            userFeedback[articleId] = {
-                rating: rating,
-                timestamp: new Date().toISOString(),
-                title: article ? article.title : '',
-                category: article ? article.category : '',
-                feedName: article ? article.feedName : '',
-                expiresAt: new Date(Date.now() + (USER_RATING_EXPIRY_DAYS * 24 * 60 * 60 * 1000)).toISOString()
+            <button class="mobile-fab" @click="openEventModal()">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        
+        <!-- コンテキストメニュー -->
+        <div class="context-menu" 
+             :class="{ show: showContextMenu }"
+             :style="contextMenuStyle">
+            <div class="context-menu-item add-event" 
+                 @click="addEventFromContext">
+                <i class="fas fa-plus"></i>新しい予定を追加
+            </div>
+            <div class="context-menu-item paste" 
+                 :class="{ disabled: !clipboardEvent }"
+                 @click="pasteFromContext"
+                 v-if="clipboardEvent">
+                <i class="fas fa-paste"></i>貼り付け
+            </div>
+            <div class="context-menu-item disabled" v-else>
+                <i class="fas fa-paste"></i>貼り付け（コピー済みアイテムなし）
+            </div>
+        </div>
+        
+        <!-- モバイル専用ポップアップメニュー -->
+        <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
+            <div class="mobile-popup-content" @click.stop>
+                <div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}</div>
+                <div class="mobile-popup-buttons">
+                    <button class="mobile-popup-btn primary" 
+                            v-if="selectedDayForPopup && selectedDayIndex === 0"
+                            @click="openStartDateModalFromPopup">
+                        <i class="fas fa-calendar-edit"></i>開始日を変更
+                    </button>
+                    <button class="mobile-popup-btn success" @click="addDayFromPopup">
+                        <i class="fas fa-plus"></i>日程を追加
+                    </button>
+                    <button class="mobile-popup-btn danger" 
+                            v-if="selectedDayForPopup && tripDays.length > 1"
+                            @click="deleteDayFromPopup">
+                        <i class="fas fa-trash"></i>この日程を削除
+                    </button>
+                    <button class="mobile-popup-btn secondary" @click="closeMobilePopup">
+                        <i class="fas fa-times"></i>キャンセル
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- モーダルテンプレート -->
+        <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
+            <div class="modal-dialog" :class="modal.size">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ modal.title }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" v-html="modal.body"></div>
+                    <div class="modal-footer" v-html="modal.footer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+    const { createApp } = Vue;
+    
+    const app = createApp({
+        data() {
+            return {
+                tripInitialized: false,
+                tripStartDate: '',
+                tripEndDate: '',
+                today: new Date().toISOString().split('T')[0],
+                hasExistingData: false,
+                tripDays: [],
+                activeDay: 0,
+                showMobilePopup: false,
+                selectedDayForPopup: null,
+                selectedDayIndex: null,
+                scrollPosition: 0,
+                maxScrollPosition: 0,
+                timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+                events: [],
+                editModeEvent: null,
+                clipboardEvent: null,
+                showContextMenu: false,
+                contextMenuStyle: {},
+                pasteTargetTime: null,
+                isMobile: false,
+                touchStartTime: 0,
+                touchStartPosition: { x: 0, y: 0 },
+                longPressTimer: null,
+                longPressExecuted: false,
+                eventTouchOffset: { x: 0, y: 0 },
+                draggingEvent: null,
+                isDragComplete: false,
+                isResizeComplete: false,
+                eventForm: {
+                    title: '',
+                    dayIndex: 0,
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    category: 'travel',
+                    description: ''
+                },
+                modals: []
             };
+        },
+        
+        methods: {
+            checkExistingData() {
+                this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
+            },
             
-            localStorage.setItem('ai-rss-feedback', JSON.stringify(userFeedback));
+            loadExistingData() {
+                this.loadData();
+                if (this.tripDays.length > 0) this.tripInitialized = true;
+            },
             
-            const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
-            stars.forEach((star, index) => {
-                star.classList.toggle('filled', index < rating);
-            });
-            
-            if (currentPreference === newPreference) {
-                updateUserRatingMark(articleId, rating);
-                showFeedbackMessage(`評価を保存しました（${rating}/5）`);
-                return;
-            }
-            
-            if (currentData && currentData.articles) {
-                const articleIndex = currentData.articles.findIndex(a => a.id === articleId);
-                if (articleIndex !== -1) {
-                    currentData.articles[articleIndex].preference = newPreference;
-                    currentData.articles[articleIndex].userRating = rating;
-                    currentData.articles[articleIndex].userOverride = true;
+            initializeTripDays() {
+                if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
+                    alert('正しい日付を選択してください');
+                    return;
                 }
-            }
+                
+                this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+                this.activeDay = 0;
+                this.tripInitialized = true;
+                this.saveData();
+            },
             
-            moveArticleToNewCategory(articleId, currentPreference, newPreference, rating);
-            updateTabCountsFromCurrentData();
+            generateTripDays(startDate, endDate) {
+                const days = [];
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                let dayNumber = 1;
+                
+                for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                    days.push({
+                        id: Date.now() + dayNumber + Math.random(),
+                        dayNumber: dayNumber++,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            },
             
-            showCategoryChangeAnimation(articleId, newPreference);
-            showFeedbackMessage(`評価を保存し、「${getPreferenceName(newPreference)}」に移動しました！`);
-        }
-
-        function moveArticleToNewCategory(articleId, oldPreference, newPreference, rating) {
-            const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (!articleCard) return;
+            setActiveDay(index) { this.activeDay = index; },
             
-            updateArticlePreferenceVisual(articleCard, newPreference, rating);
+            detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
             
-            const updatedCard = articleCard.cloneNode(true);
+            addDayImmediately() {
+                const startDate = this.tripDays[0].fullDate;
+                this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
+                this.saveData();
+            },
             
-            const allContainer = document.getElementById('articles-all');
-            const interestedContainer = document.getElementById('articles-interested');
-            const neutralContainer = document.getElementById('articles-neutral');
-            const notInterestedContainer = document.getElementById('articles-not-interested');
+            deleteDay(index) {
+                if (this.tripDays.length <= 1) {
+                    alert('最低1つの日程は必要です');
+                    return;
+                }
+                
+                if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
+                    this.events = this.events.filter(event => event.dayIndex !== index)
+                        .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
+                    
+                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
+                    if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
+                    this.saveData();
+                }
+            },
             
-            [allContainer, interestedContainer, neutralContainer, notInterestedContainer].forEach(container => {
-                const existingCard = container.querySelector(`[data-article-id="${articleId}"]`);
-                if (existingCard) {
-                    existingCard.classList.add('moving-out');
+            generateConsecutiveDays(startDate, dayCount) {
+                const days = [];
+                const start = new Date(startDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                
+                for (let i = 0; i < dayCount; i++) {
+                    const date = new Date(start);
+                    date.setDate(start.getDate() + i);
+                    days.push({
+                        id: Date.now() + i + Math.random(),
+                        dayNumber: i + 1,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            },
+            
+            handleDateClick(index) {
+                if (index === 0) this.openStartDateModal();
+                else this.setActiveDay(index);
+            },
+            
+            getCurrentDayEvents() {
+                return this.events
+                    .filter(event => event.dayIndex === this.activeDay)
+                    .map(event => {
+                        const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+                        return {
+                            ...event,
+                            inlineText
+                        };
+                    });
+            },
+            
+            handleDragHandleMouseDown(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                this.editModeEvent = eventData;
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
+                
+                this.startDragMove(event, eventData);
+            },
+            
+            handleDragHandleTouchStart(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                this.editModeEvent = eventData;
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
+                
+                this.startDragMoveTouch(event, eventData);
+            },
+            
+            handleEventClick(event, eventData) {
+                if (this.isDragComplete) {
+                    this.isDragComplete = false;
+                    return;
+                }
+                
+                if (this.isResizeComplete) {
+                    this.isResizeComplete = false;
+                    return;
+                }
+                
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    this.openDetailModal(eventData);
+                }
+            },
+            
+            handleEventContextMenu(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!event.target.closest('.drag-handle-mini')) {
+                    this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            },
+            
+            startDragMove(event, eventData) {
+                const startY = event.clientY;
+                const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
+                const rect = container.getBoundingClientRect();
+                const timelineHeader = container.querySelector('.timeline-header');
+                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                const initialTop = event.clientY - rect.top - headerHeight + container.scrollTop;
+                
+                const moveHandler = (e) => {
+                    const newTop = initialTop + (e.clientY - startY);
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedTop);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    } else {
+                        console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
+                    }
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    
+                    this.draggingEvent = null;
+                    this.isDragComplete = true;
+                    this.saveData();
+                    
                     setTimeout(() => {
-                        if (existingCard.parentNode) {
-                            existingCard.remove();
-                        }
+                        this.isDragComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', endHandler);
+            },
+            
+            handleMobileDayTouchStart(event, index) {
+                this.touchStartTime = Date.now();
+                this.longPressTimer = setTimeout(() => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    this.showMobilePopupForDay(index);
+                }, 800);
+            },
+            
+            handleMobileDayTouchEnd(event, index) {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+                if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+            },
+            
+            showMobilePopupForDay(index) {
+                this.selectedDayForPopup = this.tripDays[index];
+                this.selectedDayIndex = index;
+                this.showMobilePopup = true;
+            },
+            
+            closeMobilePopup() {
+                this.showMobilePopup = false;
+                this.selectedDayForPopup = null;
+                this.selectedDayIndex = null;
+            },
+            
+            openStartDateModalFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.openStartDateModal(), 300);
+            },
+            
+            addDayFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.addDayImmediately(), 300);
+            },
+            
+            deleteDayFromPopup() {
+                const index = this.selectedDayIndex;
+                this.closeMobilePopup();
+                setTimeout(() => index !== null && this.deleteDay(index), 300);
+            },
+            
+            updateScrollPosition() {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                this.scrollPosition = container.scrollLeft;
+                this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+            },
+            
+            scrollToDirection(direction) {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+            },
+            
+            handleEventTouchStart(event, eventData) {
+                if (this.isDragComplete) {
+                    return;
+                }
+                
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.touchStartTime = Date.now();
+                    this.longPressExecuted = false;
+                    
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressExecuted = true;
+                        this.editModeEvent = eventData;
+                        if (navigator.vibrate) navigator.vibrate(50);
                     }, 500);
+                    
+                    const handleTouchEnd = () => {
+                        if (this.longPressTimer) {
+                            clearTimeout(this.longPressTimer);
+                            this.longPressTimer = null;
+                        }
+                        
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            this.openDetailModal(eventData);
+                        }
+                        
+                        document.removeEventListener('touchend', handleTouchEnd);
+                    };
+                    
+                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
                 }
-            });
+            },
             
-            setTimeout(() => {
-                const allCardClone = updatedCard.cloneNode(true);
-                setupCardEventListeners(allCardClone);
-                allCardClone.classList.add('moving-in');
-                allContainer.appendChild(allCardClone);
+            startDragMoveTouch(event, eventData) {
+                if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                    return;
+                }
                 
-                let targetContainer;
-                if (newPreference === 'interested') {
-                    targetContainer = interestedContainer;
-                } else if (newPreference === 'neutral') {
-                    targetContainer = neutralContainer;
+                const coords = event.touches[0];
+                const container = this.$refs.mobileTimelineContainer;
+                const rect = container.getBoundingClientRect();
+                const timelineHeader = container.querySelector('.timeline-header');
+                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                const initialTop = coords.clientY - rect.top - headerHeight + container.scrollTop;
+                const startY = coords.clientY;
+                
+                const moveHandler = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    this.updateEventTime(eventData, snappedTop);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    
+                    this.draggingEvent = null;
+                    this.editModeEvent = null;
+                    this.isDragComplete = true;
+                    this.saveData();
+                    
+                    setTimeout(() => {
+                        this.isDragComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', endHandler, { passive: true });
+            },
+            
+            updateEventTime(eventData, snappedTop) {
+                const newTime = this.pixelsToTime(snappedTop);
+                const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                if (eventIndex === -1) return;
+                
+                const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                const endTime = this.pixelsToTime(snappedTop + duration);
+                
+                if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
+                    this.events[eventIndex].startTime = newTime;
+                    this.events[eventIndex].endTime = endTime;
                 } else {
-                    targetContainer = notInterestedContainer;
+                    console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
+                }
+            },
+            
+            handleCutButtonClick(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.cutEvent(eventData);
+            },
+            
+            cutEvent(event) {
+                try {
+                    this.clipboardEvent = { ...event };
+                    const eventIndex = this.events.findIndex(e => e.id === event.id);
+                    
+                    if (eventIndex !== -1) {
+                        this.events.splice(eventIndex, 1);
+                        this.editModeEvent = null;
+                        this.saveData();
+                        
+                        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    }
+                    
+                } catch (error) {
+                    console.error('予定の切り取り中にエラーが発生しました:', error);
+                    alert('予定の切り取りに失敗しました。');
+                }
+            },
+            
+            pasteFromContext() {
+                if (!this.clipboardEvent) return;
+                
+                const newEvent = {
+                    ...this.clipboardEvent,
+                    id: Date.now() + Math.random(),
+                    dayIndex: this.activeDay
+                };
+                
+                if (this.pasteTargetTime) {
+                    const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+                    newEvent.startTime = this.pasteTargetTime;
+                    newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
                 }
                 
-                if (targetContainer) {
-                    const categoryCardClone = updatedCard.cloneNode(true);
-                    setupCardEventListeners(categoryCardClone);
-                    categoryCardClone.classList.add('moving-in');
-                    targetContainer.appendChild(categoryCardClone);
+                this.events.push(newEvent);
+                this.clipboardEvent = null;
+                this.hideContextMenu();
+                this.saveData();
+            },
+            
+            addEventFromContext() {
+                if (!this.pasteTargetTime) return;
+                
+                const startMinutes = this.timeToMinutes(this.pasteTargetTime);
+                const endTime = this.minutesToTime(startMinutes + 60);
+                
+                this.eventForm = {
+                    title: '',
+                    dayIndex: this.activeDay,
+                    startTime: this.pasteTargetTime,
+                    endTime: endTime,
+                    category: 'travel',
+                    description: ''
+                };
+                
+                this.hideContextMenu();
+                
+                setTimeout(() => {
+                    this.openEventModal(null, true);
+                }, 100);
+            },
+            
+            timeToMinutes(timeString) {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                return hours * 60 + minutes;
+            },
+            
+            minutesToTime(minutes) {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            },
+            
+            timeToPixels(timeString) {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                const totalMinutes = (hours - 4) * 60 + minutes;
+                return totalMinutes * (this.isMobile ? 50/60 : 1);
+            },
+            
+            pixelsToTime(pixels) {
+                const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
+                const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+                const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
+                const minutes = hours === 24 ? 0 : roundedMinutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            },
+            
+            handleScheduleContextMenu(event) {
+                if (!this.isMobile) {
+                    event.preventDefault();
+                    this.showContextMenuAt(event.clientX, event.clientY, event);
                 }
-            }, 600);
+            },
             
-            setTimeout(() => {
-                highlightCategoryTab(newPreference);
-            }, 800);
-        }
-
-        function updateArticlePreferenceVisual(card, newPreference, rating) {
-            const preferenceSpan = card.querySelector('.preference-badge');
+            showContextMenuAt(x, y, event) {
+                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                const timelineHeader = container.querySelector('.timeline-header');
+                const scheduleArea = container.querySelector('.schedule-area');
+                
+                if (!scheduleArea) {
+                    const containerRect = container.getBoundingClientRect();
+                    this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
+                } else {
+                    const containerRect = container.getBoundingClientRect();
+                    const scheduleAreaRect = scheduleArea.getBoundingClientRect();
+                    
+                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                    const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+                    
+                    const snappedY = Math.round(relativeY / 15) * 15;
+                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
+                }
+                
+                this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
+                this.showContextMenu = true;
+                
+                setTimeout(() => {
+                    document.addEventListener('click', this.hideContextMenu, { once: true });
+                }, 100);
+            },
             
-            card.classList.remove('interested', 'neutral', 'not-interested');
-            preferenceSpan.classList.remove('badge-interested', 'badge-neutral', 'badge-not-interested');
+            hideContextMenu() { this.showContextMenu = false; },
             
-            card.classList.add(newPreference);
-            preferenceSpan.classList.add(`badge-${newPreference}`);
+            handleScheduleTouchStart(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                this.touchStartTime = Date.now();
+                this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+                
+                this.longPressTimer = setTimeout(() => {
+                    this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, 500);
+            },
             
-            let userMark = card.querySelector('.user-rated-mark');
-            if (!userMark) {
-                userMark = document.createElement('span');
-                userMark.className = 'user-rated-mark';
-                userMark.textContent = '✓ ユーザー評価';
-                card.appendChild(userMark);
-            }
+            handleScheduleTouchMove(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+                const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+                if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+            },
             
-            if (newPreference === 'interested') {
-                preferenceSpan.textContent = '😍 興味ありそう（ユーザー評価）';
-            } else if (newPreference === 'neutral') {
-                preferenceSpan.textContent = '😐 普通（ユーザー評価）';
-            } else {
-                preferenceSpan.textContent = '😕 興味なさそう（ユーザー評価）';
-            }
+            handleScheduleTouchEnd(event) {
+                if (!this.isMobile) return;
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                this.clearLongPress();
+                if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
+            },
             
-            let ratingInfo = card.querySelector('.article-info[data-rating]');
-            if (!ratingInfo) {
-                const metaDiv = card.querySelector('.article-meta');
-                ratingInfo = document.createElement('span');
-                ratingInfo.className = 'article-info';
-                ratingInfo.setAttribute('data-rating', 'true');
-                metaDiv.appendChild(ratingInfo);
-            }
-            ratingInfo.textContent = `⭐ ${rating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）`;
-        }
-
-        function setupCardEventListeners(card) {
-            const stars = card.querySelectorAll('.star');
-            stars.forEach(star => {
-                const articleId = card.dataset.articleId;
-                const rating = star.dataset.rating;
-                star.onclick = () => setRatingWithRead(articleId, parseInt(rating));
-            });
+            clearLongPress() {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            },
             
-            const title = card.querySelector('.article-title');
-            if (title) {
-                const onclickAttr = title.getAttribute('onclick');
-                if (onclickAttr) {
-                    const match = onclickAttr.match(/'([^']+)'/);
-                    if (match) {
-                        const link = match[1];
-                        title.onclick = () => {
-                            setReadStatus(card.dataset.articleId, true);
-                            window.open(link, '_blank');
+            startResize(event, eventData, direction) {
+                this.startResizeHandler(event, direction, 'mouse');
+            },
+            
+            startResizeTouch(event, eventData, direction) {
+                this.startResizeHandler(event, direction, 'touch');
+            },
+            
+            startResizeHandler(event, direction, type) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
+                const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+                
+                const moveHandler = (e) => {
+                    const coords = type === 'touch' ? e.touches[0] : e;
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = container.getBoundingClientRect();
+                    const timelineHeader = container.querySelector('.timeline-header');
+                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                    const y = coords.clientY - rect.top - headerHeight + container.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+                        this.events[eventIndex].startTime = newTime;
+                    } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+                        this.events[eventIndex].endTime = newTime;
+                    }
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener(moveEvent, moveHandler);
+                    document.removeEventListener(endEvent, endHandler);
+                    
+                    this.isResizeComplete = true;
+                    this.saveData();
+                    
+                    setTimeout(() => {
+                        this.isResizeComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener(moveEvent, moveHandler, { passive: false });
+                document.addEventListener(endEvent, endHandler);
+            },
+            
+            getEventStyle(event) {
+                const startPixels = this.timeToPixels(event.startTime);
+                const endPixels = this.timeToPixels(event.endTime);
+                const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+                
+                return {
+                    top: `${startPixels}px`,
+                    height: `${duration}px`,
+                    minHeight: this.isMobile ? '32px' : '35px'
+                };
+            },
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    travel: 'fas fa-car',
+                    food: 'fas fa-utensils',
+                    sightseeing: 'fas fa-camera',
+                    accommodation: 'fas fa-bed',
+                    custom: 'fas fa-star'
+                };
+                return icons[category] || 'fas fa-calendar';
+            },
+            
+            openDetailModal(event) {
+                const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+                if (!eventData) {
+                    console.error('openDetailModal: 予定データが見つかりません:', event);
+                    alert('予定データが見つかりません');
+                    return;
+                }
+                
+                const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+                const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                
+                this.openModal('詳細', `
+                    <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+                    <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+                    <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+                    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
+                `);
+            },
+            
+            deleteEventFromDetail(eventId) {
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.events.splice(eventIndex, 1);
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の削除中にエラーが発生しました:', error);
+                    alert('予定の削除に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            editEventFromDetail(eventId) {
+                try {
+                    const event = this.events.find(e => String(e.id) === String(eventId));
+                    if (!event) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.closeAllModals();
+                    
+                    setTimeout(() => {
+                        this.openEventModal(event);
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('予定の編集準備中にエラーが発生しました:', error);
+                    alert('予定の編集準備に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            openEventModal(event = null, fromContextMenu = false) {
+                const isEdit = !!event;
+                
+                if (!fromContextMenu) {
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
+                        this.eventForm = {
+                            title: '',
+                            dayIndex: this.activeDay,
+                            startTime: '09:00',
+                            endTime: '10:00',
+                            category: 'travel',
+                            description: ''
                         };
                     }
                 }
-            }
-        }
-
-        function highlightCategoryTab(preference) {
-            const targetTab = document.querySelector(`[data-tab="${preference}"]`);
-            if (targetTab) {
-                targetTab.classList.add('category-highlight');
                 
-                setTimeout(() => {
-                    targetTab.classList.remove('category-highlight');
-                }, 1000);
-            }
-        }
-
-        function showCategoryChangeAnimation(articleId, newPreference) {
-            const card = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (!card) return;
-            
-            const colors = {
-                'interested': '#10B981',
-                'neutral': '#F59E0B',
-                'not-interested': '#EF4444'
-            };
-            
-            for (let i = 0; i < 5; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle-effect';
-                particle.style.background = colors[newPreference];
+                const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+                const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+                const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
                 
-                const rect = card.getBoundingClientRect();
-                particle.style.left = (rect.left + rect.width / 2) + 'px';
-                particle.style.top = (rect.top + rect.height / 2) + 'px';
-                
-                document.body.appendChild(particle);
-                
-                const angle = (i * 72) * Math.PI / 180;
-                const distance = 100;
-                
-                particle.animate([
-                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-                    { 
-                        transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`, 
-                        opacity: 0 
-                    }
-                ], {
-                    duration: 800,
-                    easing: 'ease-out'
-                }).addEventListener('finish', () => {
-                    particle.remove();
-                });
-            }
-        }
-
-        function getPreferenceName(preference) {
-            const names = {
-                'interested': '興味ありそう',
-                'neutral': '普通',
-                'not-interested': '興味なさそう'
-            };
-            return names[preference] || preference;
-        }
-
-        function updateTabCountsFromCurrentData() {
-            if (!currentData || !currentData.articles) return;
-            
-            const articlesByPreference = {
-                interested: currentData.articles.filter(a => a.preference === 'interested'),
-                neutral: currentData.articles.filter(a => a.preference === 'neutral'),
-                'not-interested': currentData.articles.filter(a => a.preference === 'not-interested'),
-                all: currentData.articles
-            };
-            
-            Object.keys(articlesByPreference).forEach(category => {
-                const tabCard = document.querySelector(`[data-tab="${category}"]`);
-                if (tabCard) {
-                    const numberElement = tabCard.querySelector('.stat-number');
-                    numberElement.textContent = articlesByPreference[category].length;
-                }
-            });
-        }
-
-        function updateAllTabCountsForCategory() {
-            if (!currentData || !currentData.articles) return;
-
-            if (currentCategory === 'all') {
-                updateTabCountsFromCurrentData();
-            } else {
-                const filteredArticlesByPreference = {
-                    interested: currentData.articles.filter(a => a.preference === 'interested' && a.category === currentCategory),
-                    neutral: currentData.articles.filter(a => a.preference === 'neutral' && a.category === currentCategory),
-                    'not-interested': currentData.articles.filter(a => a.preference === 'not-interested' && a.category === currentCategory),
-                    all: currentData.articles.filter(a => a.category === currentCategory)
-                };
-
-                Object.keys(filteredArticlesByPreference).forEach(preference => {
-                    const tabCard = document.querySelector(`[data-tab="${preference}"]`);
-                    if (tabCard) {
-                        const numberElement = tabCard.querySelector('.stat-number');
-                        numberElement.textContent = filteredArticlesByPreference[preference].length;
-                    }
-                });
-            }
-        }
-        
-        function renderDashboard(data) {
-            const articles = data.articles;
-            const updateTime = new Date(data.timestamp).toLocaleString('ja-JP');
-            const categories = [...new Set(articles.map(article => article.category))];
-            
-            const articlesByPreference = {
-                interested: articles.filter(a => a.preference === 'interested'),
-                neutral: articles.filter(a => a.preference === 'neutral'),
-                'not-interested': articles.filter(a => a.preference === 'not-interested')
-            };
-            
-            const userRatedCount = articles.filter(a => a.userOverride).length;
-            const readStatus = getReadStatusWithinExpiry();
-            const readCount = Object.keys(readStatus).filter(id => readStatus[id].isRead).length;
-            
-            const html = `
-            <header class="header">
-                <h1>🤖 AI RSS ダッシュボード</h1>
-                <p>AIが厳選したあなた好みのニュースをお届け</p>
-                <div class="header-stats">
-                    <span>最終更新: ${updateTime}</span>
-                    <span>総記事数: ${articles.length}件</span>
-                    <span>ユーザー評価済み: ${userRatedCount}件</span>
-                    <span>既読記事: ${readCount}件</span>
-                    <span>🔄 リアルタイム更新</span>
-                </div>
-            </header>
-
-            <div class="stats-section">
-                <div class="category-filter-wrapper">
-                    <select id="categoryFilter" class="category-filter">
-                        <option value="all">📂 すべて表示</option>
-                        ${categories.map(cat => `<option value="${cat}">🏷️ ${cat}</option>`).join('')}
-                    </select>
-                </div>
-
-                <button class="read-filter-button" onclick="toggleReadFilter()">
-                    📖 既読を非表示
-                </button>
-
-                <div class="stats-tabs">
-                    <div class="stat-tab-card interested ${currentTab === 'interested' ? 'active' : ''}" data-tab="interested">
-                        <div class="stat-number">${articlesByPreference.interested.length}</div>
-                        <div class="stat-label">😍 興味ありそう</div>
+                this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
+                    <div class="mb-3">
+                        <label class="form-label">予定名</label>
+                        <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
                     </div>
-                    <div class="stat-tab-card neutral ${currentTab === 'neutral' ? 'active' : ''}" data-tab="neutral">
-                        <div class="stat-number">${articlesByPreference.neutral.length}</div>
-                        <div class="stat-label">😐 普通</div>
+                    <div class="mb-3">
+                        <label class="form-label">日付</label>
+                        <select class="form-control" id="eventDayIndex">
+                            ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
+                        </select>
                     </div>
-                    <div class="stat-tab-card not-interested ${currentTab === 'not-interested' ? 'active' : ''}" data-tab="not-interested">
-                        <div class="stat-number">${articlesByPreference['not-interested'].length}</div>
-                        <div class="stat-label">😕 興味なさそう</div>
-                    </div>
-                    <div class="stat-tab-card all ${currentTab === 'all' ? 'active' : ''}" data-tab="all">
-                        <div class="stat-number">${articles.length}</div>
-                        <div class="stat-label">📄 総記事数</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="articles-all" class="articles-container ${currentTab === 'all' ? '' : 'hidden'}">
-                ${articles.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-interested" class="articles-container ${currentTab === 'interested' ? '' : 'hidden'}">
-                ${articlesByPreference.interested.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-neutral" class="articles-container ${currentTab === 'neutral' ? '' : 'hidden'}">
-                ${articlesByPreference.neutral.map(article => generateArticleCard(article)).join('')}
-            </div>
-
-            <div id="articles-not-interested" class="articles-container ${currentTab === 'not-interested' ? '' : 'hidden'}">
-                ${articlesByPreference['not-interested'].map(article => generateArticleCard(article)).join('')}
-            </div>`;
-            
-            document.getElementById('dashboard-container').innerHTML = html;
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-container').style.display = 'block';
-            
-            setupEventListeners();
-            restoreUserRatings();
-            restoreReadStatus();
-            setupScrollToTop();
-        }
-        
-        // ✅ 既読ボタン修正版
-        function generateArticleCard(article) {
-            const publishDate = new Date(article.pubDate).toLocaleDateString('ja-JP');
-            const relativeTime = getRelativeTime(article.pubDate);
-            const userRating = article.userRating || 0;
-            const isUserRated = article.userOverride || false;
-            
-            const readStatus = getReadStatusWithinExpiry();
-            const isRead = readStatus[article.id]?.isRead || false;
-            
-            return `
-            <div class="article-card ${article.preference} ${isRead ? 'read' : ''}" data-category="${article.category}" data-article-id="${article.id}">
-                ${isUserRated ? '<span class="user-rated-mark">✓ ユーザー評価</span>' : ''}
-                <button class="read-button ${isRead ? 'read' : ''}" onclick="setReadStatus('${article.id}', ${!isRead})" title="${isRead ? '既読を解除' : '既読にする'}">
-                    ${isRead ? '✓ 既読' : '未読'}
-                </button>
-                <div class="article-content">
-                    <h2 class="article-title" onclick="setReadStatus('${article.id}', true); window.open('${article.link}', '_blank')" title="${article.title}">
-                        ${article.title}
-                    </h2>
-                    <div class="article-meta">
-                        <span class="preference-badge badge-${article.preference}">
-                            ${article.preference === 'interested' ? '😍 興味ありそう' : 
-                              article.preference === 'neutral' ? '😐 普通' : '😕 興味なさそう'}${isUserRated ? '（ユーザー評価）' : ''}
-                        </span>
-                        <span class="article-info">📅 ${publishDate}</span>
-                        <span class="article-info">⏰ ${relativeTime}</span>
-                        <span class="article-info">📰 ${article.feedName}</span>
-                        <span class="article-info">🏷️ ${article.category}</span>
-                        ${isUserRated ? `<span class="article-info" data-rating="true">⭐ ${userRating}/5（${USER_RATING_EXPIRY_DAYS}日間保持）</span>` : ''}
-                    </div>
-                    <div class="article-description">
-                        ${article.description.substring(0, 200)}${article.description.length > 200 ? '...' : ''}
-                    </div>
-                    <div class="rating-section">
-                        <div class="rating-stars">
-                            ${[1,2,3,4,5].map(rating => 
-                                `<span class="star ${rating <= userRating ? 'filled' : ''}" 
-                                      data-rating="${rating}" 
-                                      onclick="setRatingWithRead('${article.id}', ${rating})" 
-                                      title="${rating}つ星">⭐</span>`
-                            ).join('')}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">開始時間</label>
+                                <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
+                            </div>
                         </div>
-                        <div class="rating-label">この記事を評価（⭐⭐で既読）</div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">終了時間</label>
+                                <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>`;
-        }
-
-        function getRelativeTime(dateString) {
-            const now = new Date();
-            const date = new Date(dateString);
-            const diffMs = now - date;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffHours / 24);
+                    <div class="mb-3">
+                        <label class="form-label">カテゴリ</label>
+                        <select class="form-control" id="eventCategory">
+                            <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+                            <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+                            <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
+                            <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+                            <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">詳細</label>
+                        <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
+                    </div>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
+                `);
+            },
             
-            if (diffHours < 1) return '1時間未満前';
-            if (diffHours < 24) return `${diffHours}時間前`;
-            if (diffDays < 7) return `${diffDays}日前`;
-            return '1週間以上前';
-        }
-        
-        function getUserRating(articleId) {
-            const feedback = getUserFeedbackWithinExpiry();
-            return feedback[articleId]?.rating || 0;
-        }
-
-        function showFeedbackMessage(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.textContent = message;
-            messageDiv.className = 'rating-feedback';
+            openStartDateModal() {
+                this.openModal('旅行開始日の変更', `
+                    <div class="mb-3">
+                        <label class="form-label">新しい開始日</label>
+                        <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
+                    </div>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
+                `, 'modal-sm');
+            },
             
-            document.body.appendChild(messageDiv);
-            setTimeout(() => messageDiv.remove(), 3000);
-        }
-
-        function setupScrollToTop() {
-            const existingButton = document.querySelector('.scroll-to-top');
-            if (existingButton) {
-                existingButton.remove();
-            }
-
-            const scrollButton = document.createElement('button');
-            scrollButton.className = 'scroll-to-top';
-            scrollButton.innerHTML = '↑';
-            scrollButton.title = '1番上に戻る';
-            document.body.appendChild(scrollButton);
-
-            window.addEventListener('scroll', () => {
-                if (window.pageYOffset > 300) {
-                    scrollButton.classList.add('visible');
-                } else {
-                    scrollButton.classList.remove('visible');
-                }
-            });
-
-            scrollButton.addEventListener('click', () => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
+            openModal(title, body, footer, size = '') {
+                const modalId = `modal-${Date.now()}`;
+                const modal = { id: modalId, title, body, footer, size };
+                this.modals.push(modal);
+                
+                this.$nextTick(() => {
+                    const modalElement = document.getElementById(modalId);
+                    const bootstrapModal = new bootstrap.Modal(modalElement);
+                    bootstrapModal.show();
+                    
+                    modalElement.addEventListener('hidden.bs.modal', () => {
+                        this.modals = this.modals.filter(m => m.id !== modalId);
+                    }, { once: true });
                 });
-            });
-        }
-        
-        function setupEventListeners() {
-            document.querySelectorAll('.stat-tab-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const tabType = card.dataset.tab;
-                    switchTab(tabType);
+            },
+            
+            saveEventFromModal(eventId) {
+                try {
+                    const title = document.getElementById('eventTitle')?.value || '';
+                    const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
+                                        const startTime = document.getElementById('eventStartTime')?.value || '';
+                    const endTime = document.getElementById('eventEndTime')?.value || '';
+                    const category = document.getElementById('eventCategory')?.value || 'travel';
+                    const description = document.getElementById('eventDescription')?.value || '';
+                    
+                    if (!title.trim() || !startTime || !endTime) {
+                        alert('予定名、開始時間、終了時間は必須です');
+                        return;
+                    }
+                    
+                    if (startTime >= endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                    const eventData = {
+                        id: finalEventId,
+                        title: title.trim(),
+                        dayIndex: dayIndex,
+                        startTime: startTime,
+                        endTime: endTime,
+                        category: category,
+                        description: description.trim()
+                    };
+                    
+                    if (eventId) {
+                        const index = this.events.findIndex(e => String(e.id) === String(eventId));
+                        if (index !== -1) {
+                            this.events[index] = eventData;
+                        } else {
+                            alert('編集対象の予定が見つかりません');
+                            return;
+                        }
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                    
+                } catch (error) {
+                    console.error('予定の保存中にエラーが発生しました:', error);
+                    alert('予定の保存に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            saveStartDateFromModal() {
+                const newStartDate = document.getElementById('newStartDate').value;
+                if (!newStartDate) {
+                    alert('開始日を選択してください');
+                    return;
+                }
+                
+                this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+                this.saveData();
+                this.closeAllModals();
+            },
+            
+            deleteEventById(eventId) {
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.events.splice(eventIndex, 1);
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の削除中にエラーが発生しました:', error);
+                    alert('予定の削除に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            editEventById(eventId) {
+                try {
+                    const event = this.events.find(e => String(e.id) === String(eventId));
+                    if (!event) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.closeAllModals();
+                    
+                    setTimeout(() => {
+                        this.openEventModal(event);
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('予定の編集準備中にエラーが発生しました:', error);
+                    alert('予定の編集準備に失敗しました。もう一度お試しください。');
+                }
+            },
+            
+            closeAllModals() {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    const instance = bootstrap.Modal.getInstance(modal);
+                    if (instance) instance.hide();
                 });
-            });
-
-            document.getElementById('categoryFilter').addEventListener('change', (e) => {
-                currentCategory = e.target.value;
-                applyFilters();
-            });
-        }
-
-        function switchTab(tabType) {
-            currentTab = tabType;
+            },
             
-            document.querySelectorAll('.articles-container').forEach(container => {
-                container.classList.add('hidden');
-                container.classList.remove('show-animation');
-            });
+            saveData() {
+                localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                localStorage.setItem('trippenInitialized', 'true');
+            },
             
-            const targetContainer = document.getElementById('articles-' + tabType);
-            if (targetContainer) {
-                targetContainer.classList.remove('hidden');
-                targetContainer.classList.add('show-animation');
-                targetContainer.querySelectorAll('.article-card').forEach(card => {
-                    card.classList.add('show-animation');
-                });
+            loadData() {
+                try {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    const savedInitialized = localStorage.getItem('trippenInitialized');
+                    
+                    if (savedEvents) {
+                        this.events = JSON.parse(savedEvents);
+                        this.events = this.events.map(event => ({
+                            ...event,
+                            id: String(event.id)
+                        }));
+                    }
+                    
+                    if (savedDays) {
+                        this.tripDays = JSON.parse(savedDays);
+                    }
+                    
+                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
+                    
+                } catch (error) {
+                    console.error('データの読み込みに失敗しました:', error);
+                }
             }
-            
-            document.querySelectorAll('.stat-tab-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            
-            const activeCard = document.querySelector(`[data-tab="${tabType}"]`);
-            if (activeCard) {
-                activeCard.classList.add('active');
-            }
-
-            applyFilters();
-        }
-
-        function applyFilters() {
-            const activeContainer = document.querySelector('.articles-container:not(.hidden)');
-            if (!activeContainer) return;
-
-            const readStatus = getReadStatusWithinExpiry();
-            let visibleCount = 0;
-
-            activeContainer.querySelectorAll('.article-card').forEach(card => {
-                const category = card.dataset.category;
-                const articleId = card.dataset.articleId;
-                const isRead = readStatus[articleId]?.isRead || false;
-                
-                let shouldShow = true;
-                
-                if (currentCategory !== 'all' && category !== currentCategory) {
-                    shouldShow = false;
-                }
-                
-                if (hideReadArticles && isRead) {
-                    shouldShow = false;
-                }
-                
-                if (shouldShow) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            updateAllTabCountsForCategory();
-        }
-
-        function restoreReadStatus() {
-            const readStatus = getReadStatusWithinExpiry();
-            Object.keys(readStatus).forEach(articleId => {
-                const readData = readStatus[articleId];
-                if (readData.isRead) {
-                    updateArticleReadState(articleId, true);
-                }
-            });
-        }
+        },
         
-        function restoreUserRatings() {
-            const userFeedback = getUserFeedbackWithinExpiry();
-            Object.keys(userFeedback).forEach(articleId => {
-                const feedback = userFeedback[articleId];
-                if (feedback.rating) {
-                    const stars = document.querySelectorAll(`[data-article-id="${articleId}"] .star`);
-                    stars.forEach((star, index) => {
-                        star.classList.toggle('filled', index < feedback.rating);
-                    });
+        mounted() {
+            this.detectMobile();
+            this.checkExistingData();
+            this.loadData();
+            
+            window.addEventListener('resize', () => {
+                this.detectMobile();
+                this.updateScrollPosition();
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.context-menu')) {
+                    this.hideContextMenu();
                 }
             });
+            
+            this.$nextTick(() => {
+                this.updateScrollPosition();
+            });
         }
-        
-        document.addEventListener('DOMContentLoaded', loadLatestData);
-        setInterval(loadLatestData, 300000);
-
-        document.addEventListener("visibilitychange", function() {
-            if (!document.hidden) {
-                loadLatestData();
-            }
-        });
-    </script>
+    });
+    const vm = app.mount('#app');
+    window.app = vm;
+</script>
 </body>
 </html>
