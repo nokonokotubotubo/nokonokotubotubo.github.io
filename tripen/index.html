@@ -366,19 +366,16 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
         }
         
-        /* ドラッグ中の状態 */
         .event-block.dragging {
             z-index: 1000;
             opacity: 0.8;
             transform: scale(1.02);
         }
         
-        /* ドラッグ中は切り取りボタンを非表示 */
         .event-block.dragging .event-actions {
             display: none !important;
         }
         
-        /* 1行表示用のコンテンツ（左寄せ） */
         .event-content-inline {
             font-size: 0.9rem;
             line-height: 1.2;
@@ -390,14 +387,12 @@
             font-weight: bold;
         }
         
-        /* 従来の表示要素を非表示 */
         .event-title,
         .event-time,
         .event-description {
             display: none;
         }
         
-        /* ドラッグハンドル */
         .drag-handle-mini {
             position: absolute;
             left: 3px;
@@ -426,7 +421,6 @@
             transform: scale(0.95);
         }
         
-        /* 編集モード時のハンドル強調 */
         .event-block.edit-mode .drag-handle-mini {
             background: #FFD700;
             color: #333;
@@ -439,11 +433,11 @@
         .event-category-accommodation { background: #96CEB4; }
         .event-category-custom { background: #FECA57; }
         
-        /* 修正：切り取りボタンを右下に移動 */
+        /* 修正1：切り取りボタンを左下に配置 */
         .event-actions {
             position: absolute;
             bottom: -8px;
-            right: 5px;
+            left: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -629,7 +623,7 @@
 </head>
 <body>
     <div id="app">
-        <header class="header">
+　　        <header class="header">
             <div class="container">
                 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
                 <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
@@ -759,14 +753,12 @@
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
                                  @click="handleEventClick($event, event)">
                                 
-                                <!-- ドラッグハンドル -->
                                 <div class="drag-handle-mini"
                                      @mousedown="handleDragHandleMouseDown($event, event)"
                                      title="ドラッグして移動">
                                     <i class="fas fa-grip-vertical"></i>
                                 </div>
                                 
-                                <!-- 1行表示コンテンツ -->
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.inlineText }}
@@ -874,14 +866,12 @@
                                  @click="handleEventClick($event, event)"
                                  @touchstart="handleEventTouchStart($event, event)">
                                 
-                                <!-- ドラッグハンドル -->
                                 <div class="drag-handle-mini"
                                      @touchstart="handleDragHandleTouchStart($event, event)"
                                      title="ドラッグして移動">
                                     <i class="fas fa-grip-vertical"></i>
                                 </div>
                                 
-                                <!-- 1行表示コンテンツ -->
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.inlineText }}
@@ -1006,7 +996,8 @@
                     longPressExecuted: false,
                     eventTouchOffset: { x: 0, y: 0 },
                     draggingEvent: null,
-                    isDragComplete: false, // ドラッグ完了フラグを追加
+                    isDragComplete: false,
+                    isResizeComplete: false, // 修正2：リサイズ完了フラグを追加
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1108,7 +1099,6 @@
                     else this.setActiveDay(index);
                 },
                 
-                // タブドラッグ処理
                 handleTabDragStart(event, index) {
                     this.draggingTabIndex = index;
                     event.dataTransfer.effectAllowed = 'move';
@@ -1162,7 +1152,6 @@
                     this.saveData();
                 },
                 
-                // getCurrentDayEvents メソッド
                 getCurrentDayEvents() {
                     return this.events
                         .filter(event => event.dayIndex === this.activeDay)
@@ -1175,7 +1164,6 @@
                         });
                 },
                 
-                // 修正：ドラッグハンドル用のイベントハンドラー
                 handleDragHandleMouseDown(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -1198,20 +1186,22 @@
                     this.startDragMoveTouch(event, eventData);
                 },
                 
-                // 修正：予定クリックハンドリング
+                // 修正2：リサイズ完了後のクリックも無視
                 handleEventClick(event, eventData) {
-                    // ドラッグ完了直後のクリックは無視
                     if (this.isDragComplete) {
                         this.isDragComplete = false;
                         return;
                     }
                     
-                    // ドラッグ中のクリックは無視
+                    if (this.isResizeComplete) {
+                        this.isResizeComplete = false;
+                        return;
+                    }
+                    
                     if (this.draggingEvent) {
                         return;
                     }
                     
-                    // ハンドルクリック以外での動作
                     if (!event.target.closest('.drag-handle-mini') && 
                         !event.target.closest('.event-action-btn') && 
                         !event.target.closest('.resize-handle')) {
@@ -1255,12 +1245,10 @@
                         document.removeEventListener('mousemove', moveHandler);
                         document.removeEventListener('mouseup', endHandler);
                         
-                        // 修正：ドラッグ終了処理
                         this.draggingEvent = null;
                         this.isDragComplete = true;
                         this.saveData();
                         
-                        // 少し遅れてドラッグ完了フラグをリセット
                         setTimeout(() => {
                             this.isDragComplete = false;
                         }, 150);
@@ -1270,7 +1258,6 @@
                     document.addEventListener('mouseup', endHandler);
                 },
                 
-                // モバイル日程選択処理
                 handleMobileDayTouchStart(event, index) {
                     this.touchStartTime = Date.now();
                     this.longPressTimer = setTimeout(() => {
@@ -1315,7 +1302,6 @@
                     setTimeout(() => index !== null && this.deleteDay(index), 300);
                 },
                 
-                // スクロール処理
                 updateScrollPosition() {
                     const container = this.$refs.mobileScrollContainer;
                     if (!container) return;
@@ -1329,19 +1315,15 @@
                     container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
                 },
                 
-                // 修正：モバイルイベント処理
                 handleEventTouchStart(event, eventData) {
-                    // ドラッグ完了直後のタッチは無視
                     if (this.isDragComplete) {
                         return;
                     }
                     
-                    // ドラッグ中のタッチは無視
                     if (this.draggingEvent) {
                         return;
                     }
                     
-                    // ハンドル以外からのタッチは無効、クリックのみ処理
                     if (!event.target.closest('.drag-handle-mini') && 
                         !event.target.closest('.event-action-btn') && 
                         !event.target.closest('.resize-handle')) {
@@ -1400,13 +1382,11 @@
                         document.removeEventListener('touchmove', moveHandler);
                         document.removeEventListener('touchend', endHandler);
                         
-                        // 修正：モバイルドラッグ終了処理（編集モードを解除）
                         this.draggingEvent = null;
-                        this.editModeEvent = null; // 通常モードに戻す
+                        this.editModeEvent = null;
                         this.isDragComplete = true;
                         this.saveData();
                         
-                        // 少し遅れてドラッグ完了フラグをリセット
                         setTimeout(() => {
                             this.isDragComplete = false;
                         }, 150);
@@ -1430,7 +1410,6 @@
                     }
                 },
                 
-                // 切り取りボタン処理
                 handleCutButtonClick(event, eventData) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -1477,7 +1456,6 @@
                     this.saveData();
                 },
                 
-                // 時間変換ヘルパー
                 timeToMinutes(timeString) {
                     const [hours, minutes] = timeString.split(':').map(Number);
                     return hours * 60 + minutes;
@@ -1503,7 +1481,6 @@
                     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 },
                 
-                // コンテキストメニュー
                 handleScheduleContextMenu(event) {
                     if (!this.isMobile) {
                         event.preventDefault();
@@ -1526,7 +1503,6 @@
                 
                 hideContextMenu() { this.showContextMenu = false; },
                 
-                // スケジュールタッチ処理
                 handleScheduleTouchStart(event) {
                     if (!this.isMobile) return;
                     
@@ -1573,7 +1549,6 @@
                     }
                 },
                 
-                // リサイズ処理
                 startResize(event, eventData, direction) {
                     this.startResizeHandler(event, direction, 'mouse');
                 },
@@ -1582,6 +1557,7 @@
                     this.startResizeHandler(event, direction, 'touch');
                 },
                 
+                // 修正2：リサイズ完了フラグを設定
                 startResizeHandler(event, direction, type) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -1610,14 +1586,19 @@
                     const endHandler = () => {
                         document.removeEventListener(moveEvent, moveHandler);
                         document.removeEventListener(endEvent, endHandler);
+                        
+                        this.isResizeComplete = true;
                         this.saveData();
+                        
+                        setTimeout(() => {
+                            this.isResizeComplete = false;
+                        }, 150);
                     };
                     
                     document.addEventListener(moveEvent, moveHandler, { passive: false });
                     document.addEventListener(endEvent, endHandler);
                 },
                 
-                // ヘルパー関数
                 getEventStyle(event) {
                     const startPixels = this.timeToPixels(event.startTime);
                     const endPixels = this.timeToPixels(event.endTime);
@@ -1641,7 +1622,6 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                // モーダル処理（変更なし）
                 openDetailModal(event) {
                     const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
                     if (!eventData) {
@@ -1949,7 +1929,7 @@
                             this.tripDays = JSON.parse(savedDays);
                         }
                         
-                                                if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        if (savedInitialized === 'true' && this.tripDays.length > 0) {
                             this.tripInitialized = true;
                         }
                         
