@@ -3,72 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>縺ｨ繧翫▲縺ｺ繧薙■繧�ｓ - 譌�｡御ｺ亥ｮ夊ｪｿ謨ｴ繧ｵ繧､繝�</title>
+    <title>とりっぺんちゃん - 旅行予定調整サイト</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root {
-            --primary: #87CEEB;
-            --secondary: #B0E0E6;
-            --accent: #4682B4;
-            --text: #2F4F4F;
-            --bg: #F0F8FF;
-            --time-bg: #E6F3FF;
-            --transition: all 0.3s ease;
-            --radius: 15px;
-            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --primary-color: #87CEEB;
+            --secondary-color: #B0E0E6;
+            --accent-color: #4682B4;
+            --text-color: #2F4F4F;
+            --bg-color: #F0F8FF;
+            --time-grid-color: #E6F3FF;
         }
         
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
         
-        html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
         
         body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: system-ui, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
         }
         
-        #app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
         
         .header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             padding: 15px 0;
             text-align: center;
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             flex-shrink: 0;
         }
         
-        .penguin-icon { font-size: 2rem; margin-right: 10px; }
+        .penguin-icon {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
         
-        .desktop-ui, .mobile-ui { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* ===== デスクトップ専用スタイル ===== */
+        .desktop-ui {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
         
         .day-tabs-container {
             overflow-x: auto;
+            white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            scrollbar-color: var(--secondary) transparent;
+            scrollbar-color: var(--secondary-color) transparent;
+            pointer-events: auto;
             flex-shrink: 0;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .day-tabs-container::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 3px;
         }
         
         .day-tabs {
             background: white;
-            border-radius: var(--radius) var(--radius) 0 0;
+            border-radius: 15px 15px 0 0;
             margin: 20px 0 0 0;
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
+            flex-wrap: nowrap;
             min-width: max-content;
+            pointer-events: auto;
         }
         
         .day-tabs .nav-item {
-            transition: var(--transition);
+            transition: all 0.3s ease;
             cursor: move;
             flex-shrink: 0;
             position: relative;
+            pointer-events: auto;
         }
         
         .day-tabs .nav-item.dragging-tab {
@@ -76,34 +112,53 @@
             transform: scale(1.05) rotate(3deg);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             z-index: 999;
-            border: 3px dashed var(--accent);
+            border: 3px dashed var(--accent-color);
             background: rgba(135, 206, 235, 0.1);
-            border-radius: var(--radius);
+            border-radius: 15px;
         }
         
         .day-tabs .nav-item.drag-over {
             background: rgba(135, 206, 235, 0.2);
             transform: scale(1.02);
-            border: 2px solid var(--accent);
-            border-radius: var(--radius);
+            border: 2px solid var(--accent-color);
+            border-radius: 15px;
             box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
+        }
+        
+        .day-tabs .nav-item.dragging-tab .nav-link {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+            animation: drag-pulse 1s infinite alternate;
+        }
+        
+        @keyframes drag-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(135, 206, 235, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(135, 206, 235, 0); }
         }
         
         .day-tabs .nav-link {
             border: none;
-            color: var(--text);
+            color: var(--text-color);
             padding: 12px 20px 12px 30px;
-            border-radius: var(--radius) var(--radius) 0 0;
+            border-radius: 15px 15px 0 0;
             white-space: nowrap;
             text-align: center;
             min-width: 120px;
-            transition: var(--transition);
+            transition: all 0.3s ease;
             position: relative;
             display: block;
         }
         
-        .day-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: var(--shadow); }
-        .day-tabs .nav-link:hover { background: var(--secondary); color: white; }
+        .day-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .day-tabs .nav-link:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
         
         .drag-handle {
             position: absolute;
@@ -113,6 +168,57 @@
             color: rgba(255, 255, 255, 0.6);
             font-size: 0.8rem;
             cursor: grab;
+        }
+        
+        .tab-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .date-display {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        
+        .date-display:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .editable-date {
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .editable-date:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .date-edit-icon {
+            opacity: 0;
+            font-size: 0.6rem;
+            margin-left: 4px;
+            transition: opacity 0.2s ease;
+        }
+        
+        .editable-date:hover .date-edit-icon {
+            opacity: 0.7;
+        }
+        
+        .day-tabs .nav-link.add-day-btn {
+            background: transparent !important;
+            color: var(--accent-color) !important;
+            border: none !important;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .day-tabs .nav-link.add-day-btn:hover {
+            background: rgba(70, 130, 180, 0.1) !important;
+            color: var(--accent-color) !important;
         }
         
         .delete-day-btn {
@@ -130,21 +236,40 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.2s ease;
+            pointer-events: auto;
         }
         
-        .delete-day-btn:hover { background: rgba(255, 99, 99, 1); transform: scale(1.1); }
-        .day-tabs .nav-link:hover .delete-day-btn { display: flex; }
+        .delete-day-btn:hover {
+            background: rgba(255, 99, 99, 1);
+            transform: scale(1.1);
+        }
+        
+        .day-tabs .nav-link:hover .delete-day-btn {
+            display: flex;
+        }
+        
+        /* ===== モバイル専用スタイル ===== */
+        .mobile-ui {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
         
         .mobile-day-selector {
             background: white;
             padding: 12px 0;
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             flex-shrink: 0;
+            margin-bottom: 0;
             position: relative;
         }
         
-        .mobile-scroll-container { position: relative; padding: 0 50px; }
+        .mobile-scroll-container {
+            position: relative;
+            padding: 0 50px;
+        }
         
         .mobile-day-buttons {
             display: flex;
@@ -152,32 +277,60 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            scrollbar-color: var(--secondary) transparent;
+            scrollbar-color: var(--secondary-color) transparent;
             padding: 0 15px 10px 15px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 2px;
+        }
+        
+        .mobile-day-buttons::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
         }
         
         .mobile-day-btn {
             min-width: 100px;
             height: 60px;
-            border: 2px solid var(--secondary);
+            border: 2px solid var(--secondary-color);
             background: white;
-            border-radius: var(--radius);
+            border-radius: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font: bold 0.9rem/1 sans-serif;
-            color: var(--text);
-            transition: var(--transition);
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-color);
+            transition: all 0.3s ease;
             flex-shrink: 0;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+            -webkit-user-select: none;
             touch-action: manipulation;
         }
         
-        .mobile-day-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .mobile-day-btn:active { transform: scale(0.95); }
+        .mobile-day-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
         
+        .mobile-day-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* スクロールナビゲーションボタン */
         .mobile-scroll-nav {
             position: absolute;
             top: 50%;
@@ -186,26 +339,64 @@
             height: 40px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.9);
-            border: 2px solid var(--secondary);
-            color: var(--accent);
+            border: 2px solid var(--secondary-color);
+            color: var(--accent-color);
             font-size: 1rem;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.3s ease;
             z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
-        .mobile-scroll-nav:active { transform: translateY(-50%) scale(0.9); }
-        .mobile-scroll-nav.left { left: 5px; }
-        .mobile-scroll-nav.right { right: 5px; }
-        .mobile-scroll-nav.disabled { opacity: 0.3; pointer-events: none; }
+        .mobile-scroll-nav:active {
+            transform: translateY(-50%) scale(0.9);
+        }
         
+        .mobile-scroll-nav.left {
+            left: 5px;
+        }
+        
+        .mobile-scroll-nav.right {
+            right: 5px;
+        }
+        
+        .mobile-scroll-nav.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .mobile-scroll-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+        }
+        
+        .mobile-scroll-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: background 0.3s ease;
+        }
+        
+        .mobile-scroll-dot.active {
+            background: var(--accent-color);
+        }
+        
+        /* モバイル専用ポップアップメニュー */
         .mobile-popup-menu {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: 2000;
             display: flex;
@@ -213,11 +404,14 @@
             justify-content: center;
             opacity: 0;
             visibility: hidden;
-            transition: var(--transition);
+            transition: all 0.3s ease;
             -webkit-tap-highlight-color: transparent;
         }
         
-        .mobile-popup-menu.show { opacity: 1; visibility: visible; }
+        .mobile-popup-menu.show {
+            opacity: 1;
+            visibility: visible;
+        }
         
         .mobile-popup-content {
             background: white;
@@ -229,16 +423,27 @@
             text-align: center;
         }
         
-        .mobile-popup-title { font: bold 1.2rem/1 sans-serif; color: var(--accent); margin-bottom: 20px; }
-        .mobile-popup-buttons { display: flex; flex-direction: column; gap: 15px; }
+        .mobile-popup-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+        
+        .mobile-popup-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
         
         .mobile-popup-btn {
             padding: 15px 20px;
             border: none;
-            border-radius: var(--radius);
-            font: bold 1rem/1 sans-serif;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -247,11 +452,29 @@
             touch-action: manipulation;
         }
         
-        .mobile-popup-btn.primary { background: var(--primary); color: white; }
-        .mobile-popup-btn.success { background: #28a745; color: white; }
-        .mobile-popup-btn.danger { background: #dc3545; color: white; }
-        .mobile-popup-btn.secondary { background: #6c757d; color: white; }
-        .mobile-popup-btn:active { transform: scale(0.95); }
+        .mobile-popup-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .mobile-popup-btn.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .mobile-popup-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .mobile-popup-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .mobile-popup-btn:active {
+            transform: scale(0.95);
+        }
         
         .mobile-fab {
             position: fixed;
@@ -260,21 +483,24 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: var(--accent);
+            background: var(--accent-color);
             border: none;
             color: white;
             font-size: 1.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: var(--transition);
+            transition: all 0.3s ease;
             z-index: 1000;
             -webkit-tap-highlight-color: transparent;
         }
         
-        .mobile-fab:active { transform: scale(0.9); }
+        .mobile-fab:active {
+            transform: scale(0.9);
+        }
         
+        /* ===== 共通スタイル ===== */
         .timeline-container {
             background: white;
-            border-radius: 0 0 var(--radius) var(--radius);
+            border-radius: 0 0 15px 15px;
             margin: 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             flex: 1;
@@ -284,7 +510,7 @@
         }
         
         .timeline-header {
-            background: var(--secondary);
+            background: var(--secondary-color);
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
@@ -292,13 +518,22 @@
             flex-shrink: 0;
         }
         
-        .timeline-content { flex: 1; overflow: hidden; }
-        .timeline-scroll-container { height: 100%; display: flex; overflow-y: auto; overflow-x: hidden; }
+        .timeline-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .timeline-scroll-container {
+            height: 100%;
+            display: flex;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
         
         .time-axis {
             width: 80px;
-            background: var(--time-bg);
-            border-right: 2px solid var(--secondary);
+            background: var(--time-grid-color);
+            border-right: 2px solid var(--secondary-color);
             flex-shrink: 0;
             height: 1200px;
         }
@@ -308,13 +543,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font: bold 0.9rem/1 sans-serif;
-            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-color);
             border-bottom: 1px solid #e0e0e0;
         }
         
-        .schedule-area { flex: 1; position: relative; height: 1200px; }
-        .schedule-grid { position: absolute; inset: 0; height: 1200px; }
+        .schedule-area {
+            flex: 1;
+            position: relative;
+            height: 1200px;
+        }
+        
+        .schedule-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1200px;
+        }
         
         .grid-line {
             height: 60px;
@@ -322,7 +569,9 @@
             position: relative;
         }
         
-        .grid-line:nth-child(odd) { background: rgba(135, 206, 235, 0.05); }
+        .grid-line:nth-child(odd) {
+            background: rgba(135, 206, 235, 0.05);
+        }
         
         .quarter-line {
             position: absolute;
@@ -340,91 +589,28 @@
             position: absolute;
             left: 10px;
             right: 10px;
-            background: var(--primary);
+            background: var(--primary-color);
             color: white;
             border-radius: 8px;
-            padding: 8px 12px 8px 25px;
+            padding: 8px 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
-            transition: var(--transition);
+            transition: all 0.3s ease;
             z-index: 10;
             user-select: none;
+            -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
-            min-height: 35px;
-            display: flex;
-            align-items: center;
         }
         
         .event-block:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border-color: var(--accent);
+            border-color: var(--accent-color);
         }
         
         .event-block.edit-mode {
             border-color: #FFD700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
-        }
-        
-        .event-block.dragging {
-            z-index: 1000;
-            opacity: 0.8;
-            transform: scale(1.02);
-        }
-        
-        .event-block.dragging .event-actions {
-            display: none !important;
-        }
-        
-        .event-content-inline {
-            font-size: 0.9rem;
-            line-height: 1.2;
-            text-align: left;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            width: 100%;
-            font-weight: bold;
-        }
-        
-        .event-title,
-        .event-time,
-        .event-description {
-            display: none;
-        }
-        
-        .drag-handle-mini {
-            position: absolute;
-            left: 3px;
-            top: 3px;
-            width: 16px;
-            height: 16px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: grab;
-            font-size: 0.7rem;
-            color: rgba(0, 0, 0, 0.6);
-            transition: var(--transition);
-            z-index: 15;
-        }
-        
-        .drag-handle-mini:hover {
-            background: rgba(255, 255, 255, 1);
-            transform: scale(1.1);
-        }
-        
-        .drag-handle-mini:active {
-            cursor: grabbing;
-            transform: scale(0.95);
-        }
-        
-        .event-block.edit-mode .drag-handle-mini {
-            background: #FFD700;
-            color: #333;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
         .event-category-travel { background: #FF6B6B; }
@@ -433,11 +619,33 @@
         .event-category-accommodation { background: #96CEB4; }
         .event-category-custom { background: #FECA57; }
         
-        /* 菫ｮ豁｣1�壼�繧雁叙繧翫�繧ｿ繝ｳ繧貞ｷｦ荳九↓驟咲ｽｮ */
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        
+        .title-text {
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .event-time {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .event-description {
+            font-size: 0.75rem;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        
         .event-actions {
             position: absolute;
             bottom: -8px;
-            left: 2px;
+            left: 5px;
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -451,17 +659,23 @@
             color: white;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
         }
         
-        .event-action-btn.cut { background: #FF6B6B; border: 2px solid #fff; }
-        .event-action-btn.cut:hover { background: #FF5252; transform: scale(1.1); }
+        .event-action-btn.cut {
+            background: #FF6B6B;
+            border: 2px solid #fff;
+        }
+        
+        .event-action-btn.cut:hover {
+            background: #FF5252;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
         
         .edit-mode-indicator {
             position: absolute;
@@ -475,7 +689,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font: bold 0.8rem/1 sans-serif;
+            font-size: 0.8rem;
+            font-weight: bold;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
@@ -489,28 +704,50 @@
             opacity: 0;
             visibility: hidden;
             transform: scale(0.8);
-            transition: var(--transition);
+            transition: all 0.2s ease;
             min-width: 150px;
         }
         
-        .context-menu.show { opacity: 1; visibility: visible; transform: scale(1); }
+        .context-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
         
         .context-menu-item {
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
-            transition: var(--transition);
+            transition: background 0.2s ease;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        .context-menu-item:last-child { border-bottom: none; }
-        .context-menu-item:hover { background: #f5f5f5; }
-        .context-menu-item.paste { color: #4CAF50; }
-        .context-menu-item.paste:hover { background: #e8f5e8; }
-        .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
-        .context-menu-item.disabled:hover { background: transparent; }
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+        
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .context-menu-item.paste {
+            color: #4CAF50;
+        }
+        
+        .context-menu-item.paste:hover {
+            background: #e8f5e8;
+        }
+        
+        .context-menu-item.disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .context-menu-item.disabled:hover {
+            background: transparent;
+        }
         
         .resize-handle {
             position: absolute;
@@ -519,35 +756,57 @@
             height: 10px;
             background: rgba(255, 215, 0, 0.8);
             opacity: 0;
-            transition: var(--transition);
+            transition: opacity 0.3s ease;
             cursor: ns-resize;
         }
         
-        .resize-handle.top { top: 0; border-radius: 8px 8px 0 0; }
-        .resize-handle.bottom { bottom: 0; border-radius: 0 0 8px 8px; }
-        .event-block.edit-mode .resize-handle { opacity: 1; }
+        .resize-handle.top {
+            top: 0;
+            border-radius: 8px 8px 0 0;
+        }
         
-        .modal-content { border-radius: var(--radius); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .modal-header { background: var(--primary); color: white; border-radius: var(--radius) var(--radius) 0 0; }
+        .resize-handle.bottom {
+            bottom: 0;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .event-block.edit-mode .resize-handle {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
         
         .btn-primary {
-            background: var(--accent);
+            background: var(--accent-color);
             border: none;
             border-radius: 20px;
             padding: 8px 20px;
-            transition: var(--transition);
+            transition: all 0.3s ease;
         }
         
-        .btn-primary:hover { background: var(--text); transform: translateY(-2px); }
+        .btn-primary:hover {
+            background: var(--text-color);
+            transform: translateY(-2px);
+        }
         
         .form-control {
             border-radius: 10px;
             border: 2px solid #e0e0e0;
-            transition: var(--transition);
+            transition: border-color 0.3s ease;
         }
         
         .form-control:focus {
-            border-color: var(--primary);
+            border-color: var(--primary-color);
             box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
         }
         
@@ -558,19 +817,51 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: var(--accent);
+            background: var(--accent-color);
             border: none;
             color: white;
             font-size: 1.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: var(--transition);
+            transition: all 0.3s ease;
             z-index: 1000;
         }
         
-        .add-event-btn:hover { transform: scale(1.1); background: var(--primary); }
+        .add-event-btn:hover {
+            transform: scale(1.1);
+            background: var(--primary-color);
+        }
         
-        .trip-setup { text-align: center; padding: 40px 20px; }
-        .trip-setup h2 { color: var(--accent); margin-bottom: 30px; }
+        .edit-mode-help {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            max-width: 280px;
+        }
+        
+        .edit-mode-help.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .trip-setup {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .trip-setup h2 {
+            color: var(--accent-color);
+            margin-bottom: 30px;
+        }
         
         .date-input-group {
             display: flex;
@@ -583,81 +874,67 @@
         
         .date-input-group input[type="date"] {
             padding: 10px;
-            border: 2px solid var(--secondary);
+            border: 2px solid var(--secondary-color);
             border-radius: 8px;
             font-size: 1rem;
         }
         
-        .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
+        .date-input-group span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
         
         @media (max-width: 768px) {
             .time-axis { width: 60px; height: 1000px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
             .grid-line { height: 50px; }
-            .schedule-grid, .schedule-area { height: 1000px; }
-            .event-block { padding: 6px 8px 6px 22px; min-height: 32px; }
-            .event-content-inline { font-size: 0.8rem; }
+            .schedule-grid { height: 1000px; }
+            .schedule-area { height: 1000px; }
+            .event-block { padding: 6px 8px; }
+            .event-title { font-size: 0.8rem; }
+            .event-time { font-size: 0.7rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
-            
-            .drag-handle-mini {
-                width: 14px;
-                height: 14px;
-                font-size: 0.6rem;
-                left: 2px;
-                top: 2px;
-            }
-            
-            .event-action-btn {
-                width: 35px;
-                height: 35px;
-                font-size: 0.9rem;
-            }
-            
-            .edit-mode-indicator {
-                width: 28px;
-                height: 28px;
-                font-size: 0.9rem;
-            }
         }
     </style>
 </head>
 <body>
     <div id="app">
-縲縲        <header class="header">
+        <header class="header">
             <div class="container">
-                <h1><i class="fas fa-snowflake penguin-icon"></i>縺ｨ繧翫▲縺ｺ繧薙■繧�ｓ</h1>
-                <p class="mb-0">縺ｿ繧薙↑縺ｧ讌ｽ縺励＞譌�｡瑚ｨ育判繧堤ｫ九※繧医≧��</p>
+                <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+                <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
             </div>
         </header>
         
         <div v-if="!tripInitialized" class="container">
             <div class="trip-setup">
-                <h2><i class="fas fa-calendar-alt"></i> 譌�｡梧律遞九ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞</h2>
-                <p>譌�｡後�髢句ｧ区律縺ｨ邨ゆｺ�律繧帝∈謚槭＠縺ｦ縲√せ繧ｱ繧ｸ繝･繝ｼ繝ｫ繧剃ｽ懈�縺励∪縺励ｇ縺�ｼ�</p>
+                <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
+                <p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
                 
                 <div class="date-input-group">
-                    <label for="startDate"><strong>髢句ｧ区律:</strong></label>
+                    <label for="startDate"><strong>開始日:</strong></label>
                     <input type="date" id="startDate" v-model="tripStartDate" :min="today">
-                    <span>縲�</span>
-                    <label for="endDate"><strong>邨ゆｺ�律:</strong></label>
+                    <span>〜</span>
+                    <label for="endDate"><strong>終了日:</strong></label>
                     <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
                 </div>
                 
                 <div class="mt-4">
                     <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
-                        <i class="fas fa-check"></i> 譌�｡後せ繧ｱ繧ｸ繝･繝ｼ繝ｫ繧剃ｽ懈�
+                        <i class="fas fa-check"></i> 旅行スケジュールを作成
                     </button>
                 </div>
                 
                 <div class="mt-3">
                     <button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
-                        <i class="fas fa-folder-open"></i> 譌｢蟄倥�繝��繧ｿ繧定ｪｭ縺ｿ霎ｼ繧
+                        <i class="fas fa-folder-open"></i> 既存のデータを読み込む
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- 繝�せ繧ｯ繝医ャ繝怜ｰら畑UI -->
+        <!-- ===== デスクトップ専用UI ===== -->
         <div v-if="tripInitialized && !isMobile" class="desktop-ui">
             <div class="day-tabs-container">
                 <ul class="nav nav-tabs day-tabs">
@@ -678,19 +955,20 @@
                             <div class="drag-handle">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
-                            <div>
-                                <div>{{ day.dayNumber }}譌･逶ｮ</div>
+                            <div class="tab-content-wrapper">
+                                <div>{{ day.dayNumber }}日目</div>
                                 <small @click.stop="handleDateClick(index)" 
-                                       :class="{ 'editable-date': index === 0 }">
+                                       :class="{ 'editable-date': index === 0 }"
+                                       class="date-display">
                                     {{ day.date }}
-                                    <i v-if="index === 0" class="fas fa-edit"></i>
+                                    <i v-if="index === 0" class="fas fa-edit date-edit-icon"></i>
                                 </small>
                             </div>
                             <button class="delete-day-btn" 
                                     v-if="tripDays.length > 1"
                                     @click.stop.prevent="deleteDay(index)"
                                     @mousedown.stop
-                                    title="譌･遞九ｒ蜑企勁">
+                                    title="日程を削除">
                                 <i class="fas fa-times"></i>
                             </button>
                         </a>
@@ -700,13 +978,13 @@
                            @click.prevent.stop="addDayImmediately" 
                            @mousedown.stop
                            href="#" 
-                           title="譌･遞九ｒ霑ｽ蜉�">
+                           title="日程を追加">
                             <div class="drag-handle" style="visibility: hidden;">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
-                            <div>
-                                <div style="font-size: 1.5rem; font-weight: bold;">��</div>
-                                <small style="visibility: hidden;">譌･遞玖ｿｽ蜉�</small>
+                            <div class="tab-content-wrapper">
+                                <div style="font-size: 1.5rem; font-weight: bold;">＋</div>
+                                <small style="visibility: hidden;">日程追加</small>
                             </div>
                         </a>
                     </li>
@@ -717,7 +995,7 @@
                 <div class="timeline-header">
                     <h5>
                         <i class="fas fa-calendar-day"></i>
-                        {{ tripDays[activeDay]?.dayNumber }}譌･逶ｮ縺ｮ莠亥ｮ�
+                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
                 </div>
@@ -731,7 +1009,7 @@
                         </div>
                         
                         <div class="schedule-area" 
-                             @click="editModeEvent = null"
+                             @click="handleScheduleClick"
                              @contextmenu="handleScheduleContextMenu">
                             <div class="schedule-grid">
                                 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
@@ -746,38 +1024,41 @@
                                  :key="event.id"
                                  :class="[
                                      'event-category-' + event.category,
-                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @contextmenu.prevent="handleEventContextMenu($event, event)"
-                                 @click="handleEventClick($event, event)">
-                                
-                                <div class="drag-handle-mini"
-                                     @mousedown="handleDragHandleMouseDown($event, event)"
-                                     title="繝峨Λ繝�げ縺励※遘ｻ蜍�">
-                                    <i class="fas fa-grip-vertical"></i>
-                                </div>
-                                
-                                <div class="event-content-inline">
-                                    <i :class="getCategoryIcon(event.category)"></i>
-                                    {{ event.inlineText }}
-                                </div>
+                                 @contextmenu.prevent
+                                 @contextmenu="handleEventContextMenu($event, event)"
+                                 @mousedown="handleEventMouseDown($event, event)">
                                 
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
-                                            @click="handleCutButtonClick($event, event)"
+                                            @click="cutEvent(event)"
                                             @mousedown.stop
-                                            title="蛻�ｊ蜿悶ｊ">
+                                            @touchstart.stop
+                                            title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
                                 </div>
                                 
-                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">笨�</div>
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    ✎
+                                </div>
                                 
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="startResize($event, event, 'top')"></div>
+                                
+                                <div class="event-title">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
+                                </div>
+                                <div class="event-time">
+                                    {{ event.startTime }} - {{ event.endTime }}
+                                </div>
+                                <div class="event-description" v-if="event.description">
+                                    {{ event.description }}
+                                </div>
                                 
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -793,7 +1074,7 @@
             </button>
         </div>
         
-        <!-- 繝｢繝舌う繝ｫ蟆ら畑UI -->
+        <!-- ===== モバイル専用UI ===== -->
         <div v-if="tripInitialized && isMobile" class="mobile-ui">
             <div class="mobile-day-selector">
                 <div class="mobile-scroll-container">
@@ -808,10 +1089,10 @@
                                 :key="`mobile-day-${day.id || index}`"
                                 class="mobile-day-btn"
                                 :class="{ active: activeDay === index }"
-                                @click="setActiveDay(index)"
+                                @click="handleMobileDayClick(index)"
                                 @touchstart="handleMobileDayTouchStart($event, index)"
                                 @touchend="handleMobileDayTouchEnd($event, index)">
-                            <div>{{ day.dayNumber }}譌･逶ｮ</div>
+                            <div>{{ day.dayNumber }}日目</div>
                             <small>{{ day.date }}</small>
                         </button>
                     </div>
@@ -822,13 +1103,20 @@
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
+                
+                <div class="mobile-scroll-indicator" v-if="tripDays.length > 3">
+                    <div v-for="(dot, index) in scrollDots" 
+                         :key="`dot-${index}`"
+                         class="mobile-scroll-dot"
+                         :class="{ active: currentScrollDot === index }"></div>
+                </div>
             </div>
             
             <div class="timeline-container">
                 <div class="timeline-header">
                     <h5>
                         <i class="fas fa-calendar-day"></i>
-                        {{ tripDays[activeDay]?.dayNumber }}譌･逶ｮ縺ｮ莠亥ｮ�
+                        {{ tripDays[activeDay]?.dayNumber }}日目の予定
                         <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
                     </h5>
                 </div>
@@ -842,7 +1130,7 @@
                         </div>
                         
                         <div class="schedule-area" 
-                             @click="editModeEvent = null"
+                             @click="handleScheduleClick"
                              @touchstart="handleScheduleTouchStart"
                              @touchend="handleScheduleTouchEnd"
                              @touchmove="handleScheduleTouchMove">
@@ -859,38 +1147,40 @@
                                  :key="event.id"
                                  :class="[
                                      'event-category-' + event.category,
-                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
-                                 @click="handleEventClick($event, event)"
+                                 @contextmenu.prevent
                                  @touchstart="handleEventTouchStart($event, event)">
-                                
-                                <div class="drag-handle-mini"
-                                     @touchstart="handleDragHandleTouchStart($event, event)"
-                                     title="繝峨Λ繝�げ縺励※遘ｻ蜍�">
-                                    <i class="fas fa-grip-vertical"></i>
-                                </div>
-                                
-                                <div class="event-content-inline">
-                                    <i :class="getCategoryIcon(event.category)"></i>
-                                    {{ event.inlineText }}
-                                </div>
                                 
                                 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
                                     <button class="event-action-btn cut" 
-                                            @click="handleCutButtonClick($event, event)"
+                                            @click="cutEvent(event)"
+                                            @mousedown.stop
                                             @touchstart.stop
-                                            title="蛻�ｊ蜿悶ｊ">
+                                            title="切り取り">
                                         <i class="fas fa-cut"></i>
                                     </button>
                                 </div>
                                 
-                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">笨�</div>
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    ✎
+                                </div>
                                 
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
                                      @touchstart="startResizeTouch($event, event, 'top')"></div>
+                                
+                                <div class="event-title">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    <span class="title-text" @click="handleTitleClick($event, event)">{{ event.title }}</span>
+                                </div>
+                                <div class="event-time">
+                                    {{ event.startTime }} - {{ event.endTime }}
+                                </div>
+                                <div class="event-description" v-if="event.description">
+                                    {{ event.description }}
+                                </div>
                                 
                                 <div class="resize-handle bottom" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -906,56 +1196,194 @@
             </button>
         </div>
         
-        <!-- 繧ｳ繝ｳ繝�く繧ｹ繝医Γ繝九Η繝ｼ -->
+        <!-- コンテキストメニュー -->
         <div class="context-menu" 
              :class="{ show: showContextMenu }"
-             :style="contextMenuStyle">
+             :style="contextMenuStyle"
+             ref="contextMenu">
             <div class="context-menu-item paste" 
                  :class="{ disabled: !clipboardEvent }"
                  @click="pasteFromContext"
                  v-if="clipboardEvent">
-                <i class="fas fa-paste"></i>雋ｼ繧贋ｻ倥￠
+                <i class="fas fa-paste"></i>
+                貼り付け
             </div>
             <div class="context-menu-item disabled" v-else>
-                <i class="fas fa-paste"></i>雋ｼ繧贋ｻ倥￠�医さ繝斐�貂医∩繧｢繧､繝�Β縺ｪ縺暦ｼ�
+                <i class="fas fa-paste"></i>
+                貼り付け（コピー済みアイテムなし）
             </div>
         </div>
         
-        <!-- 繝｢繝舌う繝ｫ蟆ら畑繝昴ャ繝励い繝��繝｡繝九Η繝ｼ -->
+        <!-- モバイル専用ポップアップメニュー -->
         <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
             <div class="mobile-popup-content" @click.stop>
-                <div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}譌･逶ｮ縺ｮ邱ｨ髮�` : '譌･遞狗ｷｨ髮�' }}</div>
+                <div class="mobile-popup-title">
+                    {{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}
+                </div>
                 <div class="mobile-popup-buttons">
                     <button class="mobile-popup-btn primary" 
                             v-if="selectedDayForPopup && selectedDayIndex === 0"
                             @click="openStartDateModalFromPopup">
-                        <i class="fas fa-calendar-edit"></i>髢句ｧ区律繧貞､画峩
+                        <i class="fas fa-calendar-edit"></i>
+                        開始日を変更
                     </button>
-                    <button class="mobile-popup-btn success" @click="addDayFromPopup">
-                        <i class="fas fa-plus"></i>譌･遞九ｒ霑ｽ蜉�
+                    <button class="mobile-popup-btn success" 
+                            @click="addDayFromPopup">
+                        <i class="fas fa-plus"></i>
+                        日程を追加
                     </button>
                     <button class="mobile-popup-btn danger" 
                             v-if="selectedDayForPopup && tripDays.length > 1"
                             @click="deleteDayFromPopup">
-                        <i class="fas fa-trash"></i>縺薙�譌･遞九ｒ蜑企勁
+                        <i class="fas fa-trash"></i>
+                        この日程を削除
                     </button>
-                    <button class="mobile-popup-btn secondary" @click="closeMobilePopup">
-                        <i class="fas fa-times"></i>繧ｭ繝｣繝ｳ繧ｻ繝ｫ
+                    <button class="mobile-popup-btn secondary" 
+                            @click="closeMobilePopup">
+                        <i class="fas fa-times"></i>
+                        キャンセル
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- 繝｢繝ｼ繝繝ｫ繝�Φ繝励Ξ繝ｼ繝� -->
-        <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
-            <div class="modal-dialog" :class="modal.size">
+        <div class="edit-mode-help" :class="{ show: editModeEvent }" v-if="!isMobile">
+            <strong>📝 編集モード</strong><br>
+            • 上下端をドラッグ：時間調整<br>
+            • 中央をドラッグ：移動<br>
+            • 右クリック：編集モード切替<br>
+            • 空のエリアをクリック：終了
+        </div>
+        
+        <!-- 開始日編集モーダル -->
+        <div class="modal fade" id="startDateModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ modal.title }}</h5>
+                        <h5 class="modal-title">🗓️ 旅行開始日の変更</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body" v-html="modal.body"></div>
-                    <div class="modal-footer" v-html="modal.footer"></div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">新しい開始日</label>
+                            <input type="date" v-model="editingStartDate" class="form-control" :min="today">
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-primary" @click="saveStartDate">変更</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 予定詳細モーダル -->
+        <div class="modal fade" id="detailModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-info-circle"></i> 予定の詳細</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" v-if="selectedEventForDetail">
+                        <div class="mb-3">
+                            <h6><i :class="getCategoryIcon(selectedEventForDetail.category)"></i> {{ selectedEventForDetail.title }}</h6>
+                        </div>
+                        <div class="mb-3">
+                            <strong>日付:</strong> {{ getTripDayByIndex(selectedEventForDetail.dayIndex)?.date }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>時間:</strong> {{ selectedEventForDetail.startTime }} - {{ selectedEventForDetail.endTime }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>カテゴリ:</strong> {{ getCategoryName(selectedEventForDetail.category) }}
+                        </div>
+                        <div class="mb-3" v-if="selectedEventForDetail.description">
+                            <strong>詳細:</strong><br>{{ selectedEventForDetail.description }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                        <button type="button" class="btn btn-danger" @click="deleteEventFromDetail">
+                            <i class="fas fa-trash"></i> 削除
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="editEventFromDetail">
+                            <i class="fas fa-edit"></i> 編集
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 予定編集モーダル -->
+        <div class="modal fade" id="eventModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-plus"></i>
+                            {{ editingEvent ? '予定を編集' : '新しい予定を追加' }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">予定名</label>
+                            <input type="text" class="form-control" v-model="eventForm.title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">日付</label>
+                            <select class="form-control" v-model="eventForm.dayIndex" required>
+                                <option v-for="(day, index) in tripDays" :key="index" :value="index">
+                                    {{ day.dayNumber }}日目 ({{ day.date }})
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">開始時間</label>
+                                    <input type="time" class="form-control" v-model="eventForm.startTime" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">終了時間</label>
+                                    <input type="time" class="form-control" v-model="eventForm.endTime" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">カテゴリ</label>
+                            <select class="form-control" v-model="eventForm.category" required>
+                                <option value="travel">🚗 移動</option>
+                                <option value="food">🍽️ 食事</option>
+                                <option value="sightseeing">🏛️ 観光</option>
+                                <option value="accommodation">🏨 宿泊</option>
+                                <option value="custom">✨ その他</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">詳細</label>
+                            <textarea class="form-control" v-model="eventForm.description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-danger" v-if="editingEvent" @click="deleteEvent">
+                            <i class="fas fa-trash"></i> 削除
+                        </button>
+                        <button type="button" class="btn btn-primary" @click="saveEvent">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -976,28 +1404,46 @@
                     hasExistingData: false,
                     tripDays: [],
                     activeDay: 0,
+                    
+                    // デスクトップ専用
                     draggingTabIndex: null,
+                    dragOverTabIndex: null,
+                    
+                    // モバイル専用
+                    mobileTabLongPressTimer: null,
+                    mobileTabTouchStartTime: 0,
                     showMobilePopup: false,
                     selectedDayForPopup: null,
                     selectedDayIndex: null,
+                    
+                    // モバイルスクロール制御
                     scrollPosition: 0,
                     maxScrollPosition: 0,
-                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-                    events: [],
-                    editModeEvent: null,
-                    clipboardEvent: null,
-                    showContextMenu: false,
-                    contextMenuStyle: {},
-                    pasteTargetTime: null,
-                    isMobile: false,
+                    currentScrollDot: 0,
+                    scrollDots: [],
+                    
+                    // 予定ドラッグ関連
+                    eventTouchOffset: { x: 0, y: 0 },
                     touchStartTime: 0,
                     touchStartPosition: { x: 0, y: 0 },
                     longPressTimer: null,
                     longPressExecuted: false,
-                    eventTouchOffset: { x: 0, y: 0 },
-                    draggingEvent: null,
-                    isDragComplete: false,
-                    isResizeComplete: false, // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ヵ繝ｩ繧ｰ繧定ｿｽ蜉�
+                    
+                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+                    events: [],
+                    editModeEvent: null,
+                    clipboardEvent: null,
+                    
+                    // コンテキストメニュー関連
+                    showContextMenu: false,
+                    contextMenuStyle: {},
+                    contextMenuPosition: { x: 0, y: 0 },
+                    pasteTargetTime: null,
+                    
+                    selectedEventForDetail: null,
+                    editingEvent: null,
+                    editingStartDate: '',
+                    isMobile: false,
                     eventForm: {
                         title: '',
                         dayIndex: 0,
@@ -1005,24 +1451,45 @@
                         endTime: '10:00',
                         category: 'travel',
                         description: ''
-                    },
-                    modals: []
+                    }
                 };
             },
             
             methods: {
+                getEventCoordinates(event) {
+                    if (event.touches && event.touches.length > 0) {
+                        return {
+                            clientX: event.touches[0].clientX,
+                            clientY: event.touches[0].clientY
+                        };
+                    }
+                    return {
+                        clientX: event.clientX,
+                        clientY: event.clientY
+                    };
+                },
+                
                 checkExistingData() {
-                    this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    this.hasExistingData = !!(savedEvents && savedDays);
                 },
                 
                 loadExistingData() {
                     this.loadData();
-                    if (this.tripDays.length > 0) this.tripInitialized = true;
+                    if (this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
                 },
                 
                 initializeTripDays() {
-                    if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
-                        alert('豁｣縺励＞譌･莉倥ｒ驕ｸ謚槭＠縺ｦ縺上□縺輔＞');
+                    if (!this.tripStartDate || !this.tripEndDate) {
+                        alert('開始日と終了日を選択してください');
+                        return;
+                    }
+                    
+                    if (this.tripStartDate > this.tripEndDate) {
+                        alert('終了日は開始日以降を選択してください');
                         return;
                     }
                     
@@ -1030,248 +1497,184 @@
                     this.activeDay = 0;
                     this.tripInitialized = true;
                     this.saveData();
+                    
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
                 },
                 
                 generateTripDays(startDate, endDate) {
                     const days = [];
                     const start = new Date(startDate);
                     const end = new Date(endDate);
-                    const dayNames = ['譌･', '譛�', '轣ｫ', '豌ｴ', '譛ｨ', '驥�', '蝨�'];
                     let dayNumber = 1;
+                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                     
                     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                        const dayName = dayNames[date.getDay()];
+                        
                         days.push({
                             id: Date.now() + dayNumber + Math.random(),
                             dayNumber: dayNumber++,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
                             fullDate: date.toISOString().split('T')[0]
                         });
                     }
-                    return days;
-                },
-                
-                setActiveDay(index) { this.activeDay = index; },
-                
-                detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
-                
-                addDayImmediately() {
-                    const startDate = this.tripDays[0].fullDate;
-                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
-                    this.saveData();
-                },
-                
-                deleteDay(index) {
-                    if (this.tripDays.length <= 1) {
-                        alert('譛菴�1縺､縺ｮ譌･遞九�蠢�ｦ√〒縺�');
-                        return;
-                    }
                     
-                    if (confirm(`${this.tripDays[index].dayNumber}譌･逶ｮ繧貞炎髯､縺励∪縺吶°�歔)) {
-                        this.events = this.events.filter(event => event.dayIndex !== index)
-                            .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
-                        
-                        this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
-                        if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
-                        this.saveData();
-                    }
+                    return days;
                 },
                 
                 generateConsecutiveDays(startDate, dayCount) {
                     const days = [];
                     const start = new Date(startDate);
-                    const dayNames = ['譌･', '譛�', '轣ｫ', '豌ｴ', '譛ｨ', '驥�', '蝨�'];
+                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
                     
                     for (let i = 0; i < dayCount; i++) {
                         const date = new Date(start);
                         date.setDate(start.getDate() + i);
+                        const dayName = dayNames[date.getDay()];
+                        
                         days.push({
                             id: Date.now() + i + Math.random(),
                             dayNumber: i + 1,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayName})`,
                             fullDate: date.toISOString().split('T')[0]
                         });
                     }
+                    
                     return days;
                 },
                 
-                handleDateClick(index) {
-                    if (index === 0) this.openStartDateModal();
-                    else this.setActiveDay(index);
+                setActiveDay(index) {
+                    this.activeDay = index;
                 },
                 
-                handleTabDragStart(event, index) {
-                    this.draggingTabIndex = index;
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.target.closest('.nav-item').classList.add('dragging-tab');
+                detectMobile() {
+                    this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
                 },
                 
-                handleTabDragOver(event, index) {
-                    event.preventDefault();
-                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
-                        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('drag-over'));
-                        event.target.closest('.nav-item').classList.add('drag-over');
-                    }
-                },
-                
-                handleTabDrop(event, dropIndex) {
-                    event.preventDefault();
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
+                addDayImmediately() {
+                    const currentDayCount = this.tripDays.length;
+                    const startDate = this.tripDays[0].fullDate;
                     
-                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== dropIndex) {
-                        this.reorderTabs(this.draggingTabIndex, dropIndex);
-                    }
-                    this.draggingTabIndex = null;
-                },
-                
-                handleTabDragEnd() {
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('dragging-tab', 'drag-over');
-                    });
-                    this.draggingTabIndex = null;
-                },
-                
-                reorderTabs(fromIndex, toIndex) {
-                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
-                    this.tripDays.splice(toIndex, 0, movedTab);
-                    
-                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length);
-                    
-                    this.events.forEach(event => {
-                        if (event.dayIndex === fromIndex) {
-                            event.dayIndex = toIndex;
-                        } else if (fromIndex < toIndex && event.dayIndex > fromIndex && event.dayIndex <= toIndex) {
-                            event.dayIndex--;
-                        } else if (fromIndex > toIndex && event.dayIndex >= toIndex && event.dayIndex < fromIndex) {
-                            event.dayIndex++;
-                        }
-                    });
-                    
-                    if (this.activeDay === fromIndex) this.activeDay = toIndex;
+                    this.tripDays = this.generateConsecutiveDays(startDate, currentDayCount + 1);
                     this.saveData();
+                    
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
                 },
                 
-                getCurrentDayEvents() {
-                    return this.events
-                        .filter(event => event.dayIndex === this.activeDay)
-                        .map(event => {
-                            const inlineText = `${event.title}��${event.startTime}-${event.endTime}�荏;
-                            return {
-                                ...event,
-                                inlineText
-                            };
+                deleteDay(index) {
+                    if (this.tripDays.length <= 1) {
+                        alert('最低1つの日程は必要です');
+                        return;
+                    }
+                    
+                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？\n（この日の予定も全て削除されます）`)) {
+                        this.events = this.events.filter(event => event.dayIndex !== index);
+                        
+                        this.events.forEach(event => {
+                            if (event.dayIndex > index) {
+                                event.dayIndex--;
+                            }
                         });
-                },
-                
-                handleDragHandleMouseDown(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.editModeEvent = eventData;
-                    this.draggingEvent = eventData;
-                    this.isDragComplete = false;
-                    
-                    this.startDragMove(event, eventData);
-                },
-                
-                handleDragHandleTouchStart(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.editModeEvent = eventData;
-                    this.draggingEvent = eventData;
-                    this.isDragComplete = false;
-                    
-                    this.startDragMoveTouch(event, eventData);
-                },
-                
-                // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ｾ後�繧ｯ繝ｪ繝�け繧ら┌隕�
-                handleEventClick(event, eventData) {
-                    if (this.isDragComplete) {
-                        this.isDragComplete = false;
-                        return;
-                    }
-                    
-                    if (this.isResizeComplete) {
-                        this.isResizeComplete = false;
-                        return;
-                    }
-                    
-                    if (this.draggingEvent) {
-                        return;
-                    }
-                    
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        this.openDetailModal(eventData);
-                    }
-                },
-                
-                handleEventContextMenu(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (!event.target.closest('.drag-handle-mini')) {
-                        this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }
-                },
-                
-                startDragMove(event, eventData) {
-                    const startY = event.clientY;
-                    const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
-                    const rect = container.getBoundingClientRect();
-                    const initialTop = event.clientY - rect.top + container.scrollTop;
-                    
-                    const moveHandler = (e) => {
-                        const newTop = initialTop + (e.clientY - startY);
-                        const snappedTop = Math.round(newTop / 15) * 15;
-                        const newTime = this.pixelsToTime(snappedTop);
                         
-                        const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                        if (eventIndex === -1) return;
+                        const currentDayCount = this.tripDays.length;
+                        const startDate = this.tripDays[0].fullDate;
+                        this.tripDays = this.generateConsecutiveDays(startDate, currentDayCount - 1);
                         
-                        const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-                        const endTime = this.pixelsToTime(snappedTop + duration);
-                        
-                        if (newTime >= '04:00' && endTime <= '23:45') {
-                            this.events[eventIndex].startTime = newTime;
-                            this.events[eventIndex].endTime = endTime;
+                        if (this.activeDay >= this.tripDays.length) {
+                            this.activeDay = this.tripDays.length - 1;
                         }
-                    };
-                    
-                    const endHandler = () => {
-                        document.removeEventListener('mousemove', moveHandler);
-                        document.removeEventListener('mouseup', endHandler);
                         
-                        this.draggingEvent = null;
-                        this.isDragComplete = true;
                         this.saveData();
                         
-                        setTimeout(() => {
-                            this.isDragComplete = false;
-                        }, 150);
-                    };
+                        this.$nextTick(() => {
+                            this.updateScrollDots();
+                        });
+                    }
+                },
+                
+                // ===== モバイル専用：スクロール制御 =====
+                updateScrollPosition() {
+                    if (!this.$refs.mobileScrollContainer) return;
                     
-                    document.addEventListener('mousemove', moveHandler);
-                    document.addEventListener('mouseup', endHandler);
+                    const container = this.$refs.mobileScrollContainer;
+                    this.scrollPosition = container.scrollLeft;
+                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+                    
+                    // スクロールドット更新
+                    if (this.scrollDots.length > 1) {
+                        const scrollRatio = this.scrollPosition / this.maxScrollPosition;
+                        this.currentScrollDot = Math.round(scrollRatio * (this.scrollDots.length - 1));
+                    }
+                },
+                
+                scrollToDirection(direction) {
+                    if (!this.$refs.mobileScrollContainer) return;
+                    
+                    const container = this.$refs.mobileScrollContainer;
+                    const scrollAmount = 120; // 1つのボタン幅程度
+                    
+                    if (direction === 'left') {
+                        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                    } else {
+                        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                    }
+                },
+                
+                updateScrollDots() {
+                    if (!this.isMobile || this.tripDays.length <= 3) {
+                        this.scrollDots = [];
+                        return;
+                    }
+                    
+                    this.$nextTick(() => {
+                        if (!this.$refs.mobileScrollContainer) return;
+                        
+                        const container = this.$refs.mobileScrollContainer;
+                        const totalWidth = container.scrollWidth;
+                        const viewWidth = container.clientWidth;
+                        
+                        if (totalWidth <= viewWidth) {
+                            this.scrollDots = [];
+                            return;
+                        }
+                        
+                        // 3-5個程度のドットを生成
+                        const dotCount = Math.min(5, Math.max(3, Math.ceil(this.tripDays.length / 2)));
+                        this.scrollDots = Array(dotCount).fill(0);
+                        this.currentScrollDot = 0;
+                    });
+                },
+                
+                // ===== モバイル専用：日付タブタッチ処理（簡素化版） =====
+                handleMobileDayClick(index) {
+                    this.setActiveDay(index);
                 },
                 
                 handleMobileDayTouchStart(event, index) {
-                    this.touchStartTime = Date.now();
-                    this.longPressTimer = setTimeout(() => {
-                        if (navigator.vibrate) navigator.vibrate(50);
+                    this.mobileTabTouchStartTime = Date.now();
+                    
+                    this.mobileTabLongPressTimer = setTimeout(() => {
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
                         this.showMobilePopupForDay(index);
                     }, 800);
                 },
                 
                 handleMobileDayTouchEnd(event, index) {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
+                    if (this.mobileTabLongPressTimer) {
+                        clearTimeout(this.mobileTabLongPressTimer);
+                        this.mobileTabLongPressTimer = null;
                     }
-                    if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+                    
+                    const touchDuration = Date.now() - this.mobileTabTouchStartTime;
+                    if (touchDuration < 500) {
+                        this.setActiveDay(index);
+                    }
                 },
                 
                 showMobilePopupForDay(index) {
@@ -1288,117 +1691,176 @@
                 
                 openStartDateModalFromPopup() {
                     this.closeMobilePopup();
-                    setTimeout(() => this.openStartDateModal(), 300);
+                    setTimeout(() => {
+                        this.openStartDateModal(0);
+                    }, 300);
                 },
                 
                 addDayFromPopup() {
                     this.closeMobilePopup();
-                    setTimeout(() => this.addDayImmediately(), 300);
+                    setTimeout(() => {
+                        this.addDayImmediately();
+                    }, 300);
                 },
                 
                 deleteDayFromPopup() {
-                    const index = this.selectedDayIndex;
+                    const indexToDelete = this.selectedDayIndex;
                     this.closeMobilePopup();
-                    setTimeout(() => index !== null && this.deleteDay(index), 300);
+                    
+                    setTimeout(() => {
+                        if (indexToDelete !== null && indexToDelete < this.tripDays.length) {
+                            this.deleteDay(indexToDelete);
+                        }
+                    }, 300);
                 },
                 
-                updateScrollPosition() {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    this.scrollPosition = container.scrollLeft;
-                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+                // ===== デスクトップ専用メソッド =====
+                handleDateClick(index) {
+                    if (index === 0) {
+                        this.openStartDateModal(index);
+                    } else {
+                        this.setActiveDay(index);
+                    }
                 },
                 
-                scrollToDirection(direction) {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+                handleTabDragStart(event, index) {
+                    this.draggingTabIndex = index;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.target.closest('.nav-item').classList.add('dragging-tab');
                 },
                 
-                handleEventTouchStart(event, eventData) {
-                    if (this.isDragComplete) {
+                handleTabDragOver(event, index) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    
+                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
+                        this.dragOverTabIndex = index;
+                        document.querySelectorAll('.nav-item').forEach(item => {
+                            item.classList.remove('drag-over');
+                        });
+                        event.target.closest('.nav-item').classList.add('drag-over');
+                    }
+                },
+                
+                handleTabDrop(event, dropIndex) {
+                    event.preventDefault();
+                    
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
+                    
+                    if (this.draggingTabIndex === null || this.draggingTabIndex === dropIndex) {
                         return;
                     }
                     
-                    if (this.draggingEvent) {
+                    this.reorderTabs(this.draggingTabIndex, dropIndex);
+                    this.draggingTabIndex = null;
+                    this.dragOverTabIndex = null;
+                },
+                
+                handleTabDragEnd() {
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
+                    this.draggingTabIndex = null;
+                    this.dragOverTabIndex = null;
+                },
+                
+                reorderTabs(fromIndex, toIndex) {
+                    const eventMapping = new Map();
+                    this.events.forEach(event => {
+                        eventMapping.set(event.id, event.dayIndex);
+                    });
+                    
+                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
+                    this.tripDays.splice(toIndex, 0, movedTab);
+                    
+                    const startDate = this.tripDays[0].fullDate;
+                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length);
+                    
+                    this.events.forEach(event => {
+                        const oldDayIndex = eventMapping.get(event.id);
+                        if (oldDayIndex === fromIndex) {
+                            event.dayIndex = toIndex;
+                        } else if (fromIndex < toIndex && oldDayIndex > fromIndex && oldDayIndex <= toIndex) {
+                            event.dayIndex = oldDayIndex - 1;
+                        } else if (fromIndex > toIndex && oldDayIndex >= toIndex && oldDayIndex < fromIndex) {
+                            event.dayIndex = oldDayIndex + 1;
+                        }
+                    });
+                    
+                    if (this.activeDay === fromIndex) {
+                        this.activeDay = toIndex;
+                    } else if (fromIndex < toIndex && this.activeDay > fromIndex && this.activeDay <= toIndex) {
+                        this.activeDay--;
+                    } else if (fromIndex > toIndex && this.activeDay >= toIndex && this.activeDay < fromIndex) {
+                        this.activeDay++;
+                    }
+                    
+                    this.saveData();
+                },
+                
+                // ===== 予定イベント（デスクトップ用） =====
+                handleEventMouseDown(event, eventData) {
+                    if (event.target.closest('.title-text')) {
                         return;
                     }
                     
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        
+                    // 編集モード時のみドラッグ移動を許可
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                         event.preventDefault();
                         event.stopPropagation();
-                        
-                        this.touchStartTime = Date.now();
-                        this.longPressExecuted = false;
-                        
-                        this.longPressTimer = setTimeout(() => {
-                            this.longPressExecuted = true;
-                            this.editModeEvent = eventData;
-                            if (navigator.vibrate) navigator.vibrate(50);
-                        }, 500);
-                        
-                        const handleTouchEnd = () => {
-                            if (this.longPressTimer) {
-                                clearTimeout(this.longPressTimer);
-                                this.longPressTimer = null;
-                            }
-                            
-                            const touchDuration = Date.now() - this.touchStartTime;
-                            if (!this.longPressExecuted && touchDuration < 500) {
-                                this.openDetailModal(eventData);
-                            }
-                            
-                            document.removeEventListener('touchend', handleTouchEnd);
-                        };
-                        
-                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                        this.startDragMove(event, eventData);
                     }
                 },
                 
-                startDragMoveTouch(event, eventData) {
+                // 右クリック用（編集モード切り替え）
+                handleEventContextMenu(event, eventData) {
+                    // デフォルトの右クリックメニューを抑止
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    if (event.target.closest('.title-text')) {
+                        return;
+                    }
+                    
+                    // 編集モードの切り替え
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        // 既に編集モードの場合は解除
+                        this.editModeEvent = null;
+                    } else {
+                        // 編集モードに切り替え
+                        this.editModeEvent = eventData;
+                        
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
+                    }
+                },
+                
+                startDragMove(event, eventData) {
                     if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
                         return;
                     }
                     
-                    const coords = event.touches[0];
-                    const container = this.$refs.mobileTimelineContainer;
-                    const rect = container.getBoundingClientRect();
-                    const initialTop = coords.clientY - rect.top + container.scrollTop;
-                    const startY = coords.clientY;
+                    const startY = event.clientY;
+                    const rect = this.$refs.scrollContainer.getBoundingClientRect();
+                    const initialTop = event.clientY - rect.top + this.$refs.scrollContainer.scrollTop;
                     
-                    const moveHandler = (e) => {
-                        e.preventDefault();
-                        const touch = e.touches[0];
-                        const deltaY = touch.clientY - startY;
-                        const newTop = initialTop + deltaY;
-                        const snappedTop = Math.round(newTop / 15) * 15;
-                        this.updateEventTime(eventData, snappedTop);
-                    };
+                    const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
+                    const endHandler = (e) => this.handleDragEnd(e, moveHandler, endHandler);
                     
-                    const endHandler = () => {
-                        document.removeEventListener('touchmove', moveHandler);
-                        document.removeEventListener('touchend', endHandler);
-                        
-                        this.draggingEvent = null;
-                        this.editModeEvent = null;
-                        this.isDragComplete = true;
-                        this.saveData();
-                        
-                        setTimeout(() => {
-                            this.isDragComplete = false;
-                        }, 150);
-                    };
-                    
-                    document.addEventListener('touchmove', moveHandler, { passive: false });
-                    document.addEventListener('touchend', endHandler, { passive: true });
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', endHandler);
                 },
                 
-                updateEventTime(eventData, snappedTop) {
+                handleDragMove(event, startY, initialTop) {
+                    const deltaY = event.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
                     const newTime = this.pixelsToTime(snappedTop);
-                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
                     if (eventIndex === -1) return;
                     
                     const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
@@ -1410,52 +1872,185 @@
                     }
                 },
                 
-                handleCutButtonClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.cutEvent(eventData);
+                handleDragEnd(event, moveHandler, endHandler) {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    this.saveData();
                 },
                 
-                cutEvent(event) {
-                    try {
-                        this.clipboardEvent = { ...event };
-                        const eventIndex = this.events.findIndex(e => e.id === event.id);
+                // ===== 予定イベント（モバイル用） =====
+                handleEventTouchStart(event, eventData) {
+                    if (event.target.closest('.title-text')) {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // タッチ開始時の予定ブロック内での相対位置を記録
+                    const coords = this.getEventCoordinates(event);
+                    const eventElement = event.currentTarget;
+                    const eventRect = eventElement.getBoundingClientRect();
+                    
+                    this.eventTouchOffset = {
+                        x: coords.clientX - eventRect.left,
+                        y: coords.clientY - eventRect.top
+                    };
+                    
+                    // 既に編集モードの場合はドラッグ移動開始
+                    if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                        this.startDragMoveTouch(event, eventData);
+                        return;
+                    }
+                    
+                    // 長押し判定用の変数を初期化
+                    this.touchStartTime = Date.now();
+                    this.touchStartPosition = {
+                        x: coords.clientX,
+                        y: coords.clientY
+                    };
+                    this.longPressExecuted = false;
+                    
+                    // 長押しタイマーを設定（500ms後に編集モードに入る）
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressExecuted = true;
+                        this.editModeEvent = eventData;
                         
-                        if (eventIndex !== -1) {
-                            this.events.splice(eventIndex, 1);
-                            this.editModeEvent = null;
-                            this.saveData();
-                            
-                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                        // バイブレーション（対応デバイスのみ）
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
                         }
                         
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�蛻�ｊ蜿悶ｊ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�蛻�ｊ蜿悶ｊ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲�');
+                        // 編集モードに入った後、ドラッグ移動を開始
+                        this.startDragMoveTouch(event, eventData);
+                    }, 500);
+                    
+                    // タッチ移動とタッチ終了のイベントリスナーを追加
+                    const handleTouchMove = (e) => {
+                        const moveCoords = this.getEventCoordinates(e);
+                        const deltaX = Math.abs(moveCoords.clientX - this.touchStartPosition.x);
+                        const deltaY = Math.abs(moveCoords.clientY - this.touchStartPosition.y);
+                        
+                        // 10px以上移動したら長押しをキャンセル
+                        if (deltaX > 10 || deltaY > 10) {
+                            this.clearLongPressTimer();
+                            document.removeEventListener('touchmove', handleTouchMove);
+                            document.removeEventListener('touchend', handleTouchEnd);
+                        }
+                    };
+                    
+                    const handleTouchEnd = (e) => {
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        this.clearLongPressTimer();
+                        
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                        
+                        // 長押しが実行されなかった場合の処理
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            // 短いタップの場合は何もしない（詳細表示はタイトルクリックで行う）
+                        }
+                    };
+                    
+                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    document.addEventListener('touchend', handleTouchEnd);
+                },
+                
+                clearLongPressTimer() {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
                     }
                 },
                 
-                pasteFromContext() {
+                startDragMoveTouch(event, eventData) {
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
+                    const coords = this.getEventCoordinates(event);
+                    const rect = this.$refs.mobileTimelineContainer.getBoundingClientRect();
+                    
+                    // タッチ位置から相対位置を引いた位置を初期位置とする
+                    const initialTop = coords.clientY - rect.top + this.$refs.mobileTimelineContainer.scrollTop - this.eventTouchOffset.y;
+                    const startY = coords.clientY;
+                    
+                    const moveHandler = (e) => this.handleDragMoveTouch(e, startY, initialTop);
+                    const endHandler = (e) => this.handleDragEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
+                                handleDragMoveTouch(event, startY, initialTop) {
+                    event.preventDefault();
+                    const coords = this.getEventCoordinates(event);
+                    const deltaY = coords.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedTop);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && endTime <= '23:45') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    }
+                },
+                
+                handleDragEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.saveData();
+                },
+                
+                // ===== 切り取り・貼り付け機能 =====
+                cutEvent(event) {
+                    this.clipboardEvent = { ...event };
+                    this.events = this.events.filter(e => e.id !== event.id);
+                    this.editModeEvent = null;
+                    this.saveData();
+                    
+                    // 切り取り完了の視覚フィードバック
+                    if (navigator.vibrate) {
+                        navigator.vibrate(100);
+                    }
+                },
+                
+                pasteEvent(targetDayIndex, targetTime = null) {
                     if (!this.clipboardEvent) return;
                     
                     const newEvent = {
                         ...this.clipboardEvent,
                         id: Date.now() + Math.random(),
-                        dayIndex: this.activeDay
+                        dayIndex: targetDayIndex
                     };
                     
-                    if (this.pasteTargetTime) {
-                        const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
-                        newEvent.startTime = this.pasteTargetTime;
-                        newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
+                    // 貼り付け位置が指定されている場合、時間を調整
+                    if (targetTime) {
+                        const originalDuration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+                        const targetMinutes = this.timeToMinutes(targetTime);
+                        const endMinutes = targetMinutes + originalDuration;
+                        
+                        newEvent.startTime = targetTime;
+                        newEvent.endTime = this.minutesToTime(endMinutes);
                     }
                     
                     this.events.push(newEvent);
                     this.clipboardEvent = null;
-                    this.hideContextMenu();
                     this.saveData();
+                    
+                    // 貼り付け完了の視覚フィードバック
+                    if (navigator.vibrate) {
+                        navigator.vibrate([50, 50, 50]);
+                    }
                 },
                 
+                // 時間変換ヘルパー
                 timeToMinutes(timeString) {
                     const [hours, minutes] = timeString.split(':').map(Number);
                     return hours * 60 + minutes;
@@ -1467,20 +2062,7 @@
                     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
                 },
                 
-                timeToPixels(timeString) {
-                    const [hours, minutes] = timeString.split(':').map(Number);
-                    const totalMinutes = (hours - 4) * 60 + minutes;
-                    return totalMinutes * (this.isMobile ? 50/60 : 1);
-                },
-                
-                pixelsToTime(pixels) {
-                    const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
-                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                    const hours = Math.max(4, Math.min(23, Math.floor(roundedMinutes / 60) + 4));
-                    const minutes = hours === 23 ? Math.min(45, roundedMinutes % 60) : roundedMinutes % 60;
-                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                },
-                
+                // デスクトップ用コンテキストメニュー
                 handleScheduleContextMenu(event) {
                     if (!this.isMobile) {
                         event.preventDefault();
@@ -1488,115 +2070,207 @@
                     }
                 },
                 
+                // モバイル用長押しハンドラー（schedule-area用）
+                handleScheduleLongPress(event) {
+                    if (this.isMobile) {
+                        event.preventDefault();
+                        const touch = event.touches[0];
+                        this.showContextMenuAt(touch.clientX, touch.clientY, event);
+                    }
+                },
+                
                 showContextMenuAt(x, y, event) {
-                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                    const rect = container.getBoundingClientRect();
-                    this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
+                    this.contextMenuPosition = { x, y };
                     
-                    this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
+                    // クリック位置から時間を計算
+                    const scrollRef = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = scrollRef.getBoundingClientRect();
+                    const relativeY = y - rect.top + scrollRef.scrollTop;
+                    this.pasteTargetTime = this.pixelsToTime(relativeY);
+                    
+                    this.contextMenuStyle = {
+                        left: `${x}px`,
+                        top: `${y}px`
+                    };
+                    
                     this.showContextMenu = true;
                     
+                    // 外部クリックで閉じる
                     setTimeout(() => {
                         document.addEventListener('click', this.hideContextMenu, { once: true });
                     }, 100);
                 },
                 
-                hideContextMenu() { this.showContextMenu = false; },
+                hideContextMenu() {
+                    this.showContextMenu = false;
+                },
                 
+                pasteFromContext() {
+                    if (!this.clipboardEvent) return;
+                    
+                    this.hideContextMenu();
+                    this.pasteEvent(this.activeDay, this.pasteTargetTime);
+                },
+                
+                // モバイル用長押し処理
                 handleScheduleTouchStart(event) {
                     if (!this.isMobile) return;
                     
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
-                    
                     this.touchStartTime = Date.now();
-                    this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+                    this.touchStartPosition = {
+                        x: event.touches[0].clientX,
+                        y: event.touches[0].clientY
+                    };
                     
                     this.longPressTimer = setTimeout(() => {
-                        this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
-                        if (navigator.vibrate) navigator.vibrate(50);
+                        this.handleScheduleLongPress(event);
+                        if (navigator.vibrate) {
+                            navigator.vibrate(50);
+                        }
                     }, 500);
                 },
                 
                 handleScheduleTouchMove(event) {
                     if (!this.isMobile) return;
                     
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
-                    
                     const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
                     const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
-                    if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+                    
+                    if (deltaX > 10 || deltaY > 10) {
+                        this.clearScheduleLongPress();
+                    }
                 },
                 
                 handleScheduleTouchEnd(event) {
                     if (!this.isMobile) return;
                     
-                    if (event.target.closest('.event-block')) {
-                        return;
-                    }
+                    this.clearScheduleLongPress();
                     
-                    this.clearLongPress();
-                    if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
+                    const touchDuration = Date.now() - this.touchStartTime;
+                    if (touchDuration < 300) {
+                        this.handleScheduleClick(event);
+                    }
                 },
                 
-                clearLongPress() {
+                clearScheduleLongPress() {
                     if (this.longPressTimer) {
                         clearTimeout(this.longPressTimer);
                         this.longPressTimer = null;
                     }
                 },
                 
+                // ===== リサイズハンドル =====
                 startResize(event, eventData, direction) {
-                    this.startResizeHandler(event, direction, 'mouse');
-                },
-                
-                startResizeTouch(event, eventData, direction) {
-                    this.startResizeHandler(event, direction, 'touch');
-                },
-                
-                // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ヵ繝ｩ繧ｰ繧定ｨｭ螳�
-                startResizeHandler(event, direction, type) {
                     event.preventDefault();
                     event.stopPropagation();
                     
-                    const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
-                    const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+                    const moveHandler = (e) => this.handleResizeMove(e, direction);
+                    const endHandler = (e) => this.handleResizeEnd(e, moveHandler, endHandler);
                     
-                    const moveHandler = (e) => {
-                        const coords = type === 'touch' ? e.touches[0] : e;
-                        const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                        const rect = container.getBoundingClientRect();
-                        const y = coords.clientY - rect.top + container.scrollTop;
-                        const snappedY = Math.round(y / 15) * 15;
-                        const newTime = this.pixelsToTime(snappedY);
-                        
-                        const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
-                        if (eventIndex === -1) return;
-                        
-                        if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', endHandler);
+                },
+                
+                startResizeTouch(event, eventData, direction) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const moveHandler = (e) => this.handleResizeMoveTouch(e, direction);
+                    const endHandler = (e) => this.handleResizeEndTouch(e, moveHandler, endHandler);
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler);
+                },
+                
+                handleResizeMove(event, direction) {
+                    const coords = this.getEventCoordinates(event);
+                    const scrollRef = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = scrollRef.getBoundingClientRect();
+                    const y = coords.clientY - rect.top + scrollRef.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15;
+                    const newTime = this.pixelsToTime(snappedY);
+                    
+                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                    if (eventIndex === -1) return;
+                    
+                    if (direction === 'top') {
+                        if (newTime < this.events[eventIndex].endTime) {
                             this.events[eventIndex].startTime = newTime;
-                        } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+                        }
+                    } else {
+                        if (newTime > this.events[eventIndex].startTime) {
                             this.events[eventIndex].endTime = newTime;
                         }
-                    };
+                    }
+                },
+                
+                handleResizeMoveTouch(event, direction) {
+                    event.preventDefault();
+                    this.handleResizeMove(event, direction);
+                },
+                
+                handleResizeEnd(event, moveHandler, endHandler) {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    this.saveData();
+                },
+                
+                handleResizeEndTouch(event, moveHandler, endHandler) {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.saveData();
+                },
+                
+                // ===== 共通メソッド =====
+                openStartDateModal(index) {
+                    if (index !== 0) return;
                     
-                    const endHandler = () => {
-                        document.removeEventListener(moveEvent, moveHandler);
-                        document.removeEventListener(endEvent, endHandler);
-                        
-                        this.isResizeComplete = true;
-                        this.saveData();
-                        
-                        setTimeout(() => {
-                            this.isResizeComplete = false;
-                        }, 150);
-                    };
+                    this.editingStartDate = this.tripDays[0].fullDate;
+                    const modal = new bootstrap.Modal(document.getElementById('startDateModal'));
+                    modal.show();
+                },
+                
+                saveStartDate() {
+                    if (!this.editingStartDate) {
+                        alert('開始日を選択してください');
+                        return;
+                    }
                     
-                    document.addEventListener(moveEvent, moveHandler, { passive: false });
-                    document.addEventListener(endEvent, endHandler);
+                    const currentDayCount = this.tripDays.length;
+                    const newDays = this.generateConsecutiveDays(this.editingStartDate, currentDayCount);
+                    
+                    this.tripDays = newDays;
+                    
+                    this.saveData();
+                    this.hideModal('startDateModal');
+                },
+                
+                getCurrentDayEvents() {
+                    return this.events.filter(event => event.dayIndex === this.activeDay);
+                },
+                
+                getTripDayByIndex(index) {
+                    return this.tripDays[index] || null;
+                },
+                
+                timeToPixels(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    const totalMinutes = (hours - 4) * 60 + minutes;
+                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
+                    return totalMinutes * pixelPerMinute;
+                },
+                
+                pixelsToTime(pixels) {
+                    const pixelPerMinute = this.isMobile ? 50/60 : 1;
+                    const totalMinutes = pixels / pixelPerMinute;
+                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+                    const hours = Math.floor(roundedMinutes / 60) + 4;
+                    const minutes = roundedMinutes % 60;
+                    
+                    const clampedHours = Math.max(4, Math.min(23, hours));
+                    const clampedMinutes = clampedHours === 23 && minutes > 45 ? 45 : minutes;
+                    
+                    return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
                 },
                 
                 getEventStyle(event) {
@@ -1607,8 +2281,42 @@
                     return {
                         top: `${startPixels}px`,
                         height: `${duration}px`,
-                        minHeight: this.isMobile ? '32px' : '35px'
+                        minHeight: this.isMobile ? '25px' : '30px'
                     };
+                },
+                
+                handleTitleClick(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.selectedEventForDetail = eventData;
+                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                    modal.show();
+                },
+                
+                editEventFromDetail() {
+                    this.hideModal('detailModal');
+                    this.openEventModal(this.selectedEventForDetail);
+                },
+                
+                deleteEventFromDetail() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.selectedEventForDetail.id);
+                        this.saveData();
+                        this.hideModal('detailModal');
+                    }
+                },
+                
+                hideModal(modalId) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                    if (modal) {
+                        modal.hide();
+                    }
+                },
+                
+                handleScheduleClick(event) {
+                    // 編集モード解除
+                    this.editModeEvent = null;
                 },
                 
                 getCategoryIcon(category) {
@@ -1622,76 +2330,20 @@
                     return icons[category] || 'fas fa-calendar';
                 },
                 
-                openDetailModal(event) {
-                    const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
-                    if (!eventData) {
-                        console.error('openDetailModal: 莠亥ｮ壹ョ繝ｼ繧ｿ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ:', event);
-                        alert('莠亥ｮ壹ョ繝ｼ繧ｿ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ');
-                        return;
-                    }
-                    
-                    const safeEventId = String(eventData.id).replace(/'/g, "\\'");
-                    const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    
-                    this.openModal('隧ｳ邏ｰ', `
-                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
-                        <div class="mb-3"><strong>譌･莉�:</strong> ${this.tripDays[eventData.dayIndex]?.date || '荳肴�'}</div>
-                        <div class="mb-3"><strong>譎る俣:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-                        ${eventData.description ? `<div class="mb-3"><strong>隧ｳ邏ｰ:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">髢峨§繧�</button>
-                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${safeEventId}')">蜑企勁</button>
-                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${safeEventId}')">邱ｨ髮�</button>
-                    `);
-                },
-                
-                deleteEventFromDetail(eventId) {
-                    try {
-                        if (!confirm('縺薙�莠亥ｮ壹ｒ蜑企勁縺励∪縺吶°��')) {
-                            return;
-                        }
-                        
-                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                        if (eventIndex === -1) {
-                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                            return;
-                        }
-                        
-                        this.events.splice(eventIndex, 1);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�蜑企勁荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                    }
-                },
-                
-                editEventFromDetail(eventId) {
-                    try {
-                        const event = this.events.find(e => String(e.id) === String(eventId));
-                        if (!event) {
-                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                            return;
-                        }
-                        
-                        this.closeAllModals();
-                        
-                        setTimeout(() => {
-                            this.openEventModal(event);
-                        }, 100);
-                        
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                    }
+                getCategoryName(category) {
+                    const names = {
+                        travel: '移動',
+                        food: '食事',
+                        sightseeing: '観光',
+                        accommodation: '宿泊',
+                        custom: 'その他'
+                    };
+                    return names[category] || 'その他';
                 },
                 
                 openEventModal(event = null) {
-                    const isEdit = !!event;
+                    this.editingEvent = event;
+                    
                     if (event) {
                         this.eventForm = { ...event };
                     } else {
@@ -1705,204 +2357,50 @@
                         };
                     }
                     
-                    const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
-                    const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
-                    const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
-                    
-                    this.openModal(isEdit ? '莠亥ｮ壹ｒ邱ｨ髮�' : '譁ｰ縺励＞莠亥ｮ壹ｒ霑ｽ蜉�', `
-                        <div class="mb-3">
-                            <label class="form-label">莠亥ｮ壼錐</label>
-                            <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">譌･莉�</label>
-                            <select class="form-control" id="eventDayIndex">
-                                ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}譌･逶ｮ (${day.date})</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">髢句ｧ区凾髢�</label>
-                                    <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">邨ゆｺ�凾髢�</label>
-                                    <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">繧ｫ繝�ざ繝ｪ</label>
-                            <select class="form-control" id="eventCategory">
-                                <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>囓 遘ｻ蜍�</option>
-                                <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>鎖�� 鬟滉ｺ�</option>
-                                <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>鋤�� 隕ｳ蜈�</option>
-                                <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>妾 螳ｿ豕�</option>
-                                <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>笨ｨ 縺昴�莉�</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">隧ｳ邏ｰ</label>
-                            <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
-                        </div>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
-                        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${safeEventId}')">蜑企勁</button>` : ''}
-                        <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">菫晏ｭ�</button>
-                    `);
+                    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    modal.show();
                 },
                 
-                openStartDateModal() {
-                    this.openModal('譌�｡碁幕蟋区律縺ｮ螟画峩', `
-                        <div class="mb-3">
-                            <label class="form-label">譁ｰ縺励＞髢句ｧ区律</label>
-                            <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
-                        </div>
-                        <div class="alert alert-info" role="alert">
-                            <small><i class="fas fa-info-circle"></i> 蜈ｨ譌･遞九′騾｣蜍輔＠縺ｦ譖ｴ譁ｰ縺輔ｌ縺ｾ縺�</small>
-                        </div>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
-                        <button type="button" class="btn btn-primary" onclick="app.saveStartDateFromModal()">螟画峩</button>
-                    `, 'modal-sm');
-                },
-                
-                openModal(title, body, footer, size = '') {
-                    const modalId = `modal-${Date.now()}`;
-                    const modal = { id: modalId, title, body, footer, size };
-                    this.modals.push(modal);
-                    
-                    this.$nextTick(() => {
-                        const modalElement = document.getElementById(modalId);
-                        const bootstrapModal = new bootstrap.Modal(modalElement);
-                        bootstrapModal.show();
-                        
-                        modalElement.addEventListener('hidden.bs.modal', () => {
-                            this.modals = this.modals.filter(m => m.id !== modalId);
-                        }, { once: true });
-                    });
-                },
-                
-                saveEventFromModal(eventId) {
-                    try {
-                        const title = document.getElementById('eventTitle')?.value || '';
-                        const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
-                        const startTime = document.getElementById('eventStartTime')?.value || '';
-                        const endTime = document.getElementById('eventEndTime')?.value || '';
-                        const category = document.getElementById('eventCategory')?.value || 'travel';
-                        const description = document.getElementById('eventDescription')?.value || '';
-                        
-                        if (!title.trim() || !startTime || !endTime) {
-                            alert('莠亥ｮ壼錐縲�幕蟋区凾髢薙∫ｵゆｺ�凾髢薙�蠢��医〒縺�');
-                            return;
-                        }
-                        
-                        if (startTime >= endTime) {
-                            alert('邨ゆｺ�凾髢薙�髢句ｧ区凾髢薙ｈ繧雁ｾ後↓險ｭ螳壹＠縺ｦ縺上□縺輔＞');
-                            return;
-                        }
-                        
-                        const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-                        
-                        const eventData = {
-                            id: finalEventId,
-                            title: title.trim(),
-                            dayIndex: dayIndex,
-                            startTime: startTime,
-                            endTime: endTime,
-                            category: category,
-                            description: description.trim()
-                        };
-                        
-                        if (eventId) {
-                            const index = this.events.findIndex(e => String(e.id) === String(eventId));
-                            if (index !== -1) {
-                                this.events[index] = eventData;
-                            } else {
-                                alert('邱ｨ髮�ｯｾ雎｡縺ｮ莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ');
-                                return;
-                            }
-                        } else {
-                            this.events.push(eventData);
-                        }
-                        
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                        
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�菫晏ｭ倅ｸｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                    }
-                },
-                
-                saveStartDateFromModal() {
-                    const newStartDate = document.getElementById('newStartDate').value;
-                    if (!newStartDate) {
-                        alert('髢句ｧ区律繧帝∈謚槭＠縺ｦ縺上□縺輔＞');
+                saveEvent() {
+                    if (!this.eventForm.title || !this.eventForm.startTime || !this.eventForm.endTime) {
+                        alert('必須項目を入力してください');
                         return;
                     }
                     
-                    this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+                    if (this.eventForm.startTime >= this.eventForm.endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
+                        return;
+                    }
+                    
+                    const eventData = {
+                        id: this.editingEvent ? this.editingEvent.id : Date.now(),
+                        title: this.eventForm.title,
+                        dayIndex: this.eventForm.dayIndex,
+                        startTime: this.eventForm.startTime,
+                        endTime: this.eventForm.endTime,
+                        category: this.eventForm.category,
+                        description: this.eventForm.description
+                    };
+                    
+                    if (this.editingEvent) {
+                        const index = this.events.findIndex(e => e.id === this.editingEvent.id);
+                        this.events[index] = eventData;
+                    } else {
+                        this.events.push(eventData);
+                    }
+                    
                     this.saveData();
-                    this.closeAllModals();
+                    this.editModeEvent = null;
+                    this.hideModal('eventModal');
                 },
                 
-                deleteEventById(eventId) {
-                    try {
-                        if (!confirm('縺薙�莠亥ｮ壹ｒ蜑企勁縺励∪縺吶°��')) {
-                            return;
-                        }
-                        
-                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                        if (eventIndex === -1) {
-                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                            return;
-                        }
-                        
-                        this.events.splice(eventIndex, 1);
+                deleteEvent() {
+                    if (confirm('この予定を削除しますか？')) {
+                        this.events = this.events.filter(e => e.id !== this.editingEvent.id);
                         this.saveData();
                         this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�蜑企勁荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                        this.hideModal('eventModal');
                     }
-                },
-                
-                editEventById(eventId) {
-                    try {
-                        const event = this.events.find(e => String(e.id) === String(eventId));
-                        if (!event) {
-                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                            return;
-                        }
-                        
-                        this.closeAllModals();
-                        
-                        setTimeout(() => {
-                            this.openEventModal(event);
-                        }, 100);
-                        
-                    } catch (error) {
-                        console.error('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
-                        alert('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
-                    }
-                },
-                
-                closeAllModals() {
-                    document.querySelectorAll('.modal').forEach(modal => {
-                        const instance = bootstrap.Modal.getInstance(modal);
-                        if (instance) instance.hide();
-                    });
                 },
                 
                 saveData() {
@@ -1912,29 +2410,23 @@
                 },
                 
                 loadData() {
-                    try {
-                        const savedEvents = localStorage.getItem('trippenEvents');
-                        const savedDays = localStorage.getItem('trippenDays');
-                        const savedInitialized = localStorage.getItem('trippenInitialized');
-                        
-                        if (savedEvents) {
-                            this.events = JSON.parse(savedEvents);
-                            this.events = this.events.map(event => ({
-                                ...event,
-                                id: String(event.id)
-                            }));
-                        }
-                        
-                        if (savedDays) {
-                            this.tripDays = JSON.parse(savedDays);
-                        }
-                        
-                        if (savedInitialized === 'true' && this.tripDays.length > 0) {
-                            this.tripInitialized = true;
-                        }
-                        
-                    } catch (error) {
-                        console.error('繝��繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆:', error);
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    const savedInitialized = localStorage.getItem('trippenInitialized');
+                    
+                    if (savedEvents) {
+                        this.events = JSON.parse(savedEvents);
+                    }
+                    
+                    if (savedDays) {
+                        this.tripDays = JSON.parse(savedDays);
+                    }
+                    
+                    if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                        this.$nextTick(() => {
+                            this.updateScrollDots();
+                        });
                     }
                 }
             },
@@ -1944,9 +2436,12 @@
                 this.checkExistingData();
                 this.loadData();
                 
-                window.app = this;
-                
-                window.addEventListener('resize', this.detectMobile);
+                window.addEventListener('resize', () => {
+                    this.detectMobile();
+                    this.$nextTick(() => {
+                        this.updateScrollDots();
+                    });
+                });
             },
             
             unmounted() {
@@ -1956,3 +2451,4 @@
     </script>
 </body>
 </html>
+
