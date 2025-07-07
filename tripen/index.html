@@ -1428,27 +1428,25 @@
             },
             
             showContextMenuAt(x, y, event) {
-                // より正確な座標計算のため、timeline-header の高さも考慮
-                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                const timelineHeader = container.querySelector('.timeline-header');
-                const scheduleArea = container.querySelector('.schedule-area');
+                // イベントの直接的な座標を使用してシンプルに計算
+                const scheduleArea = document.querySelector('.schedule-area');
                 
                 if (!scheduleArea) {
-                    // フォールバック
-                    const containerRect = container.getBoundingClientRect();
-                    this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
+                    // 安全なフォールバック
+                    this.pasteTargetTime = '09:00';
                 } else {
-                    // 正確な座標計算
-                    const containerRect = container.getBoundingClientRect();
-                    const scheduleAreaRect = scheduleArea.getBoundingClientRect();
+                    // schedule-area の境界を取得
+                    const scheduleRect = scheduleArea.getBoundingClientRect();
                     
-                    // timeline-header の高さを除外した相対位置を計算
-                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-                    const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+                    // スクロールコンテナのスクロール位置を取得
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const scrollTop = container ? container.scrollTop : 0;
                     
-                    // 15分単位にスナップ
-                    const snappedY = Math.round(relativeY / 15) * 15;
-                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
+                    // schedule-area内での相対位置を計算
+                    const relativeY = y - scheduleRect.top + scrollTop;
+                    
+                    // 直接 pixelsToTime で変換（15分単位スナップは pixelsToTime 内で処理済み）
+                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, relativeY));
                 }
                 
                 this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
