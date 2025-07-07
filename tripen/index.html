@@ -1541,8 +1541,8 @@
                     ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
                 `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                    <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${safeEventId}')">削除</button>
-                    <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${safeEventId}')">編集</button>
+                    <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
                 `);
             },
             
@@ -1651,8 +1651,8 @@
                     </div>
                 `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                    ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${safeEventId}')">削除</button>` : ''}
-                    <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
+                    ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
                 `);
             },
             
@@ -1667,7 +1667,7 @@
                     </div>
                 `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                    <button type="button" class="btn btn-primary" onclick="app.saveStartDateFromModal()">変更</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
                 `, 'modal-sm');
             },
             
@@ -1862,7 +1862,7 @@
         }
     });
     
-        const vm = app.mount('#app');
+    const vm = app.mount('#app');
     window.app = vm;
 </script>
 </body>
