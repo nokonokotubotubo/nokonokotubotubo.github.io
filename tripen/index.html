@@ -1428,9 +1428,20 @@
             },
             
             showContextMenuAt(x, y, event) {
-                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                const rect = container.getBoundingClientRect();
-                this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
+                // schedule-area の座標を直接取得
+                const scheduleArea = event.target.closest('.schedule-area');
+                const rect = scheduleArea ? scheduleArea.getBoundingClientRect() : null;
+                
+                if (!rect) {
+                    // フォールバック: 従来の方法
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const containerRect = container.getBoundingClientRect();
+                    this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
+                } else {
+                    // schedule-area 基準での正確な座標計算
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
+                }
                 
                 this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
                 this.showContextMenu = true;
