@@ -1058,8 +1058,10 @@
         
         timeToPixels(timeString) {
             if (!timeString || typeof timeString !== 'string') return 0;
+            
             const [hours, minutes] = timeString.split(':').map(Number);
             if (isNaN(hours) || isNaN(minutes)) return 0;
+            
             const totalMinutes = (hours - 4) * 60 + minutes;
             return (totalMinutes / 15) * this.config.QUARTER_HEIGHT;
         }
@@ -1067,7 +1069,7 @@
         getEventStyle(startTime, endTime) {
             const startPixels = this.timeToPixels(startTime);
             const endPixels = this.timeToPixels(endTime);
-            const duration = Math.max(endPixels - startPixels, 30);
+            const duration = Math.max(endPixels - startPixels, 35);
             
             return {
                 top: `${startPixels}px`,
@@ -1077,30 +1079,15 @@
         }
         
         addMinutesToTime(timeString, minutes) {
-            const currentMinutes = this.timeToMinutes(timeString);
-            const newMinutes = currentMinutes + minutes;
-            const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
-            const clampedMinutes = Math.min(newMinutes, maxMinutes);
-            return this.minutesToTime(clampedMinutes);
-        }
-        
-        timeToMinutes(timeString) {
-            if (!timeString || typeof timeString !== 'string') return 0;
-            const parts = timeString.split(':');
-            if (parts.length !== 2) return 0;
-            const hours = parseInt(parts[0], 10);
-            const minutes = parseInt(parts[1], 10);
-            if (isNaN(hours) || isNaN(minutes)) return 0;
-            return (hours - this.config.START_HOUR) * 60 + minutes;
-        }
-        
-        minutesToTime(minutes) {
-            const clampedMinutes = Math.max(0, minutes);
-            const hours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
-            const mins = clampedMinutes % 60;
-            const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
-            const finalMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, mins) : mins;
-            return `${clampedHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+            const [hours, mins] = timeString.split(':').map(Number);
+            const totalMinutes = (hours - 4) * 60 + mins + minutes;
+            const maxMinutes = (23 - 4) * 60 + 45;
+            const clampedMinutes = Math.min(totalMinutes, maxMinutes);
+            
+            const newHours = Math.floor(clampedMinutes / 60) + 4;
+            const newMins = clampedMinutes % 60;
+            
+            return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
         }
     }
 
@@ -1188,8 +1175,10 @@
         
         timeToPixels(timeString) {
             if (!timeString || typeof timeString !== 'string') return 0;
+            
             const [hours, minutes] = timeString.split(':').map(Number);
             if (isNaN(hours) || isNaN(minutes)) return 0;
+            
             const totalMinutes = (hours - 4) * 60 + minutes;
             return (totalMinutes / 15) * this.config.QUARTER_HEIGHT;
         }
@@ -1197,7 +1186,7 @@
         getEventStyle(startTime, endTime) {
             const startPixels = this.timeToPixels(startTime);
             const endPixels = this.timeToPixels(endTime);
-            const duration = Math.max(endPixels - startPixels, 25);
+            const duration = Math.max(endPixels - startPixels, 32);
             
             return {
                 top: `${startPixels}px`,
@@ -1207,30 +1196,15 @@
         }
         
         addMinutesToTime(timeString, minutes) {
-            const currentMinutes = this.timeToMinutes(timeString);
-            const newMinutes = currentMinutes + minutes;
-            const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
-            const clampedMinutes = Math.min(newMinutes, maxMinutes);
-            return this.minutesToTime(clampedMinutes);
-        }
-        
-        timeToMinutes(timeString) {
-            if (!timeString || typeof timeString !== 'string') return 0;
-            const parts = timeString.split(':');
-            if (parts.length !== 2) return 0;
-            const hours = parseInt(parts[0], 10);
-            const minutes = parseInt(parts[1], 10);
-            if (isNaN(hours) || isNaN(minutes)) return 0;
-            return (hours - this.config.START_HOUR) * 60 + minutes;
-        }
-        
-        minutesToTime(minutes) {
-            const clampedMinutes = Math.max(0, minutes);
-            const hours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
-            const mins = clampedMinutes % 60;
-            const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
-            const finalMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, mins) : mins;
-            return `${clampedHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+            const [hours, mins] = timeString.split(':').map(Number);
+            const totalMinutes = (hours - 4) * 60 + mins + minutes;
+            const maxMinutes = (23 - 4) * 60 + 45;
+            const clampedMinutes = Math.min(totalMinutes, maxMinutes);
+            
+            const newHours = Math.floor(clampedMinutes / 60) + 4;
+            const newMins = clampedMinutes % 60;
+            
+            return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
         }
     }
 
@@ -1383,62 +1357,8 @@
             },
             
             // デスクトップ専用イベントハンドラー
-            handleDesktopScheduleContextMenu(event) {
-                if (this.isMobile) return; // ガード
-                
-                event.preventDefault();
-                console.log('デスクトップ右クリック処理開始');
-                
-                const time = this.desktopCoordinateSystem.getTimeFromCoordinates(event.clientX, event.clientY);
-                this.showContextMenuAt(event.clientX, event.clientY, time);
-            },
-            
-            // モバイル専用イベントハンドラー
-            handleMobileScheduleTouchStart(event) {
-                if (!this.isMobile) return; // ガード
-                
-                if (event.target.closest('.event-block')) {
-                    return;
-                }
-                
-                console.log('モバイルタッチ処理開始');
-                
-                const touch = event.touches[0];
-                this.touchStartTime = Date.now();
-                this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
-                
-                this.longPressTimer = setTimeout(() => {
-                    const time = this.mobileCoordinateSystem.getTimeFromCoordinates(touch.clientX, touch.clientY);
-                    this.showContextMenuAt(touch.clientX, touch.clientY, time);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 500);
-            },
-            
-            handleMobileScheduleTouchMove(event) {
-                if (!this.isMobile) return;
-                
-                if (event.target.closest('.event-block')) {
-                    return;
-                }
-                
-                const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
-                const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
-                if (deltaX > 10 || deltaY > 10) this.clearLongPress();
-            },
-            
-            handleMobileScheduleTouchEnd(event) {
-                if (!this.isMobile) return;
-                
-                if (event.target.closest('.event-block')) {
-                    return;
-                }
-                
-                this.clearLongPress();
-                if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
-            },
-            
             handleDragHandleMouseDown(event, eventData) {
-                if (this.isMobile) return;
+                if (this.isMobile) return; // ガード
                 
                 event.preventDefault();
                 event.stopPropagation();
@@ -1450,8 +1370,9 @@
                 this.startDesktopDragMove(event, eventData);
             },
             
+            // モバイル専用イベントハンドラー
             handleDragHandleTouchStart(event, eventData) {
-                if (!this.isMobile) return;
+                if (!this.isMobile) return; // ガード
                 
                 event.preventDefault();
                 event.stopPropagation();
@@ -1461,88 +1382,6 @@
                 this.isDragComplete = false;
                 
                 this.startMobileDragMove(event, eventData);
-            },
-            
-            // デスクトップ専用ドラッグ処理
-            startDesktopDragMove(event, eventData) {
-                const startY = event.clientY;
-                const container = this.$refs.scrollContainer; // デスクトップ専用参照
-                const rect = container.getBoundingClientRect();
-                const initialTop = event.clientY - rect.top + container.scrollTop;
-                
-                const moveHandler = (e) => {
-                    const newTop = initialTop + (e.clientY - startY);
-                    const snappedTop = Math.round(newTop / 15) * 15; // デスクトップ用15px
-                    const newTime = this.desktopCoordinateSystem.pixelsToTime(snappedTop);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                    if (eventIndex === -1) return;
-                    
-                    const duration = this.desktopCoordinateSystem.timeToPixels(this.events[eventIndex].endTime) - this.desktopCoordinateSystem.timeToPixels(this.events[eventIndex].startTime);
-                    const endTime = this.desktopCoordinateSystem.pixelsToTime(snappedTop + duration);
-                    
-                    if (newTime >= '04:00' && endTime <= '23:45') {
-                        this.events[eventIndex].startTime = newTime;
-                        this.events[eventIndex].endTime = endTime;
-                    }
-                };
-                
-                const endHandler = () => {
-                    document.removeEventListener('mousemove', moveHandler);
-                    document.removeEventListener('mouseup', endHandler);
-                    this.completeDrag();
-                };
-                
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', endHandler);
-            },
-            
-            // モバイル専用ドラッグ処理
-            startMobileDragMove(event, eventData) {
-                const coords = event.touches[0];
-                const container = this.$refs.mobileTimelineContainer; // モバイル専用参照
-                const rect = container.getBoundingClientRect();
-                const initialTop = coords.clientY - rect.top + container.scrollTop;
-                const startY = coords.clientY;
-                
-                const moveHandler = (e) => {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const deltaY = touch.clientY - startY;
-                    const newTop = initialTop + deltaY;
-                    const snappedTop = Math.round(newTop / 12.5) * 12.5; // モバイル用12.5px
-                    const newTime = this.mobileCoordinateSystem.pixelsToTime(snappedTop);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                    if (eventIndex === -1) return;
-                    
-                    const duration = this.mobileCoordinateSystem.timeToPixels(this.events[eventIndex].endTime) - this.mobileCoordinateSystem.timeToPixels(this.events[eventIndex].startTime);
-                    const endTime = this.mobileCoordinateSystem.pixelsToTime(snappedTop + duration);
-                    
-                    if (newTime >= '04:00' && endTime <= '23:45') {
-                        this.events[eventIndex].startTime = newTime;
-                        this.events[eventIndex].endTime = endTime;
-                    }
-                };
-                
-                const endHandler = () => {
-                    document.removeEventListener('touchmove', moveHandler);
-                    document.removeEventListener('touchend', endHandler);
-                    this.completeDrag();
-                };
-                
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('touchend', endHandler, { passive: true });
-            },
-            
-            completeDrag() {
-                this.draggingEvent = null;
-                this.isDragComplete = true;
-                this.saveData();
-                
-                setTimeout(() => {
-                    this.isDragComplete = false;
-                }, 150);
             },
             
             handleEventClick(event, eventData) {
@@ -1574,6 +1413,87 @@
                     this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
                     if (navigator.vibrate) navigator.vibrate(50);
                 }
+            },
+            
+            // デスクトップ専用ドラッグ処理
+            startDesktopDragMove(event, eventData) {
+                console.log('デスクトップドラッグ開始');
+                const startY = event.clientY;
+                const container = this.$refs.scrollContainer; // デスクトップ専用参照
+                const rect = container.getBoundingClientRect();
+                const initialTop = event.clientY - rect.top + container.scrollTop;
+                
+                const moveHandler = (e) => {
+                    const newTop = initialTop + (e.clientY - startY);
+                    const snappedTop = Math.round(newTop / 15) * 15; // デスクトップ用15px
+                    const newTime = this.desktopCoordinateSystem.pixelsToTime(snappedTop);
+                    
+                    this.updateEventTime(eventData, newTime);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    this.completeDrag();
+                };
+                
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', endHandler);
+            },
+            
+            // モバイル専用ドラッグ処理
+            startMobileDragMove(event, eventData) {
+                console.log('モバイルドラッグ開始');
+                const coords = event.touches[0];
+                const container = this.$refs.mobileTimelineContainer; // モバイル専用参照
+                const rect = container.getBoundingClientRect();
+                const initialTop = coords.clientY - rect.top + container.scrollTop;
+                const startY = coords.clientY;
+                
+                const moveHandler = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 12.5) * 12.5; // モバイル用12.5px
+                    const newTime = this.mobileCoordinateSystem.pixelsToTime(snappedTop);
+                    
+                    this.updateEventTime(eventData, newTime);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.completeDrag();
+                };
+                
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', endHandler, { passive: true });
+            },
+            
+            updateEventTime(eventData, newTime) {
+                const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                if (eventIndex === -1) return;
+                
+                const coordinateSystem = this.isMobile ? this.mobileCoordinateSystem : this.desktopCoordinateSystem;
+                const currentEvent = this.events[eventIndex];
+                const duration = coordinateSystem.timeToPixels(currentEvent.endTime) - coordinateSystem.timeToPixels(currentEvent.startTime);
+                const endTime = coordinateSystem.pixelsToTime(coordinateSystem.timeToPixels(newTime) + duration);
+                
+                if (newTime >= '04:00' && endTime <= '23:45') {
+                    this.events[eventIndex].startTime = newTime;
+                    this.events[eventIndex].endTime = endTime;
+                }
+            },
+            
+            completeDrag() {
+                this.draggingEvent = null;
+                this.isDragComplete = true;
+                this.saveData();
+                
+                setTimeout(() => {
+                    this.isDragComplete = false;
+                }, 150);
             },
             
             handleMobileDayTouchStart(event, index) {
@@ -1634,6 +1554,8 @@
             },
             
             handleEventTouchStart(event, eventData) {
+                if (!this.isMobile) return; // ガード
+                
                 if (this.isDragComplete) {
                     return;
                 }
@@ -1676,13 +1598,6 @@
                 }
             },
             
-            clearLongPress() {
-                if (this.longPressTimer) {
-                    clearTimeout(this.longPressTimer);
-                    this.longPressTimer = null;
-                }
-            },
-            
             handleCutButtonClick(event, eventData) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1711,6 +1626,8 @@
             pasteFromContext() {
                 if (!this.clipboardEvent) return;
                 
+                const coordinateSystem = this.isMobile ? this.mobileCoordinateSystem : this.desktopCoordinateSystem;
+                
                 const newEvent = {
                     ...this.clipboardEvent,
                     id: Date.now() + Math.random(),
@@ -1718,10 +1635,9 @@
                 };
                 
                 if (this.pasteTargetTime) {
-                    const coordinateSystem = this.isMobile ? this.mobileCoordinateSystem : this.desktopCoordinateSystem;
-                    const duration = coordinateSystem.timeToMinutes(this.clipboardEvent.endTime) - coordinateSystem.timeToMinutes(this.clipboardEvent.startTime);
+                    const originalDuration = coordinateSystem.timeToPixels(this.clipboardEvent.endTime) - coordinateSystem.timeToPixels(this.clipboardEvent.startTime);
                     newEvent.startTime = this.pasteTargetTime;
-                    newEvent.endTime = coordinateSystem.addMinutesToTime(this.pasteTargetTime, duration);
+                    newEvent.endTime = coordinateSystem.pixelsToTime(coordinateSystem.timeToPixels(this.pasteTargetTime) + originalDuration);
                 }
                 
                 this.events.push(newEvent);
@@ -1750,6 +1666,93 @@
                 setTimeout(() => {
                     this.openEventModal(null, true);
                 }, 100);
+            },
+            
+            // デスクトップ専用コンテキストメニュー処理
+            handleScheduleContextMenu(event) {
+                if (this.isMobile) return; // ガード
+                
+                event.preventDefault();
+                console.log('デスクトップ右クリック処理開始');
+                
+                const desktopUI = document.querySelector('.desktop-ui');
+                if (!desktopUI) {
+                    console.error('desktop-uiが見つかりません');
+                    return;
+                }
+                
+                const scheduleArea = desktopUI.querySelector('.schedule-area');
+                if (!scheduleArea) {
+                    console.error('デスクトップのschedule-areaが見つかりません');
+                    return;
+                }
+                
+                const scheduleRect = scheduleArea.getBoundingClientRect();
+                const isInsideSchedule = (
+                    event.clientX >= scheduleRect.left &&
+                    event.clientX <= scheduleRect.right &&
+                    event.clientY >= scheduleRect.top &&
+                    event.clientY <= scheduleRect.bottom
+                );
+                
+                console.log('デスクトップクリック座標チェック:', {
+                    clickPoint: { x: event.clientX, y: event.clientY },
+                    scheduleArea: scheduleRect,
+                    isInside: isInsideSchedule
+                });
+                
+                if (isInsideSchedule) {
+                    const time = this.desktopCoordinateSystem.getTimeFromCoordinates(event.clientX, event.clientY);
+                    console.log('デスクトップ取得時間:', time);
+                    this.showContextMenuAt(event.clientX, event.clientY, time);
+                } else {
+                    console.log('デスクトップクリック位置がschedule-area外です');
+                }
+            },
+            
+            // モバイル専用タッチ処理
+            handleScheduleTouchStart(event) {
+                if (!this.isMobile) return; // ガード
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                console.log('モバイルタッチ処理開始');
+                
+                const touch = event.touches[0];
+                this.touchStartTime = Date.now();
+                this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
+                
+                this.longPressTimer = setTimeout(() => {
+                    const time = this.mobileCoordinateSystem.getTimeFromCoordinates(touch.clientX, touch.clientY);
+                    console.log('モバイル取得時間:', time);
+                    this.showContextMenuAt(touch.clientX, touch.clientY, time);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, 500);
+            },
+            
+            handleScheduleTouchMove(event) {
+                if (!this.isMobile) return; // ガード
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+                const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+                if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+            },
+            
+            handleScheduleTouchEnd(event) {
+                if (!this.isMobile) return; // ガード
+                
+                if (event.target.closest('.event-block')) {
+                    return;
+                }
+                
+                this.clearLongPress();
+                if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
             },
             
             showContextMenuAt(x, y, time) {
@@ -1784,55 +1787,95 @@
             
             hideContextMenu() { this.showContextMenu = false; },
             
+            clearLongPress() {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            },
+            
             startResize(event, eventData, direction) {
-                this.startResizeHandler(event, direction, 'mouse');
+                if (this.isMobile) {
+                    this.startMobileResize(event, eventData, direction);
+                } else {
+                    this.startDesktopResize(event, eventData, direction);
+                }
             },
             
             startResizeTouch(event, eventData, direction) {
-                this.startResizeHandler(event, direction, 'touch');
+                if (!this.isMobile) return; // ガード
+                this.startMobileResize(event, eventData, direction);
             },
             
-            startResizeHandler(event, direction, type) {
+            startDesktopResize(event, eventData, direction) {
+                console.log('デスクトップリサイズ開始');
                 event.preventDefault();
                 event.stopPropagation();
                 
-                const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
-                const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
-                const coordinateSystem = this.isMobile ? this.mobileCoordinateSystem : this.desktopCoordinateSystem;
-                
                 const moveHandler = (e) => {
-                    const coords = type === 'touch' ? e.touches[0] : e;
-                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const container = this.$refs.scrollContainer;
                     const rect = container.getBoundingClientRect();
-                    const y = coords.clientY - rect.top + container.scrollTop;
-                    const quarterHeight = this.isMobile ? 12.5 : 15;
-                    const snappedY = Math.round(y / quarterHeight) * quarterHeight;
-                    const newTime = coordinateSystem.pixelsToTime(snappedY);
+                    const y = e.clientY - rect.top + container.scrollTop;
+                    const snappedY = Math.round(y / 15) * 15; // デスクトップ用15px
+                    const newTime = this.desktopCoordinateSystem.pixelsToTime(snappedY);
                     
-                    const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
-                    if (eventIndex === -1) return;
-                    
-                    if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
-                        this.events[eventIndex].startTime = newTime;
-                    } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
-                        this.events[eventIndex].endTime = newTime;
-                    }
+                    this.updateResizeTime(direction, newTime);
                 };
                 
                 const endHandler = () => {
-                    document.removeEventListener(moveEvent, moveHandler);
-                    document.removeEventListener(endEvent, endHandler);
-                    
-                    this.isResizeComplete = true;
-                    this.saveData();
-                    
-                    setTimeout(() => {
-                        this.isResizeComplete = false;
-                    }, 150);
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', endHandler);
+                    this.completeResize();
                 };
                 
-                document.addEventListener(moveEvent, moveHandler, { passive: false });
-                document.addEventListener(endEvent, endHandler);
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', endHandler);
+            },
+            
+            startMobileResize(event, eventData, direction) {
+                console.log('モバイルリサイズ開始');
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const moveHandler = (e) => {
+                    const coords = e.touches[0];
+                    const container = this.$refs.mobileTimelineContainer;
+                    const rect = container.getBoundingClientRect();
+                    const y = coords.clientY - rect.top + container.scrollTop;
+                    const snappedY = Math.round(y / 12.5) * 12.5; // モバイル用12.5px
+                    const newTime = this.mobileCoordinateSystem.pixelsToTime(snappedY);
+                    
+                    this.updateResizeTime(direction, newTime);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    this.completeResize();
+                };
+                
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', endHandler);
+            },
+            
+            updateResizeTime(direction, newTime) {
+                const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                if (eventIndex === -1) return;
+                
+                if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+                    this.events[eventIndex].startTime = newTime;
+                } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+                    this.events[eventIndex].endTime = newTime;
+                }
+            },
+            
+            completeResize() {
+                this.isResizeComplete = true;
+                this.saveData();
+                
+                setTimeout(() => {
+                    this.isResizeComplete = false;
+                }, 150);
             },
             
             // デバイス別のイベントスタイル取得
@@ -2007,6 +2050,7 @@
                 `, 'modal-sm');
             },
             
+            // 修正されたモーダル管理システム
             openModal(title, body, footer, size = '') {
                 const modalId = `modal-${Date.now()}`;
                 const modal = { id: modalId, title, body, footer, size };
