@@ -1149,9 +1149,12 @@
                     const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
                     const endTime = this.pixelsToTime(snappedTop + duration);
                     
-                    if (newTime >= '04:00' && endTime <= '23:45') {
+                    // 修正: 24:00まで対応、開始時間24:00未満の条件追加、エラーログ追加
+                    if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
                         this.events[eventIndex].startTime = newTime;
                         this.events[eventIndex].endTime = endTime;
+                    } else {
+                        console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
                     }
                 };
                 
@@ -1318,9 +1321,12 @@
                 const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
                 const endTime = this.pixelsToTime(snappedTop + duration);
                 
-                if (newTime >= '04:00' && endTime <= '23:45') {
+                // 修正: 24:00まで対応、開始時間24:00未満の条件追加、エラーログ追加
+                if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
                     this.events[eventIndex].startTime = newTime;
                     this.events[eventIndex].endTime = endTime;
+                } else {
+                    console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
                 }
             },
             
@@ -1415,8 +1421,9 @@
             pixelsToTime(pixels) {
                 const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
                 const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                const hours = Math.max(4, Math.min(23, Math.floor(roundedMinutes / 60) + 4));
-                const minutes = hours === 23 ? Math.min(45, roundedMinutes % 60) : roundedMinutes % 60;
+                // 修正: 24時間目まで対応、24:00の分は0分に設定
+                const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
+                const minutes = hours === 24 ? 0 : roundedMinutes % 60;
                 return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             },
             
@@ -1767,7 +1774,6 @@
                     }
                     
                     const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-                    
                     const eventData = {
                         id: finalEventId,
                         title: title.trim(),
@@ -1921,7 +1927,6 @@
             });
         }
     });
-    
     const vm = app.mount('#app');
     window.app = vm;
 </script>
