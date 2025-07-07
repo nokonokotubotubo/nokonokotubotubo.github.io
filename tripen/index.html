@@ -37,7 +37,7 @@
         .header {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            padding: 15px 0;
+            padding: 8px 0;
             text-align: center;
             box-shadow: var(--shadow);
             flex-shrink: 0;
@@ -58,7 +58,7 @@
         .day-tabs {
             background: white;
             border-radius: var(--radius) var(--radius) 0 0;
-            margin: 20px 0 0 0;
+            margin: 10px 0 0 0;
             box-shadow: var(--shadow);
             display: flex;
             min-width: max-content;
@@ -256,11 +256,22 @@
         
         .timeline-header {
             background: var(--secondary);
-            padding: 15px 20px;
+            padding: 8px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+        }
+        
+        .timeline-header h5 {
+            font-size: 1rem;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .timeline-header h5 small {
+            font-size: 0.85rem;
+            margin-left: 8px;
         }
         
         .timeline-content { flex: 1; overflow: hidden; }
@@ -563,6 +574,29 @@
         .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
         
         @media (max-width: 768px) {
+            .header {
+                padding: 6px 0;
+            }
+            
+            .timeline-header {
+                padding: 6px 15px;
+            }
+            
+            .timeline-header h5 {
+                font-size: 0.9rem;
+            }
+            
+            .timeline-header h5 small {
+                font-size: 0.75rem;
+                display: block;
+                margin-left: 0;
+                margin-top: 2px;
+            }
+            
+            .day-tabs {
+                margin: 8px 0 0 0;
+            }
+            
             .time-axis { width: 60px; height: 1000px; }
             .time-slot { height: 50px; font-size: 0.8rem; }
             .grid-line { height: 50px; }
@@ -1136,7 +1170,9 @@
                 const startY = event.clientY;
                 const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
                 const rect = container.getBoundingClientRect();
-                const initialTop = event.clientY - rect.top + container.scrollTop;
+                const timelineHeader = container.querySelector('.timeline-header');
+                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                const initialTop = event.clientY - rect.top - headerHeight + container.scrollTop;
                 
                 const moveHandler = (e) => {
                     const newTop = initialTop + (e.clientY - startY);
@@ -1149,7 +1185,6 @@
                     const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
                     const endTime = this.pixelsToTime(snappedTop + duration);
                     
-                    // 修正: 24:00まで対応、開始時間24:00未満の条件追加、エラーログ追加
                     if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
                         this.events[eventIndex].startTime = newTime;
                         this.events[eventIndex].endTime = endTime;
@@ -1283,7 +1318,9 @@
                 const coords = event.touches[0];
                 const container = this.$refs.mobileTimelineContainer;
                 const rect = container.getBoundingClientRect();
-                const initialTop = coords.clientY - rect.top + container.scrollTop;
+                const timelineHeader = container.querySelector('.timeline-header');
+                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                const initialTop = coords.clientY - rect.top - headerHeight + container.scrollTop;
                 const startY = coords.clientY;
                 
                 const moveHandler = (e) => {
@@ -1321,7 +1358,6 @@
                 const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
                 const endTime = this.pixelsToTime(snappedTop + duration);
                 
-                // 修正: 24:00まで対応、開始時間24:00未満の条件追加、エラーログ追加
                 if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
                     this.events[eventIndex].startTime = newTime;
                     this.events[eventIndex].endTime = endTime;
@@ -1379,11 +1415,9 @@
             addEventFromContext() {
                 if (!this.pasteTargetTime) return;
                 
-                // 終了時間を開始時間の1時間後に設定
                 const startMinutes = this.timeToMinutes(this.pasteTargetTime);
                 const endTime = this.minutesToTime(startMinutes + 60);
                 
-                // フォームに初期値を設定
                 this.eventForm = {
                     title: '',
                     dayIndex: this.activeDay,
@@ -1395,9 +1429,8 @@
                 
                 this.hideContextMenu();
                 
-                // 少し遅延してモーダルを開く（コンテキストメニューから呼ばれたことを示すフラグを追加）
                 setTimeout(() => {
-                    this.openEventModal(null, true);  // 第二引数でコンテキストメニューから呼ばれたことを示す
+                    this.openEventModal(null, true);
                 }, 100);
             },
             
@@ -1421,7 +1454,6 @@
             pixelsToTime(pixels) {
                 const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
                 const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-                // 修正: 24時間目まで対応、24:00の分は0分に設定
                 const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
                 const minutes = hours === 24 ? 0 : roundedMinutes % 60;
                 return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
@@ -1435,25 +1467,20 @@
             },
             
             showContextMenuAt(x, y, event) {
-                // より正確な座標計算のため、timeline-header の高さも考慮
                 const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
                 const timelineHeader = container.querySelector('.timeline-header');
                 const scheduleArea = container.querySelector('.schedule-area');
                 
                 if (!scheduleArea) {
-                    // フォールバック
                     const containerRect = container.getBoundingClientRect();
                     this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
                 } else {
-                    // 正確な座標計算
                     const containerRect = container.getBoundingClientRect();
                     const scheduleAreaRect = scheduleArea.getBoundingClientRect();
                     
-                    // timeline-header の高さを除外した相対位置を計算
                     const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
                     const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
                     
-                    // 15分単位にスナップ
                     const snappedY = Math.round(relativeY / 15) * 15;
                     this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
                 }
@@ -1533,7 +1560,9 @@
                     const coords = type === 'touch' ? e.touches[0] : e;
                     const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
                     const rect = container.getBoundingClientRect();
-                    const y = coords.clientY - rect.top + container.scrollTop;
+                    const timelineHeader = container.querySelector('.timeline-header');
+                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                    const y = coords.clientY - rect.top - headerHeight + container.scrollTop;
                     const snappedY = Math.round(y / 15) * 15;
                     const newTime = this.pixelsToTime(snappedY);
                     
@@ -1657,7 +1686,6 @@
             openEventModal(event = null, fromContextMenu = false) {
                 const isEdit = !!event;
                 
-                // コンテキストメニューから呼ばれた場合は、既に設定されている eventForm を使用
                 if (!fromContextMenu) {
                     if (event) {
                         this.eventForm = { ...event };
