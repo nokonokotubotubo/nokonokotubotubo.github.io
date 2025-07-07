@@ -18,8 +18,6 @@
             --transition: all 0.3s ease;
             --radius: 15px;
             --shadow: 0 2px 10px rgba(0,0,0,0.1);
-            --time-scale-desktop: 1;
-            --time-scale-mobile: 0.833;
         }
         
         * { box-sizing: border-box; }
@@ -918,21 +916,20 @@
             </div>
         </div>
         
-        <!-- 静的モーダル（簡素化） -->
-        <div class="modal fade" id="universalModal" tabindex="-1">
-            <div class="modal-dialog" :class="modal?.size || ''">
+        <!-- モーダルテンプレート -->
+        <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
+            <div class="modal-dialog" :class="modal.size">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ currentModal.title }}</h5>
+                        <h5 class="modal-title">{{ modal.title }}</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body" v-html="currentModal.body"></div>
-                    <div class="modal-footer" v-html="currentModal.footer"></div>
+                    <div class="modal-body" v-html="modal.body"></div>
+                    <div class="modal-footer" v-html="modal.footer"></div>
                 </div>
             </div>
         </div>
     </div>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
@@ -1431,31 +1428,26 @@
             },
             
             showContextMenuAt(x, y, event) {
-                // 最もシンプルで確実な座標計算方法
-                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                // イベントの直接的な座標を使用してシンプルに計算
+                const scheduleArea = document.querySelector('.schedule-area');
                 
-                if (!container) {
+                if (!scheduleArea) {
+                    // 安全なフォールバック
                     this.pasteTargetTime = '09:00';
-                    this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
-                    this.showContextMenu = true;
-                    return;
+                } else {
+                    // schedule-area の境界を取得
+                    const scheduleRect = scheduleArea.getBoundingClientRect();
+                    
+                    // スクロールコンテナのスクロール位置を取得
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const scrollTop = container ? container.scrollTop : 0;
+                    
+                    // schedule-area内での相対位置を計算
+                    const relativeY = y - scheduleRect.top + scrollTop;
+                    
+                    // 直接 pixelsToTime で変換（15分単位スナップは pixelsToTime 内で処理済み）
+                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, relativeY));
                 }
-                
-                // timeline-scroll-container の rect を取得
-                const containerRect = container.getBoundingClientRect();
-                
-                // timeline-header の高さを正確に取得
-                const timelineContent = container.querySelector('.timeline-content');
-                const timelineHeader = container.querySelector('.timeline-header');
-                
-                // timeline-content の上端位置を基準とする
-                const contentRect = timelineContent ? timelineContent.getBoundingClientRect() : containerRect;
-                
-                // 正確な相対Y座標を計算
-                const relativeY = y - contentRect.top + container.scrollTop;
-                
-                // pixelsToTime で時間に変換
-                this.pasteTargetTime = this.pixelsToTime(Math.max(0, relativeY));
                 
                 this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
                 this.showContextMenu = true;
