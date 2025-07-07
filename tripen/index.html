@@ -1428,19 +1428,27 @@
             },
             
             showContextMenuAt(x, y, event) {
-                // schedule-area の座標を直接取得
-                const scheduleArea = event.target.closest('.schedule-area');
-                const rect = scheduleArea ? scheduleArea.getBoundingClientRect() : null;
+                // より正確な座標計算のため、timeline-header の高さも考慮
+                const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                const timelineHeader = container.querySelector('.timeline-header');
+                const scheduleArea = container.querySelector('.schedule-area');
                 
-                if (!rect) {
-                    // フォールバック: 従来の方法
-                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                if (!scheduleArea) {
+                    // フォールバック
                     const containerRect = container.getBoundingClientRect();
                     this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
                 } else {
-                    // schedule-area 基準での正確な座標計算
-                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-                    this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
+                    // 正確な座標計算
+                    const containerRect = container.getBoundingClientRect();
+                    const scheduleAreaRect = scheduleArea.getBoundingClientRect();
+                    
+                    // timeline-header の高さを除外した相対位置を計算
+                    const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                    const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+                    
+                    // 15分単位にスナップ
+                    const snappedY = Math.round(relativeY / 15) * 15;
+                    this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
                 }
                 
                 this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
