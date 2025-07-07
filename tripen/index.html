@@ -1025,1400 +1025,1504 @@
                 return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
             }
             
-            // 時間からピクセルに変換
-            timeToPixels(timeString) {
-                if (!timeString || typeof timeString !== 'string') return 0;
-                
-                const [hours, minutes] = timeString.split(':').map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return 0;
-                
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
-                return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
+            // 時間からピクセルに変換<script>
+    // デスクトップ専用座標管理システム
+    class DesktopCoordinateManager {
+        constructor() {
+            this.config = {
+                START_HOUR: 4,
+                END_HOUR: 23,
+                TOTAL_HOURS: 19,
+                HOUR_HEIGHT: 60,
+                QUARTER_HEIGHT: 15,
+                TOTAL_HEIGHT: 1140, // 19 * 60
+                AXIS_WIDTH: 80,
+                MIN_EVENT_HEIGHT: 35
+            };
+            
+            this.selectors = {
+                container: '.desktop-ui',
+                scheduleArea: '.desktop-ui .schedule-area',
+                scrollContainer: '.desktop-ui .timeline-scroll-container',
+                timeAxis: '.desktop-ui .time-axis'
+            };
+        }
+        
+        // 座標から時間を取得
+        getTimeFromCoordinates(clientX, clientY) {
+            const container = document.querySelector(this.selectors.container);
+            if (!container) return '09:00';
+            
+            const scheduleArea = container.querySelector('.schedule-area');
+            const scrollContainer = container.querySelector('.timeline-scroll-container');
+            
+            if (!scheduleArea || !scrollContainer) return '09:00';
+            
+            const scheduleRect = scheduleArea.getBoundingClientRect();
+            const scrollTop = scrollContainer.scrollTop;
+            
+            const relativeY = clientY - scheduleRect.top;
+            const actualY = relativeY + scrollTop;
+            
+            return this.pixelsToTime(Math.max(0, Math.min(actualY, this.config.TOTAL_HEIGHT)));
+        }
+        
+        // ピクセルから時間に変換
+        pixelsToTime(pixels) {
+            const quarters = Math.round(pixels / this.config.QUARTER_HEIGHT);
+            const totalMinutes = quarters * 15;
+            const hours = Math.floor(totalMinutes / 60) + this.config.START_HOUR;
+            const minutes = totalMinutes % 60;
+            
+            const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
+            const clampedMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, minutes) : minutes;
+            
+            return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
+        }
+        
+        // 時間からピクセルに変換
+        timeToPixels(timeString) {
+            if (!timeString || typeof timeString !== 'string') return 0;
+            
+            const [hours, minutes] = timeString.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
+            
+            const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
+            return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
+        }
+        
+        // イベントスタイルを取得
+        getEventStyle(startTime, endTime) {
+            const startPixels = this.timeToPixels(startTime);
+            const endPixels = this.timeToPixels(endTime);
+            const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
+            
+            return {
+                position: 'absolute',
+                top: `${startPixels}px`,
+                left: '10px',
+                right: '10px',
+                height: `${duration}px`,
+                minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
+            };
+        }
+        
+        // 時間に分を追加
+        addMinutesToTime(timeString, minutes) {
+            const [hours, mins] = timeString.split(':').map(Number);
+            const totalMinutes = (hours - this.config.START_HOUR) * 60 + mins + minutes;
+            const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
+            const clampedMinutes = Math.min(totalMinutes, maxMinutes);
+            
+            const newHours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
+            const newMins = clampedMinutes % 60;
+            
+            return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+        }
+        
+        // スナップ座標を取得
+        getSnappedCoordinates(clientX, clientY) {
+            const container = document.querySelector(this.selectors.scrollContainer);
+            if (!container) return { x: 0, y: 0 };
+            
+            const rect = container.getBoundingClientRect();
+            const scrollTop = container.scrollTop;
+            const rawY = clientY - rect.top + scrollTop;
+            const snappedY = Math.round(rawY / this.config.QUARTER_HEIGHT) * this.config.QUARTER_HEIGHT;
+            
+            return {
+                x: clientX,
+                y: snappedY
+            };
+        }
+    }
+
+    // モバイル専用座標管理システム
+    class MobileCoordinateManager {
+        constructor() {
+            this.config = {
+                START_HOUR: 4,
+                END_HOUR: 23,
+                TOTAL_HOURS: 19,
+                HOUR_HEIGHT: 50,
+                QUARTER_HEIGHT: 12.5,
+                TOTAL_HEIGHT: 950, // 19 * 50
+                AXIS_WIDTH: 60,
+                MIN_EVENT_HEIGHT: 32
+            };
+            
+            this.selectors = {
+                container: '.mobile-ui',
+                scheduleArea: '.mobile-ui .schedule-area',
+                scrollContainer: '.mobile-ui .timeline-scroll-container',
+                timeAxis: '.mobile-ui .time-axis'
+            };
+        }
+        
+        // 座標から時間を取得
+        getTimeFromCoordinates(clientX, clientY) {
+            const container = document.querySelector(this.selectors.container);
+            if (!container) return '09:00';
+            
+            const scheduleArea = container.querySelector('.schedule-area');
+            const scrollContainer = container.querySelector('.timeline-scroll-container');
+            
+            if (!scheduleArea || !scrollContainer) return '09:00';
+            
+            const scheduleRect = scheduleArea.getBoundingClientRect();
+            const scrollTop = scrollContainer.scrollTop;
+            
+            const relativeY = clientY - scheduleRect.top;
+            const actualY = relativeY + scrollTop;
+            
+            return this.pixelsToTime(Math.max(0, Math.min(actualY, this.config.TOTAL_HEIGHT)));
+        }
+        
+        // ピクセルから時間に変換
+        pixelsToTime(pixels) {
+            const quarters = Math.round(pixels / this.config.QUARTER_HEIGHT);
+            const totalMinutes = quarters * 15;
+            const hours = Math.floor(totalMinutes / 60) + this.config.START_HOUR;
+            const minutes = totalMinutes % 60;
+            
+            const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
+            const clampedMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, minutes) : minutes;
+            
+            return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
+        }
+        
+        // 時間からピクセルに変換
+        timeToPixels(timeString) {
+            if (!timeString || typeof timeString !== 'string') return 0;
+            
+            const [hours, minutes] = timeString.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
+            
+            const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
+            return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
+        }
+        
+        // イベントスタイルを取得
+        getEventStyle(startTime, endTime) {
+            const startPixels = this.timeToPixels(startTime);
+            const endPixels = this.timeToPixels(endTime);
+            const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
+            
+            return {
+                position: 'absolute',
+                top: `${startPixels}px`,
+                left: '8px',
+                right: '8px',
+                height: `${duration}px`,
+                minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
+            };
+        }
+        
+        // 時間に分を追加
+        addMinutesToTime(timeString, minutes) {
+            const [hours, mins] = timeString.split(':').map(Number);
+            const totalMinutes = (hours - this.config.START_HOUR) * 60 + mins + minutes;
+            const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
+            const clampedMinutes = Math.min(totalMinutes, maxMinutes);
+            
+            const newHours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
+            const newMins = clampedMinutes % 60;
+            
+            return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+        }
+        
+        // スナップ座標を取得
+        getSnappedCoordinates(clientX, clientY) {
+            const container = document.querySelector(this.selectors.scrollContainer);
+            if (!container) return { x: 0, y: 0 };
+            
+            const rect = container.getBoundingClientRect();
+            const scrollTop = container.scrollTop;
+            const rawY = clientY - rect.top + scrollTop;
+            const snappedY = Math.round(rawY / this.config.QUARTER_HEIGHT) * this.config.QUARTER_HEIGHT;
+            
+            return {
+                x: clientX,
+                y: snappedY
+            };
+        }
+    }
+
+    // デスクトップ専用イベント処理
+    class DesktopEventHandler {
+        constructor(coordinateManager, vueInstance) {
+            this.coordinator = coordinateManager;
+            this.vue = vueInstance;
+            this.dragState = {
+                isDragging: false,
+                isResizing: false,
+                currentEvent: null,
+                resizeDirection: null
+            };
+        }
+        
+        // デスクトップ専用ドラッグ開始
+        startDrag(event, eventData) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            this.dragState.isDragging = true;
+            this.dragState.currentEvent = eventData;
+            this.vue.draggingEvent = eventData;
+            
+            const startY = event.clientY;
+            const container = document.querySelector(this.coordinator.selectors.scrollContainer);
+            const rect = container.getBoundingClientRect();
+            const initialTop = event.clientY - rect.top + container.scrollTop;
+            
+            const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
+            const endHandler = () => this.endDrag(moveHandler, endHandler);
+            
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', endHandler);
+        }
+        
+        // デスクトップ専用ドラッグ移動
+        handleDragMove(event, startY, initialTop) {
+            if (!this.dragState.isDragging) return;
+            
+            const deltaY = event.clientY - startY;
+            const newTop = initialTop + deltaY;
+            const snappedCoords = this.coordinator.getSnappedCoordinates(event.clientX, event.clientY);
+            const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
+            
+            this.updateEventTime(this.dragState.currentEvent, newTime);
+        }
+        
+        // デスクトップ専用ドラッグ終了
+        endDrag(moveHandler, endHandler) {
+            document.removeEventListener('mousemove', moveHandler);
+            document.removeEventListener('mouseup', endHandler);
+            
+            this.dragState.isDragging = false;
+            this.dragState.currentEvent = null;
+            this.vue.draggingEvent = null;
+            this.vue.isDragComplete = true;
+            this.vue.saveData();
+            
+            setTimeout(() => {
+                this.vue.isDragComplete = false;
+            }, 150);
+        }
+        
+        // デスクトップ専用リサイズ開始
+        startResize(event, eventData, direction) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            this.dragState.isResizing = true;
+            this.dragState.currentEvent = eventData;
+            this.dragState.resizeDirection = direction;
+            
+            const moveHandler = (e) => this.handleResizeMove(e, direction);
+            const endHandler = () => this.endResize(moveHandler, endHandler);
+            
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', endHandler);
+        }
+        
+        // デスクトップ専用リサイズ移動
+        handleResizeMove(event, direction) {
+            if (!this.dragState.isResizing) return;
+            
+            const snappedCoords = this.coordinator.getSnappedCoordinates(event.clientX, event.clientY);
+            const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
+            
+            this.updateResizeTime(direction, newTime);
+        }
+        
+        // デスクトップ専用リサイズ終了
+        endResize(moveHandler, endHandler) {
+            document.removeEventListener('mousemove', moveHandler);
+            document.removeEventListener('mouseup', endHandler);
+            
+            this.dragState.isResizing = false;
+            this.dragState.currentEvent = null;
+            this.dragState.resizeDirection = null;
+            this.vue.isResizeComplete = true;
+            this.vue.saveData();
+            
+            setTimeout(() => {
+                this.vue.isResizeComplete = false;
+            }, 150);
+        }
+        
+        // デスクトップ専用右クリック処理
+        handleContextMenu(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // イベントブロック内での右クリックは除外
+            if (event.target.closest('.event-block')) {
+                return;
             }
             
-            // イベントスタイルを取得
-            getEventStyle(startTime, endTime) {
-                const startPixels = this.timeToPixels(startTime);
-                const endPixels = this.timeToPixels(endTime);
-                const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
-                
-                return {
-                    position: 'absolute',
-                    top: `${startPixels}px`,
-                    left: '10px',
-                    right: '10px',
-                    height: `${duration}px`,
-                    minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
-                };
-            }
+            const scheduleArea = document.querySelector('.desktop-ui .schedule-area') || 
+                               document.querySelector('.schedule-area');
+            if (!scheduleArea) return;
             
-            // 時間に分を追加
-            addMinutesToTime(timeString, minutes) {
-                const [hours, mins] = timeString.split(':').map(Number);
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + mins + minutes;
-                const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
-                const clampedMinutes = Math.min(totalMinutes, maxMinutes);
-                
-                const newHours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
-                const newMins = clampedMinutes % 60;
-                
-                return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
-            }
+            const rect = scheduleArea.getBoundingClientRect();
+            const isInside = (
+                event.clientX >= rect.left &&
+                event.clientX <= rect.right &&
+                event.clientY >= rect.top &&
+                event.clientY <= rect.bottom
+            );
             
-            // スナップ座標を取得
-            getSnappedCoordinates(clientX, clientY) {
-                const container = document.querySelector(this.selectors.scrollContainer);
-                if (!container) return { x: 0, y: 0 };
-                
-                const rect = container.getBoundingClientRect();
-                const scrollTop = container.scrollTop;
-                const rawY = clientY - rect.top + scrollTop;
-                const snappedY = Math.round(rawY / this.config.QUARTER_HEIGHT) * this.config.QUARTER_HEIGHT;
-                
-                return {
-                    x: clientX,
-                    y: snappedY
-                };
+            if (isInside) {
+                const time = this.coordinator.getTimeFromCoordinates(event.clientX, event.clientY);
+                this.vue.showContextMenuAt(event.clientX, event.clientY, time);
             }
         }
-
-        // モバイル専用座標管理システム
-        class MobileCoordinateManager {
-            constructor() {
-                this.config = {
-                    START_HOUR: 4,
-                    END_HOUR: 23,
-                    TOTAL_HOURS: 19,
-                    HOUR_HEIGHT: 50,
-                    QUARTER_HEIGHT: 12.5,
-                    TOTAL_HEIGHT: 950, // 19 * 50
-                    AXIS_WIDTH: 60,
-                    MIN_EVENT_HEIGHT: 32
-                };
-                
-                this.selectors = {
-                    container: '.mobile-ui',
-                    scheduleArea: '.mobile-ui .schedule-area',
-                    scrollContainer: '.mobile-ui .timeline-scroll-container',
-                    timeAxis: '.mobile-ui .time-axis'
-                };
-            }
+        
+        // イベント時間更新
+        updateEventTime(eventData, newTime) {
+            const eventIndex = this.vue.events.findIndex(ev => ev.id === eventData.id);
+            if (eventIndex === -1) return;
             
-            // 座標から時間を取得
-            getTimeFromCoordinates(clientX, clientY) {
-                const container = document.querySelector(this.selectors.container);
-                if (!container) return '09:00';
-                
-                const scheduleArea = container.querySelector('.schedule-area');
-                const scrollContainer = container.querySelector('.timeline-scroll-container');
-                
-                if (!scheduleArea || !scrollContainer) return '09:00';
-                
-                const scheduleRect = scheduleArea.getBoundingClientRect();
-                const scrollTop = scrollContainer.scrollTop;
-                
-                const relativeY = clientY - scheduleRect.top;
-                const actualY = relativeY + scrollTop;
-                
-                return this.pixelsToTime(Math.max(0, Math.min(actualY, this.config.TOTAL_HEIGHT)));
-            }
+            const currentEvent = this.vue.events[eventIndex];
+            const startPixels = this.coordinator.timeToPixels(currentEvent.startTime);
+            const endPixels = this.coordinator.timeToPixels(currentEvent.endTime);
+            const duration = endPixels - startPixels;
             
-            // ピクセルから時間に変換
-            pixelsToTime(pixels) {
-                const quarters = Math.round(pixels / this.config.QUARTER_HEIGHT);
-                const totalMinutes = quarters * 15;
-                const hours = Math.floor(totalMinutes / 60) + this.config.START_HOUR;
-                const minutes = totalMinutes % 60;
-                
-                const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
-                const clampedMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, minutes) : minutes;
-                
-                return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
-            }
+            const newStartPixels = this.coordinator.timeToPixels(newTime);
+            const newEndTime = this.coordinator.pixelsToTime(newStartPixels + duration);
             
-            // 時間からピクセルに変換
-            timeToPixels(timeString) {
-                if (!timeString || typeof timeString !== 'string') return 0;
-                
-                const [hours, minutes] = timeString.split(':').map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return 0;
-                
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
-                return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
-            }
-            
-            // イベントスタイルを取得
-            getEventStyle(startTime, endTime) {
-                const startPixels = this.timeToPixels(startTime);
-                const endPixels = this.timeToPixels(endTime);
-                const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
-                
-                return {
-                    position: 'absolute',
-                    top: `${startPixels}px`,
-                    left: '8px',
-                    right: '8px',
-                    height: `${duration}px`,
-                    minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
-                };
-            }
-            
-            // 時間に分を追加
-            addMinutesToTime(timeString, minutes) {
-                const [hours, mins] = timeString.split(':').map(Number);
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + mins + minutes;
-                const maxMinutes = (this.config.END_HOUR - this.config.START_HOUR) * 60 + 45;
-                const clampedMinutes = Math.min(totalMinutes, maxMinutes);
-                
-                const newHours = Math.floor(clampedMinutes / 60) + this.config.START_HOUR;
-                const newMins = clampedMinutes % 60;
-                
-                return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
-            }
-            
-            // スナップ座標を取得
-            getSnappedCoordinates(clientX, clientY) {
-                const container = document.querySelector(this.selectors.scrollContainer);
-                if (!container) return { x: 0, y: 0 };
-                
-                const rect = container.getBoundingClientRect();
-                const scrollTop = container.scrollTop;
-                const rawY = clientY - rect.top + scrollTop;
-                const snappedY = Math.round(rawY / this.config.QUARTER_HEIGHT) * this.config.QUARTER_HEIGHT;
-                
-                return {
-                    x: clientX,
-                    y: snappedY
-                };
+            if (newTime >= '04:00' && newEndTime <= '23:45') {
+                this.vue.events[eventIndex].startTime = newTime;
+                this.vue.events[eventIndex].endTime = newEndTime;
             }
         }
-
-        // デスクトップ専用イベント処理
-        class DesktopEventHandler {
-            constructor(coordinateManager, vueInstance) {
-                this.coordinator = coordinateManager;
-                this.vue = vueInstance;
-                this.dragState = {
-                    isDragging: false,
-                    isResizing: false,
-                    currentEvent: null,
-                    resizeDirection: null
-                };
-            }
+        
+        // リサイズ時間更新
+        updateResizeTime(direction, newTime) {
+            const eventIndex = this.vue.events.findIndex(ev => ev.id === this.vue.editModeEvent.id);
+            if (eventIndex === -1) return;
             
-            // デスクトップ専用ドラッグ開始
-            startDrag(event, eventData) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.dragState.isDragging = true;
-                this.dragState.currentEvent = eventData;
-                this.vue.draggingEvent = eventData;
-                
-                const startY = event.clientY;
-                const container = document.querySelector(this.coordinator.selectors.scrollContainer);
-                const rect = container.getBoundingClientRect();
-                const initialTop = event.clientY - rect.top + container.scrollTop;
-                
-                const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
-                const endHandler = () => this.endDrag(moveHandler, endHandler);
-                
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', endHandler);
-            }
-            
-            // デスクトップ専用ドラッグ移動
-            handleDragMove(event, startY, initialTop) {
-                if (!this.dragState.isDragging) return;
-                
-                const deltaY = event.clientY - startY;
-                const newTop = initialTop + deltaY;
-                const snappedCoords = this.coordinator.getSnappedCoordinates(event.clientX, event.clientY);
-                const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
-                
-                this.updateEventTime(this.dragState.currentEvent, newTime);
-            }
-            
-            // デスクトップ専用ドラッグ終了
-            endDrag(moveHandler, endHandler) {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', endHandler);
-                
-                this.dragState.isDragging = false;
-                this.dragState.currentEvent = null;
-                this.vue.draggingEvent = null;
-                this.vue.isDragComplete = true;
-                this.vue.saveData();
-                
-                setTimeout(() => {
-                    this.vue.isDragComplete = false;
-                }, 150);
-            }
-            
-            // デスクトップ専用リサイズ開始
-            startResize(event, eventData, direction) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.dragState.isResizing = true;
-                this.dragState.currentEvent = eventData;
-                this.dragState.resizeDirection = direction;
-                
-                const moveHandler = (e) => this.handleResizeMove(e, direction);
-                const endHandler = () => this.endResize(moveHandler, endHandler);
-                
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', endHandler);
-            }
-            
-            // デスクトップ専用リサイズ移動
-            handleResizeMove(event, direction) {
-                if (!this.dragState.isResizing) return;
-                
-                const snappedCoords = this.coordinator.getSnappedCoordinates(event.clientX, event.clientY);
-                const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
-                
-                this.updateResizeTime(direction, newTime);
-            }
-            
-            // デスクトップ専用リサイズ終了
-            endResize(moveHandler, endHandler) {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', endHandler);
-                
-                this.dragState.isResizing = false;
-                this.dragState.currentEvent = null;
-                this.dragState.resizeDirection = null;
-                this.vue.isResizeComplete = true;
-                this.vue.saveData();
-                
-                setTimeout(() => {
-                    this.vue.isResizeComplete = false;
-                }, 150);
-            }
-            
-            // デスクトップ専用右クリック処理
-            handleContextMenu(event) {
-                event.preventDefault();
-                
-                const container = document.querySelector(this.coordinator.selectors.scheduleArea);
-                if (!container) return;
-                
-                const rect = container.getBoundingClientRect();
-                const isInside = (
-                    event.clientX >= rect.left &&
-                    event.clientX <= rect.right &&
-                    event.clientY >= rect.top &&
-                    event.clientY <= rect.bottom
-                );
-                
-                if (isInside) {
-                    const time = this.coordinator.getTimeFromCoordinates(event.clientX, event.clientY);
-                    this.vue.showContextMenuAt(event.clientX, event.clientY, time);
-                }
-            }
-            
-            // イベント時間更新
-            updateEventTime(eventData, newTime) {
-                const eventIndex = this.vue.events.findIndex(ev => ev.id === eventData.id);
-                if (eventIndex === -1) return;
-                
-                const currentEvent = this.vue.events[eventIndex];
-                const startPixels = this.coordinator.timeToPixels(currentEvent.startTime);
-                const endPixels = this.coordinator.timeToPixels(currentEvent.endTime);
-                const duration = endPixels - startPixels;
-                
-                const newStartPixels = this.coordinator.timeToPixels(newTime);
-                const newEndTime = this.coordinator.pixelsToTime(newStartPixels + duration);
-                
-                if (newTime >= '04:00' && newEndTime <= '23:45') {
-                    this.vue.events[eventIndex].startTime = newTime;
-                    this.vue.events[eventIndex].endTime = newEndTime;
-                }
-            }
-            
-            // リサイズ時間更新
-            updateResizeTime(direction, newTime) {
-                const eventIndex = this.vue.events.findIndex(ev => ev.id === this.vue.editModeEvent.id);
-                if (eventIndex === -1) return;
-                
-                if (direction === 'top' && newTime < this.vue.events[eventIndex].endTime) {
-                    this.vue.events[eventIndex].startTime = newTime;
-                } else if (direction === 'bottom' && newTime > this.vue.events[eventIndex].startTime) {
-                    this.vue.events[eventIndex].endTime = newTime;
-                }
+            if (direction === 'top' && newTime < this.vue.events[eventIndex].endTime) {
+                this.vue.events[eventIndex].startTime = newTime;
+            } else if (direction === 'bottom' && newTime > this.vue.events[eventIndex].startTime) {
+                this.vue.events[eventIndex].endTime = newTime;
             }
         }
+    }
 
-        // モバイル専用イベント処理
-        class MobileEventHandler {
-            constructor(coordinateManager, vueInstance) {
-                this.coordinator = coordinateManager;
-                this.vue = vueInstance;
-                this.touchState = {
-                    isDragging: false,
-                    isResizing: false,
-                    currentEvent: null,
-                    resizeDirection: null,
-                    startTime: 0,
-                    startPosition: { x: 0, y: 0 },
-                    longPressTimer: null
-                };
-            }
+    // モバイル専用イベント処理
+    class MobileEventHandler {
+        constructor(coordinateManager, vueInstance) {
+            this.coordinator = coordinateManager;
+            this.vue = vueInstance;
+            this.touchState = {
+                isDragging: false,
+                isResizing: false,
+                currentEvent: null,
+                resizeDirection: null,
+                startTime: 0,
+                startPosition: { x: 0, y: 0 },
+                longPressTimer: null
+            };
+        }
+        
+        // モバイル専用ドラッグ開始
+        startDrag(event, eventData) {
+            event.preventDefault();
+            event.stopPropagation();
             
-            // モバイル専用ドラッグ開始
-            startDrag(event, eventData) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.touchState.isDragging = true;
-                this.touchState.currentEvent = eventData;
-                this.vue.draggingEvent = eventData;
-                
-                const touch = event.touches[0];
-                const startY = touch.clientY;
-                const container = document.querySelector(this.coordinator.selectors.scrollContainer);
-                const rect = container.getBoundingClientRect();
-                const initialTop = touch.clientY - rect.top + container.scrollTop;
-                
-                const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
-                const endHandler = () => this.endDrag(moveHandler, endHandler);
-                
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('touchend', endHandler, { passive: true });
-            }
+            this.touchState.isDragging = true;
+            this.touchState.currentEvent = eventData;
+            this.vue.draggingEvent = eventData;
             
-            // モバイル専用ドラッグ移動
-            handleDragMove(event, startY, initialTop) {
-                if (!this.touchState.isDragging) return;
-                
-                event.preventDefault();
-                const touch = event.touches[0];
-                const deltaY = touch.clientY - startY;
-                const newTop = initialTop + deltaY;
-                const snappedCoords = this.coordinator.getSnappedCoordinates(touch.clientX, touch.clientY);
-                const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
-                
-                this.updateEventTime(this.touchState.currentEvent, newTime);
-            }
+            const touch = event.touches[0];
+            const startY = touch.clientY;
+            const container = document.querySelector(this.coordinator.selectors.scrollContainer);
+            const rect = container.getBoundingClientRect();
+            const initialTop = touch.clientY - rect.top + container.scrollTop;
             
-            // モバイル専用ドラッグ終了
-            endDrag(moveHandler, endHandler) {
-                document.removeEventListener('touchmove', moveHandler);
-                document.removeEventListener('touchend', endHandler);
-                
-                this.touchState.isDragging = false;
-                this.touchState.currentEvent = null;
-                this.vue.draggingEvent = null;
-                this.vue.isDragComplete = true;
-                this.vue.saveData();
-                
-                setTimeout(() => {
-                    this.vue.isDragComplete = false;
-                }, 150);
-            }
+            const moveHandler = (e) => this.handleDragMove(e, startY, initialTop);
+            const endHandler = () => this.endDrag(moveHandler, endHandler);
             
-            // モバイル専用リサイズ開始
-            startResize(event, eventData, direction) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.touchState.isResizing = true;
-                this.touchState.currentEvent = eventData;
-                this.touchState.resizeDirection = direction;
-                
-                const moveHandler = (e) => this.handleResizeMove(e, direction);
-                const endHandler = () => this.endResize(moveHandler, endHandler);
-                
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('touchend', endHandler, { passive: true });
-            }
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', endHandler, { passive: true });
+        }
+        
+        // モバイル専用ドラッグ移動
+        handleDragMove(event, startY, initialTop) {
+            if (!this.touchState.isDragging) return;
             
-            // モバイル専用リサイズ移動
-            handleResizeMove(event, direction) {
-                if (!this.touchState.isResizing) return;
-                
-                event.preventDefault();
-                const touch = event.touches[0];
-                const snappedCoords = this.coordinator.getSnappedCoordinates(touch.clientX, touch.clientY);
-                const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
-                
-                this.updateResizeTime(direction, newTime);
-            }
+            event.preventDefault();
+            const touch = event.touches[0];
+            const deltaY = touch.clientY - startY;
+            const newTop = initialTop + deltaY;
+            const snappedCoords = this.coordinator.getSnappedCoordinates(touch.clientX, touch.clientY);
+            const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
             
-            // モバイル専用リサイズ終了
-            endResize(moveHandler, endHandler) {
-                document.removeEventListener('touchmove', moveHandler);
-                document.removeEventListener('touchend', endHandler);
-                
-                this.touchState.isResizing = false;
-                this.touchState.currentEvent = null;
-                this.touchState.resizeDirection = null;
-                this.vue.isResizeComplete = true;
-                this.vue.saveData();
-                
-                setTimeout(() => {
-                    this.vue.isResizeComplete = false;
-                }, 150);
-            }
+            this.updateEventTime(this.touchState.currentEvent, newTime);
+        }
+        
+        // モバイル専用ドラッグ終了
+        endDrag(moveHandler, endHandler) {
+            document.removeEventListener('touchmove', moveHandler);
+            document.removeEventListener('touchend', endHandler);
             
-            // モバイル専用長押し処理
-            handleLongPress(event, eventData) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                const touch = event.touches[0];
-                this.touchState.startTime = Date.now();
-                this.touchState.startPosition = { x: touch.clientX, y: touch.clientY };
-                
-                this.touchState.longPressTimer = setTimeout(() => {
-                    this.vue.editModeEvent = eventData;
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 500);
-                
-                const handleTouchEnd = () => {
-                    if (this.touchState.longPressTimer) {
-                        clearTimeout(this.touchState.longPressTimer);
-                        this.touchState.longPressTimer = null;
-                    }
-                    
-                    const touchDuration = Date.now() - this.touchState.startTime;
-                    if (touchDuration < 500) {
-                        this.vue.openDetailModal(eventData);
-                    }
-                    
-                    document.removeEventListener('touchend', handleTouchEnd);
-                };
-                
-                document.addEventListener('touchend', handleTouchEnd, { passive: true });
-            }
+            this.touchState.isDragging = false;
+            this.touchState.currentEvent = null;
+            this.vue.draggingEvent = null;
+            this.vue.isDragComplete = true;
+            this.vue.saveData();
             
-            // モバイル専用スケジュールタッチ処理
-            handleScheduleTouch(event) {
-                if (event.target.closest('.event-block')) return;
-                
-                const touch = event.touches[0];
-                this.touchState.startTime = Date.now();
-                this.touchState.startPosition = { x: touch.clientX, y: touch.clientY };
-                
-                this.touchState.longPressTimer = setTimeout(() => {
-                    const time = this.coordinator.getTimeFromCoordinates(touch.clientX, touch.clientY);
-                    this.vue.showContextMenuAt(touch.clientX, touch.clientY, time);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 500);
-                
-                const handleTouchMove = (e) => {
-                    const currentTouch = e.touches[0];
-                    const deltaX = Math.abs(currentTouch.clientX - this.touchState.startPosition.x);
-                    const deltaY = Math.abs(currentTouch.clientY - this.touchState.startPosition.y);
-                    
-                    if (deltaX > 10 || deltaY > 10) {
-                        this.clearLongPress();
-                    }
-                };
-                
-                const handleTouchEnd = () => {
-                    this.clearLongPress();
-                    if (Date.now() - this.touchState.startTime < 300) {
-                        this.vue.editModeEvent = null;
-                    }
-                    
-                    document.removeEventListener('touchmove', handleTouchMove);
-                    document.removeEventListener('touchend', handleTouchEnd);
-                };
-                
-                document.addEventListener('touchmove', handleTouchMove, { passive: true });
-                document.addEventListener('touchend', handleTouchEnd, { passive: true });
-            }
+            setTimeout(() => {
+                this.vue.isDragComplete = false;
+            }, 150);
+        }
+        
+        // モバイル専用リサイズ開始
+        startResize(event, eventData, direction) {
+            event.preventDefault();
+            event.stopPropagation();
             
-            // 長押しタイマーをクリア
-            clearLongPress() {
+            this.touchState.isResizing = true;
+            this.touchState.currentEvent = eventData;
+            this.touchState.resizeDirection = direction;
+            
+            const moveHandler = (e) => this.handleResizeMove(e, direction);
+            const endHandler = () => this.endResize(moveHandler, endHandler);
+            
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', endHandler, { passive: true });
+        }
+        
+        // モバイル専用リサイズ移動
+        handleResizeMove(event, direction) {
+            if (!this.touchState.isResizing) return;
+            
+            event.preventDefault();
+            const touch = event.touches[0];
+            const snappedCoords = this.coordinator.getSnappedCoordinates(touch.clientX, touch.clientY);
+            const newTime = this.coordinator.pixelsToTime(snappedCoords.y);
+            
+            this.updateResizeTime(direction, newTime);
+        }
+        
+        // モバイル専用リサイズ終了
+        endResize(moveHandler, endHandler) {
+            document.removeEventListener('touchmove', moveHandler);
+            document.removeEventListener('touchend', endHandler);
+            
+            this.touchState.isResizing = false;
+            this.touchState.currentEvent = null;
+            this.touchState.resizeDirection = null;
+            this.vue.isResizeComplete = true;
+            this.vue.saveData();
+            
+            setTimeout(() => {
+                this.vue.isResizeComplete = false;
+            }, 150);
+        }
+        
+        // モバイル専用長押し処理
+        handleLongPress(event, eventData) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const touch = event.touches[0];
+            this.touchState.startTime = Date.now();
+            this.touchState.startPosition = { x: touch.clientX, y: touch.clientY };
+            
+            this.touchState.longPressTimer = setTimeout(() => {
+                this.vue.editModeEvent = eventData;
+                if (navigator.vibrate) navigator.vibrate(50);
+            }, 500);
+            
+            const handleTouchEnd = () => {
                 if (this.touchState.longPressTimer) {
                     clearTimeout(this.touchState.longPressTimer);
                     this.touchState.longPressTimer = null;
                 }
-            }
-            
-            // イベント時間更新
-            updateEventTime(eventData, newTime) {
-                const eventIndex = this.vue.events.findIndex(ev => ev.id === eventData.id);
-                if (eventIndex === -1) return;
                 
-                const currentEvent = this.vue.events[eventIndex];
-                const startPixels = this.coordinator.timeToPixels(currentEvent.startTime);
-                const endPixels = this.coordinator.timeToPixels(currentEvent.endTime);
-                const duration = endPixels - startPixels;
-                
-                const newStartPixels = this.coordinator.timeToPixels(newTime);
-                const newEndTime = this.coordinator.pixelsToTime(newStartPixels + duration);
-                
-                if (newTime >= '04:00' && newEndTime <= '23:45') {
-                    this.vue.events[eventIndex].startTime = newTime;
-                    this.vue.events[eventIndex].endTime = newEndTime;
+                const touchDuration = Date.now() - this.touchState.startTime;
+                if (touchDuration < 500) {
+                    this.vue.openDetailModal(eventData);
                 }
-            }
-            
-            // リサイズ時間更新
-            updateResizeTime(direction, newTime) {
-                const eventIndex = this.vue.events.findIndex(ev => ev.id === this.vue.editModeEvent.id);
-                if (eventIndex === -1) return;
                 
-                if (direction === 'top' && newTime < this.vue.events[eventIndex].endTime) {
-                    this.vue.events[eventIndex].startTime = newTime;
-                } else if (direction === 'bottom' && newTime > this.vue.events[eventIndex].startTime) {
-                    this.vue.events[eventIndex].endTime = newTime;
-                }
-            }
+                document.removeEventListener('touchend', handleTouchEnd);
+            };
+            
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
-
-        // 完全分離されたマネージャークラス
-        class DeviceSpecificManager {
-            constructor() {
-                this.isMobile = this.detectMobile();
-                this.coordinator = null;
-                this.eventHandler = null;
-                this.vueInstance = null;
-            }
-            
-            // デバイス検出
-            detectMobile() {
-                return window.innerWidth <= 768 || 'ontouchstart' in window;
-            }
-            
-            // 初期化
-            initialize(vueInstance) {
-                this.vueInstance = vueInstance;
-                
-                if (this.isMobile) {
-                    this.coordinator = new MobileCoordinateManager();
-                    this.eventHandler = new MobileEventHandler(this.coordinator, vueInstance);
-                } else {
-                    this.coordinator = new DesktopCoordinateManager();
-                    this.eventHandler = new DesktopEventHandler(this.coordinator, vueInstance);
-                }
-                
-                this.setupEventListeners();
-            }
-            
-            // イベントリスナーの設定
-            setupEventListeners() {
-                if (this.isMobile) {
-                    this.setupMobileEventListeners();
-                } else {
-                    this.setupDesktopEventListeners();
-                }
-            }
-            
-            // デスクトップ専用イベントリスナー
-            setupDesktopEventListeners() {
-                const scheduleArea = document.querySelector(this.coordinator.selectors.scheduleArea);
-                if (scheduleArea) {
-                    scheduleArea.addEventListener('contextmenu', (e) => {
-                        this.eventHandler.handleContextMenu(e);
-                    });
-                }
-                
-                // リサイズ時の再初期化
-                window.addEventListener('resize', () => {
-                    const wasMobile = this.isMobile;
-                    this.isMobile = this.detectMobile();
-                    
-                    if (wasMobile !== this.isMobile) {
-                        this.initialize(this.vueInstance);
-                    }
-                });
-            }
-            
-            // モバイル専用イベントリスナー
-            setupMobileEventListeners() {
-                const scheduleArea = document.querySelector(this.coordinator.selectors.scheduleArea);
-                if (scheduleArea) {
-                    scheduleArea.addEventListener('touchstart', (e) => {
-                        this.eventHandler.handleScheduleTouch(e);
-                    });
-                }
-                
-                // リサイズ時の再初期化
-                window.addEventListener('resize', () => {
-                    const wasMobile = this.isMobile;
-                    this.isMobile = this.detectMobile();
-                    
-                    if (wasMobile !== this.isMobile) {
-                        this.initialize(this.vueInstance);
-                    }
-                });
-            }
-            
-            // 公開メソッド
-            getTimeFromCoordinates(clientX, clientY) {
-                return this.coordinator.getTimeFromCoordinates(clientX, clientY);
-            }
-            
-            getEventStyle(startTime, endTime) {
-                return this.coordinator.getEventStyle(startTime, endTime);
-            }
-            
-            startDrag(event, eventData) {
-                this.eventHandler.startDrag(event, eventData);
-            }
-            
-            startResize(event, eventData, direction) {
-                this.eventHandler.startResize(event, eventData, direction);
-            }
-            
-            addMinutesToTime(timeString, minutes) {
-                return this.coordinator.addMinutesToTime(timeString, minutes);
-            }
-        }
-
-        const { createApp } = Vue;
         
-        const app = createApp({
-            data() {
-                return {
-                    tripInitialized: false,
-                    tripStartDate: '',
-                    tripEndDate: '',
-                    today: new Date().toISOString().split('T')[0],
-                    hasExistingData: false,
-                    tripDays: [],
-                    activeDay: 0,
-                    showMobilePopup: false,
-                    selectedDayForPopup: null,
-                    selectedDayIndex: null,
-                    scrollPosition: 0,
-                    maxScrollPosition: 0,
-                    timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-                    events: [],
-                    editModeEvent: null,
-                    clipboardEvent: null,
-                    showContextMenu: false,
-                    contextMenuStyle: {},
-                    pasteTargetTime: null,
-                    touchStartTime: 0,
-                    touchStartPosition: { x: 0, y: 0 },
-                    longPressTimer: null,
-                    longPressExecuted: false,
-                    eventTouchOffset: { x: 0, y: 0 },
-                    draggingEvent: null,
-                    isDragComplete: false,
-                    isResizeComplete: false,
-                    eventForm: {
+        // モバイル専用スケジュールタッチ処理
+        handleScheduleTouch(event) {
+            if (event.target.closest('.event-block')) return;
+            
+            const touch = event.touches[0];
+            this.touchState.startTime = Date.now();
+            this.touchState.startPosition = { x: touch.clientX, y: touch.clientY };
+            
+            this.touchState.longPressTimer = setTimeout(() => {
+                const time = this.coordinator.getTimeFromCoordinates(touch.clientX, touch.clientY);
+                this.vue.showContextMenuAt(touch.clientX, touch.clientY, time);
+                if (navigator.vibrate) navigator.vibrate(50);
+            }, 500);
+            
+            const handleTouchMove = (e) => {
+                const currentTouch = e.touches[0];
+                const deltaX = Math.abs(currentTouch.clientX - this.touchState.startPosition.x);
+                const deltaY = Math.abs(currentTouch.clientY - this.touchState.startPosition.y);
+                
+                if (deltaX > 10 || deltaY > 10) {
+                    this.clearLongPress();
+                }
+            };
+            
+            const handleTouchEnd = () => {
+                this.clearLongPress();
+                if (Date.now() - this.touchState.startTime < 300) {
+                    this.vue.editModeEvent = null;
+                }
+                
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+            };
+            
+            document.addEventListener('touchmove', handleTouchMove, { passive: true });
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        }
+        
+        // 長押しタイマーをクリア
+        clearLongPress() {
+            if (this.touchState.longPressTimer) {
+                clearTimeout(this.touchState.longPressTimer);
+                this.touchState.longPressTimer = null;
+            }
+        }
+        
+        // イベント時間更新
+        updateEventTime(eventData, newTime) {
+            const eventIndex = this.vue.events.findIndex(ev => ev.id === eventData.id);
+            if (eventIndex === -1) return;
+            
+            const currentEvent = this.vue.events[eventIndex];
+            const startPixels = this.coordinator.timeToPixels(currentEvent.startTime);
+            const endPixels = this.coordinator.timeToPixels(currentEvent.endTime);
+            const duration = endPixels - startPixels;
+            
+            const newStartPixels = this.coordinator.timeToPixels(newTime);
+            const newEndTime = this.coordinator.pixelsToTime(newStartPixels + duration);
+            
+            if (newTime >= '04:00' && newEndTime <= '23:45') {
+                this.vue.events[eventIndex].startTime = newTime;
+                this.vue.events[eventIndex].endTime = newEndTime;
+            }
+        }
+        
+        // リサイズ時間更新
+        updateResizeTime(direction, newTime) {
+            const eventIndex = this.vue.events.findIndex(ev => ev.id === this.vue.editModeEvent.id);
+            if (eventIndex === -1) return;
+            
+            if (direction === 'top' && newTime < this.vue.events[eventIndex].endTime) {
+                this.vue.events[eventIndex].startTime = newTime;
+            } else if (direction === 'bottom' && newTime > this.vue.events[eventIndex].startTime) {
+                this.vue.events[eventIndex].endTime = newTime;
+            }
+        }
+    }
+
+    // 完全分離されたマネージャークラス
+    class DeviceSpecificManager {
+        constructor() {
+            this.isMobile = this.detectMobile();
+            this.coordinator = null;
+            this.eventHandler = null;
+            this.vueInstance = null;
+            this.eventListenersAttached = false;
+        }
+        
+        // デバイス検出
+        detectMobile() {
+            return window.innerWidth <= 768 || 'ontouchstart' in window;
+        }
+        
+        // 初期化
+        initialize(vueInstance) {
+            this.vueInstance = vueInstance;
+            
+            if (this.isMobile) {
+                this.coordinator = new MobileCoordinateManager();
+                this.eventHandler = new MobileEventHandler(this.coordinator, vueInstance);
+            } else {
+                this.coordinator = new DesktopCoordinateManager();
+                this.eventHandler = new DesktopEventHandler(this.coordinator, vueInstance);
+            }
+            
+            // 複数のタイミングでイベントリスナー設定を試行
+            this.setupEventListeners();
+            
+            setTimeout(() => {
+                this.setupEventListeners();
+            }, 500);
+            
+            setTimeout(() => {
+                this.setupEventListeners();
+            }, 1000);
+        }
+        
+        // イベントリスナーの設定
+        setupEventListeners() {
+            if (this.eventListenersAttached) return;
+            
+            if (this.isMobile) {
+                this.setupMobileEventListeners();
+            } else {
+                this.setupDesktopEventListeners();
+            }
+        }
+        
+        // デスクトップ専用イベントリスナー
+        setupDesktopEventListeners() {
+            // 複数のセレクターで要素を検索
+            const selectors = [
+                '.desktop-ui .schedule-area',
+                '.schedule-area'
+            ];
+            
+            let scheduleArea = null;
+            for (const selector of selectors) {
+                scheduleArea = document.querySelector(selector);
+                if (scheduleArea) break;
+            }
+            
+            if (scheduleArea) {
+                // 既存のリスナーを削除
+                if (this.boundContextMenuHandler) {
+                    scheduleArea.removeEventListener('contextmenu', this.boundContextMenuHandler);
+                }
+                
+                // 新しいリスナーを設定
+                this.boundContextMenuHandler = (e) => {
+                    this.eventHandler.handleContextMenu(e);
+                };
+                
+                scheduleArea.addEventListener('contextmenu', this.boundContextMenuHandler);
+                this.eventListenersAttached = true;
+            }
+            
+            // リサイズ時の再初期化
+            if (!this.resizeHandlerAttached) {
+                window.addEventListener('resize', this.handleResize.bind(this));
+                this.resizeHandlerAttached = true;
+            }
+        }
+        
+        // モバイル専用イベントリスナー
+        setupMobileEventListeners() {
+            const scheduleArea = document.querySelector('.mobile-ui .schedule-area') || 
+                               document.querySelector('.schedule-area');
+            
+            if (scheduleArea) {
+                // 既存のリスナーを削除
+                if (this.boundTouchStartHandler) {
+                    scheduleArea.removeEventListener('touchstart', this.boundTouchStartHandler);
+                }
+                
+                // 新しいリスナーを設定
+                this.boundTouchStartHandler = (e) => {
+                    this.eventHandler.handleScheduleTouch(e);
+                };
+                
+                scheduleArea.addEventListener('touchstart', this.boundTouchStartHandler);
+                this.eventListenersAttached = true;
+            }
+            
+            // リサイズ時の再初期化
+            if (!this.resizeHandlerAttached) {
+                window.addEventListener('resize', this.handleResize.bind(this));
+                this.resizeHandlerAttached = true;
+            }
+        }
+        
+        // リサイズハンドラー
+        handleResize() {
+            const wasMobile = this.isMobile;
+            this.isMobile = this.detectMobile();
+            
+            if (wasMobile !== this.isMobile) {
+                this.eventListenersAttached = false;
+                this.initialize(this.vueInstance);
+            }
+        }
+        
+        // 公開メソッド
+        getTimeFromCoordinates(clientX, clientY) {
+            return this.coordinator.getTimeFromCoordinates(clientX, clientY);
+        }
+        
+        getEventStyle(startTime, endTime) {
+            return this.coordinator.getEventStyle(startTime, endTime);
+        }
+        
+        startDrag(event, eventData) {
+            this.eventHandler.startDrag(event, eventData);
+        }
+        
+        startResize(event, eventData, direction) {
+            this.eventHandler.startResize(event, eventData, direction);
+        }
+        
+        addMinutesToTime(timeString, minutes) {
+            return this.coordinator.addMinutesToTime(timeString, minutes);
+        }
+    }
+
+    const { createApp } = Vue;
+    
+    const app = createApp({
+        data() {
+            return {
+                tripInitialized: false,
+                tripStartDate: '',
+                tripEndDate: '',
+                today: new Date().toISOString().split('T')[0],
+                hasExistingData: false,
+                tripDays: [],
+                activeDay: 0,
+                showMobilePopup: false,
+                selectedDayForPopup: null,
+                selectedDayIndex: null,
+                scrollPosition: 0,
+                maxScrollPosition: 0,
+                timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+                events: [],
+                editModeEvent: null,
+                clipboardEvent: null,
+                showContextMenu: false,
+                contextMenuStyle: {},
+                pasteTargetTime: null,
+                touchStartTime: 0,
+                touchStartPosition: { x: 0, y: 0 },
+                longPressTimer: null,
+                longPressExecuted: false,
+                eventTouchOffset: { x: 0, y: 0 },
+                draggingEvent: null,
+                isDragComplete: false,
+                isResizeComplete: false,
+                eventForm: {
+                    title: '',
+                    dayIndex: 0,
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    category: 'travel',
+                    description: ''
+                },
+                modals: [],
+                deviceManager: null
+            };
+        },
+        
+        methods: {
+            checkExistingData() {
+                this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
+            },
+            
+            loadExistingData() {
+                this.loadData();
+                if (this.tripDays.length > 0) this.tripInitialized = true;
+            },
+            
+            initializeTripDays() {
+                if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
+                    alert('正しい日付を選択してください');
+                    return;
+                }
+                
+                this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+                this.activeDay = 0;
+                this.tripInitialized = true;
+                this.saveData();
+            },
+            
+            generateTripDays(startDate, endDate) {
+                const days = [];
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                let dayNumber = 1;
+                
+                for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                    days.push({
+                        id: Date.now() + dayNumber + Math.random(),
+                        dayNumber: dayNumber++,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            },
+            
+            setActiveDay(index) { this.activeDay = index; },
+            
+            addDayImmediately() {
+                const startDate = this.tripDays[0].fullDate;
+                this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
+                this.saveData();
+            },
+            
+            deleteDay(index) {
+                if (this.tripDays.length <= 1) {
+                    alert('最低1つの日程は必要です');
+                    return;
+                }
+                
+                if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
+                    this.events = this.events.filter(event => event.dayIndex !== index)
+                        .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
+                    
+                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
+                    if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
+                    this.saveData();
+                }
+            },
+            
+            generateConsecutiveDays(startDate, dayCount) {
+                const days = [];
+                const start = new Date(startDate);
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                
+                for (let i = 0; i < dayCount; i++) {
+                    const date = new Date(start);
+                    date.setDate(start.getDate() + i);
+                    days.push({
+                        id: Date.now() + i + Math.random(),
+                        dayNumber: i + 1,
+                        date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                        fullDate: date.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            },
+            
+            handleDateClick(index) {
+                if (index === 0) this.openStartDateModal();
+                else this.setActiveDay(index);
+            },
+            
+            getCurrentDayEvents() {
+                return this.events
+                    .filter(event => event.dayIndex === this.activeDay)
+                    .map(event => {
+                        const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+                        return {
+                            ...event,
+                            inlineText
+                        };
+                    });
+            },
+            
+            // デバイス固有のメソッドを統一インターフェースで呼び出し
+            getEventStyle(event) {
+                return this.deviceManager.getEventStyle(event.startTime, event.endTime);
+            },
+            
+            handleDragHandleStart(event, eventData) {
+                this.editModeEvent = eventData;
+                this.deviceManager.startDrag(event, eventData);
+            },
+            
+            handleResizeStart(event, eventData, direction) {
+                this.deviceManager.startResize(event, eventData, direction);
+            },
+            
+            handleScheduleInteraction(event) {
+                // デバイス固有の処理は各マネージャーで自動的に判定される
+            },
+            
+            addEventFromContext() {
+                if (!this.pasteTargetTime) return;
+                
+                const endTime = this.deviceManager.addMinutesToTime(this.pasteTargetTime, 60);
+                
+                this.eventForm = {
+                    title: '',
+                    dayIndex: this.activeDay,
+                    startTime: this.pasteTargetTime,
+                    endTime: endTime,
+                    category: 'travel',
+                    description: ''
+                };
+                
+                this.hideContextMenu();
+                setTimeout(() => {
+                    this.openEventModal(null, true);
+                }, 100);
+            },
+            
+            showContextMenuAt(x, y, time) {
+                this.pasteTargetTime = time;
+                
+                const menuWidth = 200;
+                const menuHeight = 120;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                let menuX = x;
+                let menuY = y;
+                
+                if (x + menuWidth > windowWidth) {
+                    menuX = x - menuWidth;
+                }
+                
+                if (y + menuHeight > windowHeight) {
+                    menuY = y - menuHeight;
+                }
+                
+                this.contextMenuStyle = { 
+                    left: `${Math.max(0, menuX)}px`, 
+                    top: `${Math.max(0, menuY)}px` 
+                };
+                this.showContextMenu = true;
+                
+                setTimeout(() => {
+                    document.addEventListener('click', this.hideContextMenu, { once: true });
+                }, 100);
+            },
+            
+            handleEventClick(event, eventData) {
+                if (this.isDragComplete) {
+                    this.isDragComplete = false;
+                    return;
+                }
+                
+                if (this.isResizeComplete) {
+                    this.isResizeComplete = false;
+                    return;
+                }
+                
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    this.openDetailModal(eventData);
+                }
+            },
+            
+            handleEventContextMenu(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!event.target.closest('.drag-handle-mini')) {
+                    this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            },
+            
+            handleMobileDayTouchStart(event, index) {
+                this.touchStartTime = Date.now();
+                this.longPressTimer = setTimeout(() => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    this.showMobilePopupForDay(index);
+                }, 800);
+            },
+            
+            handleMobileDayTouchEnd(event, index) {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+                if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+            },
+            
+            showMobilePopupForDay(index) {
+                this.selectedDayForPopup = this.tripDays[index];
+                this.selectedDayIndex = index;
+                this.showMobilePopup = true;
+            },
+            
+            closeMobilePopup() {
+                this.showMobilePopup = false;
+                this.selectedDayForPopup = null;
+                this.selectedDayIndex = null;
+            },
+            
+            openStartDateModalFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.openStartDateModal(), 300);
+            },
+            
+            addDayFromPopup() {
+                this.closeMobilePopup();
+                setTimeout(() => this.addDayImmediately(), 300);
+            },
+            
+            deleteDayFromPopup() {
+                const index = this.selectedDayIndex;
+                this.closeMobilePopup();
+                setTimeout(() => index !== null && this.deleteDay(index), 300);
+            },
+            
+            updateScrollPosition() {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                this.scrollPosition = container.scrollLeft;
+                this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+            },
+            
+            scrollToDirection(direction) {
+                const container = this.$refs.mobileScrollContainer;
+                if (!container) return;
+                container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+            },
+            
+            handleEventTouchStart(event, eventData) {
+                if (!this.deviceManager.isMobile) return;
+                
+                if (this.isDragComplete) {
+                    return;
+                }
+                
+                if (this.draggingEvent) {
+                    return;
+                }
+                
+                if (!event.target.closest('.drag-handle-mini') && 
+                    !event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.touchStartTime = Date.now();
+                    this.longPressExecuted = false;
+                    
+                    this.longPressTimer = setTimeout(() => {
+                        this.longPressExecuted = true;
+                        this.editModeEvent = eventData;
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }, 500);
+                    
+                    const handleTouchEnd = () => {
+                        if (this.longPressTimer) {
+                            clearTimeout(this.longPressTimer);
+                            this.longPressTimer = null;
+                        }
+                        
+                        const touchDuration = Date.now() - this.touchStartTime;
+                        if (!this.longPressExecuted && touchDuration < 500) {
+                            this.openDetailModal(eventData);
+                        }
+                        
+                        document.removeEventListener('touchend', handleTouchEnd);
+                    };
+                    
+                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                }
+            },
+            
+            handleCutButtonClick(event, eventData) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.cutEvent(eventData);
+            },
+            
+            cutEvent(event) {
+                try {
+                    this.clipboardEvent = { ...event };
+                    const eventIndex = this.events.findIndex(e => e.id === event.id);
+                    if (eventIndex !== -1) {
+                        this.events.splice(eventIndex, 1);
+                        this.editModeEvent = null;
+                        this.saveData();
+                        
+                        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    }
+                    
+                } catch (error) {
+                    console.error('予定の切り取り中にエラーが発生しました:', error);
+                    alert('予定の切り取りに失敗しました。');
+                }
+            },
+            
+            pasteFromContext() {
+                if (!this.clipboardEvent) return;
+                
+                const newEvent = {
+                    ...this.clipboardEvent,
+                    id: Date.now() + Math.random(),
+                    dayIndex: this.activeDay
+                };
+                
+                if (this.pasteTargetTime) {
+                    const originalDuration = this.deviceManager.coordinator.timeToPixels(this.clipboardEvent.endTime) - this.deviceManager.coordinator.timeToPixels(this.clipboardEvent.startTime);
+                    newEvent.startTime = this.pasteTargetTime;
+                    newEvent.endTime = this.deviceManager.coordinator.pixelsToTime(this.deviceManager.coordinator.timeToPixels(this.pasteTargetTime) + originalDuration);
+                }
+                
+                this.events.push(newEvent);
+                this.clipboardEvent = null;
+                this.hideContextMenu();
+                this.saveData();
+            },
+            
+            hideContextMenu() { this.showContextMenu = false; },
+            
+            clearLongPress() {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            },
+            
+            getCategoryIcon(category) {
+                const icons = {
+                    travel: 'fas fa-car',
+                    food: 'fas fa-utensils',
+                    sightseeing: 'fas fa-camera',
+                    accommodation: 'fas fa-bed',
+                    custom: 'fas fa-star'
+                };
+                return icons[category] || 'fas fa-calendar';
+            },
+            
+            openDetailModal(event) {
+                const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+                if (!eventData) {
+                    console.error('openDetailModal: 予定データが見つかりません:', event);
+                    alert('予定データが見つかりません');
+                    return;
+                }
+                
+                const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+                const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const safeDescription = String(eventData.description || '').replace(/"/g, "&quot;");
+                
+                this.openModal('詳細', `
+                    <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+                    <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+                    <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+                    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${safeDescription}</div>` : ''}
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
+                `);
+            },
+            
+            deleteEventFromDetail(eventId) {
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.events.splice(eventIndex, 1);
+                    this.saveData();
+                    this.editModeEvent = null;
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の削除中にエラーが発生しました:', error);
+                    alert('予定の削除に失敗しました。ページを再読み込みしてお試しください。');
+                }
+            },
+            
+            editEventFromDetail(eventId) {
+                try {
+                    const eventData = this.events.find(e => String(e.id) === String(eventId));
+                    if (!eventData) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.eventForm = {
+                        title: eventData.title,
+                        dayIndex: eventData.dayIndex,
+                        startTime: eventData.startTime,
+                        endTime: eventData.endTime,
+                        category: eventData.category,
+                        description: eventData.description || ''
+                    };
+                    
+                    this.closeAllModals();
+                    setTimeout(() => {
+                        this.openEventModal(eventData);
+                    }, 300);
+                    
+                } catch (error) {
+                    console.error('予定の編集中にエラーが発生しました:', error);
+                    alert('予定の編集に失敗しました。ページを再読み込みしてお試しください。');
+                }
+            },
+            
+            openEventModal(editEvent = null, isFromContext = false) {
+                const isEdit = !!editEvent;
+                const title = isEdit ? '予定を編集' : '新しい予定を追加';
+                
+                if (isEdit) {
+                    this.eventForm = {
+                        title: editEvent.title,
+                        dayIndex: editEvent.dayIndex,
+                        startTime: editEvent.startTime,
+                        endTime: editEvent.endTime,
+                        category: editEvent.category,
+                        description: editEvent.description || ''
+                    };
+                } else if (!isFromContext) {
+                    this.eventForm = {
                         title: '',
-                        dayIndex: 0,
+                        dayIndex: this.activeDay,
                         startTime: '09:00',
                         endTime: '10:00',
                         category: 'travel',
                         description: ''
-                    },
-                    modals: [],
-                    deviceManager: null
-                };
+                    };
+                }
+                
+                const safeTitle = String(this.eventForm.title).replace(/"/g, "&quot;");
+                const safeDescription = String(this.eventForm.description).replace(/"/g, "&quot;");
+                
+                this.openModal(title, `
+                    <form id="eventForm">
+                        <div class="mb-3">
+                            <label for="eventTitle" class="form-label">タイトル</label>
+                            <input type="text" class="form-control" id="eventTitle" 
+                                   value="${safeTitle}" placeholder="予定のタイトルを入力">
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventDay" class="form-label">日程</label>
+                            <select class="form-select" id="eventDay">
+                                ${this.tripDays.map((day, index) => 
+                                    `<option value="${index}" ${this.eventForm.dayIndex === index ? 'selected' : ''}>${day.dayNumber}日目（${day.date}）</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label for="eventStartTime" class="form-label">開始時間</label>
+                                <input type="time" class="form-control" id="eventStartTime" 
+                                       value="${this.eventForm.startTime}" min="04:00" max="23:00">
+                            </div>
+                            <div class="col-6">
+                                <label for="eventEndTime" class="form-label">終了時間</label>
+                                <input type="time" class="form-control" id="eventEndTime" 
+                                       value="${this.eventForm.endTime}" min="04:00" max="23:59">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventCategory" class="form-label">カテゴリー</label>
+                            <select class="form-select" id="eventCategory">
+                                <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+                                <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+                                <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>📸 観光</option>
+                                <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+                                <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>⭐ その他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventDescription" class="form-label">詳細・メモ</label>
+                            <textarea class="form-control" id="eventDescription" rows="3" 
+                                      placeholder="詳細情報やメモを入力（任意）">${safeDescription}</textarea>
+                        </div>
+                    </form>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${editEvent.id}'` : 'null'})">${isEdit ? '更新' : '追加'}</button>
+                `);
             },
             
-            methods: {
-                checkExistingData() {
-                    this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
-                },
-                
-                loadExistingData() {
-                    this.loadData();
-                    if (this.tripDays.length > 0) this.tripInitialized = true;
-                },
-                
-                initializeTripDays() {
-                    if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
-                        alert('正しい日付を選択してください');
+            saveEventFromModal(editEventId = null) {
+                try {
+                    const form = document.getElementById('eventForm');
+                    if (!form) return;
+                    
+                    const title = form.querySelector('#eventTitle').value.trim();
+                    const dayIndex = parseInt(form.querySelector('#eventDay').value);
+                    const startTime = form.querySelector('#eventStartTime').value;
+                    const endTime = form.querySelector('#eventEndTime').value;
+                    const category = form.querySelector('#eventCategory').value;
+                    const description = form.querySelector('#eventDescription').value.trim();
+                    
+                    if (!title) {
+                        alert('タイトルを入力してください');
                         return;
                     }
                     
-                    this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
-                    this.activeDay = 0;
-                    this.tripInitialized = true;
-                    this.saveData();
-                },
-                
-                generateTripDays(startDate, endDate) {
-                    const days = [];
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    let dayNumber = 1;
-                    
-                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-                        days.push({
-                            id: Date.now() + dayNumber + Math.random(),
-                            dayNumber: dayNumber++,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
-                            fullDate: date.toISOString().split('T')[0]
-                        });
-                    }
-                    return days;
-                },
-                
-                setActiveDay(index) { this.activeDay = index; },
-                
-                addDayImmediately() {
-                    const startDate = this.tripDays[0].fullDate;
-                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
-                    this.saveData();
-                },
-                
-                deleteDay(index) {
-                    if (this.tripDays.length <= 1) {
-                        alert('最低1つの日程は必要です');
+                    if (startTime >= endTime) {
+                        alert('終了時間は開始時間より後に設定してください');
                         return;
                     }
                     
-                    if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
-                        this.events = this.events.filter(event => event.dayIndex !== index)
-                            .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
-                        
-                        this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
-                        if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
-                        this.saveData();
-                    }
-                },
-                
-                generateConsecutiveDays(startDate, dayCount) {
-                    const days = [];
-                    const start = new Date(startDate);
-                    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-                    
-                    for (let i = 0; i < dayCount; i++) {
-                        const date = new Date(start);
-                        date.setDate(start.getDate() + i);
-                        days.push({
-                            id: Date.now() + i + Math.random(),
-                            dayNumber: i + 1,
-                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
-                            fullDate: date.toISOString().split('T')[0]
-                        });
-                    }
-                    return days;
-                },
-                
-                handleDateClick(index) {
-                    if (index === 0) this.openStartDateModal();
-                    else this.setActiveDay(index);
-                },
-                
-                getCurrentDayEvents() {
-                    return this.events
-                        .filter(event => event.dayIndex === this.activeDay)
-                        .map(event => {
-                            const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
-                            return {
-                                ...event,
-                                inlineText
-                            };
-                        });
-                },
-                
-                // デバイス固有のメソッドを統一インターフェースで呼び出し
-                getEventStyle(event) {
-                    return this.deviceManager.getEventStyle(event.startTime, event.endTime);
-                },
-                
-                handleDragHandleStart(event, eventData) {
-                    this.editModeEvent = eventData;
-                    this.deviceManager.startDrag(event, eventData);
-                },
-                
-                handleResizeStart(event, eventData, direction) {
-                    this.deviceManager.startResize(event, eventData, direction);
-                },
-                
-                handleScheduleInteraction(event) {
-                    // デバイス固有の処理は各マネージャーで自動的に判定される
-                    if (this.deviceManager.isMobile) {
-                        // モバイル専用の処理は自動的に実行される
-                    } else {
-                        // デスクトップ専用の処理は自動的に実行される
-                    }
-                },
-                
-                addEventFromContext() {
-                    if (!this.pasteTargetTime) return;
-                    
-                    const endTime = this.deviceManager.addMinutesToTime(this.pasteTargetTime, 60);
-                    
-                    this.eventForm = {
-                        title: '',
-                        dayIndex: this.activeDay,
-                        startTime: this.pasteTargetTime,
-                        endTime: endTime,
-                        category: 'travel',
-                        description: ''
-                    };
-                    
-                    this.hideContextMenu();
-                    setTimeout(() => {
-                        this.openEventModal(null, true);
-                    }, 100);
-                },
-                
-                showContextMenuAt(x, y, time) {
-                    this.pasteTargetTime = time;
-                    
-                    const menuWidth = 200;
-                    const menuHeight = 120;
-                    const windowWidth = window.innerWidth;
-                    const windowHeight = window.innerHeight;
-                    
-                    let menuX = x;
-                    let menuY = y;
-                    
-                    if (x + menuWidth > windowWidth) {
-                        menuX = x - menuWidth;
-                    }
-                    
-                    if (y + menuHeight > windowHeight) {
-                        menuY = y - menuHeight;
-                    }
-                    
-                    this.contextMenuStyle = { 
-                        left: `${Math.max(0, menuX)}px`, 
-                        top: `${Math.max(0, menuY)}px` 
-                    };
-                    this.showContextMenu = true;
-                    
-                    setTimeout(() => {
-                        document.addEventListener('click', this.hideContextMenu, { once: true });
-                    }, 100);
-                },
-                
-                handleEventClick(event, eventData) {
-                    if (this.isDragComplete) {
-                        this.isDragComplete = false;
-                        return;
-                    }
-                    
-                    if (this.isResizeComplete) {
-                        this.isResizeComplete = false;
-                        return;
-                    }
-                    
-                    if (this.draggingEvent) {
-                        return;
-                    }
-                    
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        this.openDetailModal(eventData);
-                    }
-                },
-                
-                handleEventContextMenu(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (!event.target.closest('.drag-handle-mini')) {
-                        this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }
-                },
-                
-                handleMobileDayTouchStart(event, index) {
-                    this.touchStartTime = Date.now();
-                    this.longPressTimer = setTimeout(() => {
-                        if (navigator.vibrate) navigator.vibrate(50);
-                        this.showMobilePopupForDay(index);
-                    }, 800);
-                },
-                
-                handleMobileDayTouchEnd(event, index) {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                    if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
-                },
-                
-                showMobilePopupForDay(index) {
-                    this.selectedDayForPopup = this.tripDays[index];
-                    this.selectedDayIndex = index;
-                    this.showMobilePopup = true;
-                },
-                
-                closeMobilePopup() {
-                    this.showMobilePopup = false;
-                    this.selectedDayForPopup = null;
-                    this.selectedDayIndex = null;
-                },
-                
-                openStartDateModalFromPopup() {
-                    this.closeMobilePopup();
-                    setTimeout(() => this.openStartDateModal(), 300);
-                },
-                
-                addDayFromPopup() {
-                    this.closeMobilePopup();
-                    setTimeout(() => this.addDayImmediately(), 300);
-                },
-                
-                deleteDayFromPopup() {
-                    const index = this.selectedDayIndex;
-                    this.closeMobilePopup();
-                    setTimeout(() => index !== null && this.deleteDay(index), 300);
-                },
-                
-                updateScrollPosition() {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    this.scrollPosition = container.scrollLeft;
-                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
-                },
-                
-                scrollToDirection(direction) {
-                    const container = this.$refs.mobileScrollContainer;
-                    if (!container) return;
-                    container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
-                },
-                
-                handleEventTouchStart(event, eventData) {
-                    if (!this.deviceManager.isMobile) return;
-                    
-                    if (this.isDragComplete) {
-                        return;
-                    }
-                    
-                    if (this.draggingEvent) {
-                        return;
-                    }
-                    
-                    if (!event.target.closest('.drag-handle-mini') && 
-                        !event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        
-                        event.preventDefault();
-                        event.stopPropagation();
-                        
-                        this.touchStartTime = Date.now();
-                        this.longPressExecuted = false;
-                        
-                        this.longPressTimer = setTimeout(() => {
-                            this.longPressExecuted = true;
-                            this.editModeEvent = eventData;
-                            if (navigator.vibrate) navigator.vibrate(50);
-                        }, 500);
-                        
-                        const handleTouchEnd = () => {
-                            if (this.longPressTimer) {
-                                clearTimeout(this.longPressTimer);
-                                this.longPressTimer = null;
-                            }
-                            
-                            const touchDuration = Date.now() - this.touchStartTime;
-                            if (!this.longPressExecuted && touchDuration < 500) {
-                                this.openDetailModal(eventData);
-                            }
-                            
-                            document.removeEventListener('touchend', handleTouchEnd);
-                        };
-                        
-                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                    }
-                },
-                
-                handleCutButtonClick(event, eventData) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.cutEvent(eventData);
-                },
-                
-                cutEvent(event) {
-                    try {
-                        this.clipboardEvent = { ...event };
-                        const eventIndex = this.events.findIndex(e => e.id === event.id);
-                        if (eventIndex !== -1) {
-                            this.events.splice(eventIndex, 1);
-                            this.editModeEvent = null;
-                            this.saveData();
-                            
-                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                        }
-                        
-                    } catch (error) {
-                        console.error('予定の切り取り中にエラーが発生しました:', error);
-                        alert('予定の切り取りに失敗しました。');
-                    }
-                },
-                
-                pasteFromContext() {
-                    if (!this.clipboardEvent) return;
-                    
-                    const newEvent = {
-                        ...this.clipboardEvent,
-                        id: Date.now() + Math.random(),
-                        dayIndex: this.activeDay
-                    };
-                    
-                    if (this.pasteTargetTime) {
-                        const originalDuration = this.deviceManager.coordinator.timeToPixels(this.clipboardEvent.endTime) - this.deviceManager.coordinator.timeToPixels(this.clipboardEvent.startTime);
-                        newEvent.startTime = this.pasteTargetTime;
-                        newEvent.endTime = this.deviceManager.coordinator.pixelsToTime(this.deviceManager.coordinator.timeToPixels(this.pasteTargetTime) + originalDuration);
-                    }
-                    
-                    this.events.push(newEvent);
-                    this.clipboardEvent = null;
-                    this.hideContextMenu();
-                    this.saveData();
-                },
-                
-                hideContextMenu() { this.showContextMenu = false; },
-                
-                clearLongPress() {
-                    if (this.longPressTimer) {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                    }
-                },
-                
-                getCategoryIcon(category) {
-                    const icons = {
-                        travel: 'fas fa-car',
-                        food: 'fas fa-utensils',
-                        sightseeing: 'fas fa-camera',
-                        accommodation: 'fas fa-bed',
-                        custom: 'fas fa-star'
-                    };
-                    return icons[category] || 'fas fa-calendar';
-                },
-                
-                openDetailModal(event) {
-                    const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
-                    if (!eventData) {
-                        console.error('openDetailModal: 予定データが見つかりません:', event);
-                        alert('予定データが見つかりません');
-                        return;
-                    }
-                    
-                    const safeEventId = String(eventData.id).replace(/'/g, "\\'");
-                    const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    const safeDescription = String(eventData.description || '').replace(/"/g, "&quot;");
-                    
-                    this.openModal('詳細', `
-                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
-                        <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
-                        <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-                        ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${safeDescription}</div>` : ''}
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                        <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
-                        <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
-                    `);
-                },
-                
-                deleteEventFromDetail(eventId) {
-                    try {
-                        if (!confirm('この予定を削除しますか？')) {
-                            return;
-                        }
-                        
-                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                        if (eventIndex === -1) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.events.splice(eventIndex, 1);
-                        this.saveData();
-                        this.editModeEvent = null;
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                                                console.error('予定の削除中にエラーが発生しました:', error);
-                        alert('予定の削除に失敗しました。ページを再読み込みしてお試しください。');
-                    }
-                },
-                
-                editEventFromDetail(eventId) {
-                    try {
-                        const eventData = this.events.find(e => String(e.id) === String(eventId));
-                        if (!eventData) {
-                            alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                            return;
-                        }
-                        
-                        this.eventForm = {
-                            title: eventData.title,
-                            dayIndex: eventData.dayIndex,
-                            startTime: eventData.startTime,
-                            endTime: eventData.endTime,
-                            category: eventData.category,
-                            description: eventData.description || ''
-                        };
-                        
-                        this.closeAllModals();
-                        setTimeout(() => {
-                            this.openEventModal(eventData);
-                        }, 300);
-                        
-                    } catch (error) {
-                        console.error('予定の編集中にエラーが発生しました:', error);
-                        alert('予定の編集に失敗しました。ページを再読み込みしてお試しください。');
-                    }
-                },
-                
-                openEventModal(editEvent = null, isFromContext = false) {
-                    const isEdit = !!editEvent;
-                    const title = isEdit ? '予定を編集' : '新しい予定を追加';
-                    
-                    if (isEdit) {
-                        this.eventForm = {
-                            title: editEvent.title,
-                            dayIndex: editEvent.dayIndex,
-                            startTime: editEvent.startTime,
-                            endTime: editEvent.endTime,
-                            category: editEvent.category,
-                            description: editEvent.description || ''
-                        };
-                    } else if (!isFromContext) {
-                        this.eventForm = {
-                            title: '',
-                            dayIndex: this.activeDay,
-                            startTime: '09:00',
-                            endTime: '10:00',
-                            category: 'travel',
-                            description: ''
-                        };
-                    }
-                    
-                    const safeTitle = String(this.eventForm.title).replace(/"/g, "&quot;");
-                    const safeDescription = String(this.eventForm.description).replace(/"/g, "&quot;");
-                    
-                    this.openModal(title, `
-                        <form id="eventForm">
-                            <div class="mb-3">
-                                <label for="eventTitle" class="form-label">タイトル</label>
-                                <input type="text" class="form-control" id="eventTitle" 
-                                       value="${safeTitle}" placeholder="予定のタイトルを入力">
-                            </div>
-                            <div class="mb-3">
-                                <label for="eventDay" class="form-label">日程</label>
-                                <select class="form-select" id="eventDay">
-                                    ${this.tripDays.map((day, index) => 
-                                        `<option value="${index}" ${this.eventForm.dayIndex === index ? 'selected' : ''}>${day.dayNumber}日目（${day.date}）</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label for="eventStartTime" class="form-label">開始時間</label>
-                                    <input type="time" class="form-control" id="eventStartTime" 
-                                           value="${this.eventForm.startTime}" min="04:00" max="23:00">
-                                </div>
-                                <div class="col-6">
-                                    <label for="eventEndTime" class="form-label">終了時間</label>
-                                    <input type="time" class="form-control" id="eventEndTime" 
-                                           value="${this.eventForm.endTime}" min="04:00" max="23:59">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="eventCategory" class="form-label">カテゴリー</label>
-                                <select class="form-select" id="eventCategory">
-                                    <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
-                                    <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
-                                    <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>📸 観光</option>
-                                    <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
-                                    <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>⭐ その他</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="eventDescription" class="form-label">詳細・メモ</label>
-                                <textarea class="form-control" id="eventDescription" rows="3" 
-                                          placeholder="詳細情報やメモを入力（任意）">${safeDescription}</textarea>
-                            </div>
-                        </form>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${editEvent.id}'` : 'null'})">${isEdit ? '更新' : '追加'}</button>
-                    `);
-                },
-                
-                saveEventFromModal(editEventId = null) {
-                    try {
-                        const form = document.getElementById('eventForm');
-                        if (!form) return;
-                        
-                        const title = form.querySelector('#eventTitle').value.trim();
-                        const dayIndex = parseInt(form.querySelector('#eventDay').value);
-                        const startTime = form.querySelector('#eventStartTime').value;
-                        const endTime = form.querySelector('#eventEndTime').value;
-                        const category = form.querySelector('#eventCategory').value;
-                        const description = form.querySelector('#eventDescription').value.trim();
-                        
-                        if (!title) {
-                            alert('タイトルを入力してください');
-                            return;
-                        }
-                        
-                        if (startTime >= endTime) {
-                            alert('終了時間は開始時間より後に設定してください');
-                            return;
-                        }
-                        
-                        const eventData = {
-                            id: editEventId || Date.now() + Math.random(),
-                            title,
-                            dayIndex,
-                            startTime,
-                            endTime,
-                            category,
-                            description
-                        };
-                        
-                        if (editEventId) {
-                            const eventIndex = this.events.findIndex(e => String(e.id) === String(editEventId));
-                            if (eventIndex !== -1) {
-                                this.events[eventIndex] = eventData;
-                            }
-                        } else {
-                            this.events.push(eventData);
-                        }
-                        
-                        this.saveData();
-                        this.closeAllModals();
-                        this.editModeEvent = null;
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('予定の保存中にエラーが発生しました:', error);
-                        alert('予定の保存に失敗しました。');
-                    }
-                },
-                
-                openStartDateModal() {
-                    const currentStartDate = this.tripDays[0]?.fullDate || this.today;
-                    
-                    this.openModal('開始日を変更', `
-                        <div class="mb-3">
-                            <label for="newStartDate" class="form-label">新しい開始日</label>
-                            <input type="date" class="form-control" id="newStartDate" 
-                                   value="${currentStartDate}" min="${this.today}">
-                        </div>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            開始日を変更すると、すべての日程が再計算されます。
-                        </div>
-                    `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" onclick="window.app.updateStartDate()">変更</button>
-                    `);
-                },
-                
-                updateStartDate() {
-                    try {
-                        const newStartDate = document.getElementById('newStartDate').value;
-                        if (!newStartDate) {
-                            alert('開始日を選択してください');
-                            return;
-                        }
-                        
-                        const dayCount = this.tripDays.length;
-                        this.tripDays = this.generateConsecutiveDays(newStartDate, dayCount);
-                        this.saveData();
-                        this.closeAllModals();
-                        
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        
-                    } catch (error) {
-                        console.error('開始日の更新中にエラーが発生しました:', error);
-                        alert('開始日の更新に失敗しました。');
-                    }
-                },
-                
-                openModal(title, body, footer) {
-                    const modalId = 'modal-' + Date.now();
-                    const modal = {
-                        id: modalId,
+                    const eventData = {
+                        id: editEventId || Date.now() + Math.random(),
                         title,
-                        body,
-                        footer
+                        dayIndex,
+                        startTime,
+                        endTime,
+                        category,
+                        description
                     };
                     
-                    this.modals.push(modal);
+                    if (editEventId) {
+                        const eventIndex = this.events.findIndex(e => String(e.id) === String(editEventId));
+                        if (eventIndex !== -1) {
+                            this.events[eventIndex] = eventData;
+                        }
+                    } else {
+                        this.events.push(eventData);
+                    }
                     
-                    this.$nextTick(() => {
-                        const modalElement = document.getElementById(modalId);
-                        if (modalElement) {
-                            const bsModal = new bootstrap.Modal(modalElement);
-                            bsModal.show();
-                            
-                            modalElement.addEventListener('hidden.bs.modal', () => {
-                                this.modals = this.modals.filter(m => m.id !== modalId);
-                            });
-                        }
-                    });
-                },
-                
-                closeAllModals() {
-                    document.querySelectorAll('.modal.show').forEach(modal => {
-                        const bsModal = bootstrap.Modal.getInstance(modal);
-                        if (bsModal) bsModal.hide();
-                    });
-                    this.modals = [];
-                },
-                
-                saveData() {
-                    try {
-                        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                        localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-                    } catch (error) {
-                        console.error('データの保存中にエラーが発生しました:', error);
-                        alert('データの保存に失敗しました。');
-                    }
-                },
-                
-                loadData() {
-                    try {
-                        const savedEvents = localStorage.getItem('trippenEvents');
-                        const savedDays = localStorage.getItem('trippenDays');
-                        
-                        if (savedEvents) this.events = JSON.parse(savedEvents);
-                        if (savedDays) this.tripDays = JSON.parse(savedDays);
-                        
-                        if (this.tripDays.length > 0) {
-                            this.tripInitialized = true;
-                        }
-                    } catch (error) {
-                        console.error('データの読み込み中にエラーが発生しました:', error);
-                        this.events = [];
-                        this.tripDays = [];
-                    }
+                    this.saveData();
+                    this.closeAllModals();
+                    this.editModeEvent = null;
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('予定の保存中にエラーが発生しました:', error);
+                    alert('予定の保存に失敗しました。');
                 }
             },
             
-            mounted() {
-                // 完全分離されたマネージャーの初期化
-                this.deviceManager = new DeviceSpecificManager();
-                this.deviceManager.initialize(this);
+            openStartDateModal() {
+                const currentStartDate = this.tripDays[0]?.fullDate || this.today;
                 
-                // 既存のその他の初期化処理
-                this.checkExistingData();
-                this.loadData();
-                
-                // 共通イベントリスナー
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.context-menu')) {
-                        this.hideContextMenu();
+                this.openModal('開始日を変更', `
+                    <div class="mb-3">
+                        <label for="newStartDate" class="form-label">新しい開始日</label>
+                        <input type="date" class="form-control" id="newStartDate" 
+                               value="${currentStartDate}" min="${this.today}">
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        開始日を変更すると、すべての日程が再計算されます。
+                    </div>
+                `, `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="window.app.updateStartDate()">変更</button>
+                `);
+            },
+            
+            updateStartDate() {
+                try {
+                    const newStartDate = document.getElementById('newStartDate').value;
+                    if (!newStartDate) {
+                        alert('開始日を選択してください');
+                        return;
                     }
-                });
+                    
+                    const dayCount = this.tripDays.length;
+                    this.tripDays = this.generateConsecutiveDays(newStartDate, dayCount);
+                    this.saveData();
+                    this.closeAllModals();
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    
+                } catch (error) {
+                    console.error('開始日の更新中にエラーが発生しました:', error);
+                    alert('開始日の更新に失敗しました。');
+                }
+            },
+            
+            openModal(title, body, footer) {
+                const modalId = 'modal-' + Date.now();
+                const modal = {
+                    id: modalId,
+                    title,
+                    body,
+                    footer
+                };
+                
+                this.modals.push(modal);
                 
                 this.$nextTick(() => {
-                    this.updateScrollPosition();
+                    const modalElement = document.getElementById(modalId);
+                    if (modalElement) {
+                        const bsModal = new bootstrap.Modal(modalElement);
+                        bsModal.show();
+                        
+                        modalElement.addEventListener('hidden.bs.modal', () => {
+                            this.modals = this.modals.filter(m => m.id !== modalId);
+                        });
+                    }
                 });
-                
-                // グローバルアクセス用
-                window.app = this;
+            },
+            
+            closeAllModals() {
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    const bsModal = bootstrap.Modal.getInstance(modal);
+                    if (bsModal) bsModal.hide();
+                });
+                this.modals = [];
+            },
+            
+            saveData() {
+                try {
+                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                } catch (error) {
+                    console.error('データの保存中にエラーが発生しました:', error);
+                    alert('データの保存に失敗しました。');
+                }
+            },
+            
+            loadData() {
+                try {
+                    const savedEvents = localStorage.getItem('trippenEvents');
+                    const savedDays = localStorage.getItem('trippenDays');
+                    
+                    if (savedEvents) this.events = JSON.parse(savedEvents);
+                    if (savedDays) this.tripDays = JSON.parse(savedDays);
+                    
+                    if (this.tripDays.length > 0) {
+                        this.tripInitialized = true;
+                    }
+                } catch (error) {
+                    console.error('データの読み込み中にエラーが発生しました:', error);
+                    this.events = [];
+                    this.tripDays = [];
+                }
             }
-        });
+        },
         
-        app.mount('#app');
-    </script>
+        mounted() {
+            // 完全分離されたマネージャーの初期化
+            this.deviceManager = new DeviceSpecificManager();
+            
+            // 既存のその他の初期化処理
+            this.checkExistingData();
+            this.loadData();
+            
+            // 共通イベントリスナー
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.context-menu')) {
+                    this.hideContextMenu();
+                }
+            });
+            
+            // DOMが完全に準備できてからマネージャーを初期化
+            this.$nextTick(() => {
+                this.deviceManager.initialize(this);
+                this.updateScrollPosition();
+            });
+            
+            // グローバルアクセス用
+            window.app = this;
+        }
+    });
+    
+    app.mount('#app');
+</script>
 </body>
 </html>
