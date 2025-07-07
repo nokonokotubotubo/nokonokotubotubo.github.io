@@ -3,23 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>とりっぺんちゃん - 旅行予定調整サイト</title>
+    <title>縺ｨ繧翫▲縺ｺ繧薙■繧�ｓ - 譌�｡御ｺ亥ｮ夊ｪｿ謨ｴ繧ｵ繧､繝�</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root {
-            --time-scale-factor: 1;
-            --time-start-hour: 4;
-            --time-end-hour: 23;
-            --time-total-hours: 20;
-            --time-base-hour-height: 60px;
-            --time-base-quarter-height: 15px;
-            --time-base-axis-width: 80px;
-            --time-hour-height: calc(var(--time-base-hour-height) * var(--time-scale-factor));
-            --time-quarter-height: calc(var(--time-base-quarter-height) * var(--time-scale-factor));
-            --time-total-height: calc(var(--time-hour-height) * var(--time-total-hours));
-            --time-axis-width: calc(var(--time-base-axis-width) * var(--time-scale-factor));
             --primary: #87CEEB;
             --secondary: #B0E0E6;
             --accent: #4682B4;
@@ -31,15 +20,10 @@
             --shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        @media (max-width: 768px) {
-            :root {
-                --time-scale-factor: 0.833;
-                --time-base-axis-width: 60px;
-            }
-        }
-        
         * { box-sizing: border-box; }
+        
         html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; }
+        
         body {
             background: var(--bg);
             color: var(--text);
@@ -60,7 +44,233 @@
         }
         
         .penguin-icon { font-size: 2rem; margin-right: 10px; }
+        
         .desktop-ui, .mobile-ui { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .day-tabs-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) transparent;
+            flex-shrink: 0;
+        }
+        
+        .day-tabs {
+            background: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+            margin: 20px 0 0 0;
+            box-shadow: var(--shadow);
+            display: flex;
+            min-width: max-content;
+        }
+        
+        .day-tabs .nav-item {
+            transition: var(--transition);
+            cursor: move;
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .day-tabs .nav-item.dragging-tab {
+            opacity: 0.7;
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            z-index: 999;
+            border: 3px dashed var(--accent);
+            background: rgba(135, 206, 235, 0.1);
+            border-radius: var(--radius);
+        }
+        
+        .day-tabs .nav-item.drag-over {
+            background: rgba(135, 206, 235, 0.2);
+            transform: scale(1.02);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 15px rgba(70, 130, 180, 0.4);
+        }
+        
+        .day-tabs .nav-link {
+            border: none;
+            color: var(--text);
+            padding: 12px 20px 12px 30px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            white-space: nowrap;
+            text-align: center;
+            min-width: 120px;
+            transition: var(--transition);
+            position: relative;
+            display: block;
+        }
+        
+        .day-tabs .nav-link.active { background: var(--primary); color: white; box-shadow: var(--shadow); }
+        .day-tabs .nav-link:hover { background: var(--secondary); color: white; }
+        
+        .drag-handle {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            cursor: grab;
+        }
+        
+        .delete-day-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 99, 99, 0.8);
+            color: white;
+            border: none;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .delete-day-btn:hover { background: rgba(255, 99, 99, 1); transform: scale(1.1); }
+        .day-tabs .nav-link:hover .delete-day-btn { display: flex; }
+        
+        .mobile-day-selector {
+            background: white;
+            padding: 12px 0;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .mobile-scroll-container { position: relative; padding: 0 50px; }
+        
+        .mobile-day-buttons {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) transparent;
+            padding: 0 15px 10px 15px;
+        }
+        
+        .mobile-day-btn {
+            min-width: 100px;
+            height: 60px;
+            border: 2px solid var(--secondary);
+            background: white;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font: bold 0.9rem/1 sans-serif;
+            color: var(--text);
+            transition: var(--transition);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .mobile-day-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .mobile-day-btn:active { transform: scale(0.95); }
+        
+        .mobile-scroll-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--secondary);
+            color: var(--accent);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .mobile-scroll-nav:active { transform: translateY(-50%) scale(0.9); }
+        .mobile-scroll-nav.left { left: 5px; }
+        .mobile-scroll-nav.right { right: 5px; }
+        .mobile-scroll-nav.disabled { opacity: 0.3; pointer-events: none; }
+        
+        .mobile-popup-menu {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .mobile-popup-menu.show { opacity: 1; visibility: visible; }
+        
+        .mobile-popup-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .mobile-popup-title { font: bold 1.2rem/1 sans-serif; color: var(--accent); margin-bottom: 20px; }
+        .mobile-popup-buttons { display: flex; flex-direction: column; gap: 15px; }
+        
+        .mobile-popup-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: var(--radius);
+            font: bold 1rem/1 sans-serif;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        .mobile-popup-btn.primary { background: var(--primary); color: white; }
+        .mobile-popup-btn.success { background: #28a745; color: white; }
+        .mobile-popup-btn.danger { background: #dc3545; color: white; }
+        .mobile-popup-btn.secondary { background: #6c757d; color: white; }
+        .mobile-popup-btn:active { transform: scale(0.95); }
+        
+        .mobile-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: var(--transition);
+            z-index: 1000;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .mobile-fab:active { transform: scale(0.9); }
         
         .timeline-container {
             background: white;
@@ -86,15 +296,15 @@
         .timeline-scroll-container { height: 100%; display: flex; overflow-y: auto; overflow-x: hidden; }
         
         .time-axis {
-            width: var(--time-axis-width);
+            width: 80px;
             background: var(--time-bg);
             border-right: 2px solid var(--secondary);
             flex-shrink: 0;
-            height: var(--time-total-height);
+            height: 1200px;
         }
         
         .time-slot {
-            height: var(--time-hour-height);
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -103,21 +313,11 @@
             border-bottom: 1px solid #e0e0e0;
         }
         
-        .schedule-area { 
-            flex: 1; 
-            position: relative; 
-            height: var(--time-total-height);
-            background: white;
-        }
-        
-        .schedule-grid { 
-            position: absolute; 
-            inset: 0; 
-            height: var(--time-total-height);
-        }
+        .schedule-area { flex: 1; position: relative; height: 1200px; }
+        .schedule-grid { position: absolute; inset: 0; height: 1200px; }
         
         .grid-line {
-            height: var(--time-hour-height);
+            height: 60px;
             border-bottom: 1px solid #e0e0e0;
             position: relative;
         }
@@ -132,9 +332,9 @@
             background: #f0f0f0;
         }
         
-        .quarter-line:nth-child(1) { top: calc(var(--time-quarter-height) * 1); }
-        .quarter-line:nth-child(2) { top: calc(var(--time-quarter-height) * 2); }
-        .quarter-line:nth-child(3) { top: calc(var(--time-quarter-height) * 3); }
+        .quarter-line:nth-child(1) { top: 15px; }
+        .quarter-line:nth-child(2) { top: 30px; }
+        .quarter-line:nth-child(3) { top: 45px; }
         
         .event-block {
             position: absolute;
@@ -150,7 +350,7 @@
             z-index: 10;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            min-height: calc(var(--time-quarter-height) * 2);
+            min-height: 35px;
             display: flex;
             align-items: center;
         }
@@ -159,6 +359,21 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             border-color: var(--accent);
+        }
+        
+        .event-block.edit-mode {
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+        }
+        
+        .event-block.dragging {
+            z-index: 1000;
+            opacity: 0.8;
+            transform: scale(1.02);
+        }
+        
+        .event-block.dragging .event-actions {
+            display: none !important;
         }
         
         .event-content-inline {
@@ -172,13 +387,105 @@
             font-weight: bold;
         }
         
+        .event-title,
+        .event-time,
+        .event-description {
+            display: none;
+        }
+        
+        .drag-handle-mini {
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            font-size: 0.7rem;
+            color: rgba(0, 0, 0, 0.6);
+            transition: var(--transition);
+            z-index: 15;
+        }
+        
+        .drag-handle-mini:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+        }
+        
+        .drag-handle-mini:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+        
+        .event-block.edit-mode .drag-handle-mini {
+            background: #FFD700;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .event-category-travel { background: #FF6B6B; }
+        .event-category-food { background: #4ECDC4; }
+        .event-category-sightseeing { background: #45B7D1; }
+        .event-category-accommodation { background: #96CEB4; }
+        .event-category-custom { background: #FECA57; }
+        
+        /* 菫ｮ豁｣1�壼�繧雁叙繧翫�繧ｿ繝ｳ繧貞ｷｦ荳九↓驟咲ｽｮ */
+        .event-actions {
+            position: absolute;
+            bottom: -8px;
+            left: 2px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+        
+        .event-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .event-action-btn.cut { background: #FF6B6B; border: 2px solid #fff; }
+        .event-action-btn.cut:hover { background: #FF5252; transform: scale(1.1); }
+        
+        .edit-mode-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #FFD700;
+            color: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: bold 0.8rem/1 sans-serif;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
         .context-menu {
             position: fixed;
             background: white;
             border: 1px solid #ddd;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            z-index: 9999;
+            z-index: 2000;
             opacity: 0;
             visibility: hidden;
             transform: scale(0.8);
@@ -200,8 +507,67 @@
         
         .context-menu-item:last-child { border-bottom: none; }
         .context-menu-item:hover { background: #f5f5f5; }
-        .context-menu-item.add-event { color: #4CAF50; }
-        .context-menu-item.add-event:hover { background: #e8f5e8; }
+        .context-menu-item.paste { color: #4CAF50; }
+        .context-menu-item.paste:hover { background: #e8f5e8; }
+        .context-menu-item.disabled { color: #ccc; cursor: not-allowed; }
+        .context-menu-item.disabled:hover { background: transparent; }
+        
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: var(--transition);
+            cursor: ns-resize;
+        }
+        
+        .resize-handle.top { top: 0; border-radius: 8px 8px 0 0; }
+        .resize-handle.bottom { bottom: 0; border-radius: 0 0 8px 8px; }
+        .event-block.edit-mode .resize-handle { opacity: 1; }
+        
+        .modal-content { border-radius: var(--radius); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-header { background: var(--primary); color: white; border-radius: var(--radius) var(--radius) 0 0; }
+        
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            transition: var(--transition);
+        }
+        
+        .btn-primary:hover { background: var(--text); transform: translateY(-2px); }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+        }
+        
+        .add-event-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: var(--transition);
+            z-index: 1000;
+        }
+        
+        .add-event-btn:hover { transform: scale(1.1); background: var(--primary); }
         
         .trip-setup { text-align: center; padding: 40px 20px; }
         .trip-setup h2 { color: var(--accent); margin-bottom: 30px; }
@@ -222,140 +588,371 @@
             font-size: 1rem;
         }
         
-        .btn-primary {
-            background: var(--accent);
-            border: none;
-            border-radius: 20px;
-            padding: 8px 20px;
-            transition: var(--transition);
-        }
-        
-        .btn-primary:hover { background: var(--text); transform: translateY(-2px); }
-        
-        .add-event-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: var(--transition);
-            z-index: 1000;
-        }
-        
-        .add-event-btn:hover { transform: scale(1.1); background: var(--primary); }
+        .date-input-group span { font: bold 1.2rem/1 sans-serif; color: var(--accent); }
         
         @media (max-width: 768px) {
-            .time-slot { font-size: 0.8rem; }
-            .event-block { padding: 6px 8px; }
+            .time-axis { width: 60px; height: 1000px; }
+            .time-slot { height: 50px; font-size: 0.8rem; }
+            .grid-line { height: 50px; }
+            .schedule-grid, .schedule-area { height: 1000px; }
+            .event-block { padding: 6px 8px 6px 22px; min-height: 32px; }
             .event-content-inline { font-size: 0.8rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
+            
+            .drag-handle-mini {
+                width: 14px;
+                height: 14px;
+                font-size: 0.6rem;
+                left: 2px;
+                top: 2px;
+            }
+            
+            .event-action-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            .edit-mode-indicator {
+                width: 28px;
+                height: 28px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <header class="header">
+縲縲        <header class="header">
             <div class="container">
-                <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
-                <p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
+                <h1><i class="fas fa-snowflake penguin-icon"></i>縺ｨ繧翫▲縺ｺ繧薙■繧�ｓ</h1>
+                <p class="mb-0">縺ｿ繧薙↑縺ｧ讌ｽ縺励＞譌�｡瑚ｨ育判繧堤ｫ九※繧医≧��</p>
             </div>
         </header>
         
         <div v-if="!tripInitialized" class="container">
             <div class="trip-setup">
-                <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
-                <p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
+                <h2><i class="fas fa-calendar-alt"></i> 譌�｡梧律遞九ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞</h2>
+                <p>譌�｡後�髢句ｧ区律縺ｨ邨ゆｺ�律繧帝∈謚槭＠縺ｦ縲√せ繧ｱ繧ｸ繝･繝ｼ繝ｫ繧剃ｽ懈�縺励∪縺励ｇ縺�ｼ�</p>
                 
                 <div class="date-input-group">
-                    <label for="startDate"><strong>開始日:</strong></label>
+                    <label for="startDate"><strong>髢句ｧ区律:</strong></label>
                     <input type="date" id="startDate" v-model="tripStartDate" :min="today">
-                    <span>〜</span>
-                    <label for="endDate"><strong>終了日:</strong></label>
+                    <span>縲�</span>
+                    <label for="endDate"><strong>邨ゆｺ�律:</strong></label>
                     <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
                 </div>
                 
                 <div class="mt-4">
                     <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
-                        <i class="fas fa-check"></i> 旅行スケジュールを作成
+                        <i class="fas fa-check"></i> 譌�｡後せ繧ｱ繧ｸ繝･繝ｼ繝ｫ繧剃ｽ懈�
                     </button>
                 </div>
                 
                 <div class="mt-3">
                     <button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
-                        <i class="fas fa-folder-open"></i> 既存のデータを読み込む
+                        <i class="fas fa-folder-open"></i> 譌｢蟄倥�繝��繧ｿ繧定ｪｭ縺ｿ霎ｼ繧
                     </button>
                 </div>
             </div>
         </div>
         
-        <div v-if="tripInitialized" class="timeline-container">
-            <div class="timeline-header">
-                <h5>
-                    <i class="fas fa-calendar-day"></i>
-                    スケジュール
-                </h5>
+        <!-- 繝�せ繧ｯ繝医ャ繝怜ｰら畑UI -->
+        <div v-if="tripInitialized && !isMobile" class="desktop-ui">
+            <div class="day-tabs-container">
+                <ul class="nav nav-tabs day-tabs">
+                    <li class="nav-item" 
+                        v-for="(day, index) in tripDays" 
+                        :key="`day-${day.id || index}`"
+                        draggable="true"
+                        @dragstart="handleTabDragStart($event, index)"
+                        @dragover="handleTabDragOver($event, index)"
+                        @drop="handleTabDrop($event, index)"
+                        @dragend="handleTabDragEnd"
+                        :class="{ 'dragging-tab': draggingTabIndex === index }">
+                        <a class="nav-link" 
+                           :class="{ active: activeDay === index }"
+                           @click="setActiveDay(index)"
+                           href="#"
+                           @click.prevent>
+                            <div class="drag-handle">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            <div>
+                                <div>{{ day.dayNumber }}譌･逶ｮ</div>
+                                <small @click.stop="handleDateClick(index)" 
+                                       :class="{ 'editable-date': index === 0 }">
+                                    {{ day.date }}
+                                    <i v-if="index === 0" class="fas fa-edit"></i>
+                                </small>
+                            </div>
+                            <button class="delete-day-btn" 
+                                    v-if="tripDays.length > 1"
+                                    @click.stop.prevent="deleteDay(index)"
+                                    @mousedown.stop
+                                    title="譌･遞九ｒ蜑企勁">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link add-day-btn" 
+                           @click.prevent.stop="addDayImmediately" 
+                           @mousedown.stop
+                           href="#" 
+                           title="譌･遞九ｒ霑ｽ蜉�">
+                            <div class="drag-handle" style="visibility: hidden;">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: bold;">��</div>
+                                <small style="visibility: hidden;">譌･遞玖ｿｽ蜉�</small>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
             </div>
             
-            <div class="timeline-content">
-                <div class="timeline-scroll-container">
-                    <div class="time-axis">
-                        <div class="time-slot" v-for="hour in timeSlots" :key="hour">
-                            {{ hour }}:00
-                        </div>
-                    </div>
-                    
-                    <div class="schedule-area" 
-                         @click="editModeEvent = null">
-                        <div class="schedule-grid">
-                            <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-                                <div class="quarter-line"></div>
-                                <div class="quarter-line"></div>
-                                <div class="quarter-line"></div>
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h5>
+                        <i class="fas fa-calendar-day"></i>
+                        {{ tripDays[activeDay]?.dayNumber }}譌･逶ｮ縺ｮ莠亥ｮ�
+                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                    </h5>
+                </div>
+                
+                <div class="timeline-content">
+                    <div class="timeline-scroll-container" ref="scrollContainer">
+                        <div class="time-axis">
+                            <div class="time-slot" v-for="hour in timeSlots" :key="hour">
+                                {{ hour }}:00
                             </div>
                         </div>
                         
-                        <div class="event-block" 
-                             v-for="event in events" 
-                             :key="event.id"
-                             :style="getEventStyle(event)"
-                             @click="openEventModal(event)">
-                            <div class="event-content-inline">
-                                <i class="fas fa-calendar"></i>
-                                {{ event.title }}（{{ event.startTime }}-{{ event.endTime }}）
+                        <div class="schedule-area" 
+                             @click="editModeEvent = null"
+                             @contextmenu="handleScheduleContextMenu">
+                            <div class="schedule-grid">
+                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="event-block" 
+                                 v-for="event in getCurrentDayEvents()" 
+                                 :key="event.id"
+                                 :class="[
+                                     'event-category-' + event.category,
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                 ]"
+                                 :style="getEventStyle(event)"
+                                 @contextmenu.prevent="handleEventContextMenu($event, event)"
+                                 @click="handleEventClick($event, event)">
+                                
+                                <div class="drag-handle-mini"
+                                     @mousedown="handleDragHandleMouseDown($event, event)"
+                                     title="繝峨Λ繝�げ縺励※遘ｻ蜍�">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    <button class="event-action-btn cut" 
+                                            @click="handleCutButtonClick($event, event)"
+                                            @mousedown.stop
+                                            title="蛻�ｊ蜿悶ｊ">
+                                        <i class="fas fa-cut"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">笨�</div>
+                                
+                                <div class="resize-handle top" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @mousedown="startResize($event, event, 'top')"></div>
+                                
+                                <div class="resize-handle bottom" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @mousedown="startResize($event, event, 'bottom')"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <button class="add-event-btn" @click="openEventModal()">
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
         
-        <button v-if="tripInitialized" class="add-event-btn" @click="openEventModal()">
-            <i class="fas fa-plus"></i>
-        </button>
+        <!-- 繝｢繝舌う繝ｫ蟆ら畑UI -->
+        <div v-if="tripInitialized && isMobile" class="mobile-ui">
+            <div class="mobile-day-selector">
+                <div class="mobile-scroll-container">
+                    <button class="mobile-scroll-nav left" 
+                            :class="{ disabled: scrollPosition <= 0 }"
+                            @click="scrollToDirection('left')">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
+                    <div class="mobile-day-buttons" ref="mobileScrollContainer" @scroll="updateScrollPosition">
+                        <button v-for="(day, index) in tripDays" 
+                                :key="`mobile-day-${day.id || index}`"
+                                class="mobile-day-btn"
+                                :class="{ active: activeDay === index }"
+                                @click="setActiveDay(index)"
+                                @touchstart="handleMobileDayTouchStart($event, index)"
+                                @touchend="handleMobileDayTouchEnd($event, index)">
+                            <div>{{ day.dayNumber }}譌･逶ｮ</div>
+                            <small>{{ day.date }}</small>
+                        </button>
+                    </div>
+                    
+                    <button class="mobile-scroll-nav right" 
+                            :class="{ disabled: scrollPosition >= maxScrollPosition }"
+                            @click="scrollToDirection('right')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h5>
+                        <i class="fas fa-calendar-day"></i>
+                        {{ tripDays[activeDay]?.dayNumber }}譌･逶ｮ縺ｮ莠亥ｮ�
+                        <small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+                    </h5>
+                </div>
+                
+                <div class="timeline-content">
+                    <div class="timeline-scroll-container" ref="mobileTimelineContainer">
+                        <div class="time-axis">
+                            <div class="time-slot" v-for="hour in timeSlots" :key="hour">
+                                {{ hour }}:00
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-area" 
+                             @click="editModeEvent = null"
+                             @touchstart="handleScheduleTouchStart"
+                             @touchend="handleScheduleTouchEnd"
+                             @touchmove="handleScheduleTouchMove">
+                            <div class="schedule-grid">
+                                <div class="grid-line" v-for="hour in timeSlots" :key="hour">
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                    <div class="quarter-line"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="event-block" 
+                                 v-for="event in getCurrentDayEvents()" 
+                                 :key="event.id"
+                                 :class="[
+                                     'event-category-' + event.category,
+                                     { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                 ]"
+                                 :style="getEventStyle(event)"
+                                 @click="handleEventClick($event, event)"
+                                 @touchstart="handleEventTouchStart($event, event)">
+                                
+                                <div class="drag-handle-mini"
+                                     @touchstart="handleDragHandleTouchStart($event, event)"
+                                     title="繝峨Λ繝�げ縺励※遘ｻ蜍�">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                
+                                <div class="event-content-inline">
+                                    <i :class="getCategoryIcon(event.category)"></i>
+                                    {{ event.inlineText }}
+                                </div>
+                                
+                                <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+                                    <button class="event-action-btn cut" 
+                                            @click="handleCutButtonClick($event, event)"
+                                            @touchstart.stop
+                                            title="蛻�ｊ蜿悶ｊ">
+                                        <i class="fas fa-cut"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">笨�</div>
+                                
+                                <div class="resize-handle top" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'top')"></div>
+                                
+                                <div class="resize-handle bottom" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
+                                     @touchstart="startResizeTouch($event, event, 'bottom')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="mobile-fab" @click="openEventModal()">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
         
-        <!-- コンテキストメニュー -->
+        <!-- 繧ｳ繝ｳ繝�く繧ｹ繝医Γ繝九Η繝ｼ -->
         <div class="context-menu" 
              :class="{ show: showContextMenu }"
              :style="contextMenuStyle">
-            <div class="context-menu-item add-event" 
-                 @click="addEventFromContext">
-                <i class="fas fa-plus"></i>新しい予定を追加
+            <div class="context-menu-item paste" 
+                 :class="{ disabled: !clipboardEvent }"
+                 @click="pasteFromContext"
+                 v-if="clipboardEvent">
+                <i class="fas fa-paste"></i>雋ｼ繧贋ｻ倥￠
+            </div>
+            <div class="context-menu-item disabled" v-else>
+                <i class="fas fa-paste"></i>雋ｼ繧贋ｻ倥￠�医さ繝斐�貂医∩繧｢繧､繝�Β縺ｪ縺暦ｼ�
             </div>
         </div>
         
-        <!-- モーダル -->
+        <!-- 繝｢繝舌う繝ｫ蟆ら畑繝昴ャ繝励い繝��繝｡繝九Η繝ｼ -->
+        <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
+            <div class="mobile-popup-content" @click.stop>
+                <div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}譌･逶ｮ縺ｮ邱ｨ髮�` : '譌･遞狗ｷｨ髮�' }}</div>
+                <div class="mobile-popup-buttons">
+                    <button class="mobile-popup-btn primary" 
+                            v-if="selectedDayForPopup && selectedDayIndex === 0"
+                            @click="openStartDateModalFromPopup">
+                        <i class="fas fa-calendar-edit"></i>髢句ｧ区律繧貞､画峩
+                    </button>
+                    <button class="mobile-popup-btn success" @click="addDayFromPopup">
+                        <i class="fas fa-plus"></i>譌･遞九ｒ霑ｽ蜉�
+                    </button>
+                    <button class="mobile-popup-btn danger" 
+                            v-if="selectedDayForPopup && tripDays.length > 1"
+                            @click="deleteDayFromPopup">
+                        <i class="fas fa-trash"></i>縺薙�譌･遞九ｒ蜑企勁
+                    </button>
+                    <button class="mobile-popup-btn secondary" @click="closeMobilePopup">
+                        <i class="fas fa-times"></i>繧ｭ繝｣繝ｳ繧ｻ繝ｫ
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 繝｢繝ｼ繝繝ｫ繝�Φ繝励Ξ繝ｼ繝� -->
         <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog" :class="modal.size">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">{{ modal.title }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body" v-html="modal.body"></div>
                     <div class="modal-footer" v-html="modal.footer"></div>
@@ -363,297 +960,13 @@
             </div>
         </div>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- プロダクション版Vue.jsに変更（警告を解消） -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script>
-        // デスクトップ専用座標管理システム
-        class DesktopCoordinateManager {
-            constructor() {
-                this.config = {
-                    START_HOUR: 4,
-                    END_HOUR: 23,
-                    TOTAL_HOURS: 19,
-                    HOUR_HEIGHT: 60,
-                    QUARTER_HEIGHT: 15,
-                    TOTAL_HEIGHT: 1140,
-                    AXIS_WIDTH: 80,
-                    MIN_EVENT_HEIGHT: 35
-                };
-            }
-            
-            getTimeFromCoordinates(clientX, clientY) {
-                const scheduleArea = document.querySelector('.schedule-area');
-                const scrollContainer = document.querySelector('.timeline-scroll-container');
-                
-                if (!scheduleArea || !scrollContainer) return '09:00';
-                
-                const scheduleRect = scheduleArea.getBoundingClientRect();
-                const scrollTop = scrollContainer.scrollTop;
-                const relativeY = clientY - scheduleRect.top;
-                const actualY = relativeY + scrollTop;
-                
-                return this.pixelsToTime(Math.max(0, Math.min(actualY, this.config.TOTAL_HEIGHT)));
-            }
-            
-            pixelsToTime(pixels) {
-                const quarters = Math.round(pixels / this.config.QUARTER_HEIGHT);
-                const totalMinutes = quarters * 15;
-                const hours = Math.floor(totalMinutes / 60) + this.config.START_HOUR;
-                const minutes = totalMinutes % 60;
-                
-                const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
-                const clampedMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, minutes) : minutes;
-                
-                return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
-            }
-            
-            timeToPixels(timeString) {
-                if (!timeString || typeof timeString !== 'string') return 0;
-                
-                const [hours, minutes] = timeString.split(':').map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return 0;
-                
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
-                return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
-            }
-            
-            getEventStyle(startTime, endTime) {
-                const startPixels = this.timeToPixels(startTime);
-                const endPixels = this.timeToPixels(endTime);
-                const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
-                
-                return {
-                    position: 'absolute',
-                    top: `${startPixels}px`,
-                    left: '10px',
-                    right: '10px',
-                    height: `${duration}px`,
-                    minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
-                };
-            }
-        }
-
-        // モバイル専用座標管理システム
-        class MobileCoordinateManager {
-            constructor() {
-                this.config = {
-                    START_HOUR: 4,
-                    END_HOUR: 23,
-                    TOTAL_HOURS: 19,
-                    HOUR_HEIGHT: 50,
-                    QUARTER_HEIGHT: 12.5,
-                    TOTAL_HEIGHT: 950,
-                    AXIS_WIDTH: 60,
-                    MIN_EVENT_HEIGHT: 32
-                };
-            }
-            
-            getTimeFromCoordinates(clientX, clientY) {
-                const scheduleArea = document.querySelector('.schedule-area');
-                const scrollContainer = document.querySelector('.timeline-scroll-container');
-                
-                if (!scheduleArea || !scrollContainer) return '09:00';
-                
-                const scheduleRect = scheduleArea.getBoundingClientRect();
-                const scrollTop = scrollContainer.scrollTop;
-                const relativeY = clientY - scheduleRect.top;
-                const actualY = relativeY + scrollTop;
-                
-                return this.pixelsToTime(Math.max(0, Math.min(actualY, this.config.TOTAL_HEIGHT)));
-            }
-            
-            pixelsToTime(pixels) {
-                const quarters = Math.round(pixels / this.config.QUARTER_HEIGHT);
-                const totalMinutes = quarters * 15;
-                const hours = Math.floor(totalMinutes / 60) + this.config.START_HOUR;
-                const minutes = totalMinutes % 60;
-                
-                const clampedHours = Math.max(this.config.START_HOUR, Math.min(this.config.END_HOUR, hours));
-                const clampedMinutes = clampedHours === this.config.END_HOUR ? Math.min(45, minutes) : minutes;
-                
-                return `${clampedHours.toString().padStart(2, '0')}:${clampedMinutes.toString().padStart(2, '0')}`;
-            }
-            
-            timeToPixels(timeString) {
-                if (!timeString || typeof timeString !== 'string') return 0;
-                
-                const [hours, minutes] = timeString.split(':').map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return 0;
-                
-                const totalMinutes = (hours - this.config.START_HOUR) * 60 + minutes;
-                return Math.max(0, (totalMinutes / 15) * this.config.QUARTER_HEIGHT);
-            }
-            
-            getEventStyle(startTime, endTime) {
-                const startPixels = this.timeToPixels(startTime);
-                const endPixels = this.timeToPixels(endTime);
-                const duration = Math.max(endPixels - startPixels, this.config.MIN_EVENT_HEIGHT);
-                
-                return {
-                    position: 'absolute',
-                    top: `${startPixels}px`,
-                    left: '8px',
-                    right: '8px',
-                    height: `${duration}px`,
-                    minHeight: `${this.config.MIN_EVENT_HEIGHT}px`
-                };
-            }
-        }
-
-        // 完全に修正されたイベント処理システム
-        class DeviceSpecificManager {
-            constructor() {
-                this.isMobile = this.detectMobile();
-                this.coordinator = null;
-                this.vueInstance = null;
-                this.eventListenersAttached = false;
-            }
-            
-            detectMobile() {
-                return window.innerWidth <= 768 || 'ontouchstart' in window;
-            }
-            
-            initialize(vueInstance) {
-                this.vueInstance = vueInstance;
-                
-                if (this.isMobile) {
-                    this.coordinator = new MobileCoordinateManager();
-                } else {
-                    this.coordinator = new DesktopCoordinateManager();
-                }
-                
-                // DOM準備後にイベントリスナーを設定
-                this.setupEventListeners();
-            }
-            
-            setupEventListeners() {
-                if (this.eventListenersAttached) return;
-                
-                // 確実にDOMが準備されるまで待機
-                setTimeout(() => {
-                    const scheduleArea = document.querySelector('.schedule-area');
-                    
-                    if (!scheduleArea) {
-                        console.log('Schedule area not found, retrying...');
-                        setTimeout(() => this.setupEventListeners(), 500);
-                        return;
-                    }
-                    
-                    console.log('Setting up event listeners for:', this.isMobile ? 'Mobile' : 'Desktop');
-                    
-                    if (this.isMobile) {
-                        this.setupMobileEventListeners(scheduleArea);
-                    } else {
-                        this.setupDesktopEventListeners(scheduleArea);
-                    }
-                    
-                    this.eventListenersAttached = true;
-                }, 100);
-            }
-            
-            setupDesktopEventListeners(scheduleArea) {
-                // 右クリックイベントリスナー
-                const contextMenuHandler = (e) => {
-                    console.log('Desktop right-click detected:', e);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // イベントブロック内での右クリックは除外
-                    if (e.target.closest('.event-block')) {
-                        console.log('Right-click on event block, ignoring');
-                        return;
-                    }
-                    
-                    const rect = scheduleArea.getBoundingClientRect();
-                    const isInside = (
-                        e.clientX >= rect.left &&
-                        e.clientX <= rect.right &&
-                        e.clientY >= rect.top &&
-                        e.clientY <= rect.bottom
-                    );
-                    
-                    if (isInside) {
-                        const time = this.coordinator.getTimeFromCoordinates(e.clientX, e.clientY);
-                        console.log('Showing context menu at:', time);
-                        this.vueInstance.showContextMenuAt(e.clientX, e.clientY, time);
-                    }
-                };
-                
-                scheduleArea.addEventListener('contextmenu', contextMenuHandler);
-                console.log('Desktop context menu listener attached');
-            }
-            
-            setupMobileEventListeners(scheduleArea) {
-                let longPressTimer = null;
-                let startTime = 0;
-                let startPosition = { x: 0, y: 0 };
-                
-                // タッチ開始
-                const touchStartHandler = (e) => {
-                    console.log('Mobile touch start detected');
-                    
-                    // イベントブロック内でのタッチは除外
-                    if (e.target.closest('.event-block')) {
-                        console.log('Touch on event block, ignoring');
-                        return;
-                    }
-                    
-                    const touch = e.touches[0];
-                    startTime = Date.now();
-                    startPosition = { x: touch.clientX, y: touch.clientY };
-                    
-                    // 長押しタイマー開始
-                    longPressTimer = setTimeout(() => {
-                        console.log('Long press detected');
-                        const time = this.coordinator.getTimeFromCoordinates(touch.clientX, touch.clientY);
-                        this.vueInstance.showContextMenuAt(touch.clientX, touch.clientY, time);
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }, 500);
-                };
-                
-                // タッチ移動
-                const touchMoveHandler = (e) => {
-                    if (!longPressTimer) return;
-                    
-                    const touch = e.touches[0];
-                    const deltaX = Math.abs(touch.clientX - startPosition.x);
-                    const deltaY = Math.abs(touch.clientY - startPosition.y);
-                    
-                    // 移動距離が10px以上の場合は長押しをキャンセル
-                    if (deltaX > 10 || deltaY > 10) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                };
-                
-                // タッチ終了
-                const touchEndHandler = (e) => {
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                };
-                
-                scheduleArea.addEventListener('touchstart', touchStartHandler, { passive: true });
-                scheduleArea.addEventListener('touchmove', touchMoveHandler, { passive: true });
-                scheduleArea.addEventListener('touchend', touchEndHandler, { passive: true });
-                console.log('Mobile touch listeners attached');
-            }
-            
-            getEventStyle(startTime, endTime) {
-                return this.coordinator ? this.coordinator.getEventStyle(startTime, endTime) : {};
-            }
-            
-            getTimeFromCoordinates(clientX, clientY) {
-                return this.coordinator ? this.coordinator.getTimeFromCoordinates(clientX, clientY) : '09:00';
-            }
-        }
-
         const { createApp } = Vue;
         
-        const app = createApp({
+        createApp({
             data() {
                 return {
                     tripInitialized: false,
@@ -661,297 +974,985 @@
                     tripEndDate: '',
                     today: new Date().toISOString().split('T')[0],
                     hasExistingData: false,
+                    tripDays: [],
+                    activeDay: 0,
+                    draggingTabIndex: null,
+                    showMobilePopup: false,
+                    selectedDayForPopup: null,
+                    selectedDayIndex: null,
+                    scrollPosition: 0,
+                    maxScrollPosition: 0,
                     timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
                     events: [],
                     editModeEvent: null,
+                    clipboardEvent: null,
                     showContextMenu: false,
                     contextMenuStyle: {},
                     pasteTargetTime: null,
+                    isMobile: false,
+                    touchStartTime: 0,
+                    touchStartPosition: { x: 0, y: 0 },
+                    longPressTimer: null,
+                    longPressExecuted: false,
+                    eventTouchOffset: { x: 0, y: 0 },
+                    draggingEvent: null,
+                    isDragComplete: false,
+                    isResizeComplete: false, // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ヵ繝ｩ繧ｰ繧定ｿｽ蜉�
                     eventForm: {
                         title: '',
+                        dayIndex: 0,
                         startTime: '09:00',
                         endTime: '10:00',
+                        category: 'travel',
                         description: ''
                     },
-                    modals: [],
-                    deviceManager: null
+                    modals: []
                 };
             },
             
             methods: {
                 checkExistingData() {
-                    this.hasExistingData = !!(localStorage.getItem('trippenEvents'));
+                    this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
                 },
                 
                 loadExistingData() {
                     this.loadData();
-                    if (this.events.length > 0) this.tripInitialized = true;
+                    if (this.tripDays.length > 0) this.tripInitialized = true;
                 },
                 
                 initializeTripDays() {
                     if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
-                        alert('正しい日付を選択してください');
+                        alert('豁｣縺励＞譌･莉倥ｒ驕ｸ謚槭＠縺ｦ縺上□縺輔＞');
                         return;
                     }
                     
+                    this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+                    this.activeDay = 0;
                     this.tripInitialized = true;
                     this.saveData();
                 },
                 
-                getEventStyle(event) {
-                    return this.deviceManager ? this.deviceManager.getEventStyle(event.startTime, event.endTime) : {};
+                generateTripDays(startDate, endDate) {
+                    const days = [];
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const dayNames = ['譌･', '譛�', '轣ｫ', '豌ｴ', '譛ｨ', '驥�', '蝨�'];
+                    let dayNumber = 1;
+                    
+                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                        days.push({
+                            id: Date.now() + dayNumber + Math.random(),
+                            dayNumber: dayNumber++,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                            fullDate: date.toISOString().split('T')[0]
+                        });
+                    }
+                    return days;
                 },
                 
-                showContextMenuAt(x, y, time) {
-                    console.log('Showing context menu at:', x, y, time);
-                    
-                    this.pasteTargetTime = time;
-                    
-                    const menuWidth = 200;
-                    const menuHeight = 60;
-                    const windowWidth = window.innerWidth;
-                    const windowHeight = window.innerHeight;
-                    
-                    let menuX = x;
-                    let menuY = y;
-                    
-                    if (x + menuWidth > windowWidth) {
-                        menuX = x - menuWidth;
+                setActiveDay(index) { this.activeDay = index; },
+                
+                detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
+                
+                addDayImmediately() {
+                    const startDate = this.tripDays[0].fullDate;
+                    this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
+                    this.saveData();
+                },
+                
+                deleteDay(index) {
+                    if (this.tripDays.length <= 1) {
+                        alert('譛菴�1縺､縺ｮ譌･遞九�蠢�ｦ√〒縺�');
+                        return;
                     }
                     
-                    if (y + menuHeight > windowHeight) {
-                        menuY = y - menuHeight;
+                    if (confirm(`${this.tripDays[index].dayNumber}譌･逶ｮ繧貞炎髯､縺励∪縺吶°�歔)) {
+                        this.events = this.events.filter(event => event.dayIndex !== index)
+                            .map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
+                        
+                        this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
+                        if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
+                        this.saveData();
+                    }
+                },
+                
+                generateConsecutiveDays(startDate, dayCount) {
+                    const days = [];
+                    const start = new Date(startDate);
+                    const dayNames = ['譌･', '譛�', '轣ｫ', '豌ｴ', '譛ｨ', '驥�', '蝨�'];
+                    
+                    for (let i = 0; i < dayCount; i++) {
+                        const date = new Date(start);
+                        date.setDate(start.getDate() + i);
+                        days.push({
+                            id: Date.now() + i + Math.random(),
+                            dayNumber: i + 1,
+                            date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+                            fullDate: date.toISOString().split('T')[0]
+                        });
+                    }
+                    return days;
+                },
+                
+                handleDateClick(index) {
+                    if (index === 0) this.openStartDateModal();
+                    else this.setActiveDay(index);
+                },
+                
+                handleTabDragStart(event, index) {
+                    this.draggingTabIndex = index;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.target.closest('.nav-item').classList.add('dragging-tab');
+                },
+                
+                handleTabDragOver(event, index) {
+                    event.preventDefault();
+                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== index) {
+                        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('drag-over'));
+                        event.target.closest('.nav-item').classList.add('drag-over');
+                    }
+                },
+                
+                handleTabDrop(event, dropIndex) {
+                    event.preventDefault();
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
+                    
+                    if (this.draggingTabIndex !== null && this.draggingTabIndex !== dropIndex) {
+                        this.reorderTabs(this.draggingTabIndex, dropIndex);
+                    }
+                    this.draggingTabIndex = null;
+                },
+                
+                handleTabDragEnd() {
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('dragging-tab', 'drag-over');
+                    });
+                    this.draggingTabIndex = null;
+                },
+                
+                reorderTabs(fromIndex, toIndex) {
+                    const movedTab = this.tripDays.splice(fromIndex, 1)[0];
+                    this.tripDays.splice(toIndex, 0, movedTab);
+                    
+                    this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length);
+                    
+                    this.events.forEach(event => {
+                        if (event.dayIndex === fromIndex) {
+                            event.dayIndex = toIndex;
+                        } else if (fromIndex < toIndex && event.dayIndex > fromIndex && event.dayIndex <= toIndex) {
+                            event.dayIndex--;
+                        } else if (fromIndex > toIndex && event.dayIndex >= toIndex && event.dayIndex < fromIndex) {
+                            event.dayIndex++;
+                        }
+                    });
+                    
+                    if (this.activeDay === fromIndex) this.activeDay = toIndex;
+                    this.saveData();
+                },
+                
+                getCurrentDayEvents() {
+                    return this.events
+                        .filter(event => event.dayIndex === this.activeDay)
+                        .map(event => {
+                            const inlineText = `${event.title}��${event.startTime}-${event.endTime}�荏;
+                            return {
+                                ...event,
+                                inlineText
+                            };
+                        });
+                },
+                
+                handleDragHandleMouseDown(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.editModeEvent = eventData;
+                    this.draggingEvent = eventData;
+                    this.isDragComplete = false;
+                    
+                    this.startDragMove(event, eventData);
+                },
+                
+                handleDragHandleTouchStart(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    this.editModeEvent = eventData;
+                    this.draggingEvent = eventData;
+                    this.isDragComplete = false;
+                    
+                    this.startDragMoveTouch(event, eventData);
+                },
+                
+                // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ｾ後�繧ｯ繝ｪ繝�け繧ら┌隕�
+                handleEventClick(event, eventData) {
+                    if (this.isDragComplete) {
+                        this.isDragComplete = false;
+                        return;
                     }
                     
-                    this.contextMenuStyle = { 
-                        left: `${Math.max(10, menuX)}px`, 
-                        top: `${Math.max(10, menuY)}px` 
+                    if (this.isResizeComplete) {
+                        this.isResizeComplete = false;
+                        return;
+                    }
+                    
+                    if (this.draggingEvent) {
+                        return;
+                    }
+                    
+                    if (!event.target.closest('.drag-handle-mini') && 
+                        !event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        this.openDetailModal(eventData);
+                    }
+                },
+                
+                handleEventContextMenu(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!event.target.closest('.drag-handle-mini')) {
+                        this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
+                },
+                
+                startDragMove(event, eventData) {
+                    const startY = event.clientY;
+                    const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
+                    const rect = container.getBoundingClientRect();
+                    const initialTop = event.clientY - rect.top + container.scrollTop;
+                    
+                    const moveHandler = (e) => {
+                        const newTop = initialTop + (e.clientY - startY);
+                        const snappedTop = Math.round(newTop / 15) * 15;
+                        const newTime = this.pixelsToTime(snappedTop);
+                        
+                        const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                        if (eventIndex === -1) return;
+                        
+                        const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                        const endTime = this.pixelsToTime(snappedTop + duration);
+                        
+                        if (newTime >= '04:00' && endTime <= '23:45') {
+                            this.events[eventIndex].startTime = newTime;
+                            this.events[eventIndex].endTime = endTime;
+                        }
                     };
+                    
+                    const endHandler = () => {
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', endHandler);
+                        
+                        this.draggingEvent = null;
+                        this.isDragComplete = true;
+                        this.saveData();
+                        
+                        setTimeout(() => {
+                            this.isDragComplete = false;
+                        }, 150);
+                    };
+                    
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', endHandler);
+                },
+                
+                handleMobileDayTouchStart(event, index) {
+                    this.touchStartTime = Date.now();
+                    this.longPressTimer = setTimeout(() => {
+                        if (navigator.vibrate) navigator.vibrate(50);
+                        this.showMobilePopupForDay(index);
+                    }, 800);
+                },
+                
+                handleMobileDayTouchEnd(event, index) {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
+                    }
+                    if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+                },
+                
+                showMobilePopupForDay(index) {
+                    this.selectedDayForPopup = this.tripDays[index];
+                    this.selectedDayIndex = index;
+                    this.showMobilePopup = true;
+                },
+                
+                closeMobilePopup() {
+                    this.showMobilePopup = false;
+                    this.selectedDayForPopup = null;
+                    this.selectedDayIndex = null;
+                },
+                
+                openStartDateModalFromPopup() {
+                    this.closeMobilePopup();
+                    setTimeout(() => this.openStartDateModal(), 300);
+                },
+                
+                addDayFromPopup() {
+                    this.closeMobilePopup();
+                    setTimeout(() => this.addDayImmediately(), 300);
+                },
+                
+                deleteDayFromPopup() {
+                    const index = this.selectedDayIndex;
+                    this.closeMobilePopup();
+                    setTimeout(() => index !== null && this.deleteDay(index), 300);
+                },
+                
+                updateScrollPosition() {
+                    const container = this.$refs.mobileScrollContainer;
+                    if (!container) return;
+                    this.scrollPosition = container.scrollLeft;
+                    this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+                },
+                
+                scrollToDirection(direction) {
+                    const container = this.$refs.mobileScrollContainer;
+                    if (!container) return;
+                    container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+                },
+                
+                handleEventTouchStart(event, eventData) {
+                    if (this.isDragComplete) {
+                        return;
+                    }
+                    
+                    if (this.draggingEvent) {
+                        return;
+                    }
+                    
+                    if (!event.target.closest('.drag-handle-mini') && 
+                        !event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        this.touchStartTime = Date.now();
+                        this.longPressExecuted = false;
+                        
+                        this.longPressTimer = setTimeout(() => {
+                            this.longPressExecuted = true;
+                            this.editModeEvent = eventData;
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }, 500);
+                        
+                        const handleTouchEnd = () => {
+                            if (this.longPressTimer) {
+                                clearTimeout(this.longPressTimer);
+                                this.longPressTimer = null;
+                            }
+                            
+                            const touchDuration = Date.now() - this.touchStartTime;
+                            if (!this.longPressExecuted && touchDuration < 500) {
+                                this.openDetailModal(eventData);
+                            }
+                            
+                            document.removeEventListener('touchend', handleTouchEnd);
+                        };
+                        
+                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                    }
+                },
+                
+                startDragMoveTouch(event, eventData) {
+                    if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
+                        return;
+                    }
+                    
+                    const coords = event.touches[0];
+                    const container = this.$refs.mobileTimelineContainer;
+                    const rect = container.getBoundingClientRect();
+                    const initialTop = coords.clientY - rect.top + container.scrollTop;
+                    const startY = coords.clientY;
+                    
+                    const moveHandler = (e) => {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        const deltaY = touch.clientY - startY;
+                        const newTop = initialTop + deltaY;
+                        const snappedTop = Math.round(newTop / 15) * 15;
+                        this.updateEventTime(eventData, snappedTop);
+                    };
+                    
+                    const endHandler = () => {
+                        document.removeEventListener('touchmove', moveHandler);
+                        document.removeEventListener('touchend', endHandler);
+                        
+                        this.draggingEvent = null;
+                        this.editModeEvent = null;
+                        this.isDragComplete = true;
+                        this.saveData();
+                        
+                        setTimeout(() => {
+                            this.isDragComplete = false;
+                        }, 150);
+                    };
+                    
+                    document.addEventListener('touchmove', moveHandler, { passive: false });
+                    document.addEventListener('touchend', endHandler, { passive: true });
+                },
+                
+                updateEventTime(eventData, snappedTop) {
+                    const newTime = this.pixelsToTime(snappedTop);
+                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                    if (eventIndex === -1) return;
+                    
+                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                    const endTime = this.pixelsToTime(snappedTop + duration);
+                    
+                    if (newTime >= '04:00' && endTime <= '23:45') {
+                        this.events[eventIndex].startTime = newTime;
+                        this.events[eventIndex].endTime = endTime;
+                    }
+                },
+                
+                handleCutButtonClick(event, eventData) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.cutEvent(eventData);
+                },
+                
+                cutEvent(event) {
+                    try {
+                        this.clipboardEvent = { ...event };
+                        const eventIndex = this.events.findIndex(e => e.id === event.id);
+                        
+                        if (eventIndex !== -1) {
+                            this.events.splice(eventIndex, 1);
+                            this.editModeEvent = null;
+                            this.saveData();
+                            
+                            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                        }
+                        
+                    } catch (error) {
+                        console.error('莠亥ｮ壹�蛻�ｊ蜿悶ｊ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�蛻�ｊ蜿悶ｊ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲�');
+                    }
+                },
+                
+                pasteFromContext() {
+                    if (!this.clipboardEvent) return;
+                    
+                    const newEvent = {
+                        ...this.clipboardEvent,
+                        id: Date.now() + Math.random(),
+                        dayIndex: this.activeDay
+                    };
+                    
+                    if (this.pasteTargetTime) {
+                        const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+                        newEvent.startTime = this.pasteTargetTime;
+                        newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
+                    }
+                    
+                    this.events.push(newEvent);
+                    this.clipboardEvent = null;
+                    this.hideContextMenu();
+                    this.saveData();
+                },
+                
+                timeToMinutes(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    return hours * 60 + minutes;
+                },
+                
+                minutesToTime(minutes) {
+                    const hours = Math.floor(minutes / 60);
+                    const mins = minutes % 60;
+                    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                },
+                
+                timeToPixels(timeString) {
+                    const [hours, minutes] = timeString.split(':').map(Number);
+                    const totalMinutes = (hours - 4) * 60 + minutes;
+                    return totalMinutes * (this.isMobile ? 50/60 : 1);
+                },
+                
+                pixelsToTime(pixels) {
+                    const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
+                    const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+                    const hours = Math.max(4, Math.min(23, Math.floor(roundedMinutes / 60) + 4));
+                    const minutes = hours === 23 ? Math.min(45, roundedMinutes % 60) : roundedMinutes % 60;
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                },
+                
+                handleScheduleContextMenu(event) {
+                    if (!this.isMobile) {
+                        event.preventDefault();
+                        this.showContextMenuAt(event.clientX, event.clientY, event);
+                    }
+                },
+                
+                showContextMenuAt(x, y, event) {
+                    const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                    const rect = container.getBoundingClientRect();
+                    this.pasteTargetTime = this.pixelsToTime(y - rect.top + container.scrollTop);
+                    
+                    this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
                     this.showContextMenu = true;
                     
-                    // 3秒後に自動で閉じる
                     setTimeout(() => {
-                        this.hideContextMenu();
-                    }, 3000);
-                    
-                    // クリックで閉じる
-                    setTimeout(() => {
-                        const handleClickOutside = (e) => {
-                            if (!e.target.closest('.context-menu')) {
-                                this.hideContextMenu();
-                                document.removeEventListener('click', handleClickOutside);
-                            }
-                        };
-                        document.addEventListener('click', handleClickOutside);
+                        document.addEventListener('click', this.hideContextMenu, { once: true });
                     }, 100);
                 },
                 
-                hideContextMenu() {
-                    this.showContextMenu = false;
+                hideContextMenu() { this.showContextMenu = false; },
+                
+                handleScheduleTouchStart(event) {
+                    if (!this.isMobile) return;
+                    
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
+                    this.touchStartTime = Date.now();
+                    this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+                    
+                    this.longPressTimer = setTimeout(() => {
+                        this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }, 500);
                 },
                 
-                addEventFromContext() {
-                    if (!this.pasteTargetTime) return;
+                handleScheduleTouchMove(event) {
+                    if (!this.isMobile) return;
                     
-                    this.eventForm = {
-                        title: '',
-                        startTime: this.pasteTargetTime,
-                        endTime: this.addMinutesToTime(this.pasteTargetTime, 60),
-                        description: ''
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
+                    const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+                    const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+                    if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+                },
+                
+                handleScheduleTouchEnd(event) {
+                    if (!this.isMobile) return;
+                    
+                    if (event.target.closest('.event-block')) {
+                        return;
+                    }
+                    
+                    this.clearLongPress();
+                    if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
+                },
+                
+                clearLongPress() {
+                    if (this.longPressTimer) {
+                        clearTimeout(this.longPressTimer);
+                        this.longPressTimer = null;
+                    }
+                },
+                
+                startResize(event, eventData, direction) {
+                    this.startResizeHandler(event, direction, 'mouse');
+                },
+                
+                startResizeTouch(event, eventData, direction) {
+                    this.startResizeHandler(event, direction, 'touch');
+                },
+                
+                // 菫ｮ豁｣2�壹Μ繧ｵ繧､繧ｺ螳御ｺ�ヵ繝ｩ繧ｰ繧定ｨｭ螳�
+                startResizeHandler(event, direction, type) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
+                    const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+                    
+                    const moveHandler = (e) => {
+                        const coords = type === 'touch' ? e.touches[0] : e;
+                        const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+                        const rect = container.getBoundingClientRect();
+                        const y = coords.clientY - rect.top + container.scrollTop;
+                        const snappedY = Math.round(y / 15) * 15;
+                        const newTime = this.pixelsToTime(snappedY);
+                        
+                        const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+                        if (eventIndex === -1) return;
+                        
+                        if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+                            this.events[eventIndex].startTime = newTime;
+                        } else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+                            this.events[eventIndex].endTime = newTime;
+                        }
                     };
                     
-                    this.hideContextMenu();
-                    setTimeout(() => {
-                        this.openEventModal(null, true);
-                    }, 100);
+                    const endHandler = () => {
+                        document.removeEventListener(moveEvent, moveHandler);
+                        document.removeEventListener(endEvent, endHandler);
+                        
+                        this.isResizeComplete = true;
+                        this.saveData();
+                        
+                        setTimeout(() => {
+                            this.isResizeComplete = false;
+                        }, 150);
+                    };
+                    
+                    document.addEventListener(moveEvent, moveHandler, { passive: false });
+                    document.addEventListener(endEvent, endHandler);
                 },
                 
-                addMinutesToTime(timeString, minutes) {
-                    const [hours, mins] = timeString.split(':').map(Number);
-                    const totalMinutes = (hours - 4) * 60 + mins + minutes;
-                    const maxMinutes = (23 - 4) * 60 + 45;
-                    const clampedMinutes = Math.min(totalMinutes, maxMinutes);
+                getEventStyle(event) {
+                    const startPixels = this.timeToPixels(event.startTime);
+                    const endPixels = this.timeToPixels(event.endTime);
+                    const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
                     
-                    const newHours = Math.floor(clampedMinutes / 60) + 4;
-                    const newMins = clampedMinutes % 60;
-                    
-                    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+                    return {
+                        top: `${startPixels}px`,
+                        height: `${duration}px`,
+                        minHeight: this.isMobile ? '32px' : '35px'
+                    };
                 },
                 
-                openEventModal(editEvent = null, isFromContext = false) {
-                    const isEdit = !!editEvent;
-                    const title = isEdit ? '予定を編集' : '新しい予定を追加';
+                getCategoryIcon(category) {
+                    const icons = {
+                        travel: 'fas fa-car',
+                        food: 'fas fa-utensils',
+                        sightseeing: 'fas fa-camera',
+                        accommodation: 'fas fa-bed',
+                        custom: 'fas fa-star'
+                    };
+                    return icons[category] || 'fas fa-calendar';
+                },
+                
+                openDetailModal(event) {
+                    const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+                    if (!eventData) {
+                        console.error('openDetailModal: 莠亥ｮ壹ョ繝ｼ繧ｿ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ:', event);
+                        alert('莠亥ｮ壹ョ繝ｼ繧ｿ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ');
+                        return;
+                    }
                     
-                    if (isEdit) {
-                        this.eventForm = {
-                            title: editEvent.title,
-                            startTime: editEvent.startTime,
-                            endTime: editEvent.endTime,
-                            description: editEvent.description || ''
-                        };
-                    } else if (!isFromContext) {
+                    const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+                    const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    
+                    this.openModal('隧ｳ邏ｰ', `
+                        <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+                        <div class="mb-3"><strong>譌･莉�:</strong> ${this.tripDays[eventData.dayIndex]?.date || '荳肴�'}</div>
+                        <div class="mb-3"><strong>譎る俣:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+                        ${eventData.description ? `<div class="mb-3"><strong>隧ｳ邏ｰ:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
+                    `, `
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">髢峨§繧�</button>
+                        <button type="button" class="btn btn-danger" onclick="app.deleteEventFromDetail('${safeEventId}')">蜑企勁</button>
+                        <button type="button" class="btn btn-primary" onclick="app.editEventFromDetail('${safeEventId}')">邱ｨ髮�</button>
+                    `);
+                },
+                
+                deleteEventFromDetail(eventId) {
+                    try {
+                        if (!confirm('縺薙�莠亥ｮ壹ｒ蜑企勁縺励∪縺吶°��')) {
+                            return;
+                        }
+                        
+                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                        if (eventIndex === -1) {
+                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                            return;
+                        }
+                        
+                        this.events.splice(eventIndex, 1);
+                        this.saveData();
+                        this.editModeEvent = null;
+                        this.closeAllModals();
+                        
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        
+                    } catch (error) {
+                        console.error('莠亥ｮ壹�蜑企勁荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                    }
+                },
+                
+                editEventFromDetail(eventId) {
+                    try {
+                        const event = this.events.find(e => String(e.id) === String(eventId));
+                        if (!event) {
+                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                            return;
+                        }
+                        
+                        this.closeAllModals();
+                        
+                        setTimeout(() => {
+                            this.openEventModal(event);
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                    }
+                },
+                
+                openEventModal(event = null) {
+                    const isEdit = !!event;
+                    if (event) {
+                        this.eventForm = { ...event };
+                    } else {
                         this.eventForm = {
                             title: '',
+                            dayIndex: this.activeDay,
                             startTime: '09:00',
                             endTime: '10:00',
+                            category: 'travel',
                             description: ''
                         };
                     }
                     
-                    const safeTitle = String(this.eventForm.title).replace(/"/g, "&quot;");
-                    const safeDescription = String(this.eventForm.description).replace(/"/g, "&quot;");
+                    const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+                    const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+                    const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
                     
-                    this.openModal(title, `
-                        <form id="eventForm">
-                            <div class="mb-3">
-                                <label for="eventTitle" class="form-label">タイトル</label>
-                                <input type="text" class="form-control" id="eventTitle" 
-                                       value="${safeTitle}" placeholder="予定のタイトルを入力">
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label for="eventStartTime" class="form-label">開始時間</label>
-                                    <input type="time" class="form-control" id="eventStartTime" 
-                                           value="${this.eventForm.startTime}" min="04:00" max="23:00">
+                    this.openModal(isEdit ? '莠亥ｮ壹ｒ邱ｨ髮�' : '譁ｰ縺励＞莠亥ｮ壹ｒ霑ｽ蜉�', `
+                        <div class="mb-3">
+                            <label class="form-label">莠亥ｮ壼錐</label>
+                            <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">譌･莉�</label>
+                            <select class="form-control" id="eventDayIndex">
+                                ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}譌･逶ｮ (${day.date})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">髢句ｧ区凾髢�</label>
+                                    <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
                                 </div>
-                                <div class="col-6">
-                                    <label for="eventEndTime" class="form-label">終了時間</label>
-                                    <input type="time" class="form-control" id="eventEndTime" 
-                                           value="${this.eventForm.endTime}" min="04:00" max="23:59">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">邨ゆｺ�凾髢�</label>
+                                    <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="eventDescription" class="form-label">詳細・メモ</label>
-                                <textarea class="form-control" id="eventDescription" rows="3" 
-                                          placeholder="詳細情報やメモを入力（任意）">${safeDescription}</textarea>
-                            </div>
-                        </form>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">繧ｫ繝�ざ繝ｪ</label>
+                            <select class="form-control" id="eventCategory">
+                                <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>囓 遘ｻ蜍�</option>
+                                <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>鎖�� 鬟滉ｺ�</option>
+                                <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>鋤�� 隕ｳ蜈�</option>
+                                <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>妾 螳ｿ豕�</option>
+                                <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>笨ｨ 縺昴�莉�</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">隧ｳ邏ｰ</label>
+                            <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
+                        </div>
                     `, `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${editEvent.id}'` : 'null'})">${isEdit ? '更新' : '追加'}</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+                        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="app.deleteEventById('${safeEventId}')">蜑企勁</button>` : ''}
+                        <button type="button" class="btn btn-primary" onclick="app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">菫晏ｭ�</button>
                     `);
                 },
                 
-                saveEventFromModal(editEventId = null) {
+                openStartDateModal() {
+                    this.openModal('譌�｡碁幕蟋区律縺ｮ螟画峩', `
+                        <div class="mb-3">
+                            <label class="form-label">譁ｰ縺励＞髢句ｧ区律</label>
+                            <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            <small><i class="fas fa-info-circle"></i> 蜈ｨ譌･遞九′騾｣蜍輔＠縺ｦ譖ｴ譁ｰ縺輔ｌ縺ｾ縺�</small>
+                        </div>
+                    `, `
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+                        <button type="button" class="btn btn-primary" onclick="app.saveStartDateFromModal()">螟画峩</button>
+                    `, 'modal-sm');
+                },
+                
+                openModal(title, body, footer, size = '') {
+                    const modalId = `modal-${Date.now()}`;
+                    const modal = { id: modalId, title, body, footer, size };
+                    this.modals.push(modal);
+                    
+                    this.$nextTick(() => {
+                        const modalElement = document.getElementById(modalId);
+                        const bootstrapModal = new bootstrap.Modal(modalElement);
+                        bootstrapModal.show();
+                        
+                        modalElement.addEventListener('hidden.bs.modal', () => {
+                            this.modals = this.modals.filter(m => m.id !== modalId);
+                        }, { once: true });
+                    });
+                },
+                
+                saveEventFromModal(eventId) {
                     try {
-                        const form = document.getElementById('eventForm');
-                        if (!form) return;
+                        const title = document.getElementById('eventTitle')?.value || '';
+                        const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
+                        const startTime = document.getElementById('eventStartTime')?.value || '';
+                        const endTime = document.getElementById('eventEndTime')?.value || '';
+                        const category = document.getElementById('eventCategory')?.value || 'travel';
+                        const description = document.getElementById('eventDescription')?.value || '';
                         
-                        const title = form.querySelector('#eventTitle').value.trim();
-                        const startTime = form.querySelector('#eventStartTime').value;
-                        const endTime = form.querySelector('#eventEndTime').value;
-                        const description = form.querySelector('#eventDescription').value.trim();
-                        
-                        if (!title) {
-                            alert('タイトルを入力してください');
+                        if (!title.trim() || !startTime || !endTime) {
+                            alert('莠亥ｮ壼錐縲�幕蟋区凾髢薙∫ｵゆｺ�凾髢薙�蠢��医〒縺�');
                             return;
                         }
                         
                         if (startTime >= endTime) {
-                            alert('終了時間は開始時間より後に設定してください');
+                            alert('邨ゆｺ�凾髢薙�髢句ｧ区凾髢薙ｈ繧雁ｾ後↓險ｭ螳壹＠縺ｦ縺上□縺輔＞');
                             return;
                         }
                         
+                        const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+                        
                         const eventData = {
-                            id: editEventId || Date.now() + Math.random(),
-                            title,
-                            startTime,
-                            endTime,
-                            description
+                            id: finalEventId,
+                            title: title.trim(),
+                            dayIndex: dayIndex,
+                            startTime: startTime,
+                            endTime: endTime,
+                            category: category,
+                            description: description.trim()
                         };
                         
-                        if (editEventId) {
-                            const eventIndex = this.events.findIndex(e => String(e.id) === String(editEventId));
-                            if (eventIndex !== -1) {
-                                this.events[eventIndex] = eventData;
+                        if (eventId) {
+                            const index = this.events.findIndex(e => String(e.id) === String(eventId));
+                            if (index !== -1) {
+                                this.events[index] = eventData;
+                            } else {
+                                alert('邱ｨ髮�ｯｾ雎｡縺ｮ莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ');
+                                return;
                             }
                         } else {
                             this.events.push(eventData);
                         }
                         
                         this.saveData();
+                        this.editModeEvent = null;
                         this.closeAllModals();
                         
+                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                        
                     } catch (error) {
-                        console.error('予定の保存中にエラーが発生しました:', error);
-                        alert('予定の保存に失敗しました。');
+                        console.error('莠亥ｮ壹�菫晏ｭ倅ｸｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
                     }
                 },
                 
-                openModal(title, body, footer) {
-                    const modalId = 'modal-' + Date.now();
-                    const modal = {
-                        id: modalId,
-                        title,
-                        body,
-                        footer
-                    };
+                saveStartDateFromModal() {
+                    const newStartDate = document.getElementById('newStartDate').value;
+                    if (!newStartDate) {
+                        alert('髢句ｧ区律繧帝∈謚槭＠縺ｦ縺上□縺輔＞');
+                        return;
+                    }
                     
-                    this.modals.push(modal);
-                    
-                    this.$nextTick(() => {
-                        const modalElement = document.getElementById(modalId);
-                        if (modalElement) {
-                            const bsModal = new bootstrap.Modal(modalElement);
-                            bsModal.show();
-                            
-                            modalElement.addEventListener('hidden.bs.modal', () => {
-                                this.modals = this.modals.filter(m => m.id !== modalId);
-                            });
+                    this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+                    this.saveData();
+                    this.closeAllModals();
+                },
+                
+                deleteEventById(eventId) {
+                    try {
+                        if (!confirm('縺薙�莠亥ｮ壹ｒ蜑企勁縺励∪縺吶°��')) {
+                            return;
                         }
-                    });
+                        
+                        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                        if (eventIndex === -1) {
+                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                            return;
+                        }
+                        
+                        this.events.splice(eventIndex, 1);
+                        this.saveData();
+                        this.editModeEvent = null;
+                        this.closeAllModals();
+                        
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        
+                    } catch (error) {
+                        console.error('莠亥ｮ壹�蜑企勁荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�蜑企勁縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                    }
+                },
+                
+                editEventById(eventId) {
+                    try {
+                        const event = this.events.find(e => String(e.id) === String(eventId));
+                        if (!event) {
+                            alert('莠亥ｮ壹′隕九▽縺九ｊ縺ｾ縺帙ｓ縲ゅ�繝ｼ繧ｸ繧貞�隱ｭ縺ｿ霎ｼ縺ｿ縺励※縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                            return;
+                        }
+                        
+                        this.closeAllModals();
+                        
+                        setTimeout(() => {
+                            this.openEventModal(event);
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ荳ｭ縺ｫ繧ｨ繝ｩ繝ｼ縺檎匱逕溘＠縺ｾ縺励◆:', error);
+                        alert('莠亥ｮ壹�邱ｨ髮�ｺ門ｙ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲ゅｂ縺�ｸ蠎ｦ縺願ｩｦ縺励￥縺�縺輔＞縲�');
+                    }
                 },
                 
                 closeAllModals() {
-                    document.querySelectorAll('.modal.show').forEach(modal => {
-                        const bsModal = bootstrap.Modal.getInstance(modal);
-                        if (bsModal) bsModal.hide();
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        const instance = bootstrap.Modal.getInstance(modal);
+                        if (instance) instance.hide();
                     });
-                    this.modals = [];
                 },
                 
                 saveData() {
-                    try {
-                        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                    } catch (error) {
-                        console.error('データの保存中にエラーが発生しました:', error);
-                    }
+                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                    localStorage.setItem('trippenInitialized', 'true');
                 },
                 
                 loadData() {
                     try {
                         const savedEvents = localStorage.getItem('trippenEvents');
-                        if (savedEvents) this.events = JSON.parse(savedEvents);
+                        const savedDays = localStorage.getItem('trippenDays');
+                        const savedInitialized = localStorage.getItem('trippenInitialized');
+                        
+                        if (savedEvents) {
+                            this.events = JSON.parse(savedEvents);
+                            this.events = this.events.map(event => ({
+                                ...event,
+                                id: String(event.id)
+                            }));
+                        }
+                        
+                        if (savedDays) {
+                            this.tripDays = JSON.parse(savedDays);
+                        }
+                        
+                        if (savedInitialized === 'true' && this.tripDays.length > 0) {
+                            this.tripInitialized = true;
+                        }
+                        
                     } catch (error) {
-                        console.error('データの読み込み中にエラーが発生しました:', error);
-                        this.events = [];
+                        console.error('繝��繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆:', error);
                     }
                 }
             },
             
             mounted() {
-                console.log('Vue app mounted');
-                
-                // デバイス管理システムの初期化
-                this.deviceManager = new DeviceSpecificManager();
-                
-                // 既存データの確認
+                this.detectMobile();
                 this.checkExistingData();
                 this.loadData();
                 
-                // DOM準備後にイベントリスナーを設定
-                this.$nextTick(() => {
-                    console.log('DOM ready, initializing device manager');
-                    this.deviceManager.initialize(this);
-                });
-                
-                // グローバルアクセス用
                 window.app = this;
+                
+                window.addEventListener('resize', this.detectMobile);
+            },
+            
+            unmounted() {
+                window.removeEventListener('resize', this.detectMobile);
             }
-        });
-        
-        app.mount('#app');
-        console.log('Vue app initialization complete');
+        }).mount('#app');
     </script>
 </body>
 </html>
