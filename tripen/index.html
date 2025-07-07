@@ -974,7 +974,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script>
-        // 統一座標計算システムクラス
+        // エラー修正済み統一座標計算システムクラス
         class UnifiedCoordinateSystem {
             constructor() {
                 this.config = {
@@ -985,10 +985,30 @@
                     BASE_HOUR_HEIGHT: 60,
                     BASE_QUARTER_HEIGHT: 15
                 };
-                this.updateDimensions();
                 
-                // レスポンシブ対応のためのリスナー
-                window.addEventListener('resize', () => this.updateDimensions());
+                this.isInitialized = false;
+                this.resizeTimeout = null;
+                this.dimensionsLogged = false;
+                
+                this.updateDimensions();
+                this.setupResizeListener();
+            }
+            
+            setupResizeListener() {
+                if (this.isInitialized) return;
+                
+                window.addEventListener('resize', () => {
+                    // デバウンス処理で重複実行を防ぐ
+                    if (this.resizeTimeout) {
+                        clearTimeout(this.resizeTimeout);
+                    }
+                    
+                    this.resizeTimeout = setTimeout(() => {
+                        this.updateDimensions();
+                    }, 100);
+                });
+                
+                this.isInitialized = true;
             }
             
             updateDimensions() {
@@ -1003,12 +1023,16 @@
                 // スケール係数を計算
                 this.scaleFactor = this.hourHeight / this.config.BASE_HOUR_HEIGHT;
                 
-                console.log('Coordinate System Updated:', {
-                    hourHeight: this.hourHeight,
-                    quarterHeight: this.quarterHeight,
-                    totalHeight: this.totalHeight,
-                    scaleFactor: this.scaleFactor
-                });
+                // デバッグ情報（初回のみ）
+                if (!this.dimensionsLogged) {
+                    console.log('Coordinate System Initialized:', {
+                        hourHeight: this.hourHeight,
+                        quarterHeight: this.quarterHeight,
+                        totalHeight: this.totalHeight,
+                        scaleFactor: this.scaleFactor
+                    });
+                    this.dimensionsLogged = true;
+                }
             }
             
             // 統一されたピクセル→時間変換
@@ -1065,11 +1089,10 @@
                 return quarters * this.quarterHeight;
             }
             
-            // 統一された座標→時間変換
+            // 修正済み：範囲外座標の適切な処理
             getTimeFromCoordinates(clientX, clientY) {
                 const scheduleArea = document.querySelector('.schedule-area');
                 if (!scheduleArea) {
-                    console.warn('Schedule area not found');
                     return '09:00';
                 }
                 
@@ -1079,7 +1102,6 @@
                 // スクロールコンテナの正確な取得
                 const scrollContainer = scheduleArea.closest('.timeline-scroll-container');
                 if (!scrollContainer) {
-                    console.warn('Scroll container not found');
                     return '09:00';
                 }
                 
@@ -1088,27 +1110,18 @@
                 // schedule-area内での相対位置（スクロール補正込み）
                 const relativeY = clientY - scheduleRect.top + scrollTop;
                 
-                // 座標の有効性チェック
+                // 座標の有効性チェック（改善版）
                 if (relativeY < 0) {
-                    console.warn('Coordinate outside schedule area (above)');
                     return `${this.config.START_HOUR.toString().padStart(2, '0')}:00`;
                 }
                 
+                // 範囲外の場合は最も近い有効な時間を返す
                 if (relativeY > this.totalHeight) {
-                    console.warn('Coordinate outside schedule area (below)');
                     return `${this.config.END_HOUR.toString().padStart(2, '0')}:45`;
                 }
                 
                 // 時間に変換
                 const time = this.pixelsToTime(relativeY);
-                
-                console.log('Coordinate conversion:', {
-                    clientY,
-                    scheduleTop: scheduleRect.top,
-                    scrollTop,
-                    relativeY,
-                    time
-                });
                 
                 return time;
             }
@@ -1625,12 +1638,27 @@
                     }, 100);
                 },
                 
-                // 統一されたマウスイベント処理
+                // 修正済み：範囲外座標処理を含むコンテキストメニュー表示
                 handleScheduleContextMenu(event) {
                     if (!this.isMobile) {
                         event.preventDefault();
-                        const time = this.coordinateSystem.getTimeFromCoordinates(event.clientX, event.clientY);
-                        this.showContextMenuAt(event.clientX, event.clientY, time);
+                        
+                        // スケジュールエリア内かチェック
+                        const scheduleArea = document.querySelector('.schedule-area');
+                        if (!scheduleArea) return;
+                        
+                        const scheduleRect = scheduleArea.getBoundingClientRect();
+                        const isInsideSchedule = (
+                            event.clientX >= scheduleRect.left &&
+                            event.clientX <= scheduleRect.right &&
+                            event.clientY >= scheduleRect.top &&
+                            event.clientY <= scheduleRect.bottom
+                        );
+                        
+                        if (isInsideSchedule) {
+                            const time = this.coordinateSystem.getTimeFromCoordinates(event.clientX, event.clientY);
+                            this.showContextMenuAt(event.clientX, event.clientY, time);
+                        }
                     }
                 },
                 
@@ -1934,6 +1962,7 @@
                     `, 'modal-sm');
                 },
                 
+                // 修正済み：モーダルのアクセシビリティ改善
                 openModal(title, body, footer, size = '') {
                     const modalId = `modal-${Date.now()}`;
                     const modal = { id: modalId, title, body, footer, size };
@@ -1941,12 +1970,41 @@
                     
                     this.$nextTick(() => {
                         const modalElement = document.getElementById(modalId);
-                        const bootstrapModal = new bootstrap.Modal(modalElement);
-                        bootstrapModal.show();
+                        const bootstrapModal = new bootstrap.Modal(modalElement, {
+                            focus: true,
+                            keyboard: true
+                        });
                         
+                        // モーダル表示時のフォーカス処理
+                        modalElement.addEventListener('shown.bs.modal', () => {
+                            // モーダル内の最初の入力要素にフォーカス
+                            const firstInput = modalElement.querySelector('input, select, textarea');
+                            if (firstInput) {
+                                firstInput.focus();
+                            }
+                        });
+                        
+                        // モーダル非表示時の処理
                         modalElement.addEventListener('hidden.bs.modal', () => {
+                            // フォーカスを適切に戻す
+                            const activeElement = document.activeElement;
+                            if (activeElement && modalElement.contains(activeElement)) {
+                                document.body.focus();
+                            }
+                            
+                            // モーダルデータの削除
                             this.modals = this.modals.filter(m => m.id !== modalId);
-                        }, { once: true });
+                            
+                            // DOM要素の削除
+                            setTimeout(() => {
+                                const element = document.getElementById(modalId);
+                                if (element) {
+                                    element.remove();
+                                }
+                            }, 150);
+                        });
+                        
+                        bootstrapModal.show();
                     });
                 },
                 
@@ -1993,7 +2051,7 @@
                             this.events.push(eventData);
                         }
                         
-                        this.saveData();
+                                                this.saveData();
                         this.editModeEvent = null;
                         this.closeAllModals();
                         
@@ -2103,19 +2161,27 @@
                 }
             },
             
+            // 修正済み：重複初期化の防止
             mounted() {
-                // 統一座標計算システムの初期化
+                // 統一座標計算システムの初期化（一度のみ）
                 this.coordinateSystem = new UnifiedCoordinateSystem();
                 
                 this.detectMobile();
                 this.checkExistingData();
                 this.loadData();
                 
+                // デバウンス処理でリサイズイベントを最適化
+                let resizeTimeout;
                 window.addEventListener('resize', () => {
-                    this.detectMobile();
-                    this.updateScrollPosition();
-                    // 座標システムの更新
-                    this.coordinateSystem.updateDimensions();
+                    if (resizeTimeout) {
+                        clearTimeout(resizeTimeout);
+                    }
+                    
+                    resizeTimeout = setTimeout(() => {
+                        this.detectMobile();
+                        this.updateScrollPosition();
+                        // 座標システムは独自のリサイズ処理を使用（重複回避）
+                    }, 100);
                 });
                 
                 document.addEventListener('click', (e) => {
@@ -2135,3 +2201,4 @@
     </script>
 </body>
 </html>
+
