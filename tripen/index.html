@@ -582,18 +582,32 @@ document.addEventListener('touchmove', moveHandler, { passive: false });
 document.addEventListener('touchend', endHandler, { passive: true });
 },
 updateEventTimeFromDrag(eventData, snappedTop) {
-const newTime = this.pixelsToTime(snappedTop);
+const minTime = '04:00';
+const maxTime = '24:00';
 const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
 if (eventIndex === -1) return;
-const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-const endTime = this.pixelsToTime(snappedTop + duration);
-// 24:00を超えないように制限
-const endMinutes = this.timeToMinutes(endTime);
-const limitedEndTime = endMinutes > 1440 ? '24:00' : endTime;
-if (newTime >= '04:00' && newTime < '24:00' && limitedEndTime <= '24:00') {
-this.events[eventIndex].startTime = newTime;
-this.events[eventIndex].endTime = limitedEndTime;
+  
+const currentDuration = this.timeToMinutes(this.events[eventIndex].endTime) - this.timeToMinutes(this.events[eventIndex].startTime);
+const newTime = this.pixelsToTime(snappedTop);
+const newEndTime = this.minutesToTime(this.timeToMinutes(newTime) + currentDuration);
+  
+// 4:00より前に移動できないように制限
+if (newTime < minTime) {
+this.events[eventIndex].startTime = minTime;
+this.events[eventIndex].endTime = this.minutesToTime(this.timeToMinutes(minTime) + currentDuration);
+return;
 }
+  
+// 24:00より後に移動できないように制限
+if (newEndTime > maxTime) {
+this.events[eventIndex].endTime = maxTime;
+this.events[eventIndex].startTime = this.minutesToTime(this.timeToMinutes(maxTime) - currentDuration);
+return;
+}
+  
+// 制限内の場合は通常通り更新
+this.events[eventIndex].startTime = newTime;
+this.events[eventIndex].endTime = newEndTime;
 },
 handleMobileDayTouchStart(event, index) {
 this.touchStartTime = Date.now();
@@ -1048,66 +1062,8 @@ this.openModal('旅行開始日の変更', `
 `, `
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
 <button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
-`, 'modal-sm');
-},
-openModal(title, body, footer, size = '') {
-const modalId = `modal-${Date.now()}`;
-const modal = { id: modalId, title, body, footer, size };
-this.modals.push(modal);
-this.$nextTick(() => {
-const modalElement = document.getElementById(modalId);
-const bootstrapModal = new bootstrap.Modal(modalElement);
-bootstrapModal.show();
-modalElement.addEventListener('hidden.bs.modal', () => {
-this.modals = this.modals.filter(m => m.id !== modalId);
-}, { once: true });
-});
-},
-saveEventFromModal(eventId) {
-try {
-const title = document.getElementById('eventTitle')?.value || '';
-const dayIndex = parseInt(document.getElementById('eventDayIndex')?.value || '0');
-const startTime = document.getElementById('eventStartTime')?.value || '';
-const endTime = document.getElementById('eventEndTime')?.value || '';
-const category = document.getElementById('eventCategory')?.value || 'travel';
-const description = document.getElementById('eventDescription')?.value || '';
-if (!title.trim() || !startTime || !endTime) {
-alert('予定名、開始時間、終了時間は必須です');
-return;
-}
-if (startTime >= endTime) {
-alert('終了時間は開始時間より後に設定してください');
-return;
-}
-const finalEventId = eventId || `event_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-const eventData = {
-id: finalEventId,
-title: title.trim(),
-dayIndex: dayIndex,
-startTime: startTime,
-endTime: endTime,
-category: category,
-description: description.trim()
-};
-if (eventId) {
-const index = this.events.findIndex(e => String(e.id) === String(eventId));
-if (index !== -1) {
-this.events[index] = eventData;
-} else {
-alert('編集対象の予定が見つかりません');
-return;
-}
-} else {
-this.events.push(eventData);
-}
-this.saveData();
-this.editModeEvent = null;
-this.closeAllModals();
-if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-} catch (error) {
-console.error('予定の保存中にエラーが発生しました:', error);
-alert('予定の保存に失敗しました。もう一度お試しください。');
-}
+'), 'modal-sm
+');
 },
 saveStartDateFromModal() {
 const newStartDate = document.getElementById('newStartDate').value;
@@ -1119,73 +1075,102 @@ this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length)
 this.saveData();
 this.closeAllModals();
 },
-deleteEventById(eventId) {
-try {
-if (!confirm('この予定を削除しますか？')) {
+saveEventFromModal(eventId = null) {
+const title = document.getElementById('eventTitle').value.trim();
+const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
+const startTime = document.getElementById('eventStartTime').value;
+const endTime = document.getElementById('eventEndTime').value;
+const category = document.getElementById('eventCategory').value;
+const description = document.getElementById('eventDescription').value.trim();
+if (!title || !startTime || !endTime) {
+alert('必須項目を入力してください');
 return;
 }
+if (startTime >= endTime) {
+alert('終了時間は開始時間より後にしてください');
+return;
+}
+if (eventId) {
 const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex === -1) {
-alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-return;
+if (eventIndex !== -1) {
+this.events[eventIndex] = {
+...this.events[eventIndex],
+title,
+dayIndex,
+startTime,
+endTime,
+category,
+description
+};
 }
+} else {
+this.events.push({
+id: Date.now() + Math.random(),
+title,
+dayIndex,
+startTime,
+endTime,
+category,
+description
+});
+}
+this.saveData();
+this.closeAllModals();
+this.editModeEvent = null;
+},
+deleteEventById(eventId) {
+if (!confirm('この予定を削除しますか？')) return;
+const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+if (eventIndex !== -1) {
 this.events.splice(eventIndex, 1);
 this.saveData();
 this.editModeEvent = null;
 this.closeAllModals();
-if (navigator.vibrate) navigator.vibrate(100);
-} catch (error) {
-console.error('予定の削除中にエラーが発生しました:', error);
-alert('予定の削除に失敗しました。もう一度お試しください。');
 }
 },
-editEventById(eventId) {
-try {
-const event = this.events.find(e => String(e.id) === String(eventId));
-if (!event) {
-alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-return;
+openModal(title, body, footer = '', size = '') {
+const modalId = 'modal-' + Date.now();
+const modal = { id: modalId, title, body, footer, size };
+this.modals.push(modal);
+this.$nextTick(() => {
+const modalElement = document.getElementById(modalId);
+if (modalElement) {
+const bsModal = new bootstrap.Modal(modalElement);
+bsModal.show();
+modalElement.addEventListener('hidden.bs.modal', () => {
+this.modals = this.modals.filter(m => m.id !== modalId);
+});
 }
-this.closeAllModals();
-setTimeout(() => {
-this.openEventModal(event);
-}, 100);
-} catch (error) {
-console.error('予定の編集準備中にエラーが発生しました:', error);
-alert('予定の編集準備に失敗しました。もう一度お試しください。');
-}
+});
 },
 closeAllModals() {
-document.querySelectorAll('.modal').forEach(modal => {
-const instance = bootstrap.Modal.getInstance(modal);
-if (instance) instance.hide();
+document.querySelectorAll('.modal.show').forEach(modal => {
+const bsModal = bootstrap.Modal.getInstance(modal);
+if (bsModal) bsModal.hide();
 });
 },
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-localStorage.setItem('trippenInitialized', 'true');
 },
 loadData() {
-try {
 const savedEvents = localStorage.getItem('trippenEvents');
 const savedDays = localStorage.getItem('trippenDays');
-const savedInitialized = localStorage.getItem('trippenInitialized');
 if (savedEvents) {
+try {
 this.events = JSON.parse(savedEvents);
-this.events = this.events.map(event => ({
-...event,
-id: String(event.id)
-}));
+} catch (e) {
+console.error('予定データの読み込みに失敗しました:', e);
+this.events = [];
+}
 }
 if (savedDays) {
+try {
 this.tripDays = JSON.parse(savedDays);
+} catch (e) {
+console.error('日程データの読み込みに失敗しました:', e);
+this.tripDays = [];
 }
-if (savedInitialized === 'true' && this.tripDays.length > 0) {
-this.tripInitialized = true;
-}
-} catch (error) {
-console.error('データの読み込みに失敗しました:', error);
 }
 }
 },
@@ -1193,22 +1178,18 @@ mounted() {
 this.detectMobile();
 this.checkExistingData();
 this.loadData();
-window.addEventListener('resize', () => {
-this.detectMobile();
-this.updateScrollPosition();
-});
-document.addEventListener('click', (e) => {
-if (!e.target.closest('.context-menu')) {
-this.hideContextMenu();
+if (this.tripDays.length > 0) this.tripInitialized = true;
+window.addEventListener('resize', this.detectMobile);
+window.app = this;
+},
+beforeUnmount() {
+window.removeEventListener('resize', this.detectMobile);
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
 }
-});
-this.$nextTick(() => {
-this.updateScrollPosition();
-});
 }
-});
-const vm = app.mount('#app');
-window.app = vm;
+}).mount('#app');
 </script>
 </body>
 </html>
