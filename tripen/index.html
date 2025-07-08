@@ -1865,15 +1865,3 @@
 </script>
 </body>
 </html>
-
-                    if (!confirm('この予定を削除しますか？')) {
-                        return;
-                    }
-                    
-                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                    if (eventIndex === -1) {
-                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                        return;
-                    }
-                    
-                    
