@@ -329,7 +329,6 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             border: 2px solid transparent;
             transition: var(--transition);
-            z-index: 10;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             min-height: 35px;
@@ -604,10 +603,6 @@
                 width: 35px;
                 height: 35px;
                 font-size: 0.9rem;
-            }
-            .event-block.overlapping {
-                opacity: 0.7;
-                border: 2px solid #ff6b6b;
             }
         }
     </style>
@@ -1085,16 +1080,41 @@
                 else this.setActiveDay(index);
             },
             
+            // 修正された getCurrentDayEvents メソッド
             getCurrentDayEvents() {
-                return this.events
+                const dayEvents = this.events
                     .filter(event => event.dayIndex === this.activeDay)
-                    .map(event => {
-                        const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
-                        return {
-                            ...event,
-                            inlineText
-                        };
+                    .sort((a, b) => this.timeToMinutes(a.startTime) - this.timeToMinutes(b.startTime));
+                
+                // 重なり検出とz-index設定
+                const eventsWithZIndex = dayEvents.map((event, index) => {
+                    const eventStart = this.timeToMinutes(event.startTime);
+                    const eventEnd = this.timeToMinutes(event.endTime);
+                    
+                    // 重なっているイベントを検索
+                    const overlappingEvents = dayEvents.filter((otherEvent, otherIndex) => {
+                        if (index === otherIndex) return false;
+                        const otherStart = this.timeToMinutes(otherEvent.startTime);
+                        const otherEnd = this.timeToMinutes(otherEvent.endTime);
+                        return (eventStart < otherEnd && eventEnd > otherStart);
                     });
+                    
+                    // 重なりがある場合のみz-indexを設定
+                    let zIndex = null;
+                    if (overlappingEvents.length > 0) {
+                        // 早い時間の予定ほど前面に表示
+                        zIndex = 1000 - eventStart;
+                    }
+                    
+                    const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+                    return {
+                        ...event,
+                        inlineText,
+                        zIndex
+                    };
+                });
+                
+                return eventsWithZIndex;
             },
             
             handleEventClick(event, eventData) {
@@ -1606,16 +1626,24 @@
                 document.addEventListener(endEvent, endHandler);
             },
             
+            // 修正された getEventStyle メソッド
             getEventStyle(event) {
                 const startPixels = this.timeToPixels(event.startTime);
                 const endPixels = this.timeToPixels(event.endTime);
                 const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
                 
-                return {
+                const style = {
                     top: `${startPixels}px`,
                     height: `${duration}px`,
                     minHeight: this.isMobile ? '32px' : '35px'
                 };
+                
+                // 重なりがある場合のみz-indexを設定
+                if (event.zIndex !== null) {
+                    style.zIndex = event.zIndex;
+                }
+                
+                return style;
             },
             
             getCategoryIcon(category) {
@@ -1969,6 +1997,7 @@
             });
         }
     });
+    
     const vm = app.mount('#app');
     window.app = vm;
 </script>
