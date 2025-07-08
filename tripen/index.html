@@ -346,6 +346,11 @@
         .event-block.edit-mode {
             border-color: #FFD700;
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+            cursor: grab;
+        }
+        
+        .event-block.edit-mode:active {
+            cursor: grabbing;
         }
         
         .event-block.dragging {
@@ -373,39 +378,6 @@
         .event-time,
         .event-description {
             display: none;
-        }
-        
-        .move-handle {
-            position: absolute;
-            left: 50%;
-            top: -8px;
-            transform: translateX(-50%);
-            width: 30px;
-            height: 30px;
-            background: #4CAF50;
-            border: 2px solid #fff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: grab;
-            font-size: 0.8rem;
-            color: white;
-            transition: var(--transition);
-            z-index: 20;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .move-handle:hover {
-            background: #45a049;
-            transform: translateX(-50%) scale(1.1);
-        }
-        
-        .move-handle:active {
-            cursor: grabbing;
-            transform: translateX(-50%) scale(0.95);
         }
         
         .event-category-travel { background: #FF6B6B; }
@@ -589,12 +561,6 @@
             .event-content-inline { font-size: 0.8rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
             
-            .move-handle {
-                width: 35px;
-                height: 35px;
-                font-size: 0.9rem;
-            }
-            
             .event-action-btn {
                 width: 35px;
                 height: 35px;
@@ -729,14 +695,6 @@
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
                                  @click="handleEventClick($event, event)">
                                 
-                                <div class="move-handle" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @mousedown="handleDragHandleMouseDown($event, event)"
-                                     @touchstart="handleDragHandleTouchStart($event, event)"
-                                     title="ドラッグして移動">
-                                    ↕
-                                </div>
-                                
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
                                     {{ event.inlineText }}
@@ -841,13 +799,6 @@
                                  :style="getEventStyle(event)"
                                  @click="handleEventClick($event, event)"
                                  @touchstart="handleEventTouchStart($event, event)">
-                                
-                                <div class="move-handle" 
-                                     v-if="editModeEvent && editModeEvent.id === event.id"
-                                     @touchstart="handleDragHandleTouchStart($event, event)"
-                                     title="ドラッグして移動">
-                                    ↕
-                                </div>
                                 
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
@@ -1096,28 +1047,6 @@
                     });
             },
             
-            handleDragHandleMouseDown(event, eventData) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.editModeEvent = eventData;
-                this.draggingEvent = eventData;
-                this.isDragComplete = false;
-                
-                this.startDragMove(event, eventData);
-            },
-            
-            handleDragHandleTouchStart(event, eventData) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.editModeEvent = eventData;
-                this.draggingEvent = eventData;
-                this.isDragComplete = false;
-                
-                this.startDragMoveTouch(event, eventData);
-            },
-            
             handleEventClick(event, eventData) {
                 if (this.isDragComplete) {
                     this.isDragComplete = false;
@@ -1133,23 +1062,33 @@
                     return;
                 }
                 
-                if (!event.target.closest('.move-handle') && 
-                    !event.target.closest('.event-action-btn') && 
-                    !event.target.closest('.resize-handle')) {
-                    this.openDetailModal(eventData);
+                // 移動モード時の動作を変更
+                if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                    // 移動モード時はドラッグ開始処理
+                    if (!event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        this.startEventDrag(event, eventData);
+                    }
+                } else {
+                    // 通常モード時は詳細表示
+                    if (!event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        this.openDetailModal(eventData);
+                    }
                 }
             },
             
             handleEventContextMenu(event, eventData) {
                 event.preventDefault();
                 event.stopPropagation();
-                if (!event.target.closest('.move-handle')) {
-                    this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }
+                this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+                if (navigator.vibrate) navigator.vibrate(50);
             },
             
-            startDragMove(event, eventData) {
+            startEventDrag(event, eventData) {
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
+                
                 const startY = event.clientY;
                 const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
                 const rect = container.getBoundingClientRect();
@@ -1160,20 +1099,7 @@
                 const moveHandler = (e) => {
                     const newTop = initialTop + (e.clientY - startY);
                     const snappedTop = Math.round(newTop / 15) * 15;
-                    const newTime = this.pixelsToTime(snappedTop);
-                    
-                    const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                    if (eventIndex === -1) return;
-                    
-                    const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-                    const endTime = this.pixelsToTime(snappedTop + duration);
-                    
-                    if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
-                        this.events[eventIndex].startTime = newTime;
-                        this.events[eventIndex].endTime = endTime;
-                    } else {
-                        console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
-                    }
+                    this.updateEventTimeFromDrag(eventData, snappedTop);
                 };
                 
                 const endHandler = () => {
@@ -1191,6 +1117,58 @@
                 
                 document.addEventListener('mousemove', moveHandler);
                 document.addEventListener('mouseup', endHandler);
+            },
+            
+            startEventDragTouch(event, eventData) {
+                this.draggingEvent = eventData;
+                this.isDragComplete = false;
+                
+                const coords = event.touches[0];
+                const container = this.$refs.mobileTimelineContainer;
+                const rect = container.getBoundingClientRect();
+                const timelineHeader = container.querySelector('.timeline-header');
+                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+                const initialTop = coords.clientY - rect.top - headerHeight + container.scrollTop;
+                const startY = coords.clientY;
+                
+                const moveHandler = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - startY;
+                    const newTop = initialTop + deltaY;
+                    const snappedTop = Math.round(newTop / 15) * 15;
+                    this.updateEventTimeFromDrag(eventData, snappedTop);
+                };
+                
+                const endHandler = () => {
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', endHandler);
+                    
+                    this.draggingEvent = null;
+                    this.isDragComplete = true;
+                    this.saveData();
+                    
+                    setTimeout(() => {
+                        this.isDragComplete = false;
+                    }, 150);
+                };
+                
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', endHandler, { passive: true });
+            },
+            
+            updateEventTimeFromDrag(eventData, snappedTop) {
+                const newTime = this.pixelsToTime(snappedTop);
+                const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+                if (eventIndex === -1) return;
+                
+                const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
+                const endTime = this.pixelsToTime(snappedTop + duration);
+                
+                if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
+                    this.events[eventIndex].startTime = newTime;
+                    this.events[eventIndex].endTime = endTime;
+                }
             },
             
             handleMobileDayTouchStart(event, index) {
@@ -1259,93 +1237,48 @@
                     return;
                 }
                 
-                if (!event.target.closest('.move-handle') && 
-                    !event.target.closest('.event-action-btn') && 
-                    !event.target.closest('.resize-handle')) {
-                    
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    this.touchStartTime = Date.now();
-                    this.longPressExecuted = false;
-                    
-                    this.longPressTimer = setTimeout(() => {
-                        this.longPressExecuted = true;
-                        this.editModeEvent = eventData;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                    }, 500);
-                    
-                    const handleTouchEnd = () => {
-                        if (this.longPressTimer) {
-                            clearTimeout(this.longPressTimer);
-                            this.longPressTimer = null;
-                        }
-                        
-                        const touchDuration = Date.now() - this.touchStartTime;
-                        if (!this.longPressExecuted && touchDuration < 500) {
-                            this.openDetailModal(eventData);
-                        }
-                        
-                        document.removeEventListener('touchend', handleTouchEnd);
-                    };
-                    
-                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                }
-            },
-            
-            startDragMoveTouch(event, eventData) {
-                if (!this.editModeEvent || this.editModeEvent.id !== eventData.id) {
-                    return;
-                }
-                
-                const coords = event.touches[0];
-                const container = this.$refs.mobileTimelineContainer;
-                const rect = container.getBoundingClientRect();
-                const timelineHeader = container.querySelector('.timeline-header');
-                const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-                const initialTop = coords.clientY - rect.top - headerHeight + container.scrollTop;
-                const startY = coords.clientY;
-                
-                const moveHandler = (e) => {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const deltaY = touch.clientY - startY;
-                    const newTop = initialTop + deltaY;
-                    const snappedTop = Math.round(newTop / 15) * 15;
-                    this.updateEventTime(eventData, snappedTop);
-                };
-                
-                const endHandler = () => {
-                    document.removeEventListener('touchmove', moveHandler);
-                    document.removeEventListener('touchend', endHandler);
-                    
-                    this.draggingEvent = null;
-                    this.editModeEvent = null;
-                    this.isDragComplete = true;
-                    this.saveData();
-                    
-                    setTimeout(() => {
-                        this.isDragComplete = false;
-                    }, 150);
-                };
-                
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('touchend', endHandler, { passive: true });
-            },
-            
-            updateEventTime(eventData, snappedTop) {
-                const newTime = this.pixelsToTime(snappedTop);
-                const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
-                if (eventIndex === -1) return;
-                
-                const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
-                const endTime = this.pixelsToTime(snappedTop + duration);
-                
-                if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
-                    this.events[eventIndex].startTime = newTime;
-                    this.events[eventIndex].endTime = endTime;
+                // 移動モード時の動作を変更
+                if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+                    // 移動モード時はドラッグ開始処理
+                    if (!event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.startEventDragTouch(event, eventData);
+                    }
                 } else {
-                    console.error('時間設定エラー:', { startTime: newTime, endTime: endTime });
+                    // 通常モード時は長押しで編集モード、短押しで詳細表示
+                    if (!event.target.closest('.event-action-btn') && 
+                        !event.target.closest('.resize-handle')) {
+                        
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        this.touchStartTime = Date.now();
+                        this.longPressExecuted = false;
+                        
+                        this.longPressTimer = setTimeout(() => {
+                            this.longPressExecuted = true;
+                            this.editModeEvent = eventData;
+                            if (navigator.vibrate) navigator.vibrate(50);
+                        }, 500);
+                        
+                        const handleTouchEnd = () => {
+                            if (this.longPressTimer) {
+                                clearTimeout(this.longPressTimer);
+                                this.longPressTimer = null;
+                            }
+                            
+                            const touchDuration = Date.now() - this.touchStartTime;
+                            if (!this.longPressExecuted && touchDuration < 500) {
+                                this.openDetailModal(eventData);
+                            }
+                            
+                            document.removeEventListener('touchend', handleTouchEnd);
+                        };
+                        
+                        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                    }
                 }
             },
             
@@ -1832,18 +1765,7 @@
             },
             
             deleteEventById(eventId) {
-                try {
-                    if (!confirm('この予定を削除しますか？')) {
-                        return;
-                    }
-                    
-                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-                    if (eventIndex === -1) {
-                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-                        return;
-                    }
-                    
-                    this.events.splice(eventIndex, 1);
+                try {                    this.events.splice(eventIndex, 1);
                     this.saveData();
                     this.editModeEvent = null;
                     this.closeAllModals();
@@ -1943,3 +1865,15 @@
 </script>
 </body>
 </html>
+
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    
