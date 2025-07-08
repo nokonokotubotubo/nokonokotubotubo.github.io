@@ -375,39 +375,37 @@
             display: none;
         }
         
-        .drag-handle-mini {
+        .move-handle {
             position: absolute;
             left: 50%;
-            top: 3px;
+            top: -8px;
             transform: translateX(-50%);
-            width: 16px;
-            height: 16px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 3px;
+            width: 30px;
+            height: 30px;
+            background: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: grab;
-            font-size: 0.7rem;
-            color: rgba(0, 0, 0, 0.6);
+            font-size: 0.8rem;
+            color: white;
             transition: var(--transition);
-            z-index: 15;
+            z-index: 20;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         
-        .drag-handle-mini:hover {
-            background: rgba(255, 255, 255, 1);
+        .move-handle:hover {
+            background: #45a049;
             transform: translateX(-50%) scale(1.1);
         }
         
-        .drag-handle-mini:active {
+        .move-handle:active {
             cursor: grabbing;
             transform: translateX(-50%) scale(0.95);
-        }
-        
-        .event-block.edit-mode .drag-handle-mini {
-            background: #FFD700;
-            color: #333;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         
         .event-category-travel { background: #FF6B6B; }
@@ -419,7 +417,8 @@
         .event-actions {
             position: absolute;
             bottom: -8px;
-            left: 2px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             gap: 5px;
             z-index: 20;
@@ -444,22 +443,6 @@
         
         .event-action-btn.cut { background: #FF6B6B; border: 2px solid #fff; }
         .event-action-btn.cut:hover { background: #FF5252; transform: scale(1.1); }
-        
-        .edit-mode-indicator {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
-            background: #FFD700;
-            color: #333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font: bold 0.8rem/1 sans-serif;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
         
         .context-menu {
             position: fixed;
@@ -606,32 +589,15 @@
             .event-content-inline { font-size: 0.8rem; }
             .date-input-group { flex-direction: column; gap: 10px; }
             
-            .drag-handle-mini {
-                width: 14px;
-                height: 14px;
-                font-size: 0.6rem;
-                left: 50%;
-                top: 2px;
-                transform: translateX(-50%);
-            }
-            
-            .drag-handle-mini:hover {
-                transform: translateX(-50%) scale(1.1);
-            }
-            
-            .drag-handle-mini:active {
-                transform: translateX(-50%) scale(0.95);
-            }
-            
-            .event-action-btn {
+            .move-handle {
                 width: 35px;
                 height: 35px;
                 font-size: 0.9rem;
             }
             
-            .edit-mode-indicator {
-                width: 28px;
-                height: 28px;
+            .event-action-btn {
+                width: 35px;
+                height: 35px;
                 font-size: 0.9rem;
             }
         }
@@ -763,10 +729,12 @@
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
                                  @click="handleEventClick($event, event)">
                                 
-                                <div class="drag-handle-mini"
+                                <div class="move-handle" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
                                      @mousedown="handleDragHandleMouseDown($event, event)"
+                                     @touchstart="handleDragHandleTouchStart($event, event)"
                                      title="ドラッグして移動">
-                                    ⋯
+                                    ↕
                                 </div>
                                 
                                 <div class="event-content-inline">
@@ -782,8 +750,6 @@
                                         <i class="fas fa-cut"></i>
                                     </button>
                                 </div>
-                                
-                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -876,10 +842,11 @@
                                  @click="handleEventClick($event, event)"
                                  @touchstart="handleEventTouchStart($event, event)">
                                 
-                                <div class="drag-handle-mini"
+                                <div class="move-handle" 
+                                     v-if="editModeEvent && editModeEvent.id === event.id"
                                      @touchstart="handleDragHandleTouchStart($event, event)"
                                      title="ドラッグして移動">
-                                    ⋯
+                                    ↕
                                 </div>
                                 
                                 <div class="event-content-inline">
@@ -895,8 +862,6 @@
                                         <i class="fas fa-cut"></i>
                                     </button>
                                 </div>
-                                
-                                <div class="edit-mode-indicator" v-if="editModeEvent && editModeEvent.id === event.id">✎</div>
                                 
                                 <div class="resize-handle top" 
                                      v-if="editModeEvent && editModeEvent.id === event.id"
@@ -1168,7 +1133,7 @@
                     return;
                 }
                 
-                if (!event.target.closest('.drag-handle-mini') && 
+                if (!event.target.closest('.move-handle') && 
                     !event.target.closest('.event-action-btn') && 
                     !event.target.closest('.resize-handle')) {
                     this.openDetailModal(eventData);
@@ -1178,7 +1143,7 @@
             handleEventContextMenu(event, eventData) {
                 event.preventDefault();
                 event.stopPropagation();
-                if (!event.target.closest('.drag-handle-mini')) {
+                if (!event.target.closest('.move-handle')) {
                     this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
                     if (navigator.vibrate) navigator.vibrate(50);
                 }
@@ -1294,7 +1259,7 @@
                     return;
                 }
                 
-                if (!event.target.closest('.drag-handle-mini') && 
+                if (!event.target.closest('.move-handle') && 
                     !event.target.closest('.event-action-btn') && 
                     !event.target.closest('.resize-handle')) {
                     
@@ -1762,7 +1727,7 @@
                         <label class="form-label">詳細</label>
                         <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
                     </div>
-                                `, `
+                `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                     ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
                     <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
@@ -1978,5 +1943,3 @@
 </script>
 </body>
 </html>
-
-                    
