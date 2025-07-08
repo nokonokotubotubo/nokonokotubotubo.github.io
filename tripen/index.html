@@ -377,8 +377,9 @@
         
         .drag-handle-mini {
             position: absolute;
-            left: 3px;
+            left: 50%;
             top: 3px;
+            transform: translateX(-50%);
             width: 16px;
             height: 16px;
             background: rgba(255, 255, 255, 0.8);
@@ -395,12 +396,12 @@
         
         .drag-handle-mini:hover {
             background: rgba(255, 255, 255, 1);
-            transform: scale(1.1);
+            transform: translateX(-50%) scale(1.1);
         }
         
         .drag-handle-mini:active {
             cursor: grabbing;
-            transform: scale(0.95);
+            transform: translateX(-50%) scale(0.95);
         }
         
         .event-block.edit-mode .drag-handle-mini {
@@ -609,8 +610,17 @@
                 width: 14px;
                 height: 14px;
                 font-size: 0.6rem;
-                left: 2px;
+                left: 50%;
                 top: 2px;
+                transform: translateX(-50%);
+            }
+            
+            .drag-handle-mini:hover {
+                transform: translateX(-50%) scale(1.1);
+            }
+            
+            .drag-handle-mini:active {
+                transform: translateX(-50%) scale(0.95);
             }
             
             .event-action-btn {
@@ -756,7 +766,7 @@
                                 <div class="drag-handle-mini"
                                      @mousedown="handleDragHandleMouseDown($event, event)"
                                      title="ドラッグして移動">
-                                    <i class="fas fa-grip-vertical"></i>
+                                    ⋯
                                 </div>
                                 
                                 <div class="event-content-inline">
@@ -869,7 +879,7 @@
                                 <div class="drag-handle-mini"
                                      @touchstart="handleDragHandleTouchStart($event, event)"
                                      title="ドラッグして移動">
-                                    <i class="fas fa-grip-vertical"></i>
+                                    ⋯
                                 </div>
                                 
                                 <div class="event-content-inline">
@@ -1013,6 +1023,14 @@
         },
         
         methods: {
+            // URL自動リンク化のメソッドを追加
+            linkifyUrls(text) {
+                if (!text) return text;
+                
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+            },
+            
             checkExistingData() {
                 this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
             },
@@ -1630,7 +1648,7 @@
                     <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
                     <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
                     <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-                    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${String(eventData.description).replace(/"/g, "&quot;")}</div>` : ''}
+                    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
                 `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
                     <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
@@ -1744,7 +1762,7 @@
                         <label class="form-label">詳細</label>
                         <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
                     </div>
-                `, `
+                                `, `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                     ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
                     <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
@@ -1960,3 +1978,5 @@
 </script>
 </body>
 </html>
+
+                    
