@@ -587,9 +587,12 @@ const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
 if (eventIndex === -1) return;
 const duration = this.timeToPixels(this.events[eventIndex].endTime) - this.timeToPixels(this.events[eventIndex].startTime);
 const endTime = this.pixelsToTime(snappedTop + duration);
-if (newTime >= '04:00' && newTime < '24:00' && endTime <= '24:00') {
+// 24:00を超えないように制限
+const endMinutes = this.timeToMinutes(endTime);
+const limitedEndTime = endMinutes > 1440 ? '24:00' : endTime;
+if (newTime >= '04:00' && newTime < '24:00' && limitedEndTime <= '24:00') {
 this.events[eventIndex].startTime = newTime;
-this.events[eventIndex].endTime = endTime;
+this.events[eventIndex].endTime = limitedEndTime;
 }
 },
 handleMobileDayTouchStart(event, index) {
@@ -738,8 +741,14 @@ dayIndex: this.activeDay
 };
 if (this.pasteTargetTime) {
 const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+const startMinutes = this.timeToMinutes(this.pasteTargetTime);
+let endMinutes = startMinutes + duration;
+// 24:00を超えた場合の制限処理
+if (endMinutes > 1440) { // 1440分 = 24:00
+endMinutes = 1440;
+}
 newEvent.startTime = this.pasteTargetTime;
-newEvent.endTime = this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + duration);
+newEvent.endTime = this.minutesToTime(endMinutes);
 }
 this.events.push(newEvent);
 this.clipboardEvent = null;
