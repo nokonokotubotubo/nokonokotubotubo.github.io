@@ -927,6 +927,9 @@
                 draggingEvent: null,
                 isDragComplete: false,
                 isResizeComplete: false,
+                dragStarted: false,
+                longPressEventData: null,
+                longPressEvent: null,
                 eventForm: {
                     title: '',
                     dayIndex: 0,
@@ -1256,7 +1259,7 @@
                         this.startEventDragTouch(event, eventData);
                     }
                 } else {
-                    // 通常モード時は長押しで編集モード、短押しで詳細表示
+                    // 通常モード時の動作
                     if (!event.target.closest('.event-action-btn') && 
                         !event.target.closest('.resize-handle')) {
                         
@@ -1265,12 +1268,36 @@
                         
                         this.touchStartTime = Date.now();
                         this.longPressExecuted = false;
+                        this.dragStarted = false;
+                        this.longPressEventData = eventData;
+                        this.longPressEvent = event;
+                        
+                        // タッチ位置を記録
+                        this.touchStartPosition = { 
+                            x: event.touches[0].clientX, 
+                            y: event.touches[0].clientY 
+                        };
                         
                         this.longPressTimer = setTimeout(() => {
                             this.longPressExecuted = true;
-                            this.editModeEvent = eventData;
                             if (navigator.vibrate) navigator.vibrate(50);
+                            // 長タップ後はドラッグ待機状態
                         }, 500);
+                        
+                        // touchmoveイベントリスナーを追加
+                        const handleTouchMove = (e) => {
+                            if (!this.longPressExecuted) return;
+                            
+                            const deltaX = Math.abs(e.touches[0].clientX - this.touchStartPosition.x);
+                            const deltaY = Math.abs(e.touches[0].clientY - this.touchStartPosition.y);
+                            
+                            // ドラッグ開始判定（5px以上移動）
+                            if ((deltaX > 5 || deltaY > 5) && !this.dragStarted) {
+                                this.dragStarted = true;
+                                this.editModeEvent = eventData;
+                                this.startEventDragTouch(this.longPressEvent, eventData);
+                            }
+                        };
                         
                         const handleTouchEnd = () => {
                             if (this.longPressTimer) {
@@ -1279,13 +1306,24 @@
                             }
                             
                             const touchDuration = Date.now() - this.touchStartTime;
-                            if (!this.longPressExecuted && touchDuration < 500) {
+                            
+                            if (this.longPressExecuted && !this.dragStarted) {
+                                // 長タップ後にドラッグしなかった場合は移動モードに遷移
+                                this.editModeEvent = eventData;
+                            } else if (!this.longPressExecuted && touchDuration < 500) {
+                                // 短タップの場合は詳細表示
                                 this.openDetailModal(eventData);
                             }
                             
+                            // クリーンアップ
+                            this.dragStarted = false;
+                            this.longPressEventData = null;
+                            this.longPressEvent = null;
+                            document.removeEventListener('touchmove', handleTouchMove);
                             document.removeEventListener('touchend', handleTouchEnd);
                         };
                         
+                        document.addEventListener('touchmove', handleTouchMove, { passive: false });
                         document.addEventListener('touchend', handleTouchEnd, { passive: true });
                     }
                 }
