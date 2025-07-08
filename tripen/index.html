@@ -693,7 +693,8 @@
                                  ]"
                                  :style="getEventStyle(event)"
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
-                                 @click="handleEventClick($event, event)">
+                                 @click="handleEventClick($event, event)"
+                                 @mousedown="handleEventMouseDown($event, event)">
                                 
                                 <div class="event-content-inline">
                                     <i :class="getCategoryIcon(event.category)"></i>
@@ -1062,18 +1063,26 @@
                     return;
                 }
                 
-                // 移動モード時の動作を変更
+                // 移動モード時は詳細表示しない
                 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-                    // 移動モード時はドラッグ開始処理
+                    return;
+                }
+                
+                // 通常モード時は詳細表示
+                if (!event.target.closest('.event-action-btn') && 
+                    !event.target.closest('.resize-handle')) {
+                    this.openDetailModal(eventData);
+                }
+            },
+            
+            handleEventMouseDown(event, eventData) {
+                // 移動モード時のみドラッグ開始
+                if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                     if (!event.target.closest('.event-action-btn') && 
                         !event.target.closest('.resize-handle')) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         this.startEventDrag(event, eventData);
-                    }
-                } else {
-                    // 通常モード時は詳細表示
-                    if (!event.target.closest('.event-action-btn') && 
-                        !event.target.closest('.resize-handle')) {
-                        this.openDetailModal(eventData);
                     }
                 }
             },
@@ -1237,7 +1246,7 @@
                     return;
                 }
                 
-                // 移動モード時の動作を変更
+                // 移動モード時の動作
                 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
                     // 移動モード時はドラッグ開始処理
                     if (!event.target.closest('.event-action-btn') && 
@@ -1765,7 +1774,18 @@
             },
             
             deleteEventById(eventId) {
-                try {                    this.events.splice(eventIndex, 1);
+                try {
+                    if (!confirm('この予定を削除しますか？')) {
+                        return;
+                    }
+                    
+                    const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+                    if (eventIndex === -1) {
+                        alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                        return;
+                    }
+                    
+                    this.events.splice(eventIndex, 1);
                     this.saveData();
                     this.editModeEvent = null;
                     this.closeAllModals();
