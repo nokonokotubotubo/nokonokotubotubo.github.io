@@ -353,6 +353,45 @@
             cursor: grabbing;
         }
         
+        .event-block.ready-to-move {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+            transform: scale(1.05);
+            background: linear-gradient(45deg, rgba(76, 175, 80, 0.1), transparent, rgba(76, 175, 80, 0.1));
+            animation: readyToPulse 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes readyToPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(76, 175, 80, 0.2);
+            }
+        }
+        
+        .event-block.ready-to-move::before {
+            content: "↕";
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #4CAF50;
+            font-weight: bold;
+            z-index: 25;
+            animation: bounceIcon 1s infinite ease-in-out;
+        }
+        
+        @keyframes bounceIcon {
+            0%, 100% {
+                transform: translateY(-50%) scale(1);
+            }
+            50% {
+                transform: translateY(-50%) scale(1.2);
+            }
+        }
+        
         .event-block.dragging {
             z-index: 1000;
             opacity: 0.8;
@@ -689,7 +728,8 @@
                                  :class="[
                                      'event-category-' + event.category,
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id },
+                                     { 'ready-to-move': readyToMoveEventId === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
                                  @contextmenu.prevent="handleEventContextMenu($event, event)"
@@ -795,7 +835,8 @@
                                  :class="[
                                      'event-category-' + event.category,
                                      { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                                     { 'dragging': draggingEvent && draggingEvent.id === event.id }
+                                     { 'dragging': draggingEvent && draggingEvent.id === event.id },
+                                     { 'ready-to-move': readyToMoveEventId === event.id }
                                  ]"
                                  :style="getEventStyle(event)"
                                  @click="handleEventClick($event, event)"
@@ -930,6 +971,7 @@
                 dragStarted: false,
                 longPressEventData: null,
                 longPressEvent: null,
+                readyToMoveEventId: null,
                 eventForm: {
                     title: '',
                     dayIndex: 0,
@@ -1271,6 +1313,7 @@
                         this.dragStarted = false;
                         this.longPressEventData = eventData;
                         this.longPressEvent = event;
+                        this.readyToMoveEventId = null;
                         
                         // タッチ位置を記録
                         this.touchStartPosition = { 
@@ -1280,8 +1323,9 @@
                         
                         this.longPressTimer = setTimeout(() => {
                             this.longPressExecuted = true;
+                            this.readyToMoveEventId = eventData.id;
                             if (navigator.vibrate) navigator.vibrate(50);
-                            // 長タップ後はドラッグ待機状態
+                            // 長タップ後はドラッグ待機状態（視覚化）
                         }, 500);
                         
                         // touchmoveイベントリスナーを追加
@@ -1295,6 +1339,7 @@
                             if ((deltaX > 5 || deltaY > 5) && !this.dragStarted) {
                                 this.dragStarted = true;
                                 this.editModeEvent = eventData;
+                                this.readyToMoveEventId = null;
                                 this.startEventDragTouch(this.longPressEvent, eventData);
                             }
                         };
@@ -1310,6 +1355,7 @@
                             if (this.longPressExecuted && !this.dragStarted) {
                                 // 長タップ後にドラッグしなかった場合は移動モードに遷移
                                 this.editModeEvent = eventData;
+                                this.readyToMoveEventId = null;
                             } else if (!this.longPressExecuted && touchDuration < 500) {
                                 // 短タップの場合は詳細表示
                                 this.openDetailModal(eventData);
@@ -1319,6 +1365,7 @@
                             this.dragStarted = false;
                             this.longPressEventData = null;
                             this.longPressEvent = null;
+                            this.readyToMoveEventId = null;
                             document.removeEventListener('touchmove', handleTouchMove);
                             document.removeEventListener('touchend', handleTouchEnd);
                         };
