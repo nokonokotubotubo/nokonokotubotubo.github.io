@@ -349,10 +349,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
 const { createApp } = Vue;
 const app = createApp({
@@ -537,17 +533,13 @@ const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContain
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-
-// 中心オフセットを計算（1行追加）
 const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
-
 const moveHandler = (e) => {
 const newCenterTop = e.clientY - rect.top - headerHeight + container.scrollTop;
 const newStartTop = newCenterTop - centerOffset;
 const snappedTop = Math.round(newStartTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
-
 const endHandler = () => {
 document.removeEventListener('mousemove', moveHandler);
 document.removeEventListener('mouseup', endHandler);
@@ -558,7 +550,6 @@ setTimeout(() => {
 this.isDragComplete = false;
 }, 150);
 };
-
 document.addEventListener('mousemove', moveHandler);
 document.addEventListener('mouseup', endHandler);
 },
@@ -570,10 +561,7 @@ const container = this.$refs.mobileTimelineContainer;
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-
-// 中心オフセットを計算（1行追加）
 const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
-
 const moveHandler = (e) => {
 e.preventDefault();
 const touch = e.touches[0];
@@ -582,7 +570,6 @@ const newStartTop = newCenterTop - centerOffset;
 const snappedTop = Math.round(newStartTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
-
 const endHandler = () => {
 document.removeEventListener('touchmove', moveHandler);
 document.removeEventListener('touchend', endHandler);
@@ -593,7 +580,6 @@ setTimeout(() => {
 this.isDragComplete = false;
 }, 150);
 };
-
 document.addEventListener('touchmove', moveHandler, { passive: false });
 document.addEventListener('touchend', endHandler, { passive: true });
 },
@@ -602,26 +588,19 @@ const minTime = '04:00';
 const maxTime = '24:00';
 const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
 if (eventIndex === -1) return;
-  
 const currentDuration = this.timeToMinutes(this.events[eventIndex].endTime) - this.timeToMinutes(this.events[eventIndex].startTime);
 const newTime = this.pixelsToTime(snappedTop);
 const newEndTime = this.minutesToTime(this.timeToMinutes(newTime) + currentDuration);
-  
-// 4:00より前に移動できないように制限
 if (newTime < minTime) {
 this.events[eventIndex].startTime = minTime;
 this.events[eventIndex].endTime = this.minutesToTime(this.timeToMinutes(minTime) + currentDuration);
 return;
 }
-  
-// 24:00より後に移動できないように制限
 if (newEndTime > maxTime) {
 this.events[eventIndex].endTime = maxTime;
 this.events[eventIndex].startTime = this.minutesToTime(this.timeToMinutes(maxTime) - currentDuration);
 return;
 }
-  
-// 制限内の場合は通常通り更新
 this.events[eventIndex].startTime = newTime;
 this.events[eventIndex].endTime = newEndTime;
 },
@@ -773,8 +752,7 @@ if (this.pasteTargetTime) {
 const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
 const startMinutes = this.timeToMinutes(this.pasteTargetTime);
 let endMinutes = startMinutes + duration;
-// 24:00を超えた場合の制限処理
-if (endMinutes > 1440) { // 1440分 = 24:00
+if (endMinutes > 1440) {
 endMinutes = 1440;
 }
 newEvent.startTime = this.pasteTargetTime;
@@ -957,12 +935,14 @@ return;
 }
 const safeEventId = String(eventData.id).replace(/'/g, "\\'");
 const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+const locationInfo = eventData.latitude && eventData.longitude ? 
+`<div class="mb-3"><strong>位置:</strong> ${eventData.latitude}, ${eventData.longitude}</div>` : '';
 this.openModal('詳細', `
 <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
 <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
 <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+${locationInfo}
 ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
-${eventData.latitude && eventData.longitude ? `<div class="mb-3"><strong>緯度経度:</strong> ${eventData.latitude}, ${eventData.longitude}</div>` : ''}
 `, `
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
 <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
@@ -1064,18 +1044,19 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 <div class="mb-3">
 <label class="form-label">緯度経度</label>
 <div class="row">
-<div class="col-sm-4">
-<input type="number" class="form-control" id="eventLatitude" placeholder="緯度" step="any" value="${this.eventForm.latitude || ''}" style="font-size: 0.9rem;">
+<div class="col-md-8">
+<div class="input-group">
+<input type="number" class="form-control" id="eventLatitude" placeholder="緯度" value="${String(this.eventForm.latitude || '')}" step="any">
+<span class="input-group-text">,</span>
+<input type="number" class="form-control" id="eventLongitude" placeholder="経度" value="${String(this.eventForm.longitude || '')}" step="any">
 </div>
-<div class="col-sm-4">
-<input type="number" class="form-control" id="eventLongitude" placeholder="経度" step="any" value="${this.eventForm.longitude || ''}" style="font-size: 0.9rem;">
 </div>
-<div class="col-sm-4">
-<div class="d-flex gap-2">
-<button type="button" class="btn btn-outline-primary btn-sm flex-fill" onclick="window.app.setLocation()" title="位置設定（後で実装予定）">
-<i class="fas fa-map-marker-alt"></i> 位置設定
+<div class="col-md-4">
+<div class="btn-group w-100" role="group">
+<button type="button" class="btn btn-outline-primary" onclick="window.app.setLocationFromMap()" disabled title="位置設定（今後実装予定）">
+<i class="fas fa-map-marker-alt"></i>
 </button>
-<button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
+<button type="button" class="btn btn-outline-secondary" onclick="window.app.copyLocationToClipboard()" title="緯度経度をコピー">
 <i class="fas fa-copy"></i>
 </button>
 </div>
@@ -1091,6 +1072,47 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
 <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
 `);
+},
+copyLocationToClipboard() {
+const latitude = document.getElementById('eventLatitude').value;
+const longitude = document.getElementById('eventLongitude').value;
+if (!latitude || !longitude) {
+alert('緯度経度を入力してください');
+return;
+}
+const locationText = `${latitude},${longitude}`;
+if (navigator.clipboard && navigator.clipboard.writeText) {
+navigator.clipboard.writeText(locationText).then(() => {
+alert('緯度経度をコピーしました');
+}).catch(err => {
+console.error('クリップボードへのコピーに失敗しました:', err);
+this.fallbackCopyToClipboard(locationText);
+});
+} else {
+this.fallbackCopyToClipboard(locationText);
+}
+},
+fallbackCopyToClipboard(text) {
+const textArea = document.createElement('textarea');
+textArea.value = text;
+textArea.style.position = 'fixed';
+textArea.style.left = '-999999px';
+textArea.style.top = '-999999px';
+document.body.appendChild(textArea);
+textArea.focus();
+textArea.select();
+try {
+document.execCommand('copy');
+alert('緯度経度をコピーしました');
+} catch (err) {
+console.error('コピーに失敗しました:', err);
+alert('コピーに失敗しました');
+} finally {
+document.body.removeChild(textArea);
+}
+},
+setLocationFromMap() {
+alert('この機能は今後実装予定です');
 },
 openStartDateModal() {
 this.openModal('旅行開始日の変更', `
@@ -1123,9 +1145,8 @@ const startTime = document.getElementById('eventStartTime').value;
 const endTime = document.getElementById('eventEndTime').value;
 const category = document.getElementById('eventCategory').value;
 const description = document.getElementById('eventDescription').value.trim();
-const latitude = document.getElementById('eventLatitude').value.trim();
-const longitude = document.getElementById('eventLongitude').value.trim();
-
+const latitude = document.getElementById('eventLatitude').value;
+const longitude = document.getElementById('eventLongitude').value;
 if (!title || !startTime || !endTime) {
 alert('必須項目を入力してください');
 return;
@@ -1134,7 +1155,6 @@ if (startTime >= endTime) {
 alert('終了時間は開始時間より後にしてください');
 return;
 }
-
 if (eventId) {
 const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
 if (eventIndex !== -1) {
@@ -1167,49 +1187,6 @@ this.saveData();
 this.closeAllModals();
 this.editModeEvent = null;
 },
-setLocation() {
-// 位置設定機能（後で実装予定）
-alert('位置設定機能は後で実装予定です');
-},
-
-copyCoordinates() {
-const latitude = document.getElementById('eventLatitude').value.trim();
-const longitude = document.getElementById('eventLongitude').value.trim();
-  
-if (!latitude || !longitude) {
-alert('緯度と経度を入力してください');
-return;
-}
-  
-const coordinates = `${latitude}, ${longitude}`;
-  
-// クリップボードにコピー
-if (navigator.clipboard) {
-navigator.clipboard.writeText(coordinates).then(() => {
-alert('緯度経度をコピーしました: ' + coordinates);
-}).catch(err => {
-console.error('コピーに失敗しました:', err);
-this.fallbackCopy(coordinates);
-});
-} else {
-this.fallbackCopy(coordinates);
-}
-},
-
-fallbackCopy(text) {
-// フォールバック用のコピー処理
-const textArea = document.createElement('textarea');
-textArea.value = text;
-document.body.appendChild(textArea);
-textArea.select();
-try {
-document.execCommand('copy');
-alert('緯度経度をコピーしました: ' + text);
-} catch (err) {
-alert('コピーに失敗しました。手動でコピーしてください: ' + text);
-}
-document.body.removeChild(textArea);
-},
 deleteEventById(eventId) {
 if (!confirm('この予定を削除しますか？')) return;
 const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
@@ -1236,6 +1213,7 @@ this.modals = this.modals.filter(m => m.id !== modalId);
 });
 },
 closeAllModals() {
+closeAllModals() {
 document.querySelectorAll('.modal.show').forEach(modal => {
 const bsModal = bootstrap.Modal.getInstance(modal);
 if (bsModal) bsModal.hide();
@@ -1244,25 +1222,42 @@ if (bsModal) bsModal.hide();
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+localStorage.setItem('trippenActiveDay', this.activeDay.toString());
 },
 loadData() {
-const savedEvents = localStorage.getItem('trippenEvents');
-const savedDays = localStorage.getItem('trippenDays');
-if (savedEvents) {
-try {
-this.events = JSON.parse(savedEvents);
-} catch (e) {
-console.error('予定データの読み込みに失敗しました:', e);
-this.events = [];
+const events = localStorage.getItem('trippenEvents');
+const days = localStorage.getItem('trippenDays');
+const activeDay = localStorage.getItem('trippenActiveDay');
+if (events) this.events = JSON.parse(events);
+if (days) this.tripDays = JSON.parse(days);
+if (activeDay) this.activeDay = parseInt(activeDay);
+},
+setLocation() {
+alert('位置設定機能は準備中です');
+},
+copyCoordinates() {
+const latitude = document.getElementById('eventLatitude').value;
+const longitude = document.getElementById('eventLongitude').value;
+if (!latitude || !longitude) {
+alert('緯度経度を入力してください');
+return;
 }
-}
-if (savedDays) {
-try {
-this.tripDays = JSON.parse(savedDays);
-} catch (e) {
-console.error('日程データの読み込みに失敗しました:', e);
-this.tripDays = [];
-}
+const coordinates = `${latitude},${longitude}`;
+if (navigator.clipboard && navigator.clipboard.writeText) {
+navigator.clipboard.writeText(coordinates).then(() => {
+if (navigator.vibrate) navigator.vibrate(50);
+const btn = event.target.closest('.coordinates-btn');
+const originalHTML = btn.innerHTML;
+btn.innerHTML = '<i class="fas fa-check"></i>';
+setTimeout(() => {
+btn.innerHTML = originalHTML;
+}, 1000);
+}).catch(err => {
+console.error('コピーに失敗しました:', err);
+this.fallbackCopyToClipboard(coordinates);
+});
+} else {
+this.fallbackCopyToClipboard(coordinates);
 }
 }
 },
@@ -1276,12 +1271,9 @@ window.app = this;
 },
 beforeUnmount() {
 window.removeEventListener('resize', this.detectMobile);
-if (this.longPressTimer) {
-clearTimeout(this.longPressTimer);
-this.longPressTimer = null;
 }
-}
-}).mount('#app');
+});
+app.mount('#app');
 </script>
 </body>
 </html>
