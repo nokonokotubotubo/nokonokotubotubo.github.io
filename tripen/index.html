@@ -351,6 +351,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
 const { createApp } = Vue;
 const app = createApp({
@@ -534,14 +536,13 @@ const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
 
-// 中心を基準とした初期位置を計算（3行追加）
-const eventTop = this.timeToPixels(eventData.startTime);
-const eventBottom = this.timeToPixels(eventData.endTime);
-const centerOffset = (eventTop + eventBottom) / 2 - (event.clientY - rect.top - headerHeight + container.scrollTop);
+// 中心オフセットを計算（1行追加）
+const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
 
 const moveHandler = (e) => {
-const newTop = e.clientY - rect.top - headerHeight + container.scrollTop + centerOffset;
-const snappedTop = Math.round(newTop / 15) * 15;
+const newCenterTop = e.clientY - rect.top - headerHeight + container.scrollTop;
+const newStartTop = newCenterTop - centerOffset;
+const snappedTop = Math.round(newStartTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
 
@@ -568,16 +569,15 @@ const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
 
-// 中心を基準とした初期位置を計算（3行追加）
-const eventTop = this.timeToPixels(eventData.startTime);
-const eventBottom = this.timeToPixels(eventData.endTime);
-const centerOffset = (eventTop + eventBottom) / 2 - (coords.clientY - rect.top - headerHeight + container.scrollTop);
+// 中心オフセットを計算（1行追加）
+const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
 
 const moveHandler = (e) => {
 e.preventDefault();
 const touch = e.touches[0];
-const newTop = touch.clientY - rect.top - headerHeight + container.scrollTop + centerOffset;
-const snappedTop = Math.round(newTop / 15) * 15;
+const newCenterTop = touch.clientY - rect.top - headerHeight + container.scrollTop;
+const newStartTop = newCenterTop - centerOffset;
+const snappedTop = Math.round(newStartTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
 
