@@ -116,9 +116,194 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
 
-/* 軽量化された天気予報のスタイル */
-.weather-icon{position:absolute;top:5px;left:5px;font-size:1rem;cursor:pointer;z-index:15;background:rgba(255,255,255,0.9);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
-.weather-icon:hover{transform:scale(1.1)}
+/* 天気予報絵文字のスタイル */
+.weather-icon {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.weather-icon:hover {
+    transform: scale(1.1);
+}
+
+/* 天気予報ポップアップのスタイル */
+.weather-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.weather-popup.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.weather-popup-content {
+    background: white;
+    border-radius: 15px;
+    width: 95%;
+    max-width: 800px;
+    height: 80%;
+    max-height: 600px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.weather-popup-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.weather-popup-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+.weather-popup-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.weather-popup-body {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.weather-timeline {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 350px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f8f9fa;
+    scroll-snap-type: x mandatory;
+}
+
+.weather-hour {
+    min-width: 80px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 5px;
+    background: white;
+    border-radius: 8px;
+    margin: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    scroll-snap-align: start;
+}
+
+.weather-hour.current {
+    background: var(--primary);
+    color: white;
+    font-weight: bold;
+}
+
+.weather-hour-time {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.weather-hour-icon {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.weather-hour-temp {
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+.weather-hour-rain {
+    font-size: 0.8rem;
+    color: #007bff;
+    margin-bottom: 3px;
+}
+
+.weather-hour-humidity {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.weather-summary {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.weather-summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.weather-summary-item:last-child {
+    margin-bottom: 0;
+}
+
+.rain-bar {
+    width: 100px;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-left: 10px;
+}
+
+.rain-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    transition: width 0.3s ease;
+}
+
+.clothing-index {
+    font-size: 1.2rem;
+    margin-left: 10px;
+}
 
 /* OpenStreetMap地図のスタイル */
 .map-modal {
@@ -295,12 +480,13 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 { 'dragging': draggingEvent && draggingEvent.id === event.id },
 { 'ready-to-move': readyToMoveEventId === event.id }
 ]" :style="getEventStyle(event)" @contextmenu.prevent="handleEventContextMenu($event, event)" @click="handleEventClick($event, event)" @mousedown="handleEventMouseDown($event, event)">
+<!-- 天気予報絵文字（位置設定がある場合のみ表示）-->
+<div v-if="event.coordinates" class="weather-icon" @click.stop="showWeatherPopup(event)" :title="getWeatherTooltip(event)">
+{{ getWeatherEmoji(event) }}
+</div>
 <div class="event-content-inline">
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
-</div>
-<div class="weather-icon" v-if="event.coordinates" @click.stop="showWeatherPopup(event)" :title="'天気予報を表示'">
-🌤️
 </div>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
 <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
@@ -364,12 +550,13 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 { 'dragging': draggingEvent && draggingEvent.id === event.id },
 { 'ready-to-move': readyToMoveEventId === event.id }
 ]" :style="getEventStyle(event)" @click="handleEventClick($event, event)" @touchstart="handleEventTouchStart($event, event)">
+<!-- 天気予報絵文字（位置設定がある場合のみ表示）-->
+<div v-if="event.coordinates" class="weather-icon" @click.stop="showWeatherPopup(event)" :title="getWeatherTooltip(event)">
+{{ getWeatherEmoji(event) }}
+</div>
 <div class="event-content-inline">
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
-</div>
-<div class="weather-icon" v-if="event.coordinates" @click.stop="showWeatherPopup(event)" :title="'天気予報を表示'">
-🌤️
 </div>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
 <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @touchstart.stop title="切り取り">
@@ -416,6 +603,55 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </button>
 </div>
 </div>
+</div>
+
+<!-- 天気予報ポップアップ -->
+<div v-if="showWeatherModal" class="weather-popup" :class="{ show: showWeatherModal }" @click="closeWeatherPopup">
+    <div class="weather-popup-content" @click.stop>
+        <div class="weather-popup-header">
+            <h5><i class="fas fa-cloud-sun"></i> {{ currentWeatherEvent?.title || '天気予報' }}</h5>
+            <button class="weather-popup-close" @click="closeWeatherPopup">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="weather-popup-body">
+            <div class="weather-summary">
+                <div class="weather-summary-item">
+                    <span><i class="fas fa-thermometer-half"></i> 気温</span>
+                    <span>{{ currentWeatherData?.temperature || '--' }}°C</span>
+                </div>
+                <div class="weather-summary-item">
+                    <span><i class="fas fa-tint"></i> 降水確率</span>
+                    <div style="display: flex; align-items: center;">
+                        <span>{{ currentWeatherData?.precipitation || 0 }}%</span>
+                        <div class="rain-bar">
+                            <div class="rain-bar-fill" :style="{ width: (currentWeatherData?.precipitation || 0) + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-summary-item">
+                    <span><i class="fas fa-water"></i> 湿度</span>
+                    <span>{{ currentWeatherData?.humidity || '--' }}%</span>
+                </div>
+                <div class="weather-summary-item">
+                    <span><i class="fas fa-tshirt"></i> 服装指数</span>
+                    <span class="clothing-index">{{ getClothingIndex(currentWeatherData?.temperature) }}</span>
+                </div>
+            </div>
+            
+            <div class="weather-timeline" ref="weatherTimeline">
+                <div v-for="hour in hourlyWeatherData" :key="hour.time" 
+                     class="weather-hour" 
+                     :class="{ current: hour.isCurrent }">
+                    <div class="weather-hour-time">{{ formatHour(hour.time) }}</div>
+                    <div class="weather-hour-icon">{{ getWeatherEmojiFromCode(hour.weatherCode) }}</div>
+                    <div class="weather-hour-temp">{{ hour.temperature }}°C</div>
+                    <div class="weather-hour-rain">{{ hour.precipitation }}%</div>
+                    <div class="weather-hour-humidity">{{ hour.humidity }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- OpenStreetMap地図モーダル（指示通りのみ）-->
@@ -504,7 +740,13 @@ category: 'travel',
 description: '',
 coordinates: ''
 },
-modals: []
+modals: [],
+// 天気予報機能用
+showWeatherModal: false,
+currentWeatherEvent: null,
+currentWeatherData: null,
+hourlyWeatherData: [],
+weatherCache: new Map() // 天気データのキャッシュ
 };
 },
 methods: {
@@ -613,16 +855,14 @@ if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 return;
 }
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle') &&
-!event.target.closest('.weather-icon')) {
+!event.target.closest('.resize-handle')) {
 this.openDetailModal(eventData);
 }
 },
 handleEventMouseDown(event, eventData) {
 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle') &&
-!event.target.closest('.weather-icon')) {
+!event.target.closest('.resize-handle')) {
 event.preventDefault();
 event.stopPropagation();
 this.startEventDrag(event, eventData);
@@ -775,16 +1015,14 @@ return;
 }
 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle') &&
-!event.target.closest('.weather-icon')) {
+!event.target.closest('.resize-handle')) {
 event.preventDefault();
 event.stopPropagation();
 this.startEventDragTouch(event, eventData);
 }
 } else {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle') &&
-!event.target.closest('.weather-icon')) {
+!event.target.closest('.resize-handle')) {
 event.preventDefault();
 event.stopPropagation();
 this.touchStartTime = Date.now();
@@ -1042,532 +1280,568 @@ custom: 'fas fa-star'
 return icons[category] || 'fas fa-calendar';
 },
 
-// 軽量化された天気予報関連メソッド
+// 天気予報関連メソッド
 async getWeatherData(coordinates, date) {
-try {
-const [lat, lng] = coordinates.split(',').map(parseFloat);
-const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`);
-const data = await response.json();
-return data;
-} catch (error) {
-console.error('天気予報取得エラー:', error);
-return null;
+const cacheKey = `${coordinates}-${date}`;
+
+// キャッシュから取得
+if (this.weatherCache.has(cacheKey)) {
+return this.weatherCache.get(cacheKey);
 }
-},
-
-getWeatherIcon(code) {
-const icons = {
-0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
-51: '🌦️', 53: '🌦️', 55: '🌦️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
-71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️',
-85: '🌨️', 86: '❄️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
-};
-return icons[code] || '🌤️';
-},
-
-async showWeatherPopup(event) {
-if (!event.coordinates) return;
-const date = this.tripDays[event.dayIndex]?.fullDate;
-const weatherData = await this.getWeatherData(event.coordinates, date);
-if (!weatherData) return;
-
-const hour = parseInt(event.startTime.split(':')[0]);
-const index = Math.max(0, hour - 4);
-const currentWeather = {
-temp: Math.round(weatherData.hourly.temperature_2m[index] || 0),
-humidity: weatherData.hourly.relative_humidity_2m[index] || 0,
-rain: weatherData.hourly.precipitation_probability[index] || 0,
-code: weatherData.hourly.weather_code[index] || 0
-};
-
-this.openModal('🌤️ 天気予報', `
-<div class="weather-info">
-<div class="temp">${currentWeather.temp}°C</div>
-<div>${this.getWeatherIcon(currentWeather.code)}</div>
-</div>
-<div class="weather-details">
-<div><strong>湿度</strong><br>${currentWeather.humidity}%</div>
-<div><strong>降水確率</strong><br>${currentWeather.rain}%</div>
-<div><strong>服装</strong><br>${this.getClothingIcon(currentWeather.temp)}</div>
-</div>
-<div class="weather-hourly">
-${weatherData.hourly.temperature_2m.slice(0, 20).map((temp, i) => `
-<div class="weather-hour ${i + 4 === hour ? 'current' : ''}">
-<div>${(i + 4).toString().padStart(2, '0')}:00</div>
-<div>${this.getWeatherIcon(weatherData.hourly.weather_code[i])}</div>
-<div>${Math.round(temp)}°C</div>
-</div>
-`).join('')}
-</div>
-`, `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>`);
-},
-
-getClothingIcon(temp) {
-if (temp < 10) return '🧥🧣';
-if (temp < 20) return '👔';
-if (temp < 25) return '👕';
-return '👔';
-},
-
-// OpenStreetMap地図機能メソッド（指示通りのみ）
-setLocationFromMap() {
-this.showMapModal = true;
-this.$nextTick(() => {
-this.initializeMap();
-});
-},
-
-initializeMap() {
-// 大阪府大阪市北区の座標 (34.7024, 135.4959)
-const initialLat = 34.7024;
-const initialLng = 135.4959;
-
-this.map = L.map('map').setView([initialLat, initialLng], 15);
-
-// OpenStreetMap APIを使用
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-attribution: '© OpenStreetMap contributors'
-}).addTo(this.map);
-
-// 地図クリック（タップ）イベント - 座標取得
-this.map.on('click', (e) => {
-this.handleMapClick(e);
-});
-},
-
-handleMapClick(e) {
-const lat = e.latlng.lat.toFixed(6);
-const lng = e.latlng.lng.toFixed(6);
-this.selectedCoordinates = `${lat},${lng}`;
-
-// 既存のマーカーを削除
-if (this.mapMarker) {
-this.map.removeLayer(this.mapMarker);
-}
-
-// 新しいマーカーを追加
-this.mapMarker = L.marker([lat, lng]).addTo(this.map);
-
-// 座標を入力フィールドに設定
-const coordinatesInput = document.getElementById('eventCoordinates');
-if (coordinatesInput) {
-coordinatesInput.value = this.selectedCoordinates;
-}
-
-// タップフィードバック
-if (navigator.vibrate) navigator.vibrate(100);
-
-// 地図を自動で閉じる
-this.closeMapModal();
-},
-
-closeMapModal() {
-this.showMapModal = false;
-if (this.map) {
-this.map.remove();
-this.map = null;
-}
-this.mapMarker = null;
-},
-
-copyCoordinates() {
-const coordinatesInput = document.getElementById('eventCoordinates');
-if (!coordinatesInput || !coordinatesInput.value.trim()) {
-alert('コピーする緯度経度がありません');
-return;
-}
-
-const coordinates = coordinatesInput.value.trim();
 
 try {
-navigator.clipboard.writeText(coordinates).then(() => {
-alert('緯度経度をクリップボードにコピーしました');
-if (navigator.vibrate) navigator.vibrate(100);
-}).catch(() => {
-// フォールバック処理
-coordinatesInput.select();
-document.execCommand('copy');
-alert('緯度経度をクリップボードにコピーしました');
-if (navigator.vibrate) navigator.vibrate(100);
-});
-} catch (error) {
-console.error('コピーに失敗しました:', error);
-alert('コピーに失敗しました');
-}
-},
+const [lat, lng] = coordinates.split(',').map(coord => parseFloat(coord.trim()));
 
-openGoogleMap(coordinates) {
-if (!coordinates || !coordinates.trim()) {
-alert('緯度経度が設定されていません');
-return;
+if (isNaN(lat) || isNaN(lng)) {
+throw new Error('Invalid coordinates');
 }
+
+            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability,relative_humidity_2m,weather_code&start_date=${date}&end_date=${date}&timezone=Asia/Tokyo`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // キャッシュに保存（1時間有効）
+            this.weatherCache.set(cacheKey, data);
+            setTimeout(() => {
+                this.weatherCache.delete(cacheKey);
+            }, 3600000); // 1時間後にキャッシュを削除
+            
+            return data;
+        } catch (error) {
+            console.error('天気データの取得に失敗しました:', error);
+            return null;
+        }
+    },
     
-const coords = coordinates.trim();
-const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=20`;
+    getWeatherEmoji(event) {
+        if (!event.coordinates) return '';
+        
+        // 簡単な天気予報絵文字の表示（実際の天気データは非同期で取得）
+        return '🌤️'; // デフォルト
+    },
     
-try {
-if (this.isMobile) {
-// モバイルの場合はアプリで開く
-window.location.href = googleMapsUrl;
-} else {
-// デスクトップの場合は別タブで開く
-window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
-}
-} catch (error) {
-console.error('Googleマップの表示中にエラーが発生しました:', error);
-alert('Googleマップの表示に失敗しました');
-}
-},
+    getWeatherTooltip(event) {
+        return '天気予報を表示';
+    },
+    
+    async showWeatherPopup(event) {
+        if (!event.coordinates) return;
+        
+        this.currentWeatherEvent = event;
+        this.showWeatherModal = true;
+        
+        // 天気データを取得
+        const dayData = this.tripDays[event.dayIndex];
+        if (!dayData) return;
+        
+        const weatherData = await this.getWeatherData(event.coordinates, dayData.fullDate);
+        
+        if (weatherData && weatherData.hourly) {
+            this.processWeatherData(weatherData, event);
+        }
+    },
+    
+    processWeatherData(weatherData, event) {
+        const hourlyData = [];
+        const startTime = this.timeToMinutes(event.startTime);
+        
+        // 4:00から23:59までの時間別データを作成
+        for (let hour = 4; hour < 24; hour++) {
+            const hourIndex = weatherData.hourly.time.findIndex(time => {
+                const timeHour = new Date(time).getHours();
+                return timeHour === hour;
+            });
+            
+            if (hourIndex >= 0) {
+                const eventStartHour = Math.floor(startTime / 60);
+                const isCurrent = hour === eventStartHour;
+                
+                hourlyData.push({
+                    time: hour,
+                    temperature: Math.round(weatherData.hourly.temperature_2m[hourIndex]),
+                    precipitation: weatherData.hourly.precipitation_probability[hourIndex] || 0,
+                    humidity: weatherData.hourly.relative_humidity_2m[hourIndex] || 0,
+                    weatherCode: weatherData.hourly.weather_code[hourIndex] || 0,
+                    isCurrent: isCurrent
+                });
+            }
+        }
+        
+        this.hourlyWeatherData = hourlyData;
+        
+        // 現在の予定時間の天気データを設定
+        const currentHour = Math.floor(startTime / 60);
+        const currentData = hourlyData.find(data => data.time === currentHour);
+        
+        if (currentData) {
+            this.currentWeatherData = currentData;
+        }
+        
+        // 予定時間を左端に表示するためのスクロール
+        this.$nextTick(() => {
+            this.scrollToCurrentTime();
+        });
+    },
+    
+    scrollToCurrentTime() {
+        const timeline = this.$refs.weatherTimeline;
+        if (!timeline) return;
+        
+        const currentElement = timeline.querySelector('.weather-hour.current');
+        if (currentElement) {
+            timeline.scrollLeft = currentElement.offsetLeft - 20;
+        }
+    },
+    
+    closeWeatherPopup() {
+        this.showWeatherModal = false;
+        this.currentWeatherEvent = null;
+        this.currentWeatherData = null;
+        this.hourlyWeatherData = [];
+    },
+    
+    formatHour(hour) {
+        return `${hour.toString().padStart(2, '0')}:00`;
+    },
+    
+    getWeatherEmojiFromCode(code) {
+        const weatherEmojis = {
+            0: '☀️',  // 晴れ
+            1: '🌤️',  // 主に晴れ
+            2: '⛅',   // 部分的に曇り
+            3: '☁️',  // 曇り
+            45: '🌫️', // 霧
+            48: '🌫️', // 霧氷
+            51: '🌦️', // 軽い霧雨
+            53: '🌦️', // 霧雨
+            55: '🌦️', // 濃い霧雨
+            61: '🌧️', // 軽い雨
+            63: '🌧️', // 雨
+            65: '🌧️', // 激しい雨
+            71: '❄️',  // 軽い雪
+            73: '❄️',  // 雪
+            75: '❄️',  // 激しい雪
+            77: '❄️',  // 雪粒
+            80: '🌦️', // 軽いにわか雨
+            81: '🌦️', // にわか雨
+            82: '🌦️', // 激しいにわか雨
+            85: '🌨️', // 軽いにわか雪
+            86: '🌨️', // にわか雪
+            95: '⛈️',  // 雷雨
+            96: '⛈️',  // 雹を伴う雷雨
+            99: '⛈️'   // 激しい雹を伴う雷雨
+        };
+        
+        return weatherEmojis[code] || '🌤️';
+    },
+    
+    getClothingIndex(temperature) {
+        if (temperature === null || temperature === undefined) return '❓';
+        
+        if (temperature >= 25) return '👕'; // 半袖
+        if (temperature >= 20) return '👔'; // 長袖
+        if (temperature >= 15) return '🧥'; // 軽いジャケット
+        if (temperature >= 10) return '🧥'; // ジャケット
+        if (temperature >= 5) return '🧥'; // コート
+        return '🧥'; // 厚手のコート
+    },
 
-// 軽量化された天気予報関連メソッド
-async getWeatherData(coordinates, date) {
-try {
-const [lat, lng] = coordinates.split(',').map(parseFloat);
-const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`);
-const data = await response.json();
-return data;
-} catch (error) {
-console.error('天気予報取得エラー:', error);
-return null;
-}
-},
+    // OpenStreetMap地図機能メソッド（指示通りのみ）
+    setLocationFromMap() {
+        this.showMapModal = true;
+        this.$nextTick(() => {
+            this.initializeMap();
+        });
+    },
 
-getWeatherIcon(code) {
-const icons = {
-0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
-51: '🌦️', 53: '🌦️', 55: '🌦️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
-71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️',
-85: '🌨️', 86: '❄️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
-};
-return icons[code] || '🌤️';
-},
+    initializeMap() {
+        // 大阪府大阪市北区の座標 (34.7024, 135.4959)
+        const initialLat = 34.7024;
+        const initialLng = 135.4959;
 
-async showWeatherPopup(event) {
-if (!event.coordinates) return;
-const date = this.tripDays[event.dayIndex]?.fullDate;
-const weatherData = await this.getWeatherData(event.coordinates, date);
-if (!weatherData) return;
+        this.map = L.map('map').setView([initialLat, initialLng], 15);
 
-const hour = parseInt(event.startTime.split(':')[0]);
-const index = Math.max(0, hour - 4);
-const currentWeather = {
-temp: Math.round(weatherData.hourly.temperature_2m[index] || 0),
-humidity: weatherData.hourly.relative_humidity_2m[index] || 0,
-rain: weatherData.hourly.precipitation_probability[index] || 0,
-code: weatherData.hourly.weather_code[index] || 0
-};
+        // OpenStreetMap APIを使用
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.map);
 
-this.openModal('🌤️ 天気予報', `
-<div class="weather-info">
-<div class="temp">${currentWeather.temp}°C</div>
-<div>${this.getWeatherIcon(currentWeather.code)}</div>
-</div>
-<div class="weather-details">
-<div><strong>湿度</strong><br>${currentWeather.humidity}%</div>
-<div><strong>降水確率</strong><br>${currentWeather.rain}%</div>
-<div><strong>服装</strong><br>${this.getClothingIcon(currentWeather.temp)}</div>
-</div>
-<div class="weather-hourly">
-${weatherData.hourly.temperature_2m.slice(0, 20).map((temp, i) => `
-<div class="weather-hour ${i + 4 === hour ? 'current' : ''}">
-<div>${(i + 4).toString().padStart(2, '0')}:00</div>
-<div>${this.getWeatherIcon(weatherData.hourly.weather_code[i])}</div>
-<div>${Math.round(temp)}°C</div>
-</div>
-`).join('')}
-</div>
-`, `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>`);
-},
+        // 地図クリック（タップ）イベント - 座標取得
+        this.map.on('click', (e) => {
+            this.handleMapClick(e);
+        });
+    },
 
-getClothingIcon(temp) {
-if (temp < 10) return '🧥🧣';
-if (temp < 20) return '👔';
-if (temp < 25) return '👕';
-return '👔';
-},
+    handleMapClick(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        this.selectedCoordinates = `${lat},${lng}`;
 
-openDetailModal(event) {
-const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
-if (!eventData) {
-console.error('openDetailModal: 予定データが見つかりません:', event);
-alert('予定データが見つかりません');
-return;
-}
-const safeEventId = String(eventData.id).replace(/'/g, "\\'");
-const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-const safeCoordinates = String(eventData.coordinates || '').replace(/"/g, "&quot;");
-this.openModal('詳細', `
-<div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
-<div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
-<div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${safeCoordinates} <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="window.app.openGoogleMap('${safeCoordinates}')" title="Googleマップで表示">🗾</button></div>` : ''}
-${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
-`, `
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-<button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
-<button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
-`);
-},
-deleteEventFromDetail(eventId) {
-try {
-if (!confirm('この予定を削除しますか？')) {
-return;
-}
-const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex === -1) {
-alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-return;
-}
-this.events.splice(eventIndex, 1);
-this.saveData();
-this.editModeEvent = null;
-this.closeAllModals();
-if (navigator.vibrate) navigator.vibrate(100);
-} catch (error) {
-console.error('予定の削除中にエラーが発生しました:', error);
-alert('予定の削除に失敗しました。もう一度お試しください。');
-}
-},
-editEventFromDetail(eventId) {
-try {
-const event = this.events.find(e => String(e.id) === String(eventId));
-if (!event) {
-alert('予定が見つかりません。ページを再読み込みしてお試しください。');
-return;
-}
-this.closeAllModals();
-setTimeout(() => {
-this.openEventModal(event);
-}, 100);
-} catch (error) {
-console.error('予定の編集準備中にエラーが発生しました:', error);
-alert('予定の編集準備に失敗しました。もう一度お試しください。');
-}
-},
-openEventModal(event = null, fromContextMenu = false) {
-const isEdit = !!event;
-if (!fromContextMenu) {
-if (event) {
-this.eventForm = { ...event };
-} else {
-this.eventForm = {
-title: '',
-dayIndex: this.activeDay,
-startTime: '09:00',
-endTime: '10:00',
-category: 'travel',
-description: '',
-coordinates: ''
-};
-}
-}
-const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
-const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
-const safeCoordinates = String(this.eventForm.coordinates || '').replace(/"/g, "&quot;");
-const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
-this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
-<div class="mb-3">
-<label class="form-label">予定名</label>
-<input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
-</div>
-<div class="mb-3">
-<label class="form-label">日付</label>
-<select class="form-control" id="eventDayIndex">
-${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
-</select>
-</div>
-<div class="row">
-<div class="col-md-6">
-<div class="mb-3">
-<label class="form-label">開始時間</label>
-<input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
-</div>
-</div>
-<div class="col-md-6">
-<div class="mb-3">
-<label class="form-label">終了時間</label>
-<input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
-</div>
-</div>
-</div>
-<div class="mb-3">
-<label class="form-label">カテゴリ</label>
-<select class="form-control" id="eventCategory">
-<option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
-<option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
-<option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
-<option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
-<option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
-</select>
-</div>
-<div class="mb-3">
-<label class="form-label">緯度経度</label>
-<div class="row">
-<div class="col-md-4">
-<input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
-</div>
-<div class="col-md-4">
-<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
-<i class="fas fa-map-marker-alt"></i> 位置設定
-</button>
-</div>
-<div class="col-md-4">
-<button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
-<i class="fas fa-copy"></i> コピー
-</button>
-</div>
-</div>
-</div>
-<div class="mb-3">
-<label class="form-label">詳細</label>
-<textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
-</div>
-`, `
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
-<button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
-`);
-},
-openStartDateModal() {
-this.openModal('旅行開始日の変更', `
-<div class="mb-3">
-<label class="form-label">新しい開始日</label>
-<input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
-</div>
-<div class="alert alert-info" role="alert">
-<small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
-</div>
-`, `
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-<button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
-`, 'modal-sm');
-},
-saveStartDateFromModal() {
-const newStartDate = document.getElementById('newStartDate').value;
-if (!newStartDate) {
-alert('開始日を選択してください');
-return;
-}
-this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
-this.saveData();
-this.closeAllModals();
-},
-saveEventFromModal(eventId = null) {
-const title = document.getElementById('eventTitle').value.trim();
-const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
-const startTime = document.getElementById('eventStartTime').value;
-const endTime = document.getElementById('eventEndTime').value;
-const category = document.getElementById('eventCategory').value;
-const description = document.getElementById('eventDescription').value.trim();
-const coordinates = document.getElementById('eventCoordinates').value.trim();
-if (!title || !startTime || !endTime) {
-alert('必須項目を入力してください');
-return;
-}
-if (startTime >= endTime) {
-alert('終了時間は開始時間より後にしてください');
-return;
-}
-if (eventId) {
-const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex !== -1) {
-this.events[eventIndex] = {
-...this.events[eventIndex],
-title,
-dayIndex,
-startTime,
-endTime,
-category,
-description,
-coordinates
-};
-}
-} else {
-this.events.push({
-id: Date.now() + Math.random(),
-title,
-dayIndex,
-startTime,
-endTime,
-category,
-description,
-coordinates
-});
-}
-this.saveData();
-this.closeAllModals();
-this.editModeEvent = null;
-},
-deleteEventById(eventId) {
-if (!confirm('この予定を削除しますか？')) return;
-const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex !== -1) {
-this.events.splice(eventIndex, 1);
-this.saveData();
-this.editModeEvent = null;
-this.closeAllModals();
-}
-},
-openModal(title, body, footer = '', size = '') {
-const modalId = 'modal-' + Date.now();
-const modal = { id: modalId, title, body, footer, size };
-this.modals.push(modal);
-this.$nextTick(() => {
-const modalElement = document.getElementById(modalId);
-if (modalElement) {
-const bsModal = new bootstrap.Modal(modalElement);
-bsModal.show();
-modalElement.addEventListener('hidden.bs.modal', () => {
-this.modals = this.modals.filter(m => m.id !== modalId);
-});
-}
-});
-},
-closeAllModals() {
-document.querySelectorAll('.modal.show').forEach(modal => {
-const bsModal = bootstrap.Modal.getInstance(modal);
-if (bsModal) bsModal.hide();
-});
-},
-saveData() {
-localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-},
-loadData() {
-const savedEvents = localStorage.getItem('trippenEvents');
-const savedDays = localStorage.getItem('trippenDays');
-if (savedEvents) {
-try {
-this.events = JSON.parse(savedEvents);
-} catch (e) {
-console.error('予定データの読み込みに失敗しました:', e);
-this.events = [];
-}
-}
-if (savedDays) {
-try {
-this.tripDays = JSON.parse(savedDays);
-} catch (e) {
-console.error('日程データの読み込みに失敗しました:', e);
-this.tripDays = [];
-}
-}
-}
+        // 既存のマーカーを削除
+        if (this.mapMarker) {
+            this.map.removeLayer(this.mapMarker);
+        }
+
+        // 新しいマーカーを追加
+        this.mapMarker = L.marker([lat, lng]).addTo(this.map);
+
+        // 座標を入力フィールドに設定
+        const coordinatesInput = document.getElementById('eventCoordinates');
+        if (coordinatesInput) {
+            coordinatesInput.value = this.selectedCoordinates;
+        }
+
+        // タップフィードバック
+        if (navigator.vibrate) navigator.vibrate(100);
+
+        // 地図を自動で閉じる
+        this.closeMapModal();
+    },
+
+    closeMapModal() {
+        this.showMapModal = false;
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+        this.mapMarker = null;
+    },
+
+    copyCoordinates() {
+        const coordinatesInput = document.getElementById('eventCoordinates');
+        if (!coordinatesInput || !coordinatesInput.value.trim()) {
+            alert('コピーする緯度経度がありません');
+            return;
+        }
+
+        const coordinates = coordinatesInput.value.trim();
+
+        try {
+            navigator.clipboard.writeText(coordinates).then(() => {
+                alert('緯度経度をクリップボードにコピーしました');
+                if (navigator.vibrate) navigator.vibrate(100);
+            }).catch(() => {
+                // フォールバック処理
+                coordinatesInput.select();
+                document.execCommand('copy');
+                alert('緯度経度をクリップボードにコピーしました');
+                if (navigator.vibrate) navigator.vibrate(100);
+            });
+        } catch (error) {
+            console.error('コピーに失敗しました:', error);
+            alert('コピーに失敗しました');
+        }
+    },
+
+    openGoogleMap(coordinates) {
+        if (!coordinates || !coordinates.trim()) {
+            alert('緯度経度が設定されていません');
+            return;
+        }
+        
+        const coords = coordinates.trim();
+        const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=20`;
+        
+        try {
+            if (this.isMobile) {
+                // モバイルの場合はアプリで開く
+                window.location.href = googleMapsUrl;
+            } else {
+                // デスクトップの場合は別タブで開く
+                window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+            }
+        } catch (error) {
+            console.error('Googleマップの表示中にエラーが発生しました:', error);
+            alert('Googleマップの表示に失敗しました');
+        }
+    },
+
+    openDetailModal(event) {
+        const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+        if (!eventData) {
+            console.error('openDetailModal: 予定データが見つかりません:', event);
+            alert('予定データが見つかりません');
+            return;
+        }
+        const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+        const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const safeCoordinates = String(eventData.coordinates || '').replace(/"/g, "&quot;");
+        this.openModal('詳細', `
+    <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+    <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+    <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+    ${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${safeCoordinates} <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="window.app.openGoogleMap('${safeCoordinates}')" title="Googleマップで表示">🗾</button></div>` : ''}
+    ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
+    `, `
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+    <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+    <button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
+    `);
+    },
+    deleteEventFromDetail(eventId) {
+        try {
+            if (!confirm('この予定を削除しますか？')) {
+                return;
+            }
+            const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+            if (eventIndex === -1) {
+                alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                return;
+            }
+            this.events.splice(eventIndex, 1);
+            this.saveData();
+            this.editModeEvent = null;
+            this.closeAllModals();
+            if (navigator.vibrate) navigator.vibrate(100);
+        } catch (error) {
+            console.error('予定の削除中にエラーが発生しました:', error);
+            alert('予定の削除に失敗しました。もう一度お試しください。');
+        }
+    },
+    editEventFromDetail(eventId) {
+        try {
+            const event = this.events.find(e => String(e.id) === String(eventId));
+            if (!event) {
+                alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+                return;
+            }
+            this.closeAllModals();
+            setTimeout(() => {
+                this.openEventModal(event);
+            }, 100);
+        } catch (error) {
+            console.error('予定の編集準備中にエラーが発生しました:', error);
+            alert('予定の編集準備に失敗しました。もう一度お試しください。');
+        }
+    },
+    openEventModal(event = null, fromContextMenu = false) {
+        const isEdit = !!event;
+        if (!fromContextMenu) {
+            if (event) {
+                this.eventForm = { ...event };
+            } else {
+                this.eventForm = {
+                    title: '',
+                    dayIndex: this.activeDay,
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    category: 'travel',
+                    description: '',
+                    coordinates: ''
+                };
+            }
+        }
+        const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+        const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+        const safeCoordinates = String(this.eventForm.coordinates || '').replace(/"/g, "&quot;");
+        const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
+        this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
+    <div class="mb-3">
+    <label class="form-label">予定名</label>
+    <input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
+    </div>
+    <div class="mb-3">
+    <label class="form-label">日付</label>
+    <select class="form-control" id="eventDayIndex">
+    ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
+    </select>
+    </div>
+    <div class="row">
+    <div class="col-md-6">
+    <div class="mb-3">
+    <label class="form-label">開始時間</label>
+    <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
+    </div>
+    </div>
+    <div class="col-md-6">
+    <div class="mb-3">
+    <label class="form-label">終了時間</label>
+    <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
+    </div>
+    </div>
+    </div>
+    <div class="mb-3">
+    <label class="form-label">カテゴリ</label>
+    <select class="form-control" id="eventCategory">
+    <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+    <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+    <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
+    <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+    <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
+    </select>
+    </div>
+    <div class="mb-3">
+    <label class="form-label">緯度経度</label>
+    <div class="row">
+    <div class="col-md-4">
+    <input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
+    </div>
+    <div class="col-md-4">
+    <button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
+    <i class="fas fa-map-marker-alt"></i> 位置設定
+    </button>
+    </div>
+    <div class="col-md-4">
+    <button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
+    <i class="fas fa-copy"></i> コピー
+    </button>
+    </div>
+    </div>
+    </div>
+    <div class="mb-3">
+    <label class="form-label">詳細</label>
+    <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
+    </div>
+    `, `
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+    ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+    <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
+    `);
+    },
+    openStartDateModal() {
+        this.openModal('旅行開始日の変更', `
+    <div class="mb-3">
+    <label class="form-label">新しい開始日</label>
+    <input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
+    </div>
+    <div class="alert alert-info" role="alert">
+    <small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
+    </div>
+    `, `
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+    <button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
+    `, 'modal-sm');
+    },
+    saveStartDateFromModal() {
+        const newStartDate = document.getElementById('newStartDate').value;
+        if (!newStartDate) {
+            alert('開始日を選択してください');
+            return;
+        }
+        this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+        this.saveData();
+        this.closeAllModals();
+    },
+    saveEventFromModal(eventId = null) {
+        const title = document.getElementById('eventTitle').value.trim();
+        const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
+        const startTime = document.getElementById('eventStartTime').value;
+        const endTime = document.getElementById('eventEndTime').value;
+        const category = document.getElementById('eventCategory').value;
+        const description = document.getElementById('eventDescription').value.trim();
+        const coordinates = document.getElementById('eventCoordinates').value.trim();
+        if (!title || !startTime || !endTime) {
+            alert('必須項目を入力してください');
+            return;
+        }
+        if (startTime >= endTime) {
+            alert('終了時間は開始時間より後にしてください');
+            return;
+        }
+        if (eventId) {
+            const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+            if (eventIndex !== -1) {
+                this.events[eventIndex] = {
+                    ...this.events[eventIndex],
+                    title,
+                    dayIndex,
+                    startTime,
+                    endTime,
+                    category,
+                    description,
+                    coordinates
+                };
+            }
+        } else {
+            this.events.push({
+                id: Date.now() + Math.random(),
+                title,
+                dayIndex,
+                startTime,
+                endTime,
+                category,
+                description,
+                coordinates
+            });
+        }
+        this.saveData();
+        this.closeAllModals();
+        this.editModeEvent = null;
+    },
+    deleteEventById(eventId) {
+        if (!confirm('この予定を削除しますか？')) return;
+        const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+        if (eventIndex !== -1) {
+            this.events.splice(eventIndex, 1);
+            this.saveData();
+            this.editModeEvent = null;
+            this.closeAllModals();
+        }
+    },
+    openModal(title, body, footer = '', size = '') {
+        const modalId = 'modal-' + Date.now();
+        const modal = { id: modalId, title, body, footer, size };
+        this.modals.push(modal);
+        this.$nextTick(() => {
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                const bsModal = new bootstrap.Modal(modalElement);
+                bsModal.show();
+                modalElement.addEventListener('hidden.bs.modal', () => {
+                    this.modals = this.modals.filter(m => m.id !== modalId);
+                });
+            }
+        });
+    },
+    closeAllModals() {
+        document.querySelectorAll('.modal.show').forEach(modal => {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) bsModal.hide();
+        });
+    },
+    saveData() {
+        localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+        localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+    },
+    loadData() {
+        const savedEvents = localStorage.getItem('trippenEvents');
+        const savedDays = localStorage.getItem('trippenDays');
+        if (savedEvents) {
+            try {
+                this.events = JSON.parse(savedEvents);
+            } catch (e) {
+                console.error('予定データの読み込みに失敗しました:', e);
+                this.events = [];
+            }
+        }
+        if (savedDays) {
+            try {
+                this.tripDays = JSON.parse(savedDays);
+            } catch (e) {
+                console.error('日程データの読み込みに失敗しました:', e);
+                this.tripDays = [];
+            }
+        }
+    }
 },
 mounted() {
-this.detectMobile();
-this.checkExistingData();
-this.loadData();
-if (this.tripDays.length > 0) this.tripInitialized = true;
-window.addEventListener('resize', this.detectMobile);
-window.app = this;
+    this.detectMobile();
+    this.checkExistingData();
+    this.loadData();
+    if (this.tripDays.length > 0) this.tripInitialized = true;
+    window.addEventListener('resize', this.detectMobile);
+    window.app = this;
 },
 beforeUnmount() {
-window.removeEventListener('resize', this.detectMobile);
-if (this.longPressTimer) {
-clearTimeout(this.longPressTimer);
-this.longPressTimer = null;
-}
+    window.removeEventListener('resize', this.detectMobile);
+    if (this.longPressTimer) {
+        clearTimeout(this.longPressTimer);
+        this.longPressTimer = null;
+    }
 }
 }).mount('#app');
 </script>
