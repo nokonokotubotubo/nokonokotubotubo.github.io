@@ -1115,6 +1115,29 @@ alert('コピーに失敗しました');
 }
 },
 
+openGoogleMap(coordinates) {
+if (!coordinates || !coordinates.trim()) {
+alert('緯度経度が設定されていません');
+return;
+}
+    
+const coords = coordinates.trim();
+const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=15`;
+    
+try {
+if (this.isMobile) {
+// モバイルの場合はアプリで開く
+window.location.href = googleMapsUrl;
+} else {
+// デスクトップの場合は別タブで開く
+window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+}
+} catch (error) {
+console.error('Googleマップの表示中にエラーが発生しました:', error);
+alert('Googleマップの表示に失敗しました');
+}
+},
+
 openDetailModal(event) {
 const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
 if (!eventData) {
@@ -1124,11 +1147,12 @@ return;
 }
 const safeEventId = String(eventData.id).replace(/'/g, "\\'");
 const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+const safeCoordinates = String(eventData.coordinates || '').replace(/"/g, "&quot;");
 this.openModal('詳細', `
 <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
 <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
 <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${String(eventData.coordinates).replace(/"/g, "&quot;")}</div>` : ''}
+${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${safeCoordinates} <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="window.app.openGoogleMap('${safeCoordinates}')" title="Googleマップで表示">🗾</button></div>` : ''}
 ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
 `, `
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
