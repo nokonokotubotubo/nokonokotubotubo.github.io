@@ -11,115 +11,836 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
-/* ========= 既存スタイル ========= */
-:root{--primary:#87CEEB;--secondary:#B0E0E6;--accent:#4682B4;--text:#2F4F4F;--bg:#F0F8FF;--time-bg:#E6F3FF;--transition:all 0.3s ease;--radius:15px;--shadow:0 2px 10px rgba(0,0,0,0.1)}
-*{box-sizing:border-box}
-html,body{height:100%;overflow:hidden;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column}
-/* （中略：省略無し。既存の CSS は全て保持） */
-
-/* ========= 追加：天気絵文字アイコン ========= */
-.weather-emoji-icon{
-    position:absolute;
-    top:2px;
-    left:4px;
-    font-size:1.25em;
-    cursor:pointer;
-    z-index:20;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));
-    transition:transform 0.2s ease;
-}
-.weather-emoji-icon:hover{transform:scale(1.15)}
-@media(max-width:768px){
-  .weather-emoji-icon{font-size:1.1em;top:1px;left:2px}
+/* 既存のスタイル */
+:root {
+  --primary: #87CEEB;
+  --secondary: #B0E0E6;
+  --accent: #4682B4;
+  --text: #2F4F4F;
+  --bg: #F0F8FF;
+  --time-bg: #E6F3FF;
+  --transition: all 0.3s ease;
+  --radius: 15px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-/* ========= 追加：天気ポップアップ ========= */
-.weather-popup-modal{
-    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(0,0,0,0.75);backdrop-filter:blur(2px);z-index:4000;
-}
-.weather-popup-content{
-    background:#fff;border-radius:16px;max-width:95vw;max-height:90vh;
-    width:950px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.35);
-}
-@media(max-width:768px){
-  .weather-popup-content{width:95vw;height:88vh}
-}
-.weather-popup-header{
-    background:linear-gradient(135deg,#66a3ff,#0059b3);color:#fff;padding:14px 18px;
-    display:flex;justify-content:space-between;align-items:center;flex-shrink:0
-}
-.weather-popup-header h5{margin:0;font-size:1.05em;font-weight:bold}
-.weather-popup-close{
-    background:none;border:none;color:#fff;font-size:1.45rem;width:34px;height:34px;
-    display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;
-    transition:background 0.25s
-}
-.weather-popup-close:hover{background:rgba(255,255,255,0.25)}
-.weather-popup-body{padding:18px;display:flex;flex-direction:column;flex:1;overflow:hidden}
-.weather-popup-info{
-  background:#f8fbff;border:1px solid #e0e9ff;border-radius:8px;padding:10px;margin-bottom:14px;flex-shrink:0
-}
-.weather-desktop-table,.weather-mobile-table{flex:1;overflow:hidden;display:flex;flex-direction:column}
-.weather-table-container{flex:1;overflow:auto;border:1px solid #e0e9ff;border-radius:8px}
-.weather-table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;min-width:1380px;background:#f8fbff}
-.weather-table th,.weather-table td{border:1px solid #e0e9ff;padding:12px 6px;text-align:center;vertical-align:middle}
-.weather-table th{background:linear-gradient(135deg,#f0f8ff,#e6f2ff);font-weight:bold;position:sticky;top:0;z-index:10}
-.weather-row-header{background:linear-gradient(135deg,#f0f8ff,#e6f2ff);font-weight:bold;position:sticky;left:0;z-index:11}
-@media(max-width:768px){
-  .weather-table{font-size:11px;min-width:100%}
-  .weather-table th,.weather-table td{padding:8px 4px}
+* {
+  box-sizing: border-box;
 }
 
-/* 共有ユーティリティ */
-.weather-emoji{font-size:1.8em;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15))}
-.progress-container{background:#e6f2ff;border-radius:6px;width:100%;height:12px;margin:2px 0;overflow:hidden}
-.progress-bar{height:100%;background:linear-gradient(135deg,#3385ff,#0059b3);border-radius:6px;transition:width .4s ease}
-.current-time-highlight{background-color:rgba(255,235,153,0.35)!important}
-.hot-temperature{background:#dc2626!important;color:#fff!important;font-weight:bold}
-.cold-temperature{background:#1e40af!important;color:#fff!important;font-weight:bold}
+html, body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ヘッダー */
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  padding: 15px 20px;
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+  z-index: 1000;
+  position: relative;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.header .subtitle {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+/* セットアップ画面 */
+.setup-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
+
+.setup-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.setup-card h2 {
+  color: var(--accent);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid var(--secondary);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.1);
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #5a9bd4;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: #9fd3e8;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+/* デスクトップUI */
+.desktop-ui {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.day-tabs {
+  display: flex;
+  background: white;
+  border-bottom: 2px solid var(--secondary);
+  flex-shrink: 0;
+}
+
+.day-tab {
+  flex: 1;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-weight: bold;
+  transition: var(--transition);
+  position: relative;
+}
+
+.day-tab:hover {
+  background: var(--secondary);
+}
+
+.day-tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+.day-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* タイムライン */
+.timeline-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.timeline-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+.time-axis {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  z-index: 100;
+  background: var(--time-bg);
+  border-right: 2px solid var(--secondary);
+}
+
+.time-slot {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--secondary);
+  font-weight: bold;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.schedule-area {
+  margin-left: 80px;
+  position: relative;
+  min-height: 1200px;
+  background: white;
+}
+
+.schedule-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.grid-line {
+  height: 60px;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.quarter-line {
+  height: 25%;
+  border-bottom: 1px dotted #f8f8f8;
+}
+
+.quarter-line:last-child {
+  border-bottom: none;
+}
+
+/* 予定ブロック */
+.event-block {
+  position: absolute;
+  background: white;
+  border: 2px solid var(--secondary);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.event-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.event-block.edit-mode {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.3);
+}
+
+.event-block.dragging {
+  opacity: 0.7;
+  transform: rotate(2deg);
+}
+
+.event-content-inline {
+  font-size: 0.9rem;
+  font-weight: bold;
+  position: relative;
+  padding-left: 20px;
+}
+
+.event-content-inline i {
+  margin-right: 8px;
+  color: var(--accent);
+}
+
+/* 天気絵文字 */
+.weather-emoji-icon {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 1.25em;
+  cursor: pointer;
+  z-index: 20;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+  transition: transform 0.2s ease;
+}
+
+.weather-emoji-icon:hover {
+  transform: scale(1.15);
+}
+
+/* カテゴリ別カラー */
+.event-category-travel {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  border-color: #2196f3;
+}
+
+.event-category-food {
+  background: linear-gradient(135deg, #fff3e0, #ffcc80);
+  border-color: #ff9800;
+}
+
+.event-category-sightseeing {
+  background: linear-gradient(135deg, #f3e5f5, #ce93d8);
+  border-color: #9c27b0;
+}
+
+.event-category-shopping {
+  background: linear-gradient(135deg, #e8f5e8, #a5d6a7);
+  border-color: #4caf50;
+}
+
+.event-category-accommodation {
+  background: linear-gradient(135deg, #fce4ec, #f8bbd9);
+  border-color: #e91e63;
+}
+
+.event-category-meeting {
+  background: linear-gradient(135deg, #fff8e1, #ffecb3);
+  border-color: #ffc107;
+}
+
+.event-category-other {
+  background: linear-gradient(135deg, #f1f8e9, #dcedc8);
+  border-color: #8bc34a;
+}
+
+/* 予定操作 */
+.event-actions {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 4px;
+}
+
+.event-action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: var(--transition);
+}
+
+.event-action-btn.cut {
+  background: #dc3545;
+  color: white;
+}
+
+.event-action-btn.cut:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 15;
+}
+
+.resize-handle.top {
+  top: -4px;
+}
+
+.resize-handle.bottom {
+  bottom: -4px;
+}
+
+.resize-handle:hover {
+  background: rgba(70, 130, 180, 0.3);
+}
+
+/* コンテキストメニュー */
+.context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 2000;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.context-menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.context-menu-item:hover {
+  background: var(--secondary);
+}
+
+.context-menu-item i {
+  margin-right: 8px;
+  width: 16px;
+}
+
+/* モバイルUI */
+.mobile-ui {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-day-selector {
+  background: white;
+  border-bottom: 2px solid var(--secondary);
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.mobile-day-selector select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--secondary);
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  color: var(--text);
+}
+
+/* FAB */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: var(--transition);
+  z-index: 1000;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+/* 天気ポップアップ */
+.weather-popup-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(2px);
+  z-index: 4000;
+}
+
+.weather-popup-content {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: 950px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+
+.weather-popup-header {
+  background: linear-gradient(135deg, #66a3ff, #0059b3);
+  color: #fff;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.weather-popup-header h5 {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: bold;
+}
+
+.weather-popup-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.45rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+
+.weather-popup-close:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.weather-popup-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.weather-popup-info {
+  background: #f8fbff;
+  border: 1px solid #e0e9ff;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.weather-desktop-table, .weather-mobile-table {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.weather-table-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #e0e9ff;
+  border-radius: 8px;
+}
+
+.weather-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  table-layout: fixed;
+  min-width: 1380px;
+  background: #f8fbff;
+}
+
+.weather-table th, .weather-table td {
+  border: 1px solid #e0e9ff;
+  padding: 12px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.weather-table th {
+  background: linear-gradient(135deg, #f0f8ff, #e6f2ff);
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.weather-row-header {
+  background: linear-gradient(135deg, #f0f8ff, #e6f2ff);
+  font-weight: bold;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+}
+
+.weather-emoji {
+  font-size: 1.8em;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+.progress-container {
+  background: #e6f2ff;
+  border-radius: 6px;
+  width: 100%;
+  height: 12px;
+  margin: 2px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(135deg, #3385ff, #0059b3);
+  border-radius: 6px;
+  transition: width .4s ease;
+}
+
+.current-time-highlight {
+  background-color: rgba(255,235,153,0.35) !important;
+}
+
+.hot-temperature {
+  background: #dc2626 !important;
+  color: #fff !important;
+  font-weight: bold;
+}
+
+.cold-temperature {
+  background: #1e40af !important;
+  color: #fff !important;
+  font-weight: bold;
+}
+
+/* モーダル */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .weather-emoji-icon {
+    font-size: 1.1em;
+    top: 1px;
+    left: 2px;
+  }
+  
+  .weather-popup-content {
+    width: 95vw;
+    height: 88vh;
+  }
+  
+  .weather-table {
+    font-size: 11px;
+    min-width: 100%;
+  }
+  
+  .weather-table th, .weather-table td {
+    padding: 8px 4px;
+  }
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- ========= ヘッダー・既存 UI（省略無し） ========= -->
-  <!-- ・・・既存の header / setup などはそのまま・・・ -->
+  <!-- ヘッダー -->
+  <header class="header">
+    <h1><i class="fas fa-plane"></i> とりっぺんちゃん</h1>
+    <div class="subtitle">旅行予定調整サイト</div>
+  </header>
 
-  <!-- ========= デスクトップ UI ========= -->
+  <!-- 旅行セットアップ画面 -->
+  <div v-if="!tripInitialized" class="setup-container">
+    <div class="setup-card">
+      <h2><i class="fas fa-calendar-alt"></i> 旅行の設定</h2>
+      
+      <div v-if="hasExistingData" class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        既存の旅行データがあります。
+        <button @click="loadData(); tripInitialized = true" class="btn btn-primary btn-sm ms-2">
+          データを読み込む
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="startDate">開始日</label>
+        <input type="date" id="startDate" v-model="tripStartDate" :min="today" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label for="endDate">終了日</label>
+        <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate || today" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <button @click="setupTrip" class="btn btn-primary w-100">
+          <i class="fas fa-play"></i> 旅行を開始する
+        </button>
+      </div>
+      
+      <div v-if="hasExistingData" class="form-group">
+        <button @click="resetTrip" class="btn btn-danger w-100">
+          <i class="fas fa-trash"></i> 既存データを削除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- デスクトップUI -->
   <div v-if="tripInitialized && !isMobile" class="desktop-ui">
+    <!-- 日程タブ -->
+    <div class="day-tabs">
+      <button v-for="(day, index) in tripDays" :key="index"
+              @click="setActiveDay(index)"
+              :class="['day-tab', { active: activeDay === index }]">
+        {{ day.date }}
+      </button>
+    </div>
 
-    <!-- （中略：日程タブ & タイムラインヘッダーは既存のまま） -->
-
+    <!-- タイムライン -->
     <div class="timeline-content">
       <div class="timeline-scroll-container" ref="scrollContainer">
         <div class="time-axis">
           <div class="time-slot" v-for="hour in timeSlots" :key="hour">{{ hour }}:00</div>
         </div>
 
-        <!-- ===== スケジュールエリア ===== -->
         <div class="schedule-area" @click="editModeEvent = null" @contextmenu="handleScheduleContextMenu">
           <div class="schedule-grid">
             <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-              <div class="quarter-line"></div><div class="quarter-line"></div><div class="quarter-line"></div>
+              <div class="quarter-line"></div>
+              <div class="quarter-line"></div>
+              <div class="quarter-line"></div>
             </div>
           </div>
 
-          <!-- ===== 予定ブロック（天気絵文字追加） ===== -->
+          <!-- 予定ブロック -->
           <div class="event-block"
                v-for="event in getCurrentDayEvents()" :key="event.id"
                :class="[
                  'event-category-' + event.category,
                  { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                 { 'dragging': draggingEvent && draggingEvent.id === event.id },
-                 { 'ready-to-move': readyToMoveEventId === event.id }
+                 { 'dragging': draggingEvent && draggingEvent.id === event.id }
                ]"
                :style="getEventStyle(event)"
                @contextmenu.prevent="handleEventContextMenu($event, event)"
                @click="handleEventClick($event, event)"
                @mousedown="handleEventMouseDown($event, event)">
             <div class="event-content-inline">
-              <!-- ★ 天気絵文字 -->
               <span class="weather-emoji-icon" v-if="event.weatherEmoji"
                     @click.stop="openWeatherPopup(event)" :title="'天気予報を表示'">
                 {{ event.weatherEmoji }}
@@ -128,7 +849,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
               {{ event.inlineText }}
             </div>
 
-            <!-- 既存操作ボタン等（省略無し） -->
             <div class="event-actions"
                  v-if="editModeEvent && editModeEvent.id === event.id">
               <button class="event-action-btn cut"
@@ -143,14 +863,21 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                  v-if="editModeEvent && editModeEvent.id === event.id"
                  @mousedown="startResize($event, event, 'bottom')"></div>
           </div>
-        </div><!-- /.schedule-area -->
-      </div><!-- /.timeline-scroll-container -->
-    </div><!-- /.timeline-content -->
-  </div><!-- /.desktop-ui -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- ========= モバイル UI ========= -->
+  <!-- モバイルUI -->
   <div v-if="tripInitialized && isMobile" class="mobile-ui">
-    <!-- （日付セレクタなど既存 UI はそのまま） -->
+    <div class="mobile-day-selector">
+      <select v-model="activeDay" @change="setActiveDay(activeDay)">
+        <option v-for="(day, index) in tripDays" :key="index" :value="index">
+          {{ day.date }}
+        </option>
+      </select>
+    </div>
+
     <div class="timeline-content">
       <div class="timeline-scroll-container" ref="mobileTimelineContainer">
         <div class="time-axis">
@@ -164,18 +891,19 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
              @touchmove="handleScheduleTouchMove">
           <div class="schedule-grid">
             <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-              <div class="quarter-line"></div><div class="quarter-line"></div><div class="quarter-line"></div>
+              <div class="quarter-line"></div>
+              <div class="quarter-line"></div>
+              <div class="quarter-line"></div>
             </div>
           </div>
 
-          <!-- ===== 予定ブロック（モバイル用） ===== -->
+          <!-- 予定ブロック -->
           <div class="event-block"
                v-for="event in getCurrentDayEvents()" :key="event.id"
                :class="[
                  'event-category-' + event.category,
                  { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                 { 'dragging': draggingEvent && draggingEvent.id === event.id },
-                 { 'ready-to-move': readyToMoveEventId === event.id }
+                 { 'dragging': draggingEvent && draggingEvent.id === event.id }
                ]"
                :style="getEventStyle(event)"
                @click="handleEventClick($event, event)"
@@ -189,7 +917,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
               {{ event.inlineText }}
             </div>
 
-            <!-- 既存操作ボタン等 -->
             <div class="event-actions"
                  v-if="editModeEvent && editModeEvent.id === event.id">
               <button class="event-action-btn cut"
@@ -205,13 +932,17 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                  v-if="editModeEvent && editModeEvent.id === event.id"
                  @touchstart="startResizeTouch($event, event, 'bottom')"></div>
           </div>
-        </div><!-- /.schedule-area -->
-      </div><!-- /.timeline-scroll-container -->
-    </div><!-- /.timeline-content -->
-    <!-- FAB 等既存要素は省略無し -->
-  </div><!-- /.mobile-ui -->
+        </div>
+      </div>
+    </div>
 
-  <!-- ========= 天気ポップアップ ========= -->
+    <!-- FAB -->
+    <button class="fab" @click="addNewEvent">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+
+  <!-- 天気ポップアップ -->
   <div v-if="showWeatherPopup" class="weather-popup-modal" @click="closeWeatherPopup">
     <div class="weather-popup-content" @click.stop>
       <div class="weather-popup-header">
@@ -221,7 +952,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
         </button>
       </div>
       <div class="weather-popup-body">
-        <!-- 予定概要 -->
         <div class="weather-popup-info">
           <div class="weather-event-info">
             <strong>{{ weatherPopupEvent?.title }}</strong><br>
@@ -232,7 +962,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
           </div>
         </div>
 
-        <!-- デスクトップ：横スクロールテーブル -->
+        <!-- デスクトップ表示 -->
         <div class="weather-desktop-table" v-if="!isMobile">
           <div class="weather-table-container" ref="weatherTableContainer">
             <table class="weather-table">
@@ -285,7 +1015,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
           </div>
         </div>
 
-        <!-- モバイル：縦スクロールテーブル -->
+        <!-- モバイル表示 -->
         <div class="weather-mobile-table" v-if="isMobile">
           <div class="weather-table-container" ref="weatherMobileTableContainer">
             <table class="weather-table">
@@ -324,25 +1054,106 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
               </tbody>
             </table>
           </div>
-        </div><!-- /.mobile table -->
-      </div><!-- /.popup-body -->
-    </div><!-- /.popup-content -->
-  </div><!-- /.weather-popup-modal -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- ========= 既存モーダル類・コンテキストメニュー・その他 ========= -->
-  <!-- （中略：paste.txt の下部モーダル / context-menu / map-modal など全て保持） -->
-</div><!-- /#app -->
+  <!-- コンテキストメニュー -->
+  <div v-if="showContextMenu" class="context-menu" :style="contextMenuStyle" @click="closeContextMenu">
+    <button class="context-menu-item" @click="addNewEvent">
+      <i class="fas fa-plus"></i> 新しい予定を追加
+    </button>
+    <button class="context-menu-item" v-if="clipboardEvent" @click="pasteEvent">
+      <i class="fas fa-paste"></i> 予定を貼り付け
+    </button>
+  </div>
 
-<!-- ========= JavaScript ========= -->
+  <!-- 予定編集モーダル -->
+  <div class="modal" :class="{ show: isModalOpen('eventModal') }">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">予定の編集</h3>
+        <button class="modal-close" @click="closeModal('eventModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>タイトル</label>
+          <input type="text" v-model="eventForm.title" class="form-control" placeholder="予定のタイトル">
+        </div>
+        <div class="form-group">
+          <label>開始時刻</label>
+          <input type="time" v-model="eventForm.startTime" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>終了時刻</label>
+          <input type="time" v-model="eventForm.endTime" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>カテゴリ</label>
+          <select v-model="eventForm.category" class="form-control">
+            <option value="travel">移動</option>
+            <option value="food">食事</option>
+            <option value="sightseeing">観光</option>
+            <option value="shopping">買い物</option>
+            <option value="accommodation">宿泊</option>
+            <option value="meeting">会議</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>説明</label>
+          <textarea v-model="eventForm.description" class="form-control" placeholder="詳細な説明"></textarea>
+        </div>
+        <div class="form-group">
+          <label>位置情報</label>
+          <div class="input-group">
+            <input type="text" v-model="eventForm.coordinates" class="form-control" placeholder="緯度, 経度">
+            <button type="button" class="btn btn-secondary" @click="openMapModal">
+              <i class="fas fa-map"></i> 地図で選択
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" @click="closeModal('eventModal')">キャンセル</button>
+        <button class="btn btn-primary" @click="saveEvent">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 地図モーダル -->
+  <div v-if="showMapModal" class="modal show">
+    <div class="modal-content" style="width: 80vw; height: 80vh;">
+      <div class="modal-header">
+        <h3 class="modal-title">位置を選択</h3>
+        <button class="modal-close" @click="closeMapModal">×</button>
+      </div>
+      <div class="modal-body" style="padding: 0; position: relative;">
+        <div id="map" style="width: 100%; height: 60vh;"></div>
+        <div style="padding: 15px;">
+          <p v-if="selectedCoordinates">選択された座標: {{ selectedCoordinates }}</p>
+          <p v-else>地図をクリックして位置を選択してください</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" @click="closeMapModal">キャンセル</button>
+        <button class="btn btn-primary" @click="selectCoordinates" :disabled="!selectedCoordinates">選択</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
 const { createApp } = Vue;
 const app = createApp({
   data() {
     return {
-      /* ===== 基本設定 ===== */
+      /* 前回提供したスクリプト内容と同じ */
       tripInitialized: false,
       tripStartDate: '',
       tripEndDate: '',
@@ -350,29 +1161,19 @@ const app = createApp({
       hasExistingData: false,
       tripDays: [],
       activeDay: 0,
-      
-      /* ===== モバイル対応 ===== */
       showMobilePopup: false,
       selectedDayForPopup: null,
       selectedDayIndex: null,
       isMobile: false,
-      
-      /* ===== タイムライン設定 ===== */
       scrollPosition: 0,
       maxScrollPosition: 0,
       timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-      
-      /* ===== 予定管理 ===== */
       events: [],
       editModeEvent: null,
       clipboardEvent: null,
-      
-      /* ===== コンテキストメニュー ===== */
       showContextMenu: false,
       contextMenuStyle: {},
       pasteTargetTime: null,
-      
-      /* ===== タッチ・ドラッグ操作 ===== */
       touchStartTime: 0,
       touchStartPosition: { x: 0, y: 0 },
       longPressTimer: null,
@@ -385,14 +1186,10 @@ const app = createApp({
       longPressEventData: null,
       longPressEvent: null,
       readyToMoveEventId: null,
-      
-      /* ===== 地図機能 ===== */
       showMapModal: false,
       map: null,
       selectedCoordinates: null,
       mapMarker: null,
-      
-      /* ===== 予定フォーム ===== */
       eventForm: {
         title: '',
         dayIndex: 0,
@@ -402,11 +1199,7 @@ const app = createApp({
         description: '',
         coordinates: ''
       },
-      
-      /* ===== モーダル管理 ===== */
       modals: [],
-      
-      /* ===== 天気予報機能 ===== */
       showWeatherPopup: false,
       weatherPopupEvent: null,
       fullDayWeather: {},
@@ -416,12 +1209,11 @@ const app = createApp({
   },
   
   methods: {
-    /* ===== デバイス判定 ===== */
+    /* 前回提供したメソッド内容と同じ */
     detectMobile() {
       this.isMobile = window.innerWidth <= 768;
     },
     
-    /* ===== データ管理 ===== */
     checkExistingData() {
       const saved = localStorage.getItem('tripData');
       this.hasExistingData = !!saved;
@@ -451,7 +1243,6 @@ const app = createApp({
       localStorage.setItem('tripData', JSON.stringify(data));
     },
     
-    /* ===== 旅行セットアップ ===== */
     setupTrip() {
       if (!this.tripStartDate || !this.tripEndDate) {
         alert('開始日と終了日を入力してください');
@@ -495,7 +1286,6 @@ const app = createApp({
       }
     },
     
-    /* ===== 日程管理 ===== */
     setActiveDay(index) {
       this.activeDay = index;
       this.editModeEvent = null;
@@ -506,7 +1296,6 @@ const app = createApp({
       return this.events.filter(event => event.dayIndex === this.activeDay);
     },
     
-    /* ===== 予定スタイル ===== */
     getEventStyle(event) {
       const startMinutes = this.timeToMinutes(event.startTime);
       const endMinutes = this.timeToMinutes(event.endTime);
@@ -534,7 +1323,6 @@ const app = createApp({
       return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     },
     
-    /* ===== カテゴリ管理 ===== */
     getCategoryIcon(category) {
       const icons = {
         travel: 'fas fa-plane',
@@ -548,7 +1336,6 @@ const app = createApp({
       return icons[category] || 'fas fa-star';
     },
     
-    /* ===== 予定操作 ===== */
     handleEventClick(event, eventData) {
       event.stopPropagation();
       if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
@@ -605,7 +1392,6 @@ const app = createApp({
       document.addEventListener('mouseup', upHandler);
     },
     
-    /* ===== リサイズ処理 ===== */
     startResize(event, eventData, direction) {
       event.stopPropagation();
       event.preventDefault();
@@ -643,7 +1429,6 @@ const app = createApp({
       document.addEventListener('mouseup', upHandler);
     },
     
-    /* ===== コンテキストメニュー ===== */
     handleScheduleContextMenu(event) {
       event.preventDefault();
       const container = this.$refs.scrollContainer;
@@ -672,7 +1457,6 @@ const app = createApp({
       this.showContextMenu = false;
     },
     
-    /* ===== 予定編集 ===== */
     addNewEvent() {
       this.eventForm = {
         title: '',
@@ -729,7 +1513,6 @@ const app = createApp({
       });
     },
     
-    /* ===== 切り取り・貼り付け ===== */
     handleCutButtonClick(event, eventData) {
       event.stopPropagation();
       this.cutEvent(eventData);
@@ -765,7 +1548,6 @@ const app = createApp({
       this.updateWeatherEmoji();
     },
     
-    /* ===== モーダル管理 ===== */
     openModal(modalId) {
       if (!this.modals.includes(modalId)) {
         this.modals.push(modalId);
@@ -780,7 +1562,6 @@ const app = createApp({
       return this.modals.includes(modalId);
     },
     
-    /* ===== 地図機能 ===== */
     openMapModal() {
       this.showMapModal = true;
       this.$nextTick(() => {
@@ -823,7 +1604,6 @@ const app = createApp({
       }
     },
     
-    /* ===== モバイル対応 ===== */
     handleScheduleTouchStart(event) {
       if (event.touches.length !== 1) return;
       this.touchStartTime = Date.now();
@@ -913,7 +1693,6 @@ const app = createApp({
       document.addEventListener('touchend', endHandler);
     },
     
-    /* ===== 天気予報機能 ===== */
     async fetchWeatherForEvent(event) {
       if (!event.coordinates) return null;
       const [lat, lng] = event.coordinates.split(',').map(c => parseFloat(c.trim()));
@@ -1064,12 +1843,10 @@ const app = createApp({
     }
     window.addEventListener('resize', this.detectMobile);
     
-    // 天気絵文字を監視
     this.$watch(() => this.events.length, () => {
       this.updateWeatherEmoji();
     });
     
-    // デバッグ用
     window.app = this;
   },
   
