@@ -116,6 +116,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
 
+/* 軽量化された天気予報のスタイル */
+.weather-icon{position:absolute;top:5px;left:5px;font-size:1rem;cursor:pointer;z-index:15;background:rgba(255,255,255,0.9);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+.weather-icon:hover{transform:scale(1.1)}
+
 /* OpenStreetMap地図のスタイル */
 .map-modal {
     position: fixed;
@@ -295,6 +299,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
 </div>
+<div class="weather-icon" v-if="event.coordinates" @click.stop="showWeatherPopup(event)" :title="'天気予報を表示'">
+🌤️
+</div>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
 <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
 <i class="fas fa-cut"></i>
@@ -360,6 +367,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="event-content-inline">
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
+</div>
+<div class="weather-icon" v-if="event.coordinates" @click.stop="showWeatherPopup(event)" :title="'天気予報を表示'">
+🌤️
 </div>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
 <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @touchstart.stop title="切り取り">
@@ -603,14 +613,16 @@ if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 return;
 }
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-icon')) {
 this.openDetailModal(eventData);
 }
 },
 handleEventMouseDown(event, eventData) {
 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-icon')) {
 event.preventDefault();
 event.stopPropagation();
 this.startEventDrag(event, eventData);
@@ -763,14 +775,16 @@ return;
 }
 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-icon')) {
 event.preventDefault();
 event.stopPropagation();
 this.startEventDragTouch(event, eventData);
 }
 } else {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-icon')) {
 event.preventDefault();
 event.stopPropagation();
 this.touchStartTime = Date.now();
@@ -1028,6 +1042,73 @@ custom: 'fas fa-star'
 return icons[category] || 'fas fa-calendar';
 },
 
+// 軽量化された天気予報関連メソッド
+async getWeatherData(coordinates, date) {
+try {
+const [lat, lng] = coordinates.split(',').map(parseFloat);
+const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`);
+const data = await response.json();
+return data;
+} catch (error) {
+console.error('天気予報取得エラー:', error);
+return null;
+}
+},
+
+getWeatherIcon(code) {
+const icons = {
+0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
+51: '🌦️', 53: '🌦️', 55: '🌦️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
+71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️',
+85: '🌨️', 86: '❄️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
+};
+return icons[code] || '🌤️';
+},
+
+async showWeatherPopup(event) {
+if (!event.coordinates) return;
+const date = this.tripDays[event.dayIndex]?.fullDate;
+const weatherData = await this.getWeatherData(event.coordinates, date);
+if (!weatherData) return;
+
+const hour = parseInt(event.startTime.split(':')[0]);
+const index = Math.max(0, hour - 4);
+const currentWeather = {
+temp: Math.round(weatherData.hourly.temperature_2m[index] || 0),
+humidity: weatherData.hourly.relative_humidity_2m[index] || 0,
+rain: weatherData.hourly.precipitation_probability[index] || 0,
+code: weatherData.hourly.weather_code[index] || 0
+};
+
+this.openModal('🌤️ 天気予報', `
+<div class="weather-info">
+<div class="temp">${currentWeather.temp}°C</div>
+<div>${this.getWeatherIcon(currentWeather.code)}</div>
+</div>
+<div class="weather-details">
+<div><strong>湿度</strong><br>${currentWeather.humidity}%</div>
+<div><strong>降水確率</strong><br>${currentWeather.rain}%</div>
+<div><strong>服装</strong><br>${this.getClothingIcon(currentWeather.temp)}</div>
+</div>
+<div class="weather-hourly">
+${weatherData.hourly.temperature_2m.slice(0, 20).map((temp, i) => `
+<div class="weather-hour ${i + 4 === hour ? 'current' : ''}">
+<div>${(i + 4).toString().padStart(2, '0')}:00</div>
+<div>${this.getWeatherIcon(weatherData.hourly.weather_code[i])}</div>
+<div>${Math.round(temp)}°C</div>
+</div>
+`).join('')}
+</div>
+`, `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>`);
+},
+
+getClothingIcon(temp) {
+if (temp < 10) return '🧥🧣';
+if (temp < 20) return '👔';
+if (temp < 25) return '👕';
+return '👔';
+},
+
 // OpenStreetMap地図機能メソッド（指示通りのみ）
 setLocationFromMap() {
 this.showMapModal = true;
@@ -1136,6 +1217,73 @@ window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
 console.error('Googleマップの表示中にエラーが発生しました:', error);
 alert('Googleマップの表示に失敗しました');
 }
+},
+
+// 軽量化された天気予報関連メソッド
+async getWeatherData(coordinates, date) {
+try {
+const [lat, lng] = coordinates.split(',').map(parseFloat);
+const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`);
+const data = await response.json();
+return data;
+} catch (error) {
+console.error('天気予報取得エラー:', error);
+return null;
+}
+},
+
+getWeatherIcon(code) {
+const icons = {
+0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
+51: '🌦️', 53: '🌦️', 55: '🌦️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
+71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️',
+85: '🌨️', 86: '❄️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
+};
+return icons[code] || '🌤️';
+},
+
+async showWeatherPopup(event) {
+if (!event.coordinates) return;
+const date = this.tripDays[event.dayIndex]?.fullDate;
+const weatherData = await this.getWeatherData(event.coordinates, date);
+if (!weatherData) return;
+
+const hour = parseInt(event.startTime.split(':')[0]);
+const index = Math.max(0, hour - 4);
+const currentWeather = {
+temp: Math.round(weatherData.hourly.temperature_2m[index] || 0),
+humidity: weatherData.hourly.relative_humidity_2m[index] || 0,
+rain: weatherData.hourly.precipitation_probability[index] || 0,
+code: weatherData.hourly.weather_code[index] || 0
+};
+
+this.openModal('🌤️ 天気予報', `
+<div class="weather-info">
+<div class="temp">${currentWeather.temp}°C</div>
+<div>${this.getWeatherIcon(currentWeather.code)}</div>
+</div>
+<div class="weather-details">
+<div><strong>湿度</strong><br>${currentWeather.humidity}%</div>
+<div><strong>降水確率</strong><br>${currentWeather.rain}%</div>
+<div><strong>服装</strong><br>${this.getClothingIcon(currentWeather.temp)}</div>
+</div>
+<div class="weather-hourly">
+${weatherData.hourly.temperature_2m.slice(0, 20).map((temp, i) => `
+<div class="weather-hour ${i + 4 === hour ? 'current' : ''}">
+<div>${(i + 4).toString().padStart(2, '0')}:00</div>
+<div>${this.getWeatherIcon(weatherData.hourly.weather_code[i])}</div>
+<div>${Math.round(temp)}°C</div>
+</div>
+`).join('')}
+</div>
+`, `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>`);
+},
+
+getClothingIcon(temp) {
+if (temp < 10) return '🧥🧣';
+if (temp < 20) return '👔';
+if (temp < 25) return '👕';
+return '👔';
 },
 
 openDetailModal(event) {
