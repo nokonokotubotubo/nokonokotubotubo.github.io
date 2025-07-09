@@ -4,1859 +4,1423 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>とりっぺんちゃん - 旅行予定調整サイト</title>
-
-<!-- 外部ライブラリ -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
+<!-- Leafletライブラリ（OpenStreetMap API用）-->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-/* 既存のスタイル */
-:root {
-  --primary: #87CEEB;
-  --secondary: #B0E0E6;
-  --accent: #4682B4;
-  --text: #2F4F4F;
-  --bg: #F0F8FF;
-  --time-bg: #E6F3FF;
-  --transition: all 0.3s ease;
-  --radius: 15px;
-  --shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ヘッダー */
-.header {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white;
-  padding: 15px 20px;
-  box-shadow: var(--shadow);
-  flex-shrink: 0;
-  z-index: 1000;
-  position: relative;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: bold;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.header .subtitle {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  margin-top: 2px;
-}
-
-/* セットアップ画面 */
-.setup-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: var(--bg);
-}
-
-.setup-card {
-  background: white;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 30px;
-  max-width: 500px;
-  width: 100%;
-}
-
-.setup-card h2 {
-  color: var(--accent);
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: var(--text);
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid var(--secondary);
-  border-radius: 8px;
-  font-size: 16px;
-  transition: var(--transition);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.1);
-}
-
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: var(--transition);
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #5a9bd4;
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background: var(--secondary);
-  color: var(--text);
-}
-
-.btn-secondary:hover {
-  background: #9fd3e8;
-}
-
-.btn-danger {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #c82333;
-}
-
-/* デスクトップUI */
-.desktop-ui {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.day-tabs {
-  display: flex;
-  background: white;
-  border-bottom: 2px solid var(--secondary);
-  flex-shrink: 0;
-}
-
-.day-tab {
-  flex: 1;
-  padding: 15px;
-  text-align: center;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-weight: bold;
-  transition: var(--transition);
-  position: relative;
-}
-
-.day-tab:hover {
-  background: var(--secondary);
-}
-
-.day-tab.active {
-  background: var(--accent);
-  color: white;
-}
-
-.day-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-}
-
-/* タイムライン */
-.timeline-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.timeline-scroll-container {
-  flex: 1;
-  overflow-y: auto;
-  position: relative;
-}
-
-.time-axis {
-  display: flex;
-  flex-direction: column;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 80px;
-  z-index: 100;
-  background: var(--time-bg);
-  border-right: 2px solid var(--secondary);
-}
-
-.time-slot {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid var(--secondary);
-  font-weight: bold;
-  color: var(--text);
-  font-size: 0.9rem;
-}
-
-.schedule-area {
-  margin-left: 80px;
-  position: relative;
-  min-height: 1200px;
-  background: white;
-}
-
-.schedule-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-}
-
-.grid-line {
-  height: 60px;
-  border-bottom: 1px solid #f0f0f0;
-  position: relative;
-}
-
-.quarter-line {
-  height: 25%;
-  border-bottom: 1px dotted #f8f8f8;
-}
-
-.quarter-line:last-child {
-  border-bottom: none;
-}
-
-/* 予定ブロック */
-.event-block {
-  position: absolute;
-  background: white;
-  border: 2px solid var(--secondary);
-  border-radius: 8px;
-  padding: 8px;
-  cursor: pointer;
-  transition: var(--transition);
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.event-block:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.event-block.edit-mode {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.3);
-}
-
-.event-block.dragging {
-  opacity: 0.7;
-  transform: rotate(2deg);
-}
-
-.event-content-inline {
-  font-size: 0.9rem;
-  font-weight: bold;
-  position: relative;
-  padding-left: 20px;
-}
-
-.event-content-inline i {
-  margin-right: 8px;
-  color: var(--accent);
-}
-
-/* 天気絵文字 */
-.weather-emoji-icon {
-  position: absolute;
-  top: 2px;
-  left: 4px;
-  font-size: 1.25em;
-  cursor: pointer;
-  z-index: 20;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
-  transition: transform 0.2s ease;
-}
-
-.weather-emoji-icon:hover {
-  transform: scale(1.15);
-}
-
-/* カテゴリ別カラー */
-.event-category-travel {
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-  border-color: #2196f3;
-}
-
-.event-category-food {
-  background: linear-gradient(135deg, #fff3e0, #ffcc80);
-  border-color: #ff9800;
-}
-
-.event-category-sightseeing {
-  background: linear-gradient(135deg, #f3e5f5, #ce93d8);
-  border-color: #9c27b0;
-}
-
-.event-category-shopping {
-  background: linear-gradient(135deg, #e8f5e8, #a5d6a7);
-  border-color: #4caf50;
-}
-
-.event-category-accommodation {
-  background: linear-gradient(135deg, #fce4ec, #f8bbd9);
-  border-color: #e91e63;
-}
-
-.event-category-meeting {
-  background: linear-gradient(135deg, #fff8e1, #ffecb3);
-  border-color: #ffc107;
-}
-
-.event-category-other {
-  background: linear-gradient(135deg, #f1f8e9, #dcedc8);
-  border-color: #8bc34a;
-}
-
-/* 予定操作 */
-.event-actions {
-  position: absolute;
-  top: -12px;
-  right: -12px;
-  display: flex;
-  gap: 4px;
-}
-
-.event-action-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.7rem;
-  transition: var(--transition);
-}
-
-.event-action-btn.cut {
-  background: #dc3545;
-  color: white;
-}
-
-.event-action-btn.cut:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-.resize-handle {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 8px;
-  cursor: ns-resize;
-  background: transparent;
-  z-index: 15;
-}
-
-.resize-handle.top {
-  top: -4px;
-}
-
-.resize-handle.bottom {
-  bottom: -4px;
-}
-
-.resize-handle:hover {
-  background: rgba(70, 130, 180, 0.3);
-}
-
-/* コンテキストメニュー */
-.context-menu {
-  position: fixed;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  z-index: 2000;
-  min-width: 180px;
-  overflow: hidden;
-}
-
-.context-menu-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-size: 14px;
-  color: var(--text);
-  transition: var(--transition);
-}
-
-.context-menu-item:hover {
-  background: var(--secondary);
-}
-
-.context-menu-item i {
-  margin-right: 8px;
-  width: 16px;
-}
-
-/* モバイルUI */
-.mobile-ui {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.mobile-day-selector {
-  background: white;
-  border-bottom: 2px solid var(--secondary);
-  padding: 10px;
-  flex-shrink: 0;
-}
-
-.mobile-day-selector select {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid var(--secondary);
-  border-radius: 8px;
-  font-size: 16px;
-  background: white;
-  color: var(--text);
-}
-
-/* FAB */
-.fab {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: var(--transition);
-  z-index: 1000;
-}
-
-.fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-}
-
-/* 天気ポップアップ */
-.weather-popup-modal {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(2px);
-  z-index: 4000;
-}
-
-.weather-popup-content {
-  background: #fff;
-  border-radius: 16px;
-  max-width: 95vw;
-  max-height: 90vh;
-  width: 950px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-}
-
-.weather-popup-header {
-  background: linear-gradient(135deg, #66a3ff, #0059b3);
-  color: #fff;
-  padding: 14px 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.weather-popup-header h5 {
-  margin: 0;
-  font-size: 1.05em;
-  font-weight: bold;
-}
-
-.weather-popup-close {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.45rem;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.25s;
-}
-
-.weather-popup-close:hover {
-  background: rgba(255,255,255,0.25);
-}
-
-.weather-popup-body {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-}
-
-.weather-popup-info {
-  background: #f8fbff;
-  border: 1px solid #e0e9ff;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 14px;
-  flex-shrink: 0;
-}
-
-.weather-desktop-table, .weather-mobile-table {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.weather-table-container {
-  flex: 1;
-  overflow: auto;
-  border: 1px solid #e0e9ff;
-  border-radius: 8px;
-}
-
-.weather-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  table-layout: fixed;
-  min-width: 1380px;
-  background: #f8fbff;
-}
-
-.weather-table th, .weather-table td {
-  border: 1px solid #e0e9ff;
-  padding: 12px 6px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.weather-table th {
-  background: linear-gradient(135deg, #f0f8ff, #e6f2ff);
-  font-weight: bold;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.weather-row-header {
-  background: linear-gradient(135deg, #f0f8ff, #e6f2ff);
-  font-weight: bold;
-  position: sticky;
-  left: 0;
-  z-index: 11;
-}
-
-.weather-emoji {
-  font-size: 1.8em;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
-}
-
-.progress-container {
-  background: #e6f2ff;
-  border-radius: 6px;
-  width: 100%;
-  height: 12px;
-  margin: 2px 0;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(135deg, #3385ff, #0059b3);
-  border-radius: 6px;
-  transition: width .4s ease;
-}
-
-.current-time-highlight {
-  background-color: rgba(255,235,153,0.35) !important;
-}
-
-.hot-temperature {
-  background: #dc2626 !important;
-  color: #fff !important;
-  font-weight: bold;
-}
-
-.cold-temperature {
-  background: #1e40af !important;
-  color: #fff !important;
-  font-weight: bold;
-}
-
-/* モーダル */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 3000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-}
-
-.modal.show {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  background: white;
-  border-radius: var(--radius);
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-}
-
-.modal-header {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white;
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 1.2em;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: var(--transition);
-}
-
-.modal-close:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* レスポンシブ */
-@media (max-width: 768px) {
-  .weather-emoji-icon {
-    font-size: 1.1em;
-    top: 1px;
-    left: 2px;
-  }
-  
-  .weather-popup-content {
-    width: 95vw;
-    height: 88vh;
-  }
-  
-  .weather-table {
-    font-size: 11px;
-    min-width: 100%;
-  }
-  
-  .weather-table th, .weather-table td {
-    padding: 8px 4px;
-  }
+:root{--primary:#87CEEB;--secondary:#B0E0E6;--accent:#4682B4;--text:#2F4F4F;--bg:#F0F8FF;--time-bg:#E6F3FF;--transition:all 0.3s ease;--radius:15px;--shadow:0 2px 10px rgba(0,0,0,0.1)}
+*{box-sizing:border-box}
+html,body{height:100%;overflow:hidden;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column}
+#app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:8px 0;text-align:center;box-shadow:var(--shadow);flex-shrink:0}
+.penguin-icon{font-size:2rem;margin-right:10px}
+.desktop-ui,.mobile-ui{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.day-tabs-container{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--secondary) transparent;flex-shrink:0}
+.day-tabs{background:white;border-radius:var(--radius) var(--radius) 0 0;margin:10px 0 0 0;box-shadow:var(--shadow);display:flex;min-width:max-content}
+.day-tabs .nav-item{transition:var(--transition);flex-shrink:0;position:relative}
+.day-tabs .nav-link{border:none;color:var(--text);padding:12px 20px;line-height: 1.2;border-radius:var(--radius) var(--radius) 0 0;white-space:nowrap;text-align:center;min-width:120px;transition:var(--transition);position:relative;display:block}
+.day-tabs .nav-link.active{background:var(--primary);color:white;box-shadow:var(--shadow)}
+.day-tabs .nav-link:hover{background:var(--secondary);color:white}
+.delete-day-btn{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,99,99,0.8);color:white;border:none;font-size:0.7rem;display:none;align-items:center;justify-content:center;cursor:pointer;transition:var(--transition)}
+.delete-day-btn:hover{background:rgba(255,99,99,1);transform:scale(1.1)}
+.day-tabs .nav-link:hover .delete-day-btn{display:flex}
+.mobile-day-selector{background:white;padding:12px 0;box-shadow:var(--shadow);flex-shrink:0;position:relative}
+.mobile-scroll-container{position:relative;padding:0 50px}
+.mobile-day-buttons{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--secondary) transparent;padding:0 15px 10px 15px}
+.mobile-day-btn{min-width:100px;height:60px;border:2px solid var(--secondary);background:white;border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;font:bold 0.9rem/1 sans-serif;color:var(--text);transition:var(--transition);flex-shrink:0;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.mobile-day-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+.mobile-day-btn:active{transform:scale(0.95)}
+.mobile-scroll-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--secondary);color:var(--accent);font-size:1rem;cursor:pointer;transition:var(--transition);z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.mobile-scroll-nav:active{transform:translateY(-50%) scale(0.9)}
+.mobile-scroll-nav.left{left:5px}
+.mobile-scroll-nav.right{right:5px}
+.mobile-scroll-nav.disabled{opacity:0.3;pointer-events:none}
+.mobile-popup-menu{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:var(--transition);-webkit-tap-highlight-color:transparent}
+.mobile-popup-menu.show{opacity:1;visibility:visible}
+.mobile-popup-content{background:white;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);max-width:300px;width:90%;text-align:center}
+.mobile-popup-title{font:bold 1.2rem/1 sans-serif;color:var(--accent);margin-bottom:20px}
+.mobile-popup-buttons{display:flex;flex-direction:column;gap:15px}
+.mobile-popup-btn{padding:15px 20px;border:none;border-radius:var(--radius);font:bold 1rem/1 sans-serif;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:10px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.mobile-popup-btn.primary{background:var(--primary);color:white}
+.mobile-popup-btn.success{background:#28a745;color:white}
+.mobile-popup-btn.danger{background:#dc3545;color:white}
+.mobile-popup-btn.secondary{background:#6c757d;color:white}
+.mobile-popup-btn:active{transform:scale(0.95)}
+.mobile-fab{position:fixed;bottom:20px;right:20px;width:60px;height:60px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:var(--transition);z-index:1000;-webkit-tap-highlight-color:transparent}
+.mobile-fab:active{transform:scale(0.9)}
+.timeline-container{background:white;border-radius:0 0 var(--radius) var(--radius);margin:0;box-shadow:0 4px 15px rgba(0,0,0,0.1);flex:1;display:flex;flex-direction:column;overflow:hidden}
+.timeline-header{background:var(--secondary);padding:8px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.timeline-header h5{font-size:1rem;margin:0;line-height:1.2}
+.timeline-header h5 small{font-size:0.85rem;margin-left:8px}
+.timeline-content{flex:1;overflow:hidden}
+.timeline-scroll-container{height:100%;display:flex;overflow-y:auto;overflow-x:hidden}
+.time-axis{width:80px;background:var(--time-bg);border-right:2px solid var(--secondary);flex-shrink:0;height:1200px}
+.time-slot{height:60px;display:flex;align-items:center;justify-content:center;font:bold 0.9rem/1 sans-serif;color:var(--text);border-bottom:1px solid #e0e0e0}
+.schedule-area{flex:1;position:relative;height:1200px}
+.schedule-grid{position:absolute;inset:0;height:1200px}
+.grid-line{height:60px;border-bottom:1px solid #e0e0e0;position:relative}
+.grid-line:nth-child(odd){background:rgba(135,206,235,0.05)}
+.quarter-line{position:absolute;left:0;right:0;height:1px;background:#f0f0f0}
+.quarter-line:nth-child(1){top:15px}
+.quarter-line:nth-child(2){top:30px}
+.quarter-line:nth-child(3){top:45px}
+.event-block{position:absolute;left:10px;right:10px;background:var(--primary);color:white;border-radius:8px;padding:8px 12px 8px 25px;box-shadow:0 2px 8px rgba(0,0,0,0.2);border:2px solid transparent;transition:var(--transition);z-index:10;user-select:none;-webkit-tap-highlight-color:transparent;min-height:35px;display:flex;align-items:center}
+.event-block:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.3);border-color:var(--accent)}
+.event-block.edit-mode{border-color:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,0.3);cursor:grab}
+.event-block.edit-mode:active{cursor:grabbing}
+.event-block.ready-to-move{border-color:#4CAF50;box-shadow:0 0 0 3px rgba(76,175,80,0.4);transform:scale(1.05);background:linear-gradient(45deg,rgba(76,175,80,0.1),transparent,rgba(76,175,80,0.1));animation:readyToPulse 1.5s infinite ease-in-out}
+@keyframes readyToPulse{0%,100%{box-shadow:0 0 0 3px rgba(76,175,80,0.4)}50%{box-shadow:0 0 0 6px rgba(76,175,80,0.2)}}
+.event-block.ready-to-move::before{content:"↕";position:absolute;top:50%;right:8px;transform:translateY(-50%);font-size:1.2rem;color:#4CAF50;font-weight:bold;z-index:25;animation:bounceIcon 1s infinite ease-in-out}
+@keyframes bounceIcon{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.2)}}
+.event-block.dragging{z-index:1000;opacity:0.8;transform:scale(1.02)}
+.event-block.dragging .event-actions{display:none!important}
+.event-content-inline{font-size:0.9rem;line-height:1.2;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;font-weight:bold}
+.event-title,.event-time,.event-description{display:none}
+.event-category-travel{background:#FF6B6B}
+.event-category-food{background:#4ECDC4}
+.event-category-sightseeing{background:#45B7D1}
+.event-category-accommodation{background:#96CEB4}
+.event-category-custom{background:#FECA57}
+.event-actions{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:20}
+.event-action-btn{width:30px;height:30px;border-radius:8px;border:none;color:white;font-size:0.8rem;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.event-action-btn.cut{background:#FF6B6B;border:2px solid #fff}
+.event-action-btn.cut:hover{background:#FF5252;transform:scale(1.1)}
+.context-menu{position:fixed;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:2000;opacity:0;visibility:hidden;transform:scale(0.8);transition:var(--transition);min-width:150px}
+.context-menu.show{opacity:1;visibility:visible;transform:scale(1)}
+.context-menu-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid #eee;transition:var(--transition);display:flex;align-items:center;gap:8px}
+.context-menu-item:last-child{border-bottom:none}
+.context-menu-item:hover{background:#f5f5f5}
+.context-menu-item.paste{color:#4CAF50}
+.context-menu-item.paste:hover{background:#e8f5e8}
+.context-menu-item.add-event{color:#4CAF50}
+.context-menu-item.add-event:hover{background:#e8f5e8}
+.context-menu-item.disabled{color:#ccc;cursor:not-allowed}
+.context-menu-item.disabled:hover{background:transparent}
+.resize-handle{position:absolute;left:0;right:0;height:10px;background:rgba(255,215,0,0.8);opacity:0;transition:var(--transition);cursor:ns-resize}
+.resize-handle.top{top:0;border-radius:8px 8px 0 0}
+.resize-handle.bottom{bottom:0;border-radius:0 0 8px 8px}
+.event-block.edit-mode .resize-handle{opacity:1}
+.modal-content{border-radius:var(--radius);border:none;box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+.modal-header{background:var(--primary);color:white;border-radius:var(--radius) var(--radius) 0 0}
+.btn-primary{background:var(--accent);border:none;border-radius:20px;padding:8px 20px;transition:var(--transition)}
+.btn-primary:hover{background:var(--text);transform:translateY(-2px)}
+.form-control{border-radius:10px;border:2px solid #e0e0e0;transition:var(--transition)}
+.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 0.2rem rgba(135,206,235,0.25)}
+.add-event-btn{position:fixed;bottom:30px;right:30px;width:60px;height:60px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:var(--transition);z-index:1000}
+.add-event-btn:hover{transform:scale(1.1);background:var(--primary)}
+.trip-setup{text-align:center;padding:40px 20px}
+.trip-setup h2{color:var(--accent);margin-bottom:30px}
+.date-input-group{display:flex;align-items:center;justify-content:center;gap:15px;margin:20px 0;flex-wrap:wrap}
+.date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
+.date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
+
+/* OpenStreetMap地図のスタイル */
+.map-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-container {
+    width: 90%;
+    max-width: 800px;
+    height: 80%;
+    max-height: 600px;
+    background: white;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-header {
+    background: var(--primary);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.map-close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+.map-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#map {
+    width: 100%;
+    height: calc(100% - 60px);
+}
+
+.map-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+@media (max-width:768px){
+.header{padding:6px 0}
+.timeline-header{padding:6px 15px}
+.timeline-header h5{font-size:0.9rem}
+.timeline-header h5 small{font-size:0.75rem;display:block;margin-left:0;margin-top:2px}
+.day-tabs{margin:8px 0 0 0}
+.time-axis{width:60px;height:1000px}
+.time-slot{height:50px;font-size:0.8rem}
+.grid-line{height:50px}
+.schedule-grid,.schedule-area{height:1000px}
+.event-block{padding:6px 8px 6px 22px;min-height:32px}
+.event-content-inline{font-size:0.8rem}
+.date-input-group{flex-direction:column;gap:10px}
+.event-action-btn{width:35px;height:35px;font-size:0.9rem}
+.event-block.overlapping{opacity:0.7;border:2px solid #ff6b6b}
 }
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- ヘッダー -->
-  <header class="header">
-    <h1><i class="fas fa-plane"></i> とりっぺんちゃん</h1>
-    <div class="subtitle">旅行予定調整サイト</div>
-  </header>
-
-  <!-- 旅行セットアップ画面 -->
-  <div v-if="!tripInitialized" class="setup-container">
-    <div class="setup-card">
-      <h2><i class="fas fa-calendar-alt"></i> 旅行の設定</h2>
-      
-      <div v-if="hasExistingData" class="alert alert-info">
-        <i class="fas fa-info-circle"></i> 
-        既存の旅行データがあります。
-        <button @click="loadData(); tripInitialized = true" class="btn btn-primary btn-sm ms-2">
-          データを読み込む
-        </button>
-      </div>
-
-      <div class="form-group">
-        <label for="startDate">開始日</label>
-        <input type="date" id="startDate" v-model="tripStartDate" :min="today" class="form-control">
-      </div>
-      
-      <div class="form-group">
-        <label for="endDate">終了日</label>
-        <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate || today" class="form-control">
-      </div>
-      
-      <div class="form-group">
-        <button @click="setupTrip" class="btn btn-primary w-100">
-          <i class="fas fa-play"></i> 旅行を開始する
-        </button>
-      </div>
-      
-      <div v-if="hasExistingData" class="form-group">
-        <button @click="resetTrip" class="btn btn-danger w-100">
-          <i class="fas fa-trash"></i> 既存データを削除
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- デスクトップUI -->
-  <div v-if="tripInitialized && !isMobile" class="desktop-ui">
-    <!-- 日程タブ -->
-    <div class="day-tabs">
-      <button v-for="(day, index) in tripDays" :key="index"
-              @click="setActiveDay(index)"
-              :class="['day-tab', { active: activeDay === index }]">
-        {{ day.date }}
-      </button>
-    </div>
-
-    <!-- タイムライン -->
-    <div class="timeline-content">
-      <div class="timeline-scroll-container" ref="scrollContainer">
-        <div class="time-axis">
-          <div class="time-slot" v-for="hour in timeSlots" :key="hour">{{ hour }}:00</div>
-        </div>
-
-        <div class="schedule-area" @click="editModeEvent = null" @contextmenu="handleScheduleContextMenu">
-          <div class="schedule-grid">
-            <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-              <div class="quarter-line"></div>
-              <div class="quarter-line"></div>
-              <div class="quarter-line"></div>
-            </div>
-          </div>
-
-          <!-- 予定ブロック -->
-          <div class="event-block"
-               v-for="event in getCurrentDayEvents()" :key="event.id"
-               :class="[
-                 'event-category-' + event.category,
-                 { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                 { 'dragging': draggingEvent && draggingEvent.id === event.id }
-               ]"
-               :style="getEventStyle(event)"
-               @contextmenu.prevent="handleEventContextMenu($event, event)"
-               @click="handleEventClick($event, event)"
-               @mousedown="handleEventMouseDown($event, event)">
-            <div class="event-content-inline">
-              <span class="weather-emoji-icon" v-if="event.weatherEmoji"
-                    @click.stop="openWeatherPopup(event)" :title="'天気予報を表示'">
-                {{ event.weatherEmoji }}
-              </span>
-              <i :class="getCategoryIcon(event.category)"></i>
-              {{ event.inlineText }}
-            </div>
-
-            <div class="event-actions"
-                 v-if="editModeEvent && editModeEvent.id === event.id">
-              <button class="event-action-btn cut"
-                      @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
-                <i class="fas fa-cut"></i>
-              </button>
-            </div>
-            <div class="resize-handle top"
-                 v-if="editModeEvent && editModeEvent.id === event.id"
-                 @mousedown="startResize($event, event, 'top')"></div>
-            <div class="resize-handle bottom"
-                 v-if="editModeEvent && editModeEvent.id === event.id"
-                 @mousedown="startResize($event, event, 'bottom')"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- モバイルUI -->
-  <div v-if="tripInitialized && isMobile" class="mobile-ui">
-    <div class="mobile-day-selector">
-      <select v-model="activeDay" @change="setActiveDay(activeDay)">
-        <option v-for="(day, index) in tripDays" :key="index" :value="index">
-          {{ day.date }}
-        </option>
-      </select>
-    </div>
-
-    <div class="timeline-content">
-      <div class="timeline-scroll-container" ref="mobileTimelineContainer">
-        <div class="time-axis">
-          <div class="time-slot" v-for="hour in timeSlots" :key="hour">{{ hour }}:00</div>
-        </div>
-
-        <div class="schedule-area"
-             @click="editModeEvent = null"
-             @touchstart="handleScheduleTouchStart"
-             @touchend="handleScheduleTouchEnd"
-             @touchmove="handleScheduleTouchMove">
-          <div class="schedule-grid">
-            <div class="grid-line" v-for="hour in timeSlots" :key="hour">
-              <div class="quarter-line"></div>
-              <div class="quarter-line"></div>
-              <div class="quarter-line"></div>
-            </div>
-          </div>
-
-          <!-- 予定ブロック -->
-          <div class="event-block"
-               v-for="event in getCurrentDayEvents()" :key="event.id"
-               :class="[
-                 'event-category-' + event.category,
-                 { 'edit-mode': editModeEvent && editModeEvent.id === event.id },
-                 { 'dragging': draggingEvent && draggingEvent.id === event.id }
-               ]"
-               :style="getEventStyle(event)"
-               @click="handleEventClick($event, event)"
-               @touchstart="handleEventTouchStart($event, event)">
-            <div class="event-content-inline">
-              <span class="weather-emoji-icon" v-if="event.weatherEmoji"
-                    @click.stop="openWeatherPopup(event)" :title="'天気予報を表示'">
-                {{ event.weatherEmoji }}
-              </span>
-              <i :class="getCategoryIcon(event.category)"></i>
-              {{ event.inlineText }}
-            </div>
-
-            <div class="event-actions"
-                 v-if="editModeEvent && editModeEvent.id === event.id">
-              <button class="event-action-btn cut"
-                      @click="handleCutButtonClick($event, event)"
-                      @touchstart.stop title="切り取り">
-                <i class="fas fa-cut"></i>
-              </button>
-            </div>
-            <div class="resize-handle top"
-                 v-if="editModeEvent && editModeEvent.id === event.id"
-                 @touchstart="startResizeTouch($event, event, 'top')"></div>
-            <div class="resize-handle bottom"
-                 v-if="editModeEvent && editModeEvent.id === event.id"
-                 @touchstart="startResizeTouch($event, event, 'bottom')"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FAB -->
-    <button class="fab" @click="addNewEvent">
-      <i class="fas fa-plus"></i>
-    </button>
-  </div>
-
-  <!-- 天気ポップアップ -->
-  <div v-if="showWeatherPopup" class="weather-popup-modal" @click="closeWeatherPopup">
-    <div class="weather-popup-content" @click.stop>
-      <div class="weather-popup-header">
-        <h5><i class="fas fa-cloud-sun"></i> {{ weatherPopupEvent?.title }} の天気予報</h5>
-        <button class="weather-popup-close" @click="closeWeatherPopup">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="weather-popup-body">
-        <div class="weather-popup-info">
-          <div class="weather-event-info">
-            <strong>{{ weatherPopupEvent?.title }}</strong><br>
-            {{ tripDays[weatherPopupEvent?.dayIndex]?.date }} {{ weatherPopupEvent?.startTime }} - {{ weatherPopupEvent?.endTime }}
-          </div>
-          <div class="weather-location-info" v-if="weatherPopupEvent?.coordinates">
-            <i class="fas fa-map-marker-alt"></i> {{ weatherPopupEvent?.coordinates }}
-          </div>
-        </div>
-
-        <!-- デスクトップ表示 -->
-        <div class="weather-desktop-table" v-if="!isMobile">
-          <div class="weather-table-container" ref="weatherTableContainer">
-            <table class="weather-table">
-              <thead>
-                <tr>
-                  <th class="weather-row-header">⛅ 天気</th>
-                  <th v-for="hour in weatherHours" :key="hour"
-                      :class="{ 'current-time-highlight': isEventHour(hour) }"
-                      :id="'weather-hour-' + hour">
-                    <span class="weather-emoji">{{ getWeatherIcon(fullDayWeather[hour]) }}</span><br>
-                    {{ hour }}:00
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="weather-row-header"><strong>🌧️ 降水確率</strong></td>
-                  <td v-for="hour in weatherHours" :key="'p'+hour"
-                      :class="{ 'current-time-highlight': isEventHour(hour) }">
-                    <div class="progress-container">
-                      <div class="progress-bar"
-                           :style="{ width: (fullDayWeather[hour]?.precipitation_probability ?? 0) + '%' }"></div>
-                    </div>
-                    {{ fullDayWeather[hour]?.precipitation_probability ?? 0 }}%
-                  </td>
-                </tr>
-                <tr>
-                  <td class="weather-row-header"><strong>🌡️ 気温</strong></td>
-                  <td v-for="hour in weatherHours" :key="'t'+hour"
-                      :class="[{ 'current-time-highlight': isEventHour(hour) }, getTemperatureClass(fullDayWeather[hour]?.temperature)]">
-                    {{ fullDayWeather[hour]?.temperature ?? '-' }}℃
-                  </td>
-                </tr>
-                <tr>
-                  <td class="weather-row-header"><strong>🤒 体感温度</strong></td>
-                  <td v-for="hour in weatherHours" :key="'a'+hour"
-                      :class="[{ 'current-time-highlight': isEventHour(hour) }, getTemperatureClass(fullDayWeather[hour]?.apparent_temperature)]">
-                    {{ fullDayWeather[hour]?.apparent_temperature ?? '-' }}℃
-                  </td>
-                </tr>
-                <tr>
-                  <td class="weather-row-header"><strong>💧 湿度</strong></td>
-                  <td v-for="hour in weatherHours" :key="'h'+hour"
-                      :class="{ 'current-time-highlight': isEventHour(hour) }">
-                    {{ fullDayWeather[hour]?.humidity ?? '-' }}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- モバイル表示 -->
-        <div class="weather-mobile-table" v-if="isMobile">
-          <div class="weather-table-container" ref="weatherMobileTableContainer">
-            <table class="weather-table">
-              <thead>
-                <tr>
-                  <th>⛅<br>天気</th>
-                  <th>🌧️<br>降水確率</th>
-                  <th>🌡️<br>気温</th>
-                  <th>🤒<br>体感温度</th>
-                  <th>💧<br>湿度</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="hour in weatherHours" :key="hour"
-                    :class="{ 'current-time-highlight': isEventHour(hour) }"
-                    :id="'weather-mobile-hour-' + hour">
-                  <td>
-                    <span class="weather-emoji">{{ getWeatherIcon(fullDayWeather[hour]) }}</span><br>
-                    {{ hour }}:00
-                  </td>
-                  <td>
-                    <div class="progress-container">
-                      <div class="progress-bar"
-                           :style="{ width: (fullDayWeather[hour]?.precipitation_probability ?? 0) + '%' }"></div>
-                    </div>
-                    {{ fullDayWeather[hour]?.precipitation_probability ?? 0 }}%
-                  </td>
-                  <td :class="getTemperatureClass(fullDayWeather[hour]?.temperature)">
-                    {{ fullDayWeather[hour]?.temperature ?? '-' }}℃
-                  </td>
-                  <td :class="getTemperatureClass(fullDayWeather[hour]?.apparent_temperature)">
-                    {{ fullDayWeather[hour]?.apparent_temperature ?? '-' }}℃
-                  </td>
-                  <td>{{ fullDayWeather[hour]?.humidity ?? '-' }}%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- コンテキストメニュー -->
-  <div v-if="showContextMenu" class="context-menu" :style="contextMenuStyle" @click="closeContextMenu">
-    <button class="context-menu-item" @click="addNewEvent">
-      <i class="fas fa-plus"></i> 新しい予定を追加
-    </button>
-    <button class="context-menu-item" v-if="clipboardEvent" @click="pasteEvent">
-      <i class="fas fa-paste"></i> 予定を貼り付け
-    </button>
-  </div>
-
-  <!-- 予定編集モーダル -->
-  <div class="modal" :class="{ show: isModalOpen('eventModal') }">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">予定の編集</h3>
-        <button class="modal-close" @click="closeModal('eventModal')">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>タイトル</label>
-          <input type="text" v-model="eventForm.title" class="form-control" placeholder="予定のタイトル">
-        </div>
-        <div class="form-group">
-          <label>開始時刻</label>
-          <input type="time" v-model="eventForm.startTime" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>終了時刻</label>
-          <input type="time" v-model="eventForm.endTime" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>カテゴリ</label>
-          <select v-model="eventForm.category" class="form-control">
-            <option value="travel">移動</option>
-            <option value="food">食事</option>
-            <option value="sightseeing">観光</option>
-            <option value="shopping">買い物</option>
-            <option value="accommodation">宿泊</option>
-            <option value="meeting">会議</option>
-            <option value="other">その他</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>説明</label>
-          <textarea v-model="eventForm.description" class="form-control" placeholder="詳細な説明"></textarea>
-        </div>
-        <div class="form-group">
-          <label>位置情報</label>
-          <div class="input-group">
-            <input type="text" v-model="eventForm.coordinates" class="form-control" placeholder="緯度, 経度">
-            <button type="button" class="btn btn-secondary" @click="openMapModal">
-              <i class="fas fa-map"></i> 地図で選択
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" @click="closeModal('eventModal')">キャンセル</button>
-        <button class="btn btn-primary" @click="saveEvent">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 地図モーダル -->
-  <div v-if="showMapModal" class="modal show">
-    <div class="modal-content" style="width: 80vw; height: 80vh;">
-      <div class="modal-header">
-        <h3 class="modal-title">位置を選択</h3>
-        <button class="modal-close" @click="closeMapModal">×</button>
-      </div>
-      <div class="modal-body" style="padding: 0; position: relative;">
-        <div id="map" style="width: 100%; height: 60vh;"></div>
-        <div style="padding: 15px;">
-          <p v-if="selectedCoordinates">選択された座標: {{ selectedCoordinates }}</p>
-          <p v-else>地図をクリックして位置を選択してください</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" @click="closeMapModal">キャンセル</button>
-        <button class="btn btn-primary" @click="selectCoordinates" :disabled="!selectedCoordinates">選択</button>
-      </div>
-    </div>
-  </div>
+<header class="header">
+<div class="container">
+<h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+<p class="mb-0">みんなで楽しい旅行計画を立てよう！</p>
+</div>
+</header>
+<div v-if="!tripInitialized" class="container">
+<div class="trip-setup">
+<h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
+<p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
+<div class="date-input-group">
+<label for="startDate"><strong>開始日:</strong></label>
+<input type="date" id="startDate" v-model="tripStartDate" :min="today">
+<span>〜</span>
+<label for="endDate"><strong>終了日:</strong></label>
+<input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
+</div>
+<div class="mt-4">
+<button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
+<i class="fas fa-check"></i> 旅行スケジュールを作成
+</button>
+</div>
+<div class="mt-3">
+<button class="btn btn-outline-secondary" @click="loadExistingData" v-if="hasExistingData">
+<i class="fas fa-folder-open"></i> 既存のデータを読み込む
+</button>
+</div>
+</div>
+</div>
+<div v-if="tripInitialized && !isMobile" class="desktop-ui">
+<div class="day-tabs-container">
+<ul class="nav nav-tabs day-tabs">
+<li class="nav-item" v-for="(day, index) in tripDays" :key="`day-${day.id || index}`">
+<a class="nav-link" :class="{ active: activeDay === index }" @click="setActiveDay(index)" href="#" @click.prevent>
+<div>
+<div>{{ day.dayNumber }}日目</div>
+<small :class="{ 'editable-date': index === 0 }">
+{{ day.date }}
+<i v-if="index === 0" class="fas fa-edit" @click.stop="handleDateClick(index)" style="cursor: pointer; margin-left: 4px; padding: 2px; border-radius: 3px; transition: background 0.2s;" @mouseover="$event.target.style.background='rgba(255,255,255,0.2)'" @mouseout="$event.target.style.background='transparent'" title="開始日を変更"></i>
+</small>
+</div>
+<button class="delete-day-btn" v-if="tripDays.length > 1" @click.stop.prevent="deleteDay(index)" @mousedown.stop title="日程を削除">
+<i class="fas fa-times"></i>
+</button>
+</a>
+</li>
+<li class="nav-item">
+<a class="nav-link add-day-btn" @click.prevent.stop="addDayImmediately" @mousedown.stop href="#" title="日程を追加">
+<div>
+<div style="font-size: 1.5rem; font-weight: bold;">＋</div>
+<small style="visibility: hidden;">日程追加</small>
+</div>
+</a>
+</li>
+</ul>
+</div>
+<div class="timeline-container">
+<div class="timeline-header">
+<h5>
+<i class="fas fa-calendar-day"></i>
+{{ tripDays[activeDay]?.dayNumber }}日目の予定
+<small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+</h5>
+</div>
+<div class="timeline-content">
+<div class="timeline-scroll-container" ref="scrollContainer">
+<div class="time-axis">
+<div class="time-slot" v-for="hour in timeSlots" :key="hour">
+{{ hour }}:00
+</div>
+</div>
+<div class="schedule-area" @click="editModeEvent = null" @contextmenu="handleScheduleContextMenu">
+<div class="schedule-grid">
+<div class="grid-line" v-for="hour in timeSlots" :key="hour">
+<div class="quarter-line"></div>
+<div class="quarter-line"></div>
+<div class="quarter-line"></div>
+</div>
+</div>
+<div class="event-block" v-for="event in getCurrentDayEvents()" :key="event.id" :class="[
+'event-category-' + event.category,
+{ 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+{ 'dragging': draggingEvent && draggingEvent.id === event.id },
+{ 'ready-to-move': readyToMoveEventId === event.id }
+]" :style="getEventStyle(event)" @contextmenu.prevent="handleEventContextMenu($event, event)" @click="handleEventClick($event, event)" @mousedown="handleEventMouseDown($event, event)">
+<div class="event-content-inline">
+<i :class="getCategoryIcon(event.category)"></i>
+{{ event.inlineText }}
+</div>
+<div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+<button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
+<i class="fas fa-cut"></i>
+</button>
+</div>
+<div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @mousedown="startResize($event, event, 'top')"></div>
+<div class="resize-handle bottom" v-if="editModeEvent && editModeEvent.id === event.id" @mousedown="startResize($event, event, 'bottom')"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button class="add-event-btn" @click="openEventModal()">
+<i class="fas fa-plus"></i>
+</button>
+</div>
+<div v-if="tripInitialized && isMobile" class="mobile-ui">
+<div class="mobile-day-selector">
+<div class="mobile-scroll-container">
+<button class="mobile-scroll-nav left" :class="{ disabled: scrollPosition <= 0 }" @click="scrollToDirection('left')">
+<i class="fas fa-chevron-left"></i>
+</button>
+<div class="mobile-day-buttons" ref="mobileScrollContainer" @scroll="updateScrollPosition">
+<button v-for="(day, index) in tripDays" :key="`mobile-day-${day.id || index}`" class="mobile-day-btn" :class="{ active: activeDay === index }" @click="setActiveDay(index)" @touchstart="handleMobileDayTouchStart($event, index)" @touchend="handleMobileDayTouchEnd($event, index)">
+<div>{{ day.dayNumber }}日目</div>
+<small>{{ day.date }}</small>
+</button>
+</div>
+<button class="mobile-scroll-nav right" :class="{ disabled: scrollPosition >= maxScrollPosition }" @click="scrollToDirection('right')">
+<i class="fas fa-chevron-right"></i>
+</button>
+</div>
+</div>
+<div class="timeline-container">
+<div class="timeline-header">
+<h5>
+<i class="fas fa-calendar-day"></i>
+{{ tripDays[activeDay]?.dayNumber }}日目の予定
+<small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
+</h5>
+</div>
+<div class="timeline-content">
+<div class="timeline-scroll-container" ref="mobileTimelineContainer">
+<div class="time-axis">
+<div class="time-slot" v-for="hour in timeSlots" :key="hour">
+{{ hour }}:00
+</div>
+</div>
+<div class="schedule-area" @click="editModeEvent = null" @touchstart="handleScheduleTouchStart" @touchend="handleScheduleTouchEnd" @touchmove="handleScheduleTouchMove">
+<div class="schedule-grid">
+<div class="grid-line" v-for="hour in timeSlots" :key="hour">
+<div class="quarter-line"></div>
+<div class="quarter-line"></div>
+<div class="quarter-line"></div>
+</div>
+</div>
+<div class="event-block" v-for="event in getCurrentDayEvents()" :key="event.id" :class="[
+'event-category-' + event.category,
+{ 'edit-mode': editModeEvent && editModeEvent.id === event.id },
+{ 'dragging': draggingEvent && draggingEvent.id === event.id },
+{ 'ready-to-move': readyToMoveEventId === event.id }
+]" :style="getEventStyle(event)" @click="handleEventClick($event, event)" @touchstart="handleEventTouchStart($event, event)">
+<div class="event-content-inline">
+<i :class="getCategoryIcon(event.category)"></i>
+{{ event.inlineText }}
+</div>
+<div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
+<button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @touchstart.stop title="切り取り">
+<i class="fas fa-cut"></i>
+</button>
+</div>
+<div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @touchstart="startResizeTouch($event, event, 'top')"></div>
+<div class="resize-handle bottom" v-if="editModeEvent && editModeEvent.id === event.id" @touchstart="startResizeTouch($event, event, 'bottom')"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button class="mobile-fab" @click="openEventModal()">
+<i class="fas fa-plus"></i>
+</button>
+</div>
+<div class="context-menu" :class="{ show: showContextMenu }" :style="contextMenuStyle">
+<div class="context-menu-item add-event" @click="addEventFromContext">
+<i class="fas fa-plus"></i>新しい予定を追加
+</div>
+<div class="context-menu-item paste" :class="{ disabled: !clipboardEvent }" @click="pasteFromContext" v-if="clipboardEvent">
+<i class="fas fa-paste"></i>貼り付け
+</div>
+<div class="context-menu-item disabled" v-else>
+<i class="fas fa-paste"></i>貼り付け（コピー済みアイテムなし）
+</div>
+</div>
+<div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
+<div class="mobile-popup-content" @click.stop>
+<div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}</div>
+<div class="mobile-popup-buttons">
+<button class="mobile-popup-btn primary" v-if="selectedDayForPopup && selectedDayIndex === 0" @click="openStartDateModalFromPopup">
+<i class="fas fa-calendar-edit"></i>開始日を変更
+</button>
+<button class="mobile-popup-btn success" @click="addDayFromPopup">
+<i class="fas fa-plus"></i>日程を追加
+</button>
+<button class="mobile-popup-btn danger" v-if="selectedDayForPopup && tripDays.length > 1" @click="deleteDayFromPopup">
+<i class="fas fa-trash"></i>この日程を削除
+</button>
+<button class="mobile-popup-btn secondary" @click="closeMobilePopup">
+<i class="fas fa-times"></i>キャンセル
+</button>
+</div>
+</div>
 </div>
 
+<!-- OpenStreetMap地図モーダル（指示通りのみ）-->
+<div v-if="showMapModal" class="map-modal" @click="closeMapModal">
+    <div class="map-container" @click.stop>
+        <div class="map-header">
+            <h5><i class="fas fa-map-marker-alt"></i> 位置を選択</h5>
+            <button class="map-close-btn" @click="closeMapModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="map"></div>
+        <div class="map-info">
+            <i class="fas fa-info-circle"></i> 地図上をタップして位置を選択してください
+            <div v-if="selectedCoordinates" class="mt-2">
+                <strong>選択した座標:</strong> {{ selectedCoordinates }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
+<div class="modal-dialog" :class="modal.size">
+<div class="modal-content">
+<div class="modal-header">
+<h5 class="modal-title">{{ modal.title }}</h5>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body" v-html="modal.body"></div>
+<div class="modal-footer" v-html="modal.footer"></div>
+</div>
+</div>
+</div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 const { createApp } = Vue;
 const app = createApp({
-  data() {
-    return {
-      /* 前回提供したスクリプト内容と同じ */
-      tripInitialized: false,
-      tripStartDate: '',
-      tripEndDate: '',
-      today: new Date().toISOString().split('T')[0],
-      hasExistingData: false,
-      tripDays: [],
-      activeDay: 0,
-      showMobilePopup: false,
-      selectedDayForPopup: null,
-      selectedDayIndex: null,
-      isMobile: false,
-      scrollPosition: 0,
-      maxScrollPosition: 0,
-      timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-      events: [],
-      editModeEvent: null,
-      clipboardEvent: null,
-      showContextMenu: false,
-      contextMenuStyle: {},
-      pasteTargetTime: null,
-      touchStartTime: 0,
-      touchStartPosition: { x: 0, y: 0 },
-      longPressTimer: null,
-      longPressExecuted: false,
-      eventTouchOffset: { x: 0, y: 0 },
-      draggingEvent: null,
-      isDragComplete: false,
-      isResizeComplete: false,
-      dragStarted: false,
-      longPressEventData: null,
-      longPressEvent: null,
-      readyToMoveEventId: null,
-      showMapModal: false,
-      map: null,
-      selectedCoordinates: null,
-      mapMarker: null,
-      eventForm: {
-        title: '',
-        dayIndex: 0,
-        startTime: '09:00',
-        endTime: '10:00',
-        category: 'travel',
-        description: '',
-        coordinates: ''
-      },
-      modals: [],
-      showWeatherPopup: false,
-      weatherPopupEvent: null,
-      fullDayWeather: {},
-      weatherHours: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
-      weatherCache: {}
-    };
-  },
+data() {
+return {
+tripInitialized: false,
+tripStartDate: '',
+tripEndDate: '',
+today: new Date().toISOString().split('T')[0],
+hasExistingData: false,
+tripDays: [],
+activeDay: 0,
+showMobilePopup: false,
+selectedDayForPopup: null,
+selectedDayIndex: null,
+scrollPosition: 0,
+maxScrollPosition: 0,
+timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+events: [],
+editModeEvent: null,
+clipboardEvent: null,
+showContextMenu: false,
+contextMenuStyle: {},
+pasteTargetTime: null,
+isMobile: false,
+touchStartTime: 0,
+touchStartPosition: { x: 0, y: 0 },
+longPressTimer: null,
+longPressExecuted: false,
+eventTouchOffset: { x: 0, y: 0 },
+draggingEvent: null,
+isDragComplete: false,
+isResizeComplete: false,
+dragStarted: false,
+longPressEventData: null,
+longPressEvent: null,
+readyToMoveEventId: null,
+// OpenStreetMap地図機能用のデータ
+showMapModal: false,
+map: null,
+selectedCoordinates: null,
+mapMarker: null,
+eventForm: {
+title: '',
+dayIndex: 0,
+startTime: '09:00',
+endTime: '10:00',
+category: 'travel',
+description: '',
+coordinates: ''
+},
+modals: []
+};
+},
+methods: {
+linkifyUrls(text) {
+if (!text) return text;
+const urlRegex = /(https?:\/\/[^\s]+)/g;
+return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+},
+checkExistingData() {
+this.hasExistingData = !!(localStorage.getItem('trippenEvents') && localStorage.getItem('trippenDays'));
+},
+loadExistingData() {
+this.loadData();
+if (this.tripDays.length > 0) this.tripInitialized = true;
+},
+initializeTripDays() {
+if (!this.tripStartDate || !this.tripEndDate || this.tripStartDate > this.tripEndDate) {
+alert('正しい日付を選択してください');
+return;
+}
+this.tripDays = this.generateTripDays(this.tripStartDate, this.tripEndDate);
+this.activeDay = 0;
+this.tripInitialized = true;
+this.saveData();
+},
+generateTripDays(startDate, endDate) {
+const days = [];
+const start = new Date(startDate);
+const end = new Date(endDate);
+const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+let dayNumber = 1;
+for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+days.push({
+id: Date.now() + dayNumber + Math.random(),
+dayNumber: dayNumber++,
+date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+fullDate: date.toISOString().split('T')[0]
+});
+}
+return days;
+},
+setActiveDay(index) { this.activeDay = index; },
+detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
+addDayImmediately() {
+const startDate = this.tripDays[0].fullDate;
+this.tripDays = this.generateConsecutiveDays(startDate, this.tripDays.length + 1);
+this.saveData();
+},
+deleteDay(index) {
+if (this.tripDays.length <= 1) {
+alert('最低1つの日程は必要です');
+return;
+}
+if (confirm(`${this.tripDays[index].dayNumber}日目を削除しますか？`)) {
+this.events = this.events.filter(event => event.dayIndex !== index)
+.map(event => event.dayIndex > index ? { ...event, dayIndex: event.dayIndex - 1 } : event);
+this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length - 1);
+if (this.activeDay >= this.tripDays.length) this.activeDay = this.tripDays.length - 1;
+this.saveData();
+}
+},
+generateConsecutiveDays(startDate, dayCount) {
+const days = [];
+const start = new Date(startDate);
+const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+for (let i = 0; i < dayCount; i++) {
+const date = new Date(start);
+date.setDate(start.getDate() + i);
+days.push({
+id: Date.now() + i + Math.random(),
+dayNumber: i + 1,
+date: `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`,
+fullDate: date.toISOString().split('T')[0]
+});
+}
+return days;
+},
+handleDateClick(index) {
+if (index === 0) this.openStartDateModal();
+else this.setActiveDay(index);
+},
+getCurrentDayEvents() {
+return this.events
+.filter(event => event.dayIndex === this.activeDay)
+.map(event => {
+const inlineText = `${event.title}（${event.startTime}-${event.endTime}）`;
+return {
+...event,
+inlineText
+};
+});
+},
+handleEventClick(event, eventData) {
+if (this.isDragComplete) {
+this.isDragComplete = false;
+return;
+}
+if (this.isResizeComplete) {
+this.isResizeComplete = false;
+return;
+}
+if (this.draggingEvent) {
+return;
+}
+if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+return;
+}
+if (!event.target.closest('.event-action-btn') && 
+!event.target.closest('.resize-handle')) {
+this.openDetailModal(eventData);
+}
+},
+handleEventMouseDown(event, eventData) {
+if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+if (!event.target.closest('.event-action-btn') && 
+!event.target.closest('.resize-handle')) {
+event.preventDefault();
+event.stopPropagation();
+this.startEventDrag(event, eventData);
+}
+}
+},
+handleEventContextMenu(event, eventData) {
+event.preventDefault();
+event.stopPropagation();
+this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
+if (navigator.vibrate) navigator.vibrate(50);
+},
+startEventDrag(event, eventData) {
+this.draggingEvent = eventData;
+this.isDragComplete = false;
+const startY = event.clientY;
+const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
+const rect = container.getBoundingClientRect();
+const timelineHeader = container.querySelector('.timeline-header');
+const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
+const moveHandler = (e) => {
+const newCenterTop = e.clientY - rect.top - headerHeight + container.scrollTop;
+const newStartTop = newCenterTop - centerOffset;
+const snappedTop = Math.round(newStartTop / 15) * 15;
+this.updateEventTimeFromDrag(eventData, snappedTop);
+};
+const endHandler = () => {
+document.removeEventListener('mousemove', moveHandler);
+document.removeEventListener('mouseup', endHandler);
+this.draggingEvent = null;
+this.isDragComplete = true;
+this.saveData();
+setTimeout(() => {
+this.isDragComplete = false;
+}, 150);
+};
+document.addEventListener('mousemove', moveHandler);
+document.addEventListener('mouseup', endHandler);
+},
+startEventDragTouch(event, eventData) {
+this.draggingEvent = eventData;
+this.isDragComplete = false;
+const coords = event.touches[0];
+const container = this.$refs.mobileTimelineContainer;
+const rect = container.getBoundingClientRect();
+const timelineHeader = container.querySelector('.timeline-header');
+const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
+const moveHandler = (e) => {
+e.preventDefault();
+const touch = e.touches[0];
+const newCenterTop = touch.clientY - rect.top - headerHeight + container.scrollTop;
+const newStartTop = newCenterTop - centerOffset;
+const snappedTop = Math.round(newStartTop / 15) * 15;
+this.updateEventTimeFromDrag(eventData, snappedTop);
+};
+const endHandler = () => {
+document.removeEventListener('touchmove', moveHandler);
+document.removeEventListener('touchend', endHandler);
+this.draggingEvent = null;
+this.isDragComplete = true;
+this.saveData();
+setTimeout(() => {
+this.isDragComplete = false;
+}, 150);
+};
+document.addEventListener('touchmove', moveHandler, { passive: false });
+document.addEventListener('touchend', endHandler, { passive: true });
+},
+updateEventTimeFromDrag(eventData, snappedTop) {
+const minTime = '04:00';
+const maxTime = '24:00';
+const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
+if (eventIndex === -1) return;
   
-  methods: {
-    /* 前回提供したメソッド内容と同じ */
-    detectMobile() {
-      this.isMobile = window.innerWidth <= 768;
-    },
-    
-    checkExistingData() {
-      const saved = localStorage.getItem('tripData');
-      this.hasExistingData = !!saved;
-    },
-    
-    loadData() {
-      const saved = localStorage.getItem('tripData');
-      if (saved) {
-        const data = JSON.parse(saved);
-        this.tripDays = data.tripDays || [];
-        this.events = data.events || [];
-        this.tripStartDate = data.tripStartDate || '';
-        this.tripEndDate = data.tripEndDate || '';
-        this.activeDay = data.activeDay || 0;
-        this.updateEventInlineText();
-      }
-    },
-    
-    saveData() {
-      const data = {
-        tripDays: this.tripDays,
-        events: this.events,
-        tripStartDate: this.tripStartDate,
-        tripEndDate: this.tripEndDate,
-        activeDay: this.activeDay
-      };
-      localStorage.setItem('tripData', JSON.stringify(data));
-    },
-    
-    setupTrip() {
-      if (!this.tripStartDate || !this.tripEndDate) {
-        alert('開始日と終了日を入力してください');
-        return;
-      }
-      
-      if (new Date(this.tripStartDate) > new Date(this.tripEndDate)) {
-        alert('開始日は終了日より前の日付を入力してください');
-        return;
-      }
-      
-      this.tripDays = [];
-      const start = new Date(this.tripStartDate);
-      const end = new Date(this.tripEndDate);
-      
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-        this.tripDays.push({
-          date: `${d.getMonth() + 1}/${d.getDate()}(${dayOfWeek})`,
-          fullDate: d.toISOString().split('T')[0]
-        });
-      }
-      
-      this.tripInitialized = true;
-      this.activeDay = 0;
-      this.saveData();
-      this.updateWeatherEmoji();
-    },
-    
-    resetTrip() {
-      if (confirm('すべてのデータが削除されます。よろしいですか？')) {
-        localStorage.removeItem('tripData');
-        this.tripDays = [];
-        this.events = [];
-        this.tripStartDate = '';
-        this.tripEndDate = '';
-        this.activeDay = 0;
-        this.tripInitialized = false;
-        this.hasExistingData = false;
-        this.weatherCache = {};
-      }
-    },
-    
-    setActiveDay(index) {
-      this.activeDay = index;
-      this.editModeEvent = null;
-      this.saveData();
-    },
-    
-    getCurrentDayEvents() {
-      return this.events.filter(event => event.dayIndex === this.activeDay);
-    },
-    
-    getEventStyle(event) {
-      const startMinutes = this.timeToMinutes(event.startTime);
-      const endMinutes = this.timeToMinutes(event.endTime);
-      const duration = endMinutes - startMinutes;
-      
-      const top = ((startMinutes - 240) / 60) * 60;
-      const height = (duration / 60) * 60;
-      
-      return {
-        top: `${top}px`,
-        height: `${height}px`,
-        left: '10px',
-        right: '10px'
-      };
-    },
-    
-    timeToMinutes(timeStr) {
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
-    },
-    
-    minutesToTime(minutes) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    },
-    
-    getCategoryIcon(category) {
-      const icons = {
-        travel: 'fas fa-plane',
-        food: 'fas fa-utensils',
-        sightseeing: 'fas fa-camera',
-        shopping: 'fas fa-shopping-bag',
-        accommodation: 'fas fa-bed',
-        meeting: 'fas fa-users',
-        other: 'fas fa-star'
-      };
-      return icons[category] || 'fas fa-star';
-    },
-    
-    handleEventClick(event, eventData) {
-      event.stopPropagation();
-      if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
-        this.editModeEvent = null;
-      } else {
-        this.editModeEvent = eventData;
-      }
-    },
-    
-    handleEventMouseDown(event, eventData) {
-      if (this.isMobile) return;
-      
-      this.dragStarted = false;
-      this.draggingEvent = null;
-      
-      const moveHandler = (e) => {
-        if (!this.dragStarted) {
-          this.dragStarted = true;
-          this.draggingEvent = eventData;
-          this.editModeEvent = null;
-        }
-        
-        const container = this.$refs.scrollContainer;
-        const rect = container.getBoundingClientRect();
-        const y = e.clientY - rect.top + container.scrollTop;
-        const newStartMinutes = Math.round((y / 60) * 60) + 240;
-        
-        if (newStartMinutes >= 240 && newStartMinutes <= 1440) {
-          const duration = this.timeToMinutes(eventData.endTime) - this.timeToMinutes(eventData.startTime);
-          const newEndMinutes = newStartMinutes + duration;
-          
-          if (newEndMinutes <= 1440) {
-            eventData.startTime = this.minutesToTime(newStartMinutes);
-            eventData.endTime = this.minutesToTime(newEndMinutes);
-            this.updateEventInlineText();
-          }
-        }
-      };
-      
-      const upHandler = () => {
-        if (this.draggingEvent) {
-          this.isDragComplete = true;
-          this.saveData();
-          setTimeout(() => {
-            this.draggingEvent = null;
-            this.isDragComplete = false;
-          }, 100);
-        }
-        document.removeEventListener('mousemove', moveHandler);
-        document.removeEventListener('mouseup', upHandler);
-      };
-      
-      document.addEventListener('mousemove', moveHandler);
-      document.addEventListener('mouseup', upHandler);
-    },
-    
-    startResize(event, eventData, direction) {
-      event.stopPropagation();
-      event.preventDefault();
-      
-      const moveHandler = (e) => {
-        const container = this.$refs.scrollContainer;
-        const rect = container.getBoundingClientRect();
-        const y = e.clientY - rect.top + container.scrollTop;
-        const minutes = Math.round((y / 60) * 60) + 240;
-        
-        if (direction === 'top') {
-          if (minutes >= 240 && minutes < this.timeToMinutes(eventData.endTime)) {
-            eventData.startTime = this.minutesToTime(minutes);
-            this.updateEventInlineText();
-          }
-        } else {
-          if (minutes > this.timeToMinutes(eventData.startTime) && minutes <= 1440) {
-            eventData.endTime = this.minutesToTime(minutes);
-            this.updateEventInlineText();
-          }
-        }
-      };
-      
-      const upHandler = () => {
-        this.isResizeComplete = true;
-        this.saveData();
-        setTimeout(() => {
-          this.isResizeComplete = false;
-        }, 100);
-        document.removeEventListener('mousemove', moveHandler);
-        document.removeEventListener('mouseup', upHandler);
-      };
-      
-      document.addEventListener('mousemove', moveHandler);
-      document.addEventListener('mouseup', upHandler);
-    },
-    
-    handleScheduleContextMenu(event) {
-      event.preventDefault();
-      const container = this.$refs.scrollContainer;
-      const rect = container.getBoundingClientRect();
-      const y = event.clientY - rect.top + container.scrollTop;
-      const minutes = Math.round((y / 60) * 60) + 240;
-      
-      this.pasteTargetTime = this.minutesToTime(minutes);
-      this.contextMenuStyle = {
-        top: `${event.clientY}px`,
-        left: `${event.clientX}px`
-      };
-      this.showContextMenu = true;
-    },
-    
-    handleEventContextMenu(event, eventData) {
-      event.preventDefault();
-      this.contextMenuStyle = {
-        top: `${event.clientY}px`,
-        left: `${event.clientX}px`
-      };
-      this.showContextMenu = true;
-    },
-    
-    closeContextMenu() {
-      this.showContextMenu = false;
-    },
-    
-    addNewEvent() {
-      this.eventForm = {
-        title: '',
-        dayIndex: this.activeDay,
-        startTime: this.pasteTargetTime || '09:00',
-        endTime: this.pasteTargetTime ? this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + 60) : '10:00',
-        category: 'travel',
-        description: '',
-        coordinates: ''
-      };
-      this.openModal('eventModal');
-      this.closeContextMenu();
-    },
-    
-    editEvent(event) {
-      this.eventForm = { ...event };
-      this.openModal('eventModal');
-      this.closeContextMenu();
-    },
-    
-    deleteEvent(event) {
-      if (confirm('この予定を削除しますか？')) {
-        this.events = this.events.filter(e => e.id !== event.id);
-        this.saveData();
-      }
-      this.closeContextMenu();
-    },
-    
-    saveEvent() {
-      if (!this.eventForm.title.trim()) {
-        alert('タイトルを入力してください');
-        return;
-      }
-      
-      if (this.eventForm.id) {
-        const index = this.events.findIndex(e => e.id === this.eventForm.id);
-        if (index !== -1) {
-          this.events[index] = { ...this.eventForm };
-        }
-      } else {
-        this.eventForm.id = Date.now();
-        this.events.push({ ...this.eventForm });
-      }
-      
-      this.updateEventInlineText();
-      this.saveData();
-      this.closeModal('eventModal');
-      this.updateWeatherEmoji();
-    },
-    
-    updateEventInlineText() {
-      this.events.forEach(event => {
-        event.inlineText = `${event.startTime}-${event.endTime} ${event.title}`;
-      });
-    },
-    
-    handleCutButtonClick(event, eventData) {
-      event.stopPropagation();
-      this.cutEvent(eventData);
-    },
-    
-    cutEvent(event) {
-      this.clipboardEvent = { ...event };
-      this.events = this.events.filter(e => e.id !== event.id);
-      this.editModeEvent = null;
-      this.saveData();
-      this.closeContextMenu();
-    },
-    
-    pasteEvent() {
-      if (!this.clipboardEvent) return;
-      
-      const newEvent = {
-        ...this.clipboardEvent,
-        id: Date.now(),
-        dayIndex: this.activeDay,
-        startTime: this.pasteTargetTime,
-        endTime: this.minutesToTime(
-          this.timeToMinutes(this.pasteTargetTime) + 
-          (this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime))
-        )
-      };
-      
-      newEvent.inlineText = `${newEvent.startTime}-${newEvent.endTime} ${newEvent.title}`;
-      this.events.push(newEvent);
-      this.clipboardEvent = null;
-      this.saveData();
-      this.closeContextMenu();
-      this.updateWeatherEmoji();
-    },
-    
-    openModal(modalId) {
-      if (!this.modals.includes(modalId)) {
-        this.modals.push(modalId);
-      }
-    },
-    
-    closeModal(modalId) {
-      this.modals = this.modals.filter(id => id !== modalId);
-    },
-    
-    isModalOpen(modalId) {
-      return this.modals.includes(modalId);
-    },
-    
-    openMapModal() {
-      this.showMapModal = true;
-      this.$nextTick(() => {
-        this.initMap();
-      });
-    },
-    
-    closeMapModal() {
-      this.showMapModal = false;
-      this.selectedCoordinates = null;
-      if (this.map) {
-        this.map.remove();
-        this.map = null;
-      }
-    },
-    
-    initMap() {
-      if (this.map) return;
-      
-      this.map = L.map('map').setView([35.6762, 139.6503], 10);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(this.map);
-      
-      this.map.on('click', (e) => {
-        this.selectedCoordinates = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-        
-        if (this.mapMarker) {
-          this.map.removeLayer(this.mapMarker);
-        }
-        
-        this.mapMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
-      });
-    },
-    
-    selectCoordinates() {
-      if (this.selectedCoordinates) {
-        this.eventForm.coordinates = this.selectedCoordinates;
-        this.closeMapModal();
-      }
-    },
-    
-    handleScheduleTouchStart(event) {
-      if (event.touches.length !== 1) return;
-      this.touchStartTime = Date.now();
-      this.touchStartPosition = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
-      };
-    },
-    
-    handleScheduleTouchEnd(event) {
-      const touchDuration = Date.now() - this.touchStartTime;
-      const touch = event.changedTouches[0];
-      const deltaX = Math.abs(touch.clientX - this.touchStartPosition.x);
-      const deltaY = Math.abs(touch.clientY - this.touchStartPosition.y);
-      
-      if (touchDuration >= 800 && deltaX < 20 && deltaY < 20) {
-        const container = this.$refs.mobileTimelineContainer;
-        const rect = container.getBoundingClientRect();
-        const y = touch.clientY - rect.top + container.scrollTop;
-        const minutes = Math.round((y / 60) * 60) + 240;
-        
-        this.pasteTargetTime = this.minutesToTime(minutes);
-        this.addNewEvent();
-      }
-    },
-    
-    handleScheduleTouchMove(event) {
-      // タッチ移動時の処理
-    },
-    
-    handleEventTouchStart(event, eventData) {
-      if (event.touches.length !== 1) return;
-      event.preventDefault();
-      
-      this.touchStartTime = Date.now();
-      this.touchStartPosition = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
-      };
-      
-      this.longPressEventData = eventData;
-      this.longPressExecuted = false;
-      
-      this.longPressTimer = setTimeout(() => {
-        this.longPressExecuted = true;
-        this.editModeEvent = eventData;
-        this.readyToMoveEventId = eventData.id;
-      }, 600);
-    },
-    
-    startResizeTouch(event, eventData, direction) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      const moveHandler = (e) => {
-        if (e.touches.length !== 1) return;
-        
-        const container = this.$refs.mobileTimelineContainer;
-        const rect = container.getBoundingClientRect();
-        const y = e.touches[0].clientY - rect.top + container.scrollTop;
-        const minutes = Math.round((y / 60) * 60) + 240;
-        
-        if (direction === 'top') {
-          if (minutes >= 240 && minutes < this.timeToMinutes(eventData.endTime)) {
-            eventData.startTime = this.minutesToTime(minutes);
-            this.updateEventInlineText();
-          }
-        } else {
-          if (minutes > this.timeToMinutes(eventData.startTime) && minutes <= 1440) {
-            eventData.endTime = this.minutesToTime(minutes);
-            this.updateEventInlineText();
-          }
-        }
-      };
-      
-      const endHandler = () => {
-        this.isResizeComplete = true;
-        this.saveData();
-        setTimeout(() => {
-          this.isResizeComplete = false;
-        }, 100);
-        document.removeEventListener('touchmove', moveHandler);
-        document.removeEventListener('touchend', endHandler);
-      };
-      
-      document.addEventListener('touchmove', moveHandler);
-      document.addEventListener('touchend', endHandler);
-    },
-    
-    async fetchWeatherForEvent(event) {
-      if (!event.coordinates) return null;
-      const [lat, lng] = event.coordinates.split(',').map(c => parseFloat(c.trim()));
-      if (isNaN(lat) || isNaN(lng)) return null;
-      const dayData = this.tripDays[event.dayIndex];
-      if (!dayData) return null;
-      
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('天気取得失敗');
-        const data = await res.json();
-        const hour = parseInt(event.startTime.split(':')[0]);
-        const idx = data.hourly.time.findIndex(t => t.endsWith(`T${hour.toString().padStart(2, '0')}:00`));
-        if (idx === -1) return null;
-        return {
-          weather_code: data.hourly.weather_code[idx],
-          precipitation_probability: data.hourly.precipitation_probability[idx] ?? 0
-        };
-      } catch (e) {
-        console.error(e);
-        return null;
-      }
-    },
-    
-    getWeatherIcon(d) {
-      if (!d) return '☀️';
-      const p = d.precipitation_probability ?? 0, c = d.weather_code ?? 0;
-      if (p >= 70) return '☔';
-      if (p >= 40) return '🌧️';
-      if (p >= 20) return '🌦️';
-      const icons = {
-        0: '☀️', 1: '⛅', 2: '⛅', 3: '⛅', 45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌦️', 55: '🌦️',
-        61: '🌧️', 63: '🌧️', 65: '🌧️', 71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌦️', 82: '🌦️',
-        95: '⛈️', 96: '⛈️', 99: '⛈️'
-      };
-      return icons[c] || '☀️';
-    },
-    
-    getTemperatureClass(t) {
-      if (t === undefined || t === null) return '';
-      if (t >= 35) return 'hot-temperature';
-      if (t <= 0) return 'cold-temperature';
-      return '';
-    },
-    
-    async updateWeatherEmoji() {
-      for (const ev of this.events) {
-        if (!ev.coordinates) continue;
-        const key = `${ev.coordinates}_${this.tripDays[ev.dayIndex]?.fullDate}_${ev.startTime}`;
-        if (this.weatherCache[key]) {
-          ev.weatherEmoji = this.weatherCache[key];
-          continue;
-        }
-        const d = await this.fetchWeatherForEvent(ev);
-        if (d) {
-          const emoji = this.getWeatherIcon(d);
-          this.$set(ev, 'weatherEmoji', emoji);
-          this.weatherCache[key] = emoji;
-        }
-      }
-    },
-    
-    async openWeatherPopup(event) {
-      if (!event.coordinates) {
-        alert('位置情報がありません');
-        return;
-      }
-      this.weatherPopupEvent = event;
-      this.showWeatherPopup = true;
-      await this.$nextTick();
-      await this.fetchFullDayWeather();
-      await this.scrollToEventTime();
-    },
-    
-    async fetchFullDayWeather() {
-      if (!this.weatherPopupEvent?.coordinates) return;
-      const [lat, lng] = this.weatherPopupEvent.coordinates.split(',').map(c => parseFloat(c.trim()));
-      const dayData = this.tripDays[this.weatherPopupEvent.dayIndex];
-      if (!dayData) return;
-      
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('天気取得失敗');
-        const data = await res.json();
-        this.fullDayWeather = {};
-        
-        for (const h of this.weatherHours) {
-          const idx = data.hourly.time.findIndex(t => t.endsWith(`T${h.toString().padStart(2, '0')}:00`));
-          if (idx === -1) continue;
-          this.fullDayWeather[h] = {
-            temperature: Math.round(data.hourly.temperature_2m[idx]),
-            apparent_temperature: Math.round(data.hourly.apparent_temperature[idx]),
-            humidity: Math.round(data.hourly.relative_humidity_2m[idx]),
-            precipitation_probability: Math.round(data.hourly.precipitation_probability[idx] ?? 0),
-            weather_code: data.hourly.weather_code[idx]
-          };
-        }
-      } catch (e) {
-        console.error(e);
-        alert('天気取得に失敗しました');
-      }
-    },
-    
-    async scrollToEventTime() {
-      await this.$nextTick();
-      const hour = parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
-      
-      setTimeout(() => {
-        if (this.isMobile) {
-          const container = this.$refs.weatherMobileTableContainer;
-          const target = document.getElementById('weather-mobile-hour-' + hour);
-          if (container && target) {
-            const pos = target.offsetTop - container.offsetTop - 60;
-            container.scrollTo({ top: Math.max(0, pos), behavior: 'smooth' });
-          }
-        } else {
-          const container = this.$refs.weatherTableContainer;
-          const target = document.getElementById('weather-hour-' + hour);
-          if (container && target) {
-            const pos = target.offsetLeft - container.offsetLeft - 60;
-            container.scrollTo({ left: Math.max(0, pos), behavior: 'smooth' });
-          }
-        }
-      }, 120);
-    },
-    
-    closeWeatherPopup() {
-      this.showWeatherPopup = false;
-      this.weatherPopupEvent = null;
-      this.fullDayWeather = {};
-    },
-    
-    isEventHour(h) {
-      if (!this.weatherPopupEvent?.startTime) return false;
-      return h === parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
-    }
-  },
+const currentDuration = this.timeToMinutes(this.events[eventIndex].endTime) - this.timeToMinutes(this.events[eventIndex].startTime);
+const newTime = this.pixelsToTime(snappedTop);
+const newEndTime = this.minutesToTime(this.timeToMinutes(newTime) + currentDuration);
   
-  mounted() {
-    this.detectMobile();
-    this.checkExistingData();
-    this.loadData();
-    if (this.tripDays.length > 0) {
-      this.tripInitialized = true;
-      this.updateWeatherEmoji();
-    }
-    window.addEventListener('resize', this.detectMobile);
-    
-    this.$watch(() => this.events.length, () => {
-      this.updateWeatherEmoji();
-    });
-    
-    window.app = this;
-  },
+if (newTime < minTime) {
+this.events[eventIndex].startTime = minTime;
+this.events[eventIndex].endTime = this.minutesToTime(this.timeToMinutes(minTime) + currentDuration);
+return;
+}
   
-  beforeUnmount() {
-    window.removeEventListener('resize', this.detectMobile);
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer);
-      this.longPressTimer = null;
-    }
-  }
+if (newEndTime > maxTime) {
+this.events[eventIndex].endTime = maxTime;
+this.events[eventIndex].startTime = this.minutesToTime(this.timeToMinutes(maxTime) - currentDuration);
+return;
+}
+  
+this.events[eventIndex].startTime = newTime;
+this.events[eventIndex].endTime = newEndTime;
+},
+handleMobileDayTouchStart(event, index) {
+this.touchStartTime = Date.now();
+this.longPressTimer = setTimeout(() => {
+if (navigator.vibrate) navigator.vibrate(50);
+this.showMobilePopupForDay(index);
+}, 800);
+},
+handleMobileDayTouchEnd(event, index) {
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
+}
+if (Date.now() - this.touchStartTime < 500) this.setActiveDay(index);
+},
+showMobilePopupForDay(index) {
+this.selectedDayForPopup = this.tripDays[index];
+this.selectedDayIndex = index;
+this.showMobilePopup = true;
+},
+closeMobilePopup() {
+this.showMobilePopup = false;
+this.selectedDayForPopup = null;
+this.selectedDayIndex = null;
+},
+openStartDateModalFromPopup() {
+this.closeMobilePopup();
+setTimeout(() => this.openStartDateModal(), 300);
+},
+addDayFromPopup() {
+this.closeMobilePopup();
+setTimeout(() => this.addDayImmediately(), 300);
+},
+deleteDayFromPopup() {
+const index = this.selectedDayIndex;
+this.closeMobilePopup();
+setTimeout(() => index !== null && this.deleteDay(index), 300);
+},
+updateScrollPosition() {
+const container = this.$refs.mobileScrollContainer;
+if (!container) return;
+this.scrollPosition = container.scrollLeft;
+this.maxScrollPosition = container.scrollWidth - container.clientWidth;
+},
+scrollToDirection(direction) {
+const container = this.$refs.mobileScrollContainer;
+if (!container) return;
+container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+},
+handleEventTouchStart(event, eventData) {
+if (this.isDragComplete) {
+return;
+}
+if (this.draggingEvent) {
+return;
+}
+if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+if (!event.target.closest('.event-action-btn') && 
+!event.target.closest('.resize-handle')) {
+event.preventDefault();
+event.stopPropagation();
+this.startEventDragTouch(event, eventData);
+}
+} else {
+if (!event.target.closest('.event-action-btn') && 
+!event.target.closest('.resize-handle')) {
+event.preventDefault();
+event.stopPropagation();
+this.touchStartTime = Date.now();
+this.longPressExecuted = false;
+this.dragStarted = false;
+this.longPressEventData = eventData;
+this.longPressEvent = event;
+this.readyToMoveEventId = null;
+this.touchStartPosition = { 
+x: event.touches[0].clientX, 
+y: event.touches[0].clientY 
+};
+this.longPressTimer = setTimeout(() => {
+this.longPressExecuted = true;
+this.readyToMoveEventId = eventData.id;
+if (navigator.vibrate) navigator.vibrate(50);
+}, 500);
+const handleTouchMove = (e) => {
+if (!this.longPressExecuted) return;
+const deltaX = Math.abs(e.touches[0].clientX - this.touchStartPosition.x);
+const deltaY = Math.abs(e.touches[0].clientY - this.touchStartPosition.y);
+if ((deltaX > 5 || deltaY > 5) && !this.dragStarted) {
+this.dragStarted = true;
+this.editModeEvent = eventData;
+this.readyToMoveEventId = null;
+this.startEventDragTouch(this.longPressEvent, eventData);
+}
+};
+const handleTouchEnd = () => {
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
+}
+const touchDuration = Date.now() - this.touchStartTime;
+if (this.longPressExecuted && !this.dragStarted) {
+this.editModeEvent = eventData;
+this.readyToMoveEventId = null;
+} else if (!this.longPressExecuted && touchDuration < 500) {
+this.openDetailModal(eventData);
+}
+this.dragStarted = false;
+this.longPressEventData = null;
+this.longPressEvent = null;
+this.readyToMoveEventId = null;
+document.removeEventListener('touchmove', handleTouchMove);
+document.removeEventListener('touchend', handleTouchEnd);
+};
+document.addEventListener('touchmove', handleTouchMove, { passive: false });
+document.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+}
+},
+handleCutButtonClick(event, eventData) {
+event.preventDefault();
+event.stopPropagation();
+this.cutEvent(eventData);
+},
+cutEvent(event) {
+try {
+this.clipboardEvent = { ...event };
+const eventIndex = this.events.findIndex(e => e.id === event.id);
+if (eventIndex !== -1) {
+this.events.splice(eventIndex, 1);
+this.editModeEvent = null;
+this.saveData();
+if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+}
+} catch (error) {
+console.error('予定の切り取り中にエラーが発生しました:', error);
+alert('予定の切り取りに失敗しました。');
+}
+},
+pasteFromContext() {
+if (!this.clipboardEvent) return;
+const newEvent = {
+...this.clipboardEvent,
+id: Date.now() + Math.random(),
+dayIndex: this.activeDay
+};
+if (this.pasteTargetTime) {
+const duration = this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime);
+const startMinutes = this.timeToMinutes(this.pasteTargetTime);
+let endMinutes = startMinutes + duration;
+if (endMinutes > 1440) {
+endMinutes = 1440;
+}
+newEvent.startTime = this.pasteTargetTime;
+newEvent.endTime = this.minutesToTime(endMinutes);
+}
+this.events.push(newEvent);
+this.clipboardEvent = null;
+this.hideContextMenu();
+this.saveData();
+},
+addEventFromContext() {
+if (!this.pasteTargetTime) return;
+const startMinutes = this.timeToMinutes(this.pasteTargetTime);
+const endTime = this.minutesToTime(startMinutes + 60);
+this.eventForm = {
+title: '',
+dayIndex: this.activeDay,
+startTime: this.pasteTargetTime,
+endTime: endTime,
+category: 'travel',
+description: '',
+coordinates: ''
+};
+this.hideContextMenu();
+setTimeout(() => {
+this.openEventModal(null, true);
+}, 100);
+},
+timeToMinutes(timeString) {
+const [hours, minutes] = timeString.split(':').map(Number);
+return hours * 60 + minutes;
+},
+minutesToTime(minutes) {
+const hours = Math.floor(minutes / 60);
+const mins = minutes % 60;
+return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+},
+timeToPixels(timeString) {
+const [hours, minutes] = timeString.split(':').map(Number);
+const totalMinutes = (hours - 4) * 60 + minutes;
+return totalMinutes * (this.isMobile ? 50/60 : 1);
+},
+pixelsToTime(pixels) {
+const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
+const roundedMinutes = Math.round(totalMinutes / 15) * 15;
+const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
+const minutes = hours === 24 ? 0 : roundedMinutes % 60;
+return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+},
+handleScheduleContextMenu(event) {
+if (!this.isMobile) {
+event.preventDefault();
+this.showContextMenuAt(event.clientX, event.clientY, event);
+}
+},
+showContextMenuAt(x, y, event) {
+const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+const timelineHeader = container.querySelector('.timeline-header');
+const scheduleArea = container.querySelector('.schedule-area');
+if (!scheduleArea) {
+const containerRect = container.getBoundingClientRect();
+this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
+} else {
+const containerRect = container.getBoundingClientRect();
+const scheduleAreaRect = scheduleArea.getBoundingClientRect();
+const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+const snappedY = Math.round(relativeY / 15) * 15;
+this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
+}
+this.contextMenuStyle = { left: `${x}px`, top: `${y}px` };
+this.showContextMenu = true;
+setTimeout(() => {
+document.addEventListener('click', this.hideContextMenu, { once: true });
+}, 100);
+},
+hideContextMenu() { this.showContextMenu = false; },
+handleScheduleTouchStart(event) {
+if (!this.isMobile) return;
+if (event.target.closest('.event-block')) {
+return;
+}
+this.touchStartTime = Date.now();
+this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+this.longPressTimer = setTimeout(() => {
+this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
+if (navigator.vibrate) navigator.vibrate(50);
+}, 500);
+},
+handleScheduleTouchMove(event) {
+if (!this.isMobile) return;
+if (event.target.closest('.event-block')) {
+return;
+}
+const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
+const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
+if (deltaX > 10 || deltaY > 10) this.clearLongPress();
+},
+handleScheduleTouchEnd(event) {
+if (!this.isMobile) return;
+if (event.target.closest('.event-block')) {
+return;
+}
+this.clearLongPress();
+if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
+},
+clearLongPress() {
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
+}
+},
+startResize(event, eventData, direction) {
+this.startResizeHandler(event, direction, 'mouse');
+},
+startResizeTouch(event, eventData, direction) {
+this.startResizeHandler(event, direction, 'touch');
+},
+startResizeHandler(event, direction, type) {
+event.preventDefault();
+event.stopPropagation();
+const moveEvent = type === 'touch' ? 'touchmove' : 'mousemove';
+const endEvent = type === 'touch' ? 'touchend' : 'mouseup';
+const moveHandler = (e) => {
+const coords = type === 'touch' ? e.touches[0] : e;
+const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
+const rect = container.getBoundingClientRect();
+const timelineHeader = container.querySelector('.timeline-header');
+const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+const y = coords.clientY - rect.top - headerHeight + container.scrollTop;
+const snappedY = Math.round(y / 15) * 15;
+const newTime = this.pixelsToTime(snappedY);
+const eventIndex = this.events.findIndex(ev => ev.id === this.editModeEvent.id);
+if (eventIndex === -1) return;
+if (direction === 'top' && newTime < this.events[eventIndex].endTime) {
+this.events[eventIndex].startTime = newTime;
+} else if (direction === 'bottom' && newTime > this.events[eventIndex].startTime) {
+this.events[eventIndex].endTime = newTime;
+}
+};
+const endHandler = () => {
+document.removeEventListener(moveEvent, moveHandler);
+document.removeEventListener(endEvent, endHandler);
+this.isResizeComplete = true;
+this.saveData();
+setTimeout(() => {
+this.isResizeComplete = false;
+}, 150);
+};
+document.addEventListener(moveEvent, moveHandler, { passive: false });
+document.addEventListener(endEvent, endHandler);
+},
+getEventStyle(event) {
+const startPixels = this.timeToPixels(event.startTime);
+const endPixels = this.timeToPixels(event.endTime);
+const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+return {
+top: `${startPixels}px`,
+height: `${duration}px`,
+minHeight: this.isMobile ? '32px' : '35px'
+};
+},
+getCategoryIcon(category) {
+const icons = {
+travel: 'fas fa-car',
+food: 'fas fa-utensils',
+sightseeing: 'fas fa-camera',
+accommodation: 'fas fa-bed',
+custom: 'fas fa-star'
+};
+return icons[category] || 'fas fa-calendar';
+},
+
+// OpenStreetMap地図機能メソッド（指示通りのみ）
+setLocationFromMap() {
+this.showMapModal = true;
+this.$nextTick(() => {
+this.initializeMap();
+});
+},
+
+initializeMap() {
+// 大阪府大阪市北区の座標 (34.7024, 135.4959)
+const initialLat = 34.7024;
+const initialLng = 135.4959;
+
+this.map = L.map('map').setView([initialLat, initialLng], 15);
+
+// OpenStreetMap APIを使用
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+attribution: '© OpenStreetMap contributors'
+}).addTo(this.map);
+
+// 地図クリック（タップ）イベント - 座標取得
+this.map.on('click', (e) => {
+this.handleMapClick(e);
+});
+},
+
+handleMapClick(e) {
+const lat = e.latlng.lat.toFixed(6);
+const lng = e.latlng.lng.toFixed(6);
+this.selectedCoordinates = `${lat},${lng}`;
+
+// 既存のマーカーを削除
+if (this.mapMarker) {
+this.map.removeLayer(this.mapMarker);
+}
+
+// 新しいマーカーを追加
+this.mapMarker = L.marker([lat, lng]).addTo(this.map);
+
+// 座標を入力フィールドに設定
+const coordinatesInput = document.getElementById('eventCoordinates');
+if (coordinatesInput) {
+coordinatesInput.value = this.selectedCoordinates;
+}
+
+// タップフィードバック
+if (navigator.vibrate) navigator.vibrate(100);
+
+// 地図を自動で閉じる
+this.closeMapModal();
+},
+
+closeMapModal() {
+this.showMapModal = false;
+if (this.map) {
+this.map.remove();
+this.map = null;
+}
+this.mapMarker = null;
+},
+
+copyCoordinates() {
+const coordinatesInput = document.getElementById('eventCoordinates');
+if (!coordinatesInput || !coordinatesInput.value.trim()) {
+alert('コピーする緯度経度がありません');
+return;
+}
+
+const coordinates = coordinatesInput.value.trim();
+
+try {
+navigator.clipboard.writeText(coordinates).then(() => {
+alert('緯度経度をクリップボードにコピーしました');
+if (navigator.vibrate) navigator.vibrate(100);
+}).catch(() => {
+// フォールバック処理
+coordinatesInput.select();
+document.execCommand('copy');
+alert('緯度経度をクリップボードにコピーしました');
+if (navigator.vibrate) navigator.vibrate(100);
+});
+} catch (error) {
+console.error('コピーに失敗しました:', error);
+alert('コピーに失敗しました');
+}
+},
+
+openGoogleMap(coordinates) {
+if (!coordinates || !coordinates.trim()) {
+alert('緯度経度が設定されていません');
+return;
+}
+    
+const coords = coordinates.trim();
+const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=20`;
+    
+try {
+if (this.isMobile) {
+// モバイルの場合はアプリで開く
+window.location.href = googleMapsUrl;
+} else {
+// デスクトップの場合は別タブで開く
+window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+}
+} catch (error) {
+console.error('Googleマップの表示中にエラーが発生しました:', error);
+alert('Googleマップの表示に失敗しました');
+}
+},
+
+openDetailModal(event) {
+const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
+if (!eventData) {
+console.error('openDetailModal: 予定データが見つかりません:', event);
+alert('予定データが見つかりません');
+return;
+}
+const safeEventId = String(eventData.id).replace(/'/g, "\\'");
+const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+const safeCoordinates = String(eventData.coordinates || '').replace(/"/g, "&quot;");
+this.openModal('詳細', `
+<div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
+<div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
+<div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
+${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${safeCoordinates} <button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="window.app.openGoogleMap('${safeCoordinates}')" title="Googleマップで表示">🗾</button></div>` : ''}
+${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
+`, `
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+<button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
+<button type="button" class="btn btn-primary" onclick="window.app.editEventFromDetail('${safeEventId}')">編集</button>
+`);
+},
+deleteEventFromDetail(eventId) {
+try {
+if (!confirm('この予定を削除しますか？')) {
+return;
+}
+const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+if (eventIndex === -1) {
+alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+return;
+}
+this.events.splice(eventIndex, 1);
+this.saveData();
+this.editModeEvent = null;
+this.closeAllModals();
+if (navigator.vibrate) navigator.vibrate(100);
+} catch (error) {
+console.error('予定の削除中にエラーが発生しました:', error);
+alert('予定の削除に失敗しました。もう一度お試しください。');
+}
+},
+editEventFromDetail(eventId) {
+try {
+const event = this.events.find(e => String(e.id) === String(eventId));
+if (!event) {
+alert('予定が見つかりません。ページを再読み込みしてお試しください。');
+return;
+}
+this.closeAllModals();
+setTimeout(() => {
+this.openEventModal(event);
+}, 100);
+} catch (error) {
+console.error('予定の編集準備中にエラーが発生しました:', error);
+alert('予定の編集準備に失敗しました。もう一度お試しください。');
+}
+},
+openEventModal(event = null, fromContextMenu = false) {
+const isEdit = !!event;
+if (!fromContextMenu) {
+if (event) {
+this.eventForm = { ...event };
+} else {
+this.eventForm = {
+title: '',
+dayIndex: this.activeDay,
+startTime: '09:00',
+endTime: '10:00',
+category: 'travel',
+description: '',
+coordinates: ''
+};
+}
+}
+const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
+const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+const safeCoordinates = String(this.eventForm.coordinates || '').replace(/"/g, "&quot;");
+const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
+this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
+<div class="mb-3">
+<label class="form-label">予定名</label>
+<input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
+</div>
+<div class="mb-3">
+<label class="form-label">日付</label>
+<select class="form-control" id="eventDayIndex">
+${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
+</select>
+</div>
+<div class="row">
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">開始時間</label>
+<input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
+</div>
+</div>
+<div class="col-md-6">
+<div class="mb-3">
+<label class="form-label">終了時間</label>
+<input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
+</div>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">カテゴリ</label>
+<select class="form-control" id="eventCategory">
+<option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+<option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+<option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
+<option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+<option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
+</select>
+</div>
+<div class="mb-3">
+<label class="form-label">緯度経度</label>
+<div class="row">
+<div class="col-md-4">
+<input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
+</div>
+<div class="col-md-4">
+<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
+<i class="fas fa-map-marker-alt"></i> 位置設定
+</button>
+</div>
+<div class="col-md-4">
+<button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
+<i class="fas fa-copy"></i> コピー
+</button>
+</div>
+</div>
+</div>
+<div class="mb-3">
+<label class="form-label">詳細</label>
+<textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
+</div>
+`, `
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
+<button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
+`);
+},
+openStartDateModal() {
+this.openModal('旅行開始日の変更', `
+<div class="mb-3">
+<label class="form-label">新しい開始日</label>
+<input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
+</div>
+<div class="alert alert-info" role="alert">
+<small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
+</div>
+`, `
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+<button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
+`, 'modal-sm');
+},
+saveStartDateFromModal() {
+const newStartDate = document.getElementById('newStartDate').value;
+if (!newStartDate) {
+alert('開始日を選択してください');
+return;
+}
+this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+this.saveData();
+this.closeAllModals();
+},
+saveEventFromModal(eventId = null) {
+const title = document.getElementById('eventTitle').value.trim();
+const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
+const startTime = document.getElementById('eventStartTime').value;
+const endTime = document.getElementById('eventEndTime').value;
+const category = document.getElementById('eventCategory').value;
+const description = document.getElementById('eventDescription').value.trim();
+const coordinates = document.getElementById('eventCoordinates').value.trim();
+if (!title || !startTime || !endTime) {
+alert('必須項目を入力してください');
+return;
+}
+if (startTime >= endTime) {
+alert('終了時間は開始時間より後にしてください');
+return;
+}
+if (eventId) {
+const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+if (eventIndex !== -1) {
+this.events[eventIndex] = {
+...this.events[eventIndex],
+title,
+dayIndex,
+startTime,
+endTime,
+category,
+description,
+coordinates
+};
+}
+} else {
+this.events.push({
+id: Date.now() + Math.random(),
+title,
+dayIndex,
+startTime,
+endTime,
+category,
+description,
+coordinates
+});
+}
+this.saveData();
+this.closeAllModals();
+this.editModeEvent = null;
+},
+deleteEventById(eventId) {
+if (!confirm('この予定を削除しますか？')) return;
+const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
+if (eventIndex !== -1) {
+this.events.splice(eventIndex, 1);
+this.saveData();
+this.editModeEvent = null;
+this.closeAllModals();
+}
+},
+openModal(title, body, footer = '', size = '') {
+const modalId = 'modal-' + Date.now();
+const modal = { id: modalId, title, body, footer, size };
+this.modals.push(modal);
+this.$nextTick(() => {
+const modalElement = document.getElementById(modalId);
+if (modalElement) {
+const bsModal = new bootstrap.Modal(modalElement);
+bsModal.show();
+modalElement.addEventListener('hidden.bs.modal', () => {
+this.modals = this.modals.filter(m => m.id !== modalId);
+});
+}
+});
+},
+closeAllModals() {
+document.querySelectorAll('.modal.show').forEach(modal => {
+const bsModal = bootstrap.Modal.getInstance(modal);
+if (bsModal) bsModal.hide();
+});
+},
+saveData() {
+localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+},
+loadData() {
+const savedEvents = localStorage.getItem('trippenEvents');
+const savedDays = localStorage.getItem('trippenDays');
+if (savedEvents) {
+try {
+this.events = JSON.parse(savedEvents);
+} catch (e) {
+console.error('予定データの読み込みに失敗しました:', e);
+this.events = [];
+}
+}
+if (savedDays) {
+try {
+this.tripDays = JSON.parse(savedDays);
+} catch (e) {
+console.error('日程データの読み込みに失敗しました:', e);
+this.tripDays = [];
+}
+}
+}
+},
+mounted() {
+this.detectMobile();
+this.checkExistingData();
+this.loadData();
+if (this.tripDays.length > 0) this.tripInitialized = true;
+window.addEventListener('resize', this.detectMobile);
+window.app = this;
+},
+beforeUnmount() {
+window.removeEventListener('resize', this.detectMobile);
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
+}
+}
 }).mount('#app');
 </script>
 </body>
