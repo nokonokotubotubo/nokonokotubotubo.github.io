@@ -349,6 +349,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
 const { createApp } = Vue;
 const app = createApp({
@@ -531,12 +533,18 @@ const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContain
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-const initialTop = event.clientY - rect.top - headerHeight + container.scrollTop;
+
+// 中心を基準とした初期位置を計算（3行追加）
+const eventTop = this.timeToPixels(eventData.startTime);
+const eventBottom = this.timeToPixels(eventData.endTime);
+const centerOffset = (eventTop + eventBottom) / 2 - (event.clientY - rect.top - headerHeight + container.scrollTop);
+
 const moveHandler = (e) => {
-const newTop = initialTop + (e.clientY - startY);
+const newTop = e.clientY - rect.top - headerHeight + container.scrollTop + centerOffset;
 const snappedTop = Math.round(newTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
+
 const endHandler = () => {
 document.removeEventListener('mousemove', moveHandler);
 document.removeEventListener('mouseup', endHandler);
@@ -547,6 +555,7 @@ setTimeout(() => {
 this.isDragComplete = false;
 }, 150);
 };
+
 document.addEventListener('mousemove', moveHandler);
 document.addEventListener('mouseup', endHandler);
 },
@@ -558,16 +567,20 @@ const container = this.$refs.mobileTimelineContainer;
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
-const initialTop = coords.clientY - rect.top - headerHeight + container.scrollTop;
-const startY = coords.clientY;
+
+// 中心を基準とした初期位置を計算（3行追加）
+const eventTop = this.timeToPixels(eventData.startTime);
+const eventBottom = this.timeToPixels(eventData.endTime);
+const centerOffset = (eventTop + eventBottom) / 2 - (coords.clientY - rect.top - headerHeight + container.scrollTop);
+
 const moveHandler = (e) => {
 e.preventDefault();
 const touch = e.touches[0];
-const deltaY = touch.clientY - startY;
-const newTop = initialTop + deltaY;
+const newTop = touch.clientY - rect.top - headerHeight + container.scrollTop + centerOffset;
 const snappedTop = Math.round(newTop / 15) * 15;
 this.updateEventTimeFromDrag(eventData, snappedTop);
 };
+
 const endHandler = () => {
 document.removeEventListener('touchmove', moveHandler);
 document.removeEventListener('touchend', endHandler);
@@ -578,6 +591,7 @@ setTimeout(() => {
 this.isDragComplete = false;
 }, 150);
 };
+
 document.addEventListener('touchmove', moveHandler, { passive: false });
 document.addEventListener('touchend', endHandler, { passive: true });
 },
