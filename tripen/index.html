@@ -337,179 +337,749 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 const { createApp } = Vue;
 const app = createApp({
-data() {
-  return {
-    /* ===== 既存データ ===== */
-    tripInitialized:false,tripStartDate:'',tripEndDate:'',today:new Date().toISOString().split('T')[0],
-    hasExistingData:false,tripDays:[],activeDay:0,showMobilePopup:false,selectedDayForPopup:null,
-    selectedDayIndex:null,scrollPosition:0,maxScrollPosition:0,
-    timeSlots:[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
-    events:[],editModeEvent:null,clipboardEvent:null,showContextMenu:false,contextMenuStyle:{},
-    pasteTargetTime:null,isMobile:false,touchStartTime:0,touchStartPosition:{x:0,y:0},
-    longPressTimer:null,longPressExecuted:false,eventTouchOffset:{x:0,y:0},draggingEvent:null,
-    isDragComplete:false,isResizeComplete:false,dragStarted:false,longPressEventData:null,
-    longPressEvent:null,readyToMoveEventId:null,
-    showMapModal:false,map:null,selectedCoordinates:null,mapMarker:null,
-    eventForm:{title:'',dayIndex:0,startTime:'09:00',endTime:'10:00',
-               category:'travel',description:'',coordinates:''},
-    modals:[],
-
-    /* ===== 追加：天気表示用 ===== */
-    showWeatherPopup:false,
-    weatherPopupEvent:null,
-    fullDayWeather:{},
-    weatherHours:[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],
-    weatherCache:{}
-  };
-},
-methods:{
-  /* ===== 既存メソッド（省略無し） ===== */
-  /* --- 既存コードはそのまま --- */
-
-  /* ========== 追加：天気絵文字取得 ========== */
-  async fetchWeatherForEvent(event){
-    if(!event.coordinates) return null;
-    const [lat,lng]=event.coordinates.split(',').map(c=>parseFloat(c.trim()));
-    if(isNaN(lat)||isNaN(lng)) return null;
-    const dayData=this.tripDays[event.dayIndex];
-    if(!dayData) return null;
-    try{
-      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
-      const res=await fetch(url);
-      if(!res.ok) throw new Error('天気取得失敗');
-      const data=await res.json();
-      const hour=parseInt(event.startTime.split(':')[0]);
-      const idx=data.hourly.time.findIndex(t=>t.endsWith(`T${hour.toString().padStart(2,'0')}:00`));
-      if(idx===-1) return null;
-      return {
-        weather_code:data.hourly.weather_code[idx],
-        precipitation_probability:data.hourly.precipitation_probability[idx]??0
+  data() {
+    return {
+      /* ===== 基本設定 ===== */
+      tripInitialized: false,
+      tripStartDate: '',
+      tripEndDate: '',
+      today: new Date().toISOString().split('T')[0],
+      hasExistingData: false,
+      tripDays: [],
+      activeDay: 0,
+      
+      /* ===== モバイル対応 ===== */
+      showMobilePopup: false,
+      selectedDayForPopup: null,
+      selectedDayIndex: null,
+      isMobile: false,
+      
+      /* ===== タイムライン設定 ===== */
+      scrollPosition: 0,
+      maxScrollPosition: 0,
+      timeSlots: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+      
+      /* ===== 予定管理 ===== */
+      events: [],
+      editModeEvent: null,
+      clipboardEvent: null,
+      
+      /* ===== コンテキストメニュー ===== */
+      showContextMenu: false,
+      contextMenuStyle: {},
+      pasteTargetTime: null,
+      
+      /* ===== タッチ・ドラッグ操作 ===== */
+      touchStartTime: 0,
+      touchStartPosition: { x: 0, y: 0 },
+      longPressTimer: null,
+      longPressExecuted: false,
+      eventTouchOffset: { x: 0, y: 0 },
+      draggingEvent: null,
+      isDragComplete: false,
+      isResizeComplete: false,
+      dragStarted: false,
+      longPressEventData: null,
+      longPressEvent: null,
+      readyToMoveEventId: null,
+      
+      /* ===== 地図機能 ===== */
+      showMapModal: false,
+      map: null,
+      selectedCoordinates: null,
+      mapMarker: null,
+      
+      /* ===== 予定フォーム ===== */
+      eventForm: {
+        title: '',
+        dayIndex: 0,
+        startTime: '09:00',
+        endTime: '10:00',
+        category: 'travel',
+        description: '',
+        coordinates: ''
+      },
+      
+      /* ===== モーダル管理 ===== */
+      modals: [],
+      
+      /* ===== 天気予報機能 ===== */
+      showWeatherPopup: false,
+      weatherPopupEvent: null,
+      fullDayWeather: {},
+      weatherHours: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+      weatherCache: {}
+    };
+  },
+  
+  methods: {
+    /* ===== デバイス判定 ===== */
+    detectMobile() {
+      this.isMobile = window.innerWidth <= 768;
+    },
+    
+    /* ===== データ管理 ===== */
+    checkExistingData() {
+      const saved = localStorage.getItem('tripData');
+      this.hasExistingData = !!saved;
+    },
+    
+    loadData() {
+      const saved = localStorage.getItem('tripData');
+      if (saved) {
+        const data = JSON.parse(saved);
+        this.tripDays = data.tripDays || [];
+        this.events = data.events || [];
+        this.tripStartDate = data.tripStartDate || '';
+        this.tripEndDate = data.tripEndDate || '';
+        this.activeDay = data.activeDay || 0;
+        this.updateEventInlineText();
+      }
+    },
+    
+    saveData() {
+      const data = {
+        tripDays: this.tripDays,
+        events: this.events,
+        tripStartDate: this.tripStartDate,
+        tripEndDate: this.tripEndDate,
+        activeDay: this.activeDay
       };
-    }catch(e){
-      console.error(e);return null;
-    }
-  },
-  getWeatherIcon(d){
-    if(!d) return '☀️';
-    const p=d.precipitation_probability??0,c=d.weather_code??0;
-    if(p>=70) return '☔';
-    if(p>=40) return '🌧️';
-    if(p>=20) return '🌦️';
-    const icons={0:'☀️',1:'⛅',2:'⛅',3:'⛅',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',
-                 61:'🌧️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',80:'🌦️',81:'🌦️',82:'🌦️',
-                 95:'⛈️',96:'⛈️',99:'⛈️'};
-    return icons[c]||'☀️';
-  },
-  getTemperatureClass(t){
-    if(t===undefined||t===null) return '';
-    if(t>=35) return 'hot-temperature';
-    if(t<=0)  return 'cold-temperature';
-    return '';
-  },
-  async updateWeatherEmoji(){
-    for(const ev of this.events){
-      if(!ev.coordinates) continue;
-      const key=`${ev.coordinates}_${this.tripDays[ev.dayIndex]?.fullDate}_${ev.startTime}`;
-      if(this.weatherCache[key]){
-        ev.weatherEmoji=this.weatherCache[key];
-        continue;
+      localStorage.setItem('tripData', JSON.stringify(data));
+    },
+    
+    /* ===== 旅行セットアップ ===== */
+    setupTrip() {
+      if (!this.tripStartDate || !this.tripEndDate) {
+        alert('開始日と終了日を入力してください');
+        return;
       }
-      const d=await this.fetchWeatherForEvent(ev);
-      if(d){
-        const emoji=this.getWeatherIcon(d);
-        this.$set(ev,'weatherEmoji',emoji);
-        this.weatherCache[key]=emoji;
+      
+      if (new Date(this.tripStartDate) > new Date(this.tripEndDate)) {
+        alert('開始日は終了日より前の日付を入力してください');
+        return;
       }
-    }
-  },
-
-  /* ===== ポップアップ関連 ===== */
-  async openWeatherPopup(event){
-    if(!event.coordinates){alert('位置情報がありません');return;}
-    this.weatherPopupEvent=event;
-    this.showWeatherPopup=true;
-    await this.$nextTick();
-    await this.fetchFullDayWeather();
-    await this.scrollToEventTime();
-  },
-  async fetchFullDayWeather(){
-    if(!this.weatherPopupEvent?.coordinates) return;
-    const [lat,lng]=this.weatherPopupEvent.coordinates.split(',').map(c=>parseFloat(c.trim()));
-    const dayData=this.tripDays[this.weatherPopupEvent.dayIndex];
-    if(!dayData) return;
-    try{
-      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
-      const res=await fetch(url);
-      if(!res.ok) throw new Error('天気取得失敗');
-      const data=await res.json();
-      this.fullDayWeather={};
-      for(const h of this.weatherHours){
-        const idx=data.hourly.time.findIndex(t=>t.endsWith(`T${h.toString().padStart(2,'0')}:00`));
-        if(idx===-1) continue;
-        this.fullDayWeather[h]={
-          temperature:Math.round(data.hourly.temperature_2m[idx]),
-          apparent_temperature:Math.round(data.hourly.apparent_temperature[idx]),
-          humidity:Math.round(data.hourly.relative_humidity_2m[idx]),
-          precipitation_probability:Math.round(data.hourly.precipitation_probability[idx]??0),
-          weather_code:data.hourly.weather_code[idx]
+      
+      this.tripDays = [];
+      const start = new Date(this.tripStartDate);
+      const end = new Date(this.tripEndDate);
+      
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        this.tripDays.push({
+          date: `${d.getMonth() + 1}/${d.getDate()}(${dayOfWeek})`,
+          fullDate: d.toISOString().split('T')[0]
+        });
+      }
+      
+      this.tripInitialized = true;
+      this.activeDay = 0;
+      this.saveData();
+      this.updateWeatherEmoji();
+    },
+    
+    resetTrip() {
+      if (confirm('すべてのデータが削除されます。よろしいですか？')) {
+        localStorage.removeItem('tripData');
+        this.tripDays = [];
+        this.events = [];
+        this.tripStartDate = '';
+        this.tripEndDate = '';
+        this.activeDay = 0;
+        this.tripInitialized = false;
+        this.hasExistingData = false;
+        this.weatherCache = {};
+      }
+    },
+    
+    /* ===== 日程管理 ===== */
+    setActiveDay(index) {
+      this.activeDay = index;
+      this.editModeEvent = null;
+      this.saveData();
+    },
+    
+    getCurrentDayEvents() {
+      return this.events.filter(event => event.dayIndex === this.activeDay);
+    },
+    
+    /* ===== 予定スタイル ===== */
+    getEventStyle(event) {
+      const startMinutes = this.timeToMinutes(event.startTime);
+      const endMinutes = this.timeToMinutes(event.endTime);
+      const duration = endMinutes - startMinutes;
+      
+      const top = ((startMinutes - 240) / 60) * 60;
+      const height = (duration / 60) * 60;
+      
+      return {
+        top: `${top}px`,
+        height: `${height}px`,
+        left: '10px',
+        right: '10px'
+      };
+    },
+    
+    timeToMinutes(timeStr) {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    },
+    
+    minutesToTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    },
+    
+    /* ===== カテゴリ管理 ===== */
+    getCategoryIcon(category) {
+      const icons = {
+        travel: 'fas fa-plane',
+        food: 'fas fa-utensils',
+        sightseeing: 'fas fa-camera',
+        shopping: 'fas fa-shopping-bag',
+        accommodation: 'fas fa-bed',
+        meeting: 'fas fa-users',
+        other: 'fas fa-star'
+      };
+      return icons[category] || 'fas fa-star';
+    },
+    
+    /* ===== 予定操作 ===== */
+    handleEventClick(event, eventData) {
+      event.stopPropagation();
+      if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
+        this.editModeEvent = null;
+      } else {
+        this.editModeEvent = eventData;
+      }
+    },
+    
+    handleEventMouseDown(event, eventData) {
+      if (this.isMobile) return;
+      
+      this.dragStarted = false;
+      this.draggingEvent = null;
+      
+      const moveHandler = (e) => {
+        if (!this.dragStarted) {
+          this.dragStarted = true;
+          this.draggingEvent = eventData;
+          this.editModeEvent = null;
+        }
+        
+        const container = this.$refs.scrollContainer;
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top + container.scrollTop;
+        const newStartMinutes = Math.round((y / 60) * 60) + 240;
+        
+        if (newStartMinutes >= 240 && newStartMinutes <= 1440) {
+          const duration = this.timeToMinutes(eventData.endTime) - this.timeToMinutes(eventData.startTime);
+          const newEndMinutes = newStartMinutes + duration;
+          
+          if (newEndMinutes <= 1440) {
+            eventData.startTime = this.minutesToTime(newStartMinutes);
+            eventData.endTime = this.minutesToTime(newEndMinutes);
+            this.updateEventInlineText();
+          }
+        }
+      };
+      
+      const upHandler = () => {
+        if (this.draggingEvent) {
+          this.isDragComplete = true;
+          this.saveData();
+          setTimeout(() => {
+            this.draggingEvent = null;
+            this.isDragComplete = false;
+          }, 100);
+        }
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+      };
+      
+      document.addEventListener('mousemove', moveHandler);
+      document.addEventListener('mouseup', upHandler);
+    },
+    
+    /* ===== リサイズ処理 ===== */
+    startResize(event, eventData, direction) {
+      event.stopPropagation();
+      event.preventDefault();
+      
+      const moveHandler = (e) => {
+        const container = this.$refs.scrollContainer;
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top + container.scrollTop;
+        const minutes = Math.round((y / 60) * 60) + 240;
+        
+        if (direction === 'top') {
+          if (minutes >= 240 && minutes < this.timeToMinutes(eventData.endTime)) {
+            eventData.startTime = this.minutesToTime(minutes);
+            this.updateEventInlineText();
+          }
+        } else {
+          if (minutes > this.timeToMinutes(eventData.startTime) && minutes <= 1440) {
+            eventData.endTime = this.minutesToTime(minutes);
+            this.updateEventInlineText();
+          }
+        }
+      };
+      
+      const upHandler = () => {
+        this.isResizeComplete = true;
+        this.saveData();
+        setTimeout(() => {
+          this.isResizeComplete = false;
+        }, 100);
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+      };
+      
+      document.addEventListener('mousemove', moveHandler);
+      document.addEventListener('mouseup', upHandler);
+    },
+    
+    /* ===== コンテキストメニュー ===== */
+    handleScheduleContextMenu(event) {
+      event.preventDefault();
+      const container = this.$refs.scrollContainer;
+      const rect = container.getBoundingClientRect();
+      const y = event.clientY - rect.top + container.scrollTop;
+      const minutes = Math.round((y / 60) * 60) + 240;
+      
+      this.pasteTargetTime = this.minutesToTime(minutes);
+      this.contextMenuStyle = {
+        top: `${event.clientY}px`,
+        left: `${event.clientX}px`
+      };
+      this.showContextMenu = true;
+    },
+    
+    handleEventContextMenu(event, eventData) {
+      event.preventDefault();
+      this.contextMenuStyle = {
+        top: `${event.clientY}px`,
+        left: `${event.clientX}px`
+      };
+      this.showContextMenu = true;
+    },
+    
+    closeContextMenu() {
+      this.showContextMenu = false;
+    },
+    
+    /* ===== 予定編集 ===== */
+    addNewEvent() {
+      this.eventForm = {
+        title: '',
+        dayIndex: this.activeDay,
+        startTime: this.pasteTargetTime || '09:00',
+        endTime: this.pasteTargetTime ? this.minutesToTime(this.timeToMinutes(this.pasteTargetTime) + 60) : '10:00',
+        category: 'travel',
+        description: '',
+        coordinates: ''
+      };
+      this.openModal('eventModal');
+      this.closeContextMenu();
+    },
+    
+    editEvent(event) {
+      this.eventForm = { ...event };
+      this.openModal('eventModal');
+      this.closeContextMenu();
+    },
+    
+    deleteEvent(event) {
+      if (confirm('この予定を削除しますか？')) {
+        this.events = this.events.filter(e => e.id !== event.id);
+        this.saveData();
+      }
+      this.closeContextMenu();
+    },
+    
+    saveEvent() {
+      if (!this.eventForm.title.trim()) {
+        alert('タイトルを入力してください');
+        return;
+      }
+      
+      if (this.eventForm.id) {
+        const index = this.events.findIndex(e => e.id === this.eventForm.id);
+        if (index !== -1) {
+          this.events[index] = { ...this.eventForm };
+        }
+      } else {
+        this.eventForm.id = Date.now();
+        this.events.push({ ...this.eventForm });
+      }
+      
+      this.updateEventInlineText();
+      this.saveData();
+      this.closeModal('eventModal');
+      this.updateWeatherEmoji();
+    },
+    
+    updateEventInlineText() {
+      this.events.forEach(event => {
+        event.inlineText = `${event.startTime}-${event.endTime} ${event.title}`;
+      });
+    },
+    
+    /* ===== 切り取り・貼り付け ===== */
+    handleCutButtonClick(event, eventData) {
+      event.stopPropagation();
+      this.cutEvent(eventData);
+    },
+    
+    cutEvent(event) {
+      this.clipboardEvent = { ...event };
+      this.events = this.events.filter(e => e.id !== event.id);
+      this.editModeEvent = null;
+      this.saveData();
+      this.closeContextMenu();
+    },
+    
+    pasteEvent() {
+      if (!this.clipboardEvent) return;
+      
+      const newEvent = {
+        ...this.clipboardEvent,
+        id: Date.now(),
+        dayIndex: this.activeDay,
+        startTime: this.pasteTargetTime,
+        endTime: this.minutesToTime(
+          this.timeToMinutes(this.pasteTargetTime) + 
+          (this.timeToMinutes(this.clipboardEvent.endTime) - this.timeToMinutes(this.clipboardEvent.startTime))
+        )
+      };
+      
+      newEvent.inlineText = `${newEvent.startTime}-${newEvent.endTime} ${newEvent.title}`;
+      this.events.push(newEvent);
+      this.clipboardEvent = null;
+      this.saveData();
+      this.closeContextMenu();
+      this.updateWeatherEmoji();
+    },
+    
+    /* ===== モーダル管理 ===== */
+    openModal(modalId) {
+      if (!this.modals.includes(modalId)) {
+        this.modals.push(modalId);
+      }
+    },
+    
+    closeModal(modalId) {
+      this.modals = this.modals.filter(id => id !== modalId);
+    },
+    
+    isModalOpen(modalId) {
+      return this.modals.includes(modalId);
+    },
+    
+    /* ===== 地図機能 ===== */
+    openMapModal() {
+      this.showMapModal = true;
+      this.$nextTick(() => {
+        this.initMap();
+      });
+    },
+    
+    closeMapModal() {
+      this.showMapModal = false;
+      this.selectedCoordinates = null;
+      if (this.map) {
+        this.map.remove();
+        this.map = null;
+      }
+    },
+    
+    initMap() {
+      if (this.map) return;
+      
+      this.map = L.map('map').setView([35.6762, 139.6503], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(this.map);
+      
+      this.map.on('click', (e) => {
+        this.selectedCoordinates = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+        
+        if (this.mapMarker) {
+          this.map.removeLayer(this.mapMarker);
+        }
+        
+        this.mapMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(this.map);
+      });
+    },
+    
+    selectCoordinates() {
+      if (this.selectedCoordinates) {
+        this.eventForm.coordinates = this.selectedCoordinates;
+        this.closeMapModal();
+      }
+    },
+    
+    /* ===== モバイル対応 ===== */
+    handleScheduleTouchStart(event) {
+      if (event.touches.length !== 1) return;
+      this.touchStartTime = Date.now();
+      this.touchStartPosition = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+    },
+    
+    handleScheduleTouchEnd(event) {
+      const touchDuration = Date.now() - this.touchStartTime;
+      const touch = event.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - this.touchStartPosition.x);
+      const deltaY = Math.abs(touch.clientY - this.touchStartPosition.y);
+      
+      if (touchDuration >= 800 && deltaX < 20 && deltaY < 20) {
+        const container = this.$refs.mobileTimelineContainer;
+        const rect = container.getBoundingClientRect();
+        const y = touch.clientY - rect.top + container.scrollTop;
+        const minutes = Math.round((y / 60) * 60) + 240;
+        
+        this.pasteTargetTime = this.minutesToTime(minutes);
+        this.addNewEvent();
+      }
+    },
+    
+    handleScheduleTouchMove(event) {
+      // タッチ移動時の処理
+    },
+    
+    handleEventTouchStart(event, eventData) {
+      if (event.touches.length !== 1) return;
+      event.preventDefault();
+      
+      this.touchStartTime = Date.now();
+      this.touchStartPosition = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+      
+      this.longPressEventData = eventData;
+      this.longPressExecuted = false;
+      
+      this.longPressTimer = setTimeout(() => {
+        this.longPressExecuted = true;
+        this.editModeEvent = eventData;
+        this.readyToMoveEventId = eventData.id;
+      }, 600);
+    },
+    
+    startResizeTouch(event, eventData, direction) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const moveHandler = (e) => {
+        if (e.touches.length !== 1) return;
+        
+        const container = this.$refs.mobileTimelineContainer;
+        const rect = container.getBoundingClientRect();
+        const y = e.touches[0].clientY - rect.top + container.scrollTop;
+        const minutes = Math.round((y / 60) * 60) + 240;
+        
+        if (direction === 'top') {
+          if (minutes >= 240 && minutes < this.timeToMinutes(eventData.endTime)) {
+            eventData.startTime = this.minutesToTime(minutes);
+            this.updateEventInlineText();
+          }
+        } else {
+          if (minutes > this.timeToMinutes(eventData.startTime) && minutes <= 1440) {
+            eventData.endTime = this.minutesToTime(minutes);
+            this.updateEventInlineText();
+          }
+        }
+      };
+      
+      const endHandler = () => {
+        this.isResizeComplete = true;
+        this.saveData();
+        setTimeout(() => {
+          this.isResizeComplete = false;
+        }, 100);
+        document.removeEventListener('touchmove', moveHandler);
+        document.removeEventListener('touchend', endHandler);
+      };
+      
+      document.addEventListener('touchmove', moveHandler);
+      document.addEventListener('touchend', endHandler);
+    },
+    
+    /* ===== 天気予報機能 ===== */
+    async fetchWeatherForEvent(event) {
+      if (!event.coordinates) return null;
+      const [lat, lng] = event.coordinates.split(',').map(c => parseFloat(c.trim()));
+      if (isNaN(lat) || isNaN(lng)) return null;
+      const dayData = this.tripDays[event.dayIndex];
+      if (!dayData) return null;
+      
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('天気取得失敗');
+        const data = await res.json();
+        const hour = parseInt(event.startTime.split(':')[0]);
+        const idx = data.hourly.time.findIndex(t => t.endsWith(`T${hour.toString().padStart(2, '0')}:00`));
+        if (idx === -1) return null;
+        return {
+          weather_code: data.hourly.weather_code[idx],
+          precipitation_probability: data.hourly.precipitation_probability[idx] ?? 0
         };
+      } catch (e) {
+        console.error(e);
+        return null;
       }
-    }catch(e){console.error(e);alert('天気取得に失敗しました');}
-  },
-  async scrollToEventTime(){
-    await this.$nextTick();
-    const hour=parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
-    setTimeout(()=>{
-      if(this.isMobile){
-        const container=this.$refs.weatherMobileTableContainer;
-        const target=document.getElementById('weather-mobile-hour-'+hour);
-        if(container&&target){
-          const pos=target.offsetTop-container.offsetTop-60;
-          container.scrollTo({top:Math.max(0,pos),behavior:'smooth'});
+    },
+    
+    getWeatherIcon(d) {
+      if (!d) return '☀️';
+      const p = d.precipitation_probability ?? 0, c = d.weather_code ?? 0;
+      if (p >= 70) return '☔';
+      if (p >= 40) return '🌧️';
+      if (p >= 20) return '🌦️';
+      const icons = {
+        0: '☀️', 1: '⛅', 2: '⛅', 3: '⛅', 45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌦️', 55: '🌦️',
+        61: '🌧️', 63: '🌧️', 65: '🌧️', 71: '❄️', 73: '❄️', 75: '❄️', 80: '🌦️', 81: '🌦️', 82: '🌦️',
+        95: '⛈️', 96: '⛈️', 99: '⛈️'
+      };
+      return icons[c] || '☀️';
+    },
+    
+    getTemperatureClass(t) {
+      if (t === undefined || t === null) return '';
+      if (t >= 35) return 'hot-temperature';
+      if (t <= 0) return 'cold-temperature';
+      return '';
+    },
+    
+    async updateWeatherEmoji() {
+      for (const ev of this.events) {
+        if (!ev.coordinates) continue;
+        const key = `${ev.coordinates}_${this.tripDays[ev.dayIndex]?.fullDate}_${ev.startTime}`;
+        if (this.weatherCache[key]) {
+          ev.weatherEmoji = this.weatherCache[key];
+          continue;
         }
-      }else{
-        const container=this.$refs.weatherTableContainer;
-        const target=document.getElementById('weather-hour-'+hour);
-        if(container&&target){
-          const pos=target.offsetLeft-container.offsetLeft-60;
-          container.scrollTo({left:Math.max(0,pos),behavior:'smooth'});
+        const d = await this.fetchWeatherForEvent(ev);
+        if (d) {
+          const emoji = this.getWeatherIcon(d);
+          this.$set(ev, 'weatherEmoji', emoji);
+          this.weatherCache[key] = emoji;
         }
       }
-    },120);
+    },
+    
+    async openWeatherPopup(event) {
+      if (!event.coordinates) {
+        alert('位置情報がありません');
+        return;
+      }
+      this.weatherPopupEvent = event;
+      this.showWeatherPopup = true;
+      await this.$nextTick();
+      await this.fetchFullDayWeather();
+      await this.scrollToEventTime();
+    },
+    
+    async fetchFullDayWeather() {
+      if (!this.weatherPopupEvent?.coordinates) return;
+      const [lat, lng] = this.weatherPopupEvent.coordinates.split(',').map(c => parseFloat(c.trim()));
+      const dayData = this.tripDays[this.weatherPopupEvent.dayIndex];
+      if (!dayData) return;
+      
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}&timezone=Asia/Tokyo`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('天気取得失敗');
+        const data = await res.json();
+        this.fullDayWeather = {};
+        
+        for (const h of this.weatherHours) {
+          const idx = data.hourly.time.findIndex(t => t.endsWith(`T${h.toString().padStart(2, '0')}:00`));
+          if (idx === -1) continue;
+          this.fullDayWeather[h] = {
+            temperature: Math.round(data.hourly.temperature_2m[idx]),
+            apparent_temperature: Math.round(data.hourly.apparent_temperature[idx]),
+            humidity: Math.round(data.hourly.relative_humidity_2m[idx]),
+            precipitation_probability: Math.round(data.hourly.precipitation_probability[idx] ?? 0),
+            weather_code: data.hourly.weather_code[idx]
+          };
+        }
+      } catch (e) {
+        console.error(e);
+        alert('天気取得に失敗しました');
+      }
+    },
+    
+    async scrollToEventTime() {
+      await this.$nextTick();
+      const hour = parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
+      
+      setTimeout(() => {
+        if (this.isMobile) {
+          const container = this.$refs.weatherMobileTableContainer;
+          const target = document.getElementById('weather-mobile-hour-' + hour);
+          if (container && target) {
+            const pos = target.offsetTop - container.offsetTop - 60;
+            container.scrollTo({ top: Math.max(0, pos), behavior: 'smooth' });
+          }
+        } else {
+          const container = this.$refs.weatherTableContainer;
+          const target = document.getElementById('weather-hour-' + hour);
+          if (container && target) {
+            const pos = target.offsetLeft - container.offsetLeft - 60;
+            container.scrollTo({ left: Math.max(0, pos), behavior: 'smooth' });
+          }
+        }
+      }, 120);
+    },
+    
+    closeWeatherPopup() {
+      this.showWeatherPopup = false;
+      this.weatherPopupEvent = null;
+      this.fullDayWeather = {};
+    },
+    
+    isEventHour(h) {
+      if (!this.weatherPopupEvent?.startTime) return false;
+      return h === parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
+    }
   },
-  closeWeatherPopup(){
-    this.showWeatherPopup=false;
-    this.weatherPopupEvent=null;
-    this.fullDayWeather={};
+  
+  mounted() {
+    this.detectMobile();
+    this.checkExistingData();
+    this.loadData();
+    if (this.tripDays.length > 0) {
+      this.tripInitialized = true;
+      this.updateWeatherEmoji();
+    }
+    window.addEventListener('resize', this.detectMobile);
+    
+    // 天気絵文字を監視
+    this.$watch(() => this.events.length, () => {
+      this.updateWeatherEmoji();
+    });
+    
+    // デバッグ用
+    window.app = this;
   },
-  isEventHour(h){
-    if(!this.weatherPopupEvent?.startTime) return false;
-    return h===parseInt(this.weatherPopupEvent.startTime.split(':')[0]);
-  },
-
-  /* ===== 既存メソッドの後ろに追記終わり ===== */
-},
-mounted(){
-  /* 既存 mounted ロジック */
-  this.detectMobile();
-  this.checkExistingData();
-  this.loadData();
-  if(this.tripDays.length>0) this.tripInitialized=true;
-  window.addEventListener('resize',this.detectMobile);
-
-  /* 追加：天気絵文字取得 */
-  this.updateWeatherEmoji();
-  this.$watch(()=>this.events.length,()=>this.updateWeatherEmoji());
-  window.app=this;
-},
-beforeUnmount(){
-  window.removeEventListener('resize',this.detectMobile);
-  if(this.longPressTimer){clearTimeout(this.longPressTimer);this.longPressTimer=null;}
-}
+  
+  beforeUnmount() {
+    window.removeEventListener('resize', this.detectMobile);
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
 }).mount('#app');
 </script>
 </body>
