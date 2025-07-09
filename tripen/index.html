@@ -1075,6 +1075,9 @@ coordinatesInput.value = this.selectedCoordinates;
 
 // タップフィードバック
 if (navigator.vibrate) navigator.vibrate(100);
+
+// 地図を自動で閉じる
+this.closeMapModal();
 },
 
 closeMapModal() {
@@ -1228,15 +1231,15 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 <div class="mb-3">
 <label class="form-label">緯度経度</label>
 <div class="row">
-<div class="col-md-6">
+<div class="col-md-4">
 <input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
 </div>
-<div class="col-md-3">
+<div class="col-md-4">
 <button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
 <i class="fas fa-map-marker-alt"></i> 位置設定
 </button>
 </div>
-<div class="col-md-3">
+<div class="col-md-4">
 <button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
 <i class="fas fa-copy"></i> コピー
 </button>
