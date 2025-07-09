@@ -113,6 +113,96 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group{display:flex;align-items:center;justify-content:center;gap:15px;margin:20px 0;flex-wrap:wrap}
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
+
+/* 軽量な地図機能のスタイル */
+.location-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.location-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.location-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.location-close:hover {
+    background: #f0f0f0;
+}
+
+.location-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.location-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.location-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.location-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.coordinate-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.coordinate-input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
 @media (max-width:768px){
 .header{padding:6px 0}
 .timeline-header{padding:6px 15px}
@@ -334,6 +424,47 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 </div>
+
+<!-- 軽量な位置設定モーダル -->
+<div v-if="showLocationModal" class="location-modal" @click="closeLocationModal">
+    <div class="location-container" @click.stop>
+        <div class="location-header">
+            <h5><i class="fas fa-map-marker-alt"></i> 位置設定</h5>
+            <button class="location-close" @click="closeLocationModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="location-buttons">
+            <button class="location-btn primary" @click="getCurrentLocation">
+                <i class="fas fa-location-arrow"></i>
+                現在位置を取得
+            </button>
+            
+            <button class="location-btn secondary" @click="openGoogleMaps">
+                <i class="fas fa-external-link-alt"></i>
+                Google Mapsで確認
+            </button>
+            
+            <div>
+                <label for="manualCoords">手動入力（緯度,経度）:</label>
+                <input 
+                    type="text" 
+                    id="manualCoords"
+                    v-model="manualCoordinates"
+                    class="coordinate-input"
+                    placeholder="例：34.7024,135.4959"
+                    @keyup.enter="setManualCoordinates"
+                >
+                <button class="location-btn primary" @click="setManualCoordinates">
+                    <i class="fas fa-check"></i>
+                    座標を設定
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
 <div class="modal-dialog" :class="modal.size">
 <div class="modal-content">
@@ -386,6 +517,10 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
+// 軽量地図機能用のデータ
+showLocationModal: false,
+currentCoordinates: null,
+manualCoordinates: '',
 eventForm: {
 title: '',
 dayIndex: 0,
@@ -928,24 +1063,113 @@ custom: 'fas fa-star'
 };
 return icons[category] || 'fas fa-calendar';
 },
+
+// 軽量版地図機能メソッド
 setLocationFromMap() {
-alert('位置設定機能は準備中です。手動で緯度経度を入力してください。');
+this.showLocationModal = true;
+this.manualCoordinates = '';
 },
+
+closeLocationModal() {
+this.showLocationModal = false;
+this.currentCoordinates = null;
+this.manualCoordinates = '';
+},
+
+getCurrentLocation() {
+if (!navigator.geolocation) {
+alert('お使いのブラウザは位置情報に対応していません');
+return;
+}
+
+navigator.geolocation.getCurrentPosition(
+(position) => {
+const lat = position.coords.latitude.toFixed(6);
+const lng = position.coords.longitude.toFixed(6);
+this.currentCoordinates = `${lat},${lng}`;
+this.setCoordinatesToForm(this.currentCoordinates);
+alert('現在位置を取得しました');
+if (navigator.vibrate) navigator.vibrate(100);
+},
+(error) => {
+let message = '位置情報の取得に失敗しました';
+switch(error.code) {
+case error.PERMISSION_DENIED:
+message = '位置情報の使用が許可されていません';
+break;
+case error.POSITION_UNAVAILABLE:
+message = '位置情報が利用できません';
+break;
+case error.TIMEOUT:
+message = '位置情報の取得がタイムアウトしました';
+break;
+}
+alert(message);
+},
+{
+enableHighAccuracy: true,
+timeout: 10000,
+maximumAge: 60000
+}
+);
+},
+
+openGoogleMaps() {
+// 大阪府大阪市北区を初期位置として設定
+const defaultLat = 34.7024;
+const defaultLng = 135.4959;
+const mapUrl = `https://www.google.com/maps/@${defaultLat},${defaultLng},15z`;
+
+if (confirm('Google Mapsで位置を確認しますか？\n（座標は手動で入力してください）')) {
+window.open(mapUrl, '_blank');
+}
+},
+
+setManualCoordinates() {
+const coords = this.manualCoordinates.trim();
+if (!coords) {
+alert('緯度経度を入力してください');
+return;
+}
+
+// 簡単な座標形式チェック
+const coordPattern = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
+if (!coordPattern.test(coords)) {
+alert('正しい形式で入力してください（例：34.7024,135.4959）');
+return;
+}
+
+this.setCoordinatesToForm(coords);
+this.closeLocationModal();
+alert('座標を設定しました');
+if (navigator.vibrate) navigator.vibrate(100);
+},
+
+setCoordinatesToForm(coordinates) {
+const coordinatesInput = document.getElementById('eventCoordinates');
+if (coordinatesInput) {
+coordinatesInput.value = coordinates;
+}
+},
+
 copyCoordinates() {
 const coordinatesInput = document.getElementById('eventCoordinates');
 if (!coordinatesInput || !coordinatesInput.value.trim()) {
 alert('コピーする緯度経度がありません');
 return;
 }
-    
+
+const coordinates = coordinatesInput.value.trim();
+
 try {
-navigator.clipboard.writeText(coordinatesInput.value.trim()).then(() => {
-alert('緯度経度をコピーしました');
+navigator.clipboard.writeText(coordinates).then(() => {
+alert('緯度経度をクリップボードにコピーしました');
 if (navigator.vibrate) navigator.vibrate(100);
 }).catch(() => {
+// フォールバック処理
 coordinatesInput.select();
 document.execCommand('copy');
-alert('緯度経度をコピーしました');
+alert('緯度経度をクリップボードにコピーしました');
 if (navigator.vibrate) navigator.vibrate(100);
 });
 } catch (error) {
@@ -953,6 +1177,7 @@ console.error('コピーに失敗しました:', error);
 alert('コピーに失敗しました');
 }
 },
+
 openDetailModal(event) {
 const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
 if (!eventData) {
@@ -1073,7 +1298,7 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 <input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
 </div>
 <div class="col-md-3">
-<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定（準備中）">
+<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
 <i class="fas fa-map-marker-alt"></i> 位置設定
 </button>
 </div>
