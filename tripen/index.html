@@ -393,8 +393,7 @@ startTime: '09:00',
 endTime: '10:00',
 category: 'travel',
 description: '',
-latitude: '',
-longitude: ''
+coordinates: ''
 },
 modals: []
 };
@@ -588,19 +587,23 @@ const minTime = '04:00';
 const maxTime = '24:00';
 const eventIndex = this.events.findIndex(ev => ev.id === eventData.id);
 if (eventIndex === -1) return;
+  
 const currentDuration = this.timeToMinutes(this.events[eventIndex].endTime) - this.timeToMinutes(this.events[eventIndex].startTime);
 const newTime = this.pixelsToTime(snappedTop);
 const newEndTime = this.minutesToTime(this.timeToMinutes(newTime) + currentDuration);
+  
 if (newTime < minTime) {
 this.events[eventIndex].startTime = minTime;
 this.events[eventIndex].endTime = this.minutesToTime(this.timeToMinutes(minTime) + currentDuration);
 return;
 }
+  
 if (newEndTime > maxTime) {
 this.events[eventIndex].endTime = maxTime;
 this.events[eventIndex].startTime = this.minutesToTime(this.timeToMinutes(maxTime) - currentDuration);
 return;
 }
+  
 this.events[eventIndex].startTime = newTime;
 this.events[eventIndex].endTime = newEndTime;
 },
@@ -774,8 +777,7 @@ startTime: this.pasteTargetTime,
 endTime: endTime,
 category: 'travel',
 description: '',
-latitude: '',
-longitude: ''
+coordinates: ''
 };
 this.hideContextMenu();
 setTimeout(() => {
@@ -926,6 +928,31 @@ custom: 'fas fa-star'
 };
 return icons[category] || 'fas fa-calendar';
 },
+setLocationFromMap() {
+alert('位置設定機能は準備中です。手動で緯度経度を入力してください。');
+},
+copyCoordinates() {
+const coordinatesInput = document.getElementById('eventCoordinates');
+if (!coordinatesInput || !coordinatesInput.value.trim()) {
+alert('コピーする緯度経度がありません');
+return;
+}
+    
+try {
+navigator.clipboard.writeText(coordinatesInput.value.trim()).then(() => {
+alert('緯度経度をコピーしました');
+if (navigator.vibrate) navigator.vibrate(100);
+}).catch(() => {
+coordinatesInput.select();
+document.execCommand('copy');
+alert('緯度経度をコピーしました');
+if (navigator.vibrate) navigator.vibrate(100);
+});
+} catch (error) {
+console.error('コピーに失敗しました:', error);
+alert('コピーに失敗しました');
+}
+},
 openDetailModal(event) {
 const eventData = typeof event === 'string' ? this.events.find(e => String(e.id) === String(event)) : event;
 if (!eventData) {
@@ -935,13 +962,11 @@ return;
 }
 const safeEventId = String(eventData.id).replace(/'/g, "\\'");
 const safeTitle = String(eventData.title).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-const locationInfo = eventData.latitude && eventData.longitude ? 
-`<div class="mb-3"><strong>位置:</strong> ${eventData.latitude}, ${eventData.longitude}</div>` : '';
 this.openModal('詳細', `
 <div class="mb-3"><h6><i class="${this.getCategoryIcon(eventData.category)}"></i> ${safeTitle}</h6></div>
 <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
 <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
-${locationInfo}
+${eventData.coordinates ? `<div class="mb-3"><strong>緯度経度:</strong> ${String(eventData.coordinates).replace(/"/g, "&quot;")}</div>` : ''}
 ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
 `, `
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
@@ -998,13 +1023,13 @@ startTime: '09:00',
 endTime: '10:00',
 category: 'travel',
 description: '',
-latitude: '',
-longitude: ''
+coordinates: ''
 };
 }
 }
 const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
 const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
+const safeCoordinates = String(this.eventForm.coordinates || '').replace(/"/g, "&quot;");
 const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
 this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
 <div class="mb-3">
@@ -1044,22 +1069,18 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 <div class="mb-3">
 <label class="form-label">緯度経度</label>
 <div class="row">
-<div class="col-md-8">
-<div class="input-group">
-<input type="number" class="form-control" id="eventLatitude" placeholder="緯度" value="${String(this.eventForm.latitude || '')}" step="any">
-<span class="input-group-text">,</span>
-<input type="number" class="form-control" id="eventLongitude" placeholder="経度" value="${String(this.eventForm.longitude || '')}" step="any">
+<div class="col-md-6">
+<input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
 </div>
-</div>
-<div class="col-md-4">
-<div class="btn-group w-100" role="group">
-<button type="button" class="btn btn-outline-primary" onclick="window.app.setLocationFromMap()" disabled title="位置設定（今後実装予定）">
-<i class="fas fa-map-marker-alt"></i>
-</button>
-<button type="button" class="btn btn-outline-secondary" onclick="window.app.copyLocationToClipboard()" title="緯度経度をコピー">
-<i class="fas fa-copy"></i>
+<div class="col-md-3">
+<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定（準備中）">
+<i class="fas fa-map-marker-alt"></i> 位置設定
 </button>
 </div>
+<div class="col-md-3">
+<button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
+<i class="fas fa-copy"></i> コピー
+</button>
 </div>
 </div>
 </div>
@@ -1072,47 +1093,6 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
 <button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
 `);
-},
-copyLocationToClipboard() {
-const latitude = document.getElementById('eventLatitude').value;
-const longitude = document.getElementById('eventLongitude').value;
-if (!latitude || !longitude) {
-alert('緯度経度を入力してください');
-return;
-}
-const locationText = `${latitude},${longitude}`;
-if (navigator.clipboard && navigator.clipboard.writeText) {
-navigator.clipboard.writeText(locationText).then(() => {
-alert('緯度経度をコピーしました');
-}).catch(err => {
-console.error('クリップボードへのコピーに失敗しました:', err);
-this.fallbackCopyToClipboard(locationText);
-});
-} else {
-this.fallbackCopyToClipboard(locationText);
-}
-},
-fallbackCopyToClipboard(text) {
-const textArea = document.createElement('textarea');
-textArea.value = text;
-textArea.style.position = 'fixed';
-textArea.style.left = '-999999px';
-textArea.style.top = '-999999px';
-document.body.appendChild(textArea);
-textArea.focus();
-textArea.select();
-try {
-document.execCommand('copy');
-alert('緯度経度をコピーしました');
-} catch (err) {
-console.error('コピーに失敗しました:', err);
-alert('コピーに失敗しました');
-} finally {
-document.body.removeChild(textArea);
-}
-},
-setLocationFromMap() {
-alert('この機能は今後実装予定です');
 },
 openStartDateModal() {
 this.openModal('旅行開始日の変更', `
@@ -1145,8 +1125,7 @@ const startTime = document.getElementById('eventStartTime').value;
 const endTime = document.getElementById('eventEndTime').value;
 const category = document.getElementById('eventCategory').value;
 const description = document.getElementById('eventDescription').value.trim();
-const latitude = document.getElementById('eventLatitude').value;
-const longitude = document.getElementById('eventLongitude').value;
+const coordinates = document.getElementById('eventCoordinates').value.trim();
 if (!title || !startTime || !endTime) {
 alert('必須項目を入力してください');
 return;
@@ -1166,8 +1145,7 @@ startTime,
 endTime,
 category,
 description,
-latitude,
-longitude
+coordinates
 };
 }
 } else {
@@ -1179,8 +1157,7 @@ startTime,
 endTime,
 category,
 description,
-latitude,
-longitude
+coordinates
 });
 }
 this.saveData();
@@ -1213,7 +1190,6 @@ this.modals = this.modals.filter(m => m.id !== modalId);
 });
 },
 closeAllModals() {
-closeAllModals() {
 document.querySelectorAll('.modal.show').forEach(modal => {
 const bsModal = bootstrap.Modal.getInstance(modal);
 if (bsModal) bsModal.hide();
@@ -1222,42 +1198,25 @@ if (bsModal) bsModal.hide();
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-localStorage.setItem('trippenActiveDay', this.activeDay.toString());
 },
 loadData() {
-const events = localStorage.getItem('trippenEvents');
-const days = localStorage.getItem('trippenDays');
-const activeDay = localStorage.getItem('trippenActiveDay');
-if (events) this.events = JSON.parse(events);
-if (days) this.tripDays = JSON.parse(days);
-if (activeDay) this.activeDay = parseInt(activeDay);
-},
-setLocation() {
-alert('位置設定機能は準備中です');
-},
-copyCoordinates() {
-const latitude = document.getElementById('eventLatitude').value;
-const longitude = document.getElementById('eventLongitude').value;
-if (!latitude || !longitude) {
-alert('緯度経度を入力してください');
-return;
+const savedEvents = localStorage.getItem('trippenEvents');
+const savedDays = localStorage.getItem('trippenDays');
+if (savedEvents) {
+try {
+this.events = JSON.parse(savedEvents);
+} catch (e) {
+console.error('予定データの読み込みに失敗しました:', e);
+this.events = [];
 }
-const coordinates = `${latitude},${longitude}`;
-if (navigator.clipboard && navigator.clipboard.writeText) {
-navigator.clipboard.writeText(coordinates).then(() => {
-if (navigator.vibrate) navigator.vibrate(50);
-const btn = event.target.closest('.coordinates-btn');
-const originalHTML = btn.innerHTML;
-btn.innerHTML = '<i class="fas fa-check"></i>';
-setTimeout(() => {
-btn.innerHTML = originalHTML;
-}, 1000);
-}).catch(err => {
-console.error('コピーに失敗しました:', err);
-this.fallbackCopyToClipboard(coordinates);
-});
-} else {
-this.fallbackCopyToClipboard(coordinates);
+}
+if (savedDays) {
+try {
+this.tripDays = JSON.parse(savedDays);
+} catch (e) {
+console.error('日程データの読み込みに失敗しました:', e);
+this.tripDays = [];
+}
 }
 }
 },
@@ -1271,9 +1230,12 @@ window.app = this;
 },
 beforeUnmount() {
 window.removeEventListener('resize', this.detectMobile);
+if (this.longPressTimer) {
+clearTimeout(this.longPressTimer);
+this.longPressTimer = null;
 }
-});
-app.mount('#app');
+}
+}).mount('#app');
 </script>
 </body>
 </html>
