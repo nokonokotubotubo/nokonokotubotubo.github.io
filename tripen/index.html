@@ -396,7 +396,9 @@ dayIndex: 0,
 startTime: '09:00',
 endTime: '10:00',
 category: 'travel',
-description: ''
+description: '',
+latitude: '',
+longitude: ''
 },
 modals: []
 };
@@ -793,7 +795,9 @@ dayIndex: this.activeDay,
 startTime: this.pasteTargetTime,
 endTime: endTime,
 category: 'travel',
-description: ''
+description: '',
+latitude: '',
+longitude: ''
 };
 this.hideContextMenu();
 setTimeout(() => {
@@ -958,6 +962,7 @@ this.openModal('詳細', `
 <div class="mb-3"><strong>日付:</strong> ${this.tripDays[eventData.dayIndex]?.date || '不明'}</div>
 <div class="mb-3"><strong>時間:</strong> ${eventData.startTime} - ${eventData.endTime}</div>
 ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.linkifyUrls(String(eventData.description).replace(/"/g, "&quot;"))}</div>` : ''}
+${eventData.latitude && eventData.longitude ? `<div class="mb-3"><strong>緯度経度:</strong> ${eventData.latitude}, ${eventData.longitude}</div>` : ''}
 `, `
 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
 <button type="button" class="btn btn-danger" onclick="window.app.deleteEventFromDetail('${safeEventId}')">削除</button>
@@ -1012,7 +1017,9 @@ dayIndex: this.activeDay,
 startTime: '09:00',
 endTime: '10:00',
 category: 'travel',
-description: ''
+description: '',
+latitude: '',
+longitude: ''
 };
 }
 }
@@ -1055,6 +1062,27 @@ ${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.e
 </select>
 </div>
 <div class="mb-3">
+<label class="form-label">緯度経度</label>
+<div class="row">
+<div class="col-sm-4">
+<input type="number" class="form-control" id="eventLatitude" placeholder="緯度" step="any" value="${this.eventForm.latitude || ''}" style="font-size: 0.9rem;">
+</div>
+<div class="col-sm-4">
+<input type="number" class="form-control" id="eventLongitude" placeholder="経度" step="any" value="${this.eventForm.longitude || ''}" style="font-size: 0.9rem;">
+</div>
+<div class="col-sm-4">
+<div class="d-flex gap-2">
+<button type="button" class="btn btn-outline-primary btn-sm flex-fill" onclick="window.app.setLocation()" title="位置設定（後で実装予定）">
+<i class="fas fa-map-marker-alt"></i> 位置設定
+</button>
+<button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
+<i class="fas fa-copy"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="mb-3">
 <label class="form-label">詳細</label>
 <textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
 </div>
@@ -1095,6 +1123,9 @@ const startTime = document.getElementById('eventStartTime').value;
 const endTime = document.getElementById('eventEndTime').value;
 const category = document.getElementById('eventCategory').value;
 const description = document.getElementById('eventDescription').value.trim();
+const latitude = document.getElementById('eventLatitude').value.trim();
+const longitude = document.getElementById('eventLongitude').value.trim();
+
 if (!title || !startTime || !endTime) {
 alert('必須項目を入力してください');
 return;
@@ -1103,6 +1134,7 @@ if (startTime >= endTime) {
 alert('終了時間は開始時間より後にしてください');
 return;
 }
+
 if (eventId) {
 const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
 if (eventIndex !== -1) {
@@ -1113,7 +1145,9 @@ dayIndex,
 startTime,
 endTime,
 category,
-description
+description,
+latitude,
+longitude
 };
 }
 } else {
@@ -1124,12 +1158,57 @@ dayIndex,
 startTime,
 endTime,
 category,
-description
+description,
+latitude,
+longitude
 });
 }
 this.saveData();
 this.closeAllModals();
 this.editModeEvent = null;
+},
+setLocation() {
+// 位置設定機能（後で実装予定）
+alert('位置設定機能は後で実装予定です');
+},
+
+copyCoordinates() {
+const latitude = document.getElementById('eventLatitude').value.trim();
+const longitude = document.getElementById('eventLongitude').value.trim();
+  
+if (!latitude || !longitude) {
+alert('緯度と経度を入力してください');
+return;
+}
+  
+const coordinates = `${latitude}, ${longitude}`;
+  
+// クリップボードにコピー
+if (navigator.clipboard) {
+navigator.clipboard.writeText(coordinates).then(() => {
+alert('緯度経度をコピーしました: ' + coordinates);
+}).catch(err => {
+console.error('コピーに失敗しました:', err);
+this.fallbackCopy(coordinates);
+});
+} else {
+this.fallbackCopy(coordinates);
+}
+},
+
+fallbackCopy(text) {
+// フォールバック用のコピー処理
+const textArea = document.createElement('textarea');
+textArea.value = text;
+document.body.appendChild(textArea);
+textArea.select();
+try {
+document.execCommand('copy');
+alert('緯度経度をコピーしました: ' + text);
+} catch (err) {
+alert('コピーに失敗しました。手動でコピーしてください: ' + text);
+}
+document.body.removeChild(textArea);
 },
 deleteEventById(eventId) {
 if (!confirm('この予定を削除しますか？')) return;
