@@ -88,6 +88,94 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .event-action-btn{width:30px;height:30px;border-radius:8px;border:none;color:white;font-size:0.8rem;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .event-action-btn.cut{background:#FF6B6B;border:2px solid #fff}
 .event-action-btn.cut:hover{background:#FF5252;transform:scale(1.1)}
+
+/* 天気予報機能のスタイル */
+.weather-emoji {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 15;
+    transition: transform 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.weather-emoji:hover {
+    transform: scale(1.2);
+}
+
+.weather-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+.weather-popup.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.weather-popup-content {
+    width: 100%;
+    height: 100%;
+    background: white;
+    position: relative;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.weather-popup-header {
+    background: var(--primary);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 4001;
+}
+
+.weather-popup-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4002;
+    transition: background 0.3s;
+}
+
+.weather-popup-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.weather-popup-iframe {
+    width: 100%;
+    height: calc(100% - 60px);
+    border: none;
+}
+
 .context-menu{position:fixed;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:2000;opacity:0;visibility:hidden;transform:scale(0.8);transition:var(--transition);min-width:150px}
 .context-menu.show{opacity:1;visibility:visible;transform:scale(1)}
 .context-menu-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid #eee;transition:var(--transition);display:flex;align-items:center;gap:8px}
@@ -202,6 +290,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group{flex-direction:column;gap:10px}
 .event-action-btn{width:35px;height:35px;font-size:0.9rem}
 .event-block.overlapping{opacity:0.7;border:2px solid #ff6b6b}
+.weather-emoji{font-size:1rem}
 }
 </style>
 </head>
@@ -292,6 +381,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 { 'dragging': draggingEvent && draggingEvent.id === event.id },
 { 'ready-to-move': readyToMoveEventId === event.id }
 ]" :style="getEventStyle(event)" @contextmenu.prevent="handleEventContextMenu($event, event)" @click="handleEventClick($event, event)" @mousedown="handleEventMouseDown($event, event)">
+<div class="weather-emoji" v-if="event.coordinates && event.weatherEmoji" @click.stop="openWeatherPopup(event)" :title="event.weatherDescription">
+{{ event.weatherEmoji }}
+</div>
 <div class="event-content-inline">
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
@@ -358,6 +450,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 { 'dragging': draggingEvent && draggingEvent.id === event.id },
 { 'ready-to-move': readyToMoveEventId === event.id }
 ]" :style="getEventStyle(event)" @click="handleEventClick($event, event)" @touchstart="handleEventTouchStart($event, event)">
+<div class="weather-emoji" v-if="event.coordinates && event.weatherEmoji" @click.stop="openWeatherPopup(event)" :title="event.weatherDescription">
+{{ event.weatherEmoji }}
+</div>
 <div class="event-content-inline">
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
@@ -406,6 +501,19 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-times"></i>キャンセル
 </button>
 </div>
+</div>
+</div>
+
+<!-- 天気予報ポップアップ -->
+<div v-if="showWeatherPopup" class="weather-popup" :class="{ show: showWeatherPopup }" @click="closeWeatherPopup">
+<div class="weather-popup-content" @click.stop>
+<div class="weather-popup-header">
+<h5><i class="fas fa-cloud-sun"></i> 天気予報</h5>
+<button class="weather-popup-close" @click="closeWeatherPopup">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<iframe :src="weatherPopupUrl" class="weather-popup-iframe" allowfullscreen></iframe>
 </div>
 </div>
 
@@ -481,6 +589,40 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
+// 天気予報機能用のデータ
+showWeatherPopup: false,
+weatherPopupUrl: '',
+weatherCache: new Map(),
+weatherEmojis: {
+    0: '☀️',      // 快晴
+    1: '🌤️',      // 晴れ時々曇り
+    2: '⛅',      // 曇り
+    3: '☁️',      // 曇り
+    45: '🌫️',     // 霧
+    48: '🌫️',     // 霧氷
+    51: '🌦️',     // 小雨
+    53: '🌧️',     // 雨
+    55: '🌧️',     // 大雨
+    56: '🌨️',     // 凍雨
+    57: '🌨️',     // 凍雨
+    61: '🌦️',     // 小雨
+    63: '🌧️',     // 雨
+    65: '🌧️',     // 大雨
+    66: '🌨️',     // 凍雨
+    67: '🌨️',     // 凍雨
+    71: '🌨️',     // 小雪
+    73: '❄️',      // 雪
+    75: '❄️',      // 大雪
+    77: '🌨️',     // 雪
+    80: '🌦️',     // 小雨
+    81: '🌧️',     // 雨
+    82: '🌧️',     // 大雨
+    85: '🌨️',     // 小雪
+    86: '❄️',      // 雪
+    95: '⛈️',      // 雷雨
+    96: '⛈️',      // 雹を伴う雷雨
+    99: '⛈️'       // 雹を伴う雷雨
+},
 // OpenStreetMap地図機能用のデータ
 showMapModal: false,
 map: null,
@@ -503,6 +645,126 @@ maxZIndex: 10
 };
 },
 methods: {
+// 天気予報機能メソッド
+async fetchWeatherData() {
+    if (!this.tripInitialized) return;
+    
+    for (const event of this.events) {
+        if (event.coordinates && event.coordinates.trim()) {
+            try {
+                const weatherData = await this.getWeatherForEvent(event);
+                if (weatherData) {
+                    const eventIndex = this.events.findIndex(e => e.id === event.id);
+                    if (eventIndex !== -1) {
+                        this.events[eventIndex].weatherEmoji = weatherData.emoji;
+                        this.events[eventIndex].weatherDescription = weatherData.description;
+                    }
+                }
+            } catch (error) {
+                console.error('天気データの取得に失敗:', error);
+            }
+        }
+    }
+    this.saveData();
+},
+
+async getWeatherForEvent(event) {
+    const cacheKey = `${event.coordinates}-${event.dayIndex}-${event.startTime}`;
+    
+    if (this.weatherCache.has(cacheKey)) {
+        return this.weatherCache.get(cacheKey);
+    }
+    
+    try {
+        const [lat, lng] = event.coordinates.split(',').map(num => parseFloat(num.trim()));
+        const day = this.tripDays[event.dayIndex];
+        if (!day) return null;
+        
+        const date = day.fullDate;
+        const [hours] = event.startTime.split(':').map(Number);
+        
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.daily && data.daily.weathercode && data.daily.weathercode[0] !== null) {
+            const weatherCode = data.daily.weathercode[0];
+            const emoji = this.weatherEmojis[weatherCode] || '🌤️';
+            const description = this.getWeatherDescription(weatherCode);
+            
+            const weatherData = { emoji, description };
+            this.weatherCache.set(cacheKey, weatherData);
+            return weatherData;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('天気APIエラー:', error);
+        return null;
+    }
+},
+
+getWeatherDescription(code) {
+    const descriptions = {
+        0: '快晴',
+        1: '晴れ時々曇り',
+        2: '曇り',
+        3: '曇り',
+        45: '霧',
+        48: '霧氷',
+        51: '小雨',
+        53: '雨',
+        55: '大雨',
+        56: '凍雨',
+        57: '凍雨',
+        61: '小雨',
+        63: '雨',
+        65: '大雨',
+        66: '凍雨',
+        67: '凍雨',
+        71: '小雪',
+        73: '雪',
+        75: '大雪',
+        77: '雪',
+        80: '小雨',
+        81: '雨',
+        82: '大雨',
+        85: '小雪',
+        86: '雪',
+        95: '雷雨',
+        96: '雹を伴う雷雨',
+        99: '雹を伴う雷雨'
+    };
+    return descriptions[code] || '不明';
+},
+
+openWeatherPopup(event) {
+    if (!event.coordinates) return;
+    
+    const [lat, lng] = event.coordinates.split(',').map(num => parseFloat(num.trim()));
+    const day = this.tripDays[event.dayIndex];
+    if (!day) return;
+    
+    // 日時の形式を作成 (例: 2025/7/21の14:42 → 202507211400)
+    const dateObj = new Date(day.fullDate);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const date = String(dateObj.getDate()).padStart(2, '0');
+    const [hours] = event.startTime.split(':').map(Number);
+    const formattedHours = String(hours).padStart(2, '0');
+    
+    const datetime = `${year}${month}${date}${formattedHours}00`;
+    
+    this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat}&lng=${lng}&datetime=${datetime}`;
+    this.showWeatherPopup = true;
+},
+
+closeWeatherPopup() {
+    this.showWeatherPopup = false;
+    this.weatherPopupUrl = '';
+},
+
 linkifyUrls(text) {
 if (!text) return text;
 const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1051,7 +1313,8 @@ this.events[eventIndex].startTime = newTime;
 this.events[eventIndex].endTime = newTime;
 }
 };
-const endHandler = () => {
+const endHandler = ()
+{
 document.removeEventListener(moveEvent, moveHandler);
 document.removeEventListener(endEvent, endHandler);
 this.isResizeComplete = true;
@@ -1091,6 +1354,126 @@ accommodation: 'fas fa-bed',
 custom: 'fas fa-star'
 };
 return icons[category] || 'fas fa-calendar';
+},
+
+// 天気予報機能メソッド
+async fetchWeatherData() {
+    if (!this.tripInitialized) return;
+    
+    for (const event of this.events) {
+        if (event.coordinates && event.coordinates.trim()) {
+            try {
+                const weatherData = await this.getWeatherForEvent(event);
+                if (weatherData) {
+                    const eventIndex = this.events.findIndex(e => e.id === event.id);
+                    if (eventIndex !== -1) {
+                        this.events[eventIndex].weatherEmoji = weatherData.emoji;
+                        this.events[eventIndex].weatherDescription = weatherData.description;
+                    }
+                }
+            } catch (error) {
+                console.error('天気データの取得に失敗:', error);
+            }
+        }
+    }
+    this.saveData();
+},
+
+async getWeatherForEvent(event) {
+    const cacheKey = `${event.coordinates}-${event.dayIndex}-${event.startTime}`;
+    
+    if (this.weatherCache.has(cacheKey)) {
+        return this.weatherCache.get(cacheKey);
+    }
+    
+    try {
+        const [lat, lng] = event.coordinates.split(',').map(num => parseFloat(num.trim()));
+        const day = this.tripDays[event.dayIndex];
+        if (!day) return null;
+        
+        const date = day.fullDate;
+        const [hours] = event.startTime.split(':').map(Number);
+        
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode&timezone=Asia/Tokyo&start_date=${date}&end_date=${date}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.daily && data.daily.weathercode && data.daily.weathercode[0] !== null) {
+            const weatherCode = data.daily.weathercode[0];
+            const emoji = this.weatherEmojis[weatherCode] || '🌤️';
+            const description = this.getWeatherDescription(weatherCode);
+            
+            const weatherData = { emoji, description };
+            this.weatherCache.set(cacheKey, weatherData);
+            return weatherData;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('天気APIエラー:', error);
+        return null;
+    }
+},
+
+getWeatherDescription(code) {
+    const descriptions = {
+        0: '快晴',
+        1: '晴れ時々曇り',
+        2: '曇り',
+        3: '曇り',
+        45: '霧',
+        48: '霧氷',
+        51: '小雨',
+        53: '雨',
+        55: '大雨',
+        56: '凍雨',
+        57: '凍雨',
+        61: '小雨',
+        63: '雨',
+        65: '大雨',
+        66: '凍雨',
+        67: '凍雨',
+        71: '小雪',
+        73: '雪',
+        75: '大雪',
+        77: '雪',
+        80: '小雨',
+        81: '雨',
+        82: '大雨',
+        85: '小雪',
+        86: '雪',
+        95: '雷雨',
+        96: '雹を伴う雷雨',
+        99: '雹を伴う雷雨'
+    };
+    return descriptions[code] || '不明';
+},
+
+openWeatherPopup(event) {
+    if (!event.coordinates) return;
+    
+    const [lat, lng] = event.coordinates.split(',').map(num => parseFloat(num.trim()));
+    const day = this.tripDays[event.dayIndex];
+    if (!day) return;
+    
+    // 日時の形式を作成 (例: 2025/7/21の14:42 → 202507211400)
+    const dateObj = new Date(day.fullDate);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const date = String(dateObj.getDate()).padStart(2, '0');
+    const [hours] = event.startTime.split(':').map(Number);
+    const formattedHours = String(hours).padStart(2, '0');
+    
+    const datetime = `${year}${month}${date}${formattedHours}00`;
+    
+    this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat}&lng=${lng}&datetime=${datetime}`;
+    this.showWeatherPopup = true;
+},
+
+closeWeatherPopup() {
+    this.showWeatherPopup = false;
+    this.weatherPopupUrl = '';
 },
 
 // OpenStreetMap地図機能メソッド（指示通りのみ）
@@ -1559,7 +1942,11 @@ mounted() {
   this.detectMobile();
   this.checkExistingData();
   this.loadData();
-  if (this.tripDays.length > 0) this.tripInitialized = true;
+  if (this.tripDays.length > 0) {
+    this.tripInitialized = true;
+    // 天気データを取得
+    this.fetchWeatherData();
+  }
   window.addEventListener('resize', this.detectMobile);
   window.app = this;
 }
@@ -1567,4 +1954,3 @@ mounted() {
 </script>
 </body>
 </html>
-
