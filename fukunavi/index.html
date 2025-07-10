@@ -503,17 +503,36 @@ createApp({
       showContextMenu.value = true;
     };
 
-    const openSaveDialog = () => {
-  // 不正な呼び出しを防ぐ追加チェック
+    // 【修正後】デバッグ用ログあり版（ご選択：A）
+const openSaveDialog = () => {
+  // デバッグ用ログを追加
+  console.log('openSaveDialog called', {
+    hasLocation: !!(selectedLatLng.lat && selectedLatLng.lng),
+    showContextMenu: showContextMenu.value,
+    contextMenuIndex: contextMenuIndex.value,
+    alreadyOpen: showSaveDialog.value
+  });
+
+  // 1. 位置未選択時の呼び出し防止
   if (!selectedLatLng.lat || !selectedLatLng.lng) {
     errorMessage.value = '先に地図をクリックして位置を選択してください';
     setTimeout(() => errorMessage.value = '', 3000);
     return;
   }
-  // コンテキストメニューからの正当な呼び出しかチェック
-  if (!showContextMenu.value) {
+
+  // 2. 不正なコンテキストメニュー呼び出し防止
+  if (!showContextMenu.value || contextMenuIndex.value < 0 || contextMenuIndex.value >= 5) {
+    console.warn('openSaveDialog: Invalid context menu state');
     return;
   }
+
+  // 3. 既にダイアログが開いている場合は二重起動防止
+  if (showSaveDialog.value) {
+    console.warn('openSaveDialog: Dialog already open');
+    return;
+  }
+
+  // 4. 正常処理
   saveLocationIndex.value = contextMenuIndex.value;
   saveLocationName.value = '';
   selectedPreset.value = '';
@@ -521,6 +540,7 @@ createApp({
   showSaveDialog.value = true;
   nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
 };
+
 
 
     const confirmDeleteMemory = () => {
