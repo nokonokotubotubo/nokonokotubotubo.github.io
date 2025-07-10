@@ -4,13 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Fukuなび</title>
-<link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#3385ff">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fukuなび">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script>
+  // manifest.json の存在確認
+  fetch('/manifest.json', { method: 'HEAD' })
+    .then(response => {
+      if (response.ok) {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = '/manifest.json';
+        document.head.appendChild(link);
+      }
+    })
+    .catch(() => {
+      // manifest.json が存在しない場合は何もしない
+    });
+</script>
 <style>
 *{box-sizing:border-box}
 html,body,#app{height:100vh;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
@@ -345,7 +360,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
-<script src="https://unpkg.com/vue@3.0.0"></script>
+<script src="https://unpkg.com/vue@3.0.0/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
@@ -949,7 +964,18 @@ createApp({
   }
 }).mount('#app');
 
-'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e)));
+'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => {
+  // Service Worker ファイルの存在確認
+  fetch('/sw.js', { method: 'HEAD' })
+    .then(response => {
+      if (response.ok) {
+        return navigator.serviceWorker.register('/sw.js');
+      }
+      throw new Error('Service Worker file not found');
+    })
+    .then(r => console.log('SW registered: ', r))
+    .catch(e => console.log('SW registration skipped: ', e.message));
+});
 </script>
 </body>
 </html>
