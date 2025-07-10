@@ -354,7 +354,13 @@ createApp({
   setup() {
     const map = ref(null);
     const marker = ref(null);
-    const selectedLatLng = reactive({ lat: 34.6937, lng: 135.5023 });
+    const selectedLatLng = reactive({ 
+      lat: 34.6937, 
+      lng: 135.5023,
+      timezoneOffset: null,
+      timezone: null,
+      timezoneAbbreviation: null
+    });
     const dateList = ref([]);
     const selectedDateIndex = ref(0);
     const weatherData = reactive({});
@@ -378,11 +384,12 @@ createApp({
     const windowWidth = ref(window.innerWidth);
     const selectedMemoryIndex = ref(-1);
     const urlTargetHour = ref(null);
+    const urlParams = ref(null);
 
     const isMobile = computed(() => windowWidth.value <= 600);
     const hasWeatherData = computed(() => Object.keys(weatherData).length > 0);
 
-    // URLパラメータを読み取る関数（日時パラメータ対応・改善版）
+    // URLパラメータを読み取る関数（タイムゾーン対応版）
     const getUrlParams = () => {
       const params = new URLSearchParams(window.location.search);
       const lat = params.get('lat');
@@ -402,7 +409,7 @@ createApp({
         }
       }
       
-      // 日時パラメータの処理（改善版）
+      // 日時パラメータの処理（タイムゾーン対応版）
       if (datetime && datetime.length === 12) {
         const year = parseInt(datetime.substring(0, 4));
         const month = parseInt(datetime.substring(4, 6));
@@ -410,24 +417,18 @@ createApp({
         const hour = parseInt(datetime.substring(8, 10));
         const minute = parseInt(datetime.substring(10, 12));
         
-        console.log('URLパラメータ解析:', { year, month, day, hour, minute });
-        
-        // 基本的な数値範囲チェック（軽量）
+        // 基本的な数値範囲チェック
         if (year >= 2020 && year <= 2030 && 
             month >= 1 && month <= 12 && 
             day >= 1 && day <= 31 && 
             hour >= 0 && hour <= 23 && 
             minute >= 0 && minute <= 59) {
           
-          const targetDate = new Date(year, month - 1, day, hour, minute);
-          const today = new Date();
-          
-          // 日付の開始時刻（0時0分）で比較して日数差を計算
-          const targetDateStart = new Date(year, month - 1, day, 0, 0, 0);
-          const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-          const diffDays = Math.floor((targetDateStart - todayStart) / (1000 * 60 * 60 * 24));
-          
-          console.log('日付計算:', { targetDate, today, diffDays });
+          // UTCベースで日付差分を計算（タイムゾーン非依存）
+          const targetDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+          const todayUTC = new Date();
+          todayUTC.setUTCHours(0, 0, 0, 0);
+          const diffDays = Math.floor((targetDateUTC - todayUTC) / (1000 * 60 * 60 * 24));
           
           // 今日から7日後まで、時刻は6-22時の範囲内をチェック
           if (diffDays >= 0 && diffDays <= 7 && hour >= 6 && hour <= 22) {
@@ -435,12 +436,7 @@ createApp({
             result.dateIndex = diffDays;
             result.targetHour = hour;
             result.isValidDateTime = true;
-            console.log('URLパラメータ処理成功:', result);
-          } else {
-            console.log('URLパラメータ範囲外:', { diffDays, hour, validRange: '今日から7日後、6-22時' });
           }
-        } else {
-          console.log('URLパラメータ形式エラー:', { year, month, day, hour, minute });
         }
       }
       
@@ -553,18 +549,49 @@ createApp({
     };
 
     const isCurrentHour = h => {
-      if (urlTargetHour.value !== null && selectedDateIndex.value === 0) return h === urlTargetHour.value;
-      return 0 === selectedDateIndex.value && new Date().getHours() === h;
+      // URLパラメータが有効な場合の処理
+      if (urlTargetHour.value !== null) {
+        // URLパラメータで指定された日付インデックスと時刻をチェック
+        const urlDateIndex = urlParams.value?.dateIndex || 0;
+        return selectedDateIndex.value === urlDateIndex && h === urlTargetHour.value;
+      }
+      
+      // 通常の現在時刻ハイライト
+      if (selectedDateIndex.value === 0) {
+        // 選択位置のタイムゾーンを考慮した現在時刻を取得
+        const now = new Date();
+        const timezoneOffset = selectedLatLng.timezoneOffset || 0;
+        const localNow = new Date(now.getTime() + (timezoneOffset * 60000));
+        return h === localNow.getHours();
+      }
+      
+      return false;
     };
 
     const scrollToCurrentTime = () => {
-      if (0 !== selectedDateIndex.value) return;
-      const h = urlTargetHour.value ?? new Date().getHours();
-      const targetHour = h + 3;
+      let targetHour, targetDateIndex;
       
-      if (h < 6 || h > 22 || windowWidth.value > 600) return;
+      // URLパラメータが有効な場合
+      if (urlTargetHour.value !== null && urlParams.value?.dateIndex !== undefined) {
+        targetHour = urlTargetHour.value;
+        targetDateIndex = urlParams.value.dateIndex;
+      } else {
+        // 通常の現在時刻スクロール
+        targetDateIndex = 0;
+        const now = new Date();
+        const timezoneOffset = selectedLatLng.timezoneOffset || 0;
+        const localNow = new Date(now.getTime() + (timezoneOffset * 60000));
+        targetHour = localNow.getHours();
+      }
       
-      const scrollTarget = targetHour > 22 ? 22 : targetHour;
+      // 選択されている日付が対象日付と一致する場合のみスクロール
+      if (selectedDateIndex.value !== targetDateIndex) return;
+      
+      const scrollHour = targetHour + 3;
+      
+      if (targetHour < 6 || targetHour > 22 || windowWidth.value > 600) return;
+      
+      const scrollTarget = scrollHour > 22 ? 22 : scrollHour;
       
       setTimeout(() => {
         const el = document.getElementById(`mobile-hour-${scrollTarget}`);
@@ -783,7 +810,7 @@ createApp({
       const d = dateList.value[selectedDateIndex.value];
       const lat = selectedLatLng.lat.toFixed(4);
       const lng = selectedLatLng.lng.toFixed(4);
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=auto&timezone_abbreviation=true`;
       const c = new AbortController();
       const tid = setTimeout(() => c.abort(), 15000);
       fetch(url, { signal: c.signal }).then(r => {
@@ -791,6 +818,12 @@ createApp({
         return r.json();
       }).then(data => {
         if (!data.hourly) throw new Error('天気データの解析に失敗しました。しばらく時間をおいて再試行してください。');
+        
+        // タイムゾーン情報を保存
+        selectedLatLng.timezoneOffset = data.utc_offset_seconds / 60; // 分単位に変換
+        selectedLatLng.timezone = data.timezone;
+        selectedLatLng.timezoneAbbreviation = data.timezone_abbreviation;
+        
         for (const h of hours) {
           const idx = data.hourly.time.findIndex(t => t.endsWith(`T${h.toString().padStart(2, '0')}:00`));
           -1 !== idx && (weatherData[h] = {
@@ -832,22 +865,24 @@ createApp({
         loadLocationMemoriesFromStorage();
         
         // URLパラメータを優先的にチェック
-        const urlParams = getUrlParams();
-        if (urlParams) {
+        const urlParamsResult = getUrlParams();
+        urlParams.value = urlParamsResult;
+        
+        if (urlParamsResult) {
           selectedMemoryIndex.value = -1;
           
           // 位置情報が含まれている場合
-          if (urlParams.lat && urlParams.lng) {
-            selectedLatLng.lat = urlParams.lat;
-            selectedLatLng.lng = urlParams.lng;
+          if (urlParamsResult.lat && urlParamsResult.lng) {
+            selectedLatLng.lat = urlParamsResult.lat;
+            selectedLatLng.lng = urlParamsResult.lng;
             map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
             fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
           }
           
           // 日時パラメータが含まれている場合
-          if (urlParams.isValidDateTime) {
-            selectedDateIndex.value = urlParams.dateIndex;
-            urlTargetHour.value = urlParams.targetHour;
+          if (urlParamsResult.isValidDateTime) {
+            selectedDateIndex.value = urlParamsResult.dateIndex;
+            urlTargetHour.value = urlParamsResult.targetHour;
           }
           
           fetchWeatherData();
