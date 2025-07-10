@@ -621,7 +621,7 @@ createApp({
 
     const calculateDiscomfortIndex = (t, h) => void 0 === t || null === t || void 0 === h || null === h ? null : Math.round((0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3) * 10) / 10;
 
-    const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も<br>感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて<br>汗が出る' : '暑くて<br>たまらない';
+    const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も'<br>'感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて'<br>'汗が出る' : '暑くて'<br>'たまらない';
 
     const loadLocationMemoriesFromStorage = () => {
       const s = localStorage.getItem('fukuanvi-location-memories');
