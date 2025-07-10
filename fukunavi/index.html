@@ -313,6 +313,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
+</div>
 <footer class="footer">
 <small>&copy; 2025 nokotubo</small>
 </footer>
@@ -419,17 +420,35 @@ createApp({
           // 現在時刻を日本時間で取得
           const targetDate = new Date(year, month - 1, day, hour, minute);
           const today = new Date();
-
           // 日付の境界を考慮した日数差計算
           const targetStartOfDay = new Date(year, month - 1, day, 0, 0, 0);
           const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
           const diffDays = Math.floor((targetStartOfDay - todayStartOfDay) / (1000 * 60 * 60 * 24));
           
-          // 今日から7日後まで、時刻は6-22時の範囲内をチェック
-          if (diffDays >= 0 && diffDays <= 7 && hour >= 6 && hour <= 22) {
+          // 今日から7日後まで、時刻は0-23時の範囲内をチェック
+          if (diffDays >= 0 && diffDays <= 7 && hour >= 0 && hour <= 23) {
             result = result || {};
-            result.dateIndex = diffDays;
-            result.targetHour = hour;
+            
+            // 時間調整ロジック
+            let adjustedDateIndex = diffDays;
+            let adjustedHour = hour;
+            
+            if (hour < 6) {
+              // 6時より前の場合はその日の6時
+              adjustedHour = 6;
+            } else if (hour > 22) {
+              // 23時より後の場合は翌日の6時
+              adjustedDateIndex = diffDays + 1;
+              adjustedHour = 6;
+              
+              // 翌日が範囲外になる場合はスキップ
+              if (adjustedDateIndex > 7) {
+                return result;
+              }
+            }
+            
+            result.dateIndex = adjustedDateIndex;
+            result.targetHour = adjustedHour;
             result.isValidDateTime = true;
           }
         }
@@ -815,140 +834,139 @@ createApp({
             temperature_2m: Math.round(data.hourly.temperature_2m[idx]),
             apparent_temperature: Math.round(data.hourly.apparent_temperature[idx]),
             relative_humidity_2m: Math.round(data.hourly.relative_humidity_2m[idx]),
-            precipitation_probability: Math.round(data.hourly.precipitation_probability[idx] || 0),
+            precipitation_probability: Math.round(data.hourly.precipitation_probability[idx]),
             weather_code: data.hourly.weather_code[idx]
           });
         }
       }).catch(e => {
-        clearTimeout(tid);
-        errorMessage.value = 'AbortError' === e.name ? '天気データの取得がタイムアウトしました。再試行してください。' : e.message;
-        setTimeout(() => errorMessage.value = '', 8000);
+        console.error('天気データ取得エラー:', e);
+        errorMessage.value = e.message.includes('aborted') ? '⏱️ 天気データの取得がタイムアウトしました。\n\n【お試しください】\n• インターネット接続を確認\n• 少し時間をおいて再度実行\n• 位置を変更して再試行' : e.message.includes('NetworkError') || e.message.includes('Failed to fetch') ? '🌐 インターネット接続エラーが発生しました。\n\n【確認事項】\n• Wi-Fi/モバイル通信の接続状況\n• 電波の強度\n• 時間をおいて再度お試しください' : `❌ 天気データの取得に失敗しました\n\nエラー: ${e.message}\n\n【解決方法】\n• ページを再読み込み\n• 位置を変更して再試行\n• 時間をおいて再度実行`;
       });
     };
 
     const clothingIcon = (t, h) => {
-      if (void 0 === t || null === t) return '';
-      let adj = t;
-      h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
-      return adj >= 35 ? '🧘‍♂️' : adj >= 30 ? '🏋️‍♂️' : adj >= 27 ? '👕' : adj >= 24 ? '👔' : adj >= 21 ? '🦺' : '🧥';
+      if (void 0 === t || null === t) return '👕';
+      const icons = {
+        morning: { 30: '🩳', 25: '👕', 20: '👔', 15: '🧥', 10: '🧥', 5: '🧣', 0: '🧣', '-5': '🧣' },
+        day: { 30: '🩳', 25: '👕', 20: '👔', 15: '🧥', 10: '🧥', 5: '🧣', 0: '🧣', '-5': '🧣' },
+        evening: { 30: '🩳', 25: '👕', 20: '👔', 15: '🧥', 10: '🧥', 5: '🧣', 0: '🧣', '-5': '🧣' }
+      };
+      const period = h < 12 ? 'morning' : h < 18 ? 'day' : 'evening';
+      const thresholds = Object.keys(icons[period]).map(Number).sort((a, b) => b - a);
+      return icons[period][thresholds.find(th => t >= th)] || '🧣';
     };
 
     const clothingLabel = (t, h) => {
-      if (void 0 === t || null === t) return '-';
-      let adj = t;
-      h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
-      return adj >= 35 ? '全裸レベル' : adj >= 30 ? 'タンクトップ' : adj >= 27 ? '半袖Tシャツ' : adj >= 24 ? '長袖Tシャツ' : adj >= 21 ? '薄手カーディガン' : adj >= 18 ? 'セーター' : adj >= 15 ? 'パーカー' : adj >= 12 ? 'ジャケット' : adj >= 9 ? 'コート' : adj >= 6 ? '厚手コート' : adj >= 3 ? 'ダウンジャケット' : '防寒着完全装備';
+      if (void 0 === t || null === t) return '不明';
+      const labels = {
+        morning: { 30: '半袖', 25: '薄手', 20: '長袖', 15: '軽アウター', 10: '厚手', 5: '防寒', 0: '厚手防寒', '-5': '極厚防寒' },
+        day: { 30: '半袖', 25: '薄手', 20: '長袖', 15: '軽アウター', 10: '厚手', 5: '防寒', 0: '厚手防寒', '-5': '極厚防寒' },
+        evening: { 30: '半袖', 25: '薄手', 20: '長袖', 15: '軽アウター', 10: '厚手', 5: '防寒', 0: '厚手防寒', '-5': '極厚防寒' }
+      };
+      const period = h < 12 ? 'morning' : h < 18 ? 'day' : 'evening';
+      const thresholds = Object.keys(labels[period]).map(Number).sort((a, b) => b - a);
+      return labels[period][thresholds.find(th => t >= th)] || '極厚防寒';
     };
 
     onMounted(() => {
-      generateDateList();
-      const now = new Date();
-      now.getHours() >= 21 && (selectedDateIndex.value = 1);
       window.addEventListener('resize', updateWindowWidth);
-      nextTick(() => setTimeout(() => {
-        initMap();
-        loadLocationMemoriesFromStorage();
-        
-        // URLパラメータを優先的にチェック
-        const urlParams = getUrlParams();
-        if (urlParams) {
-          selectedMemoryIndex.value = -1;
-          
-          // 位置情報が含まれている場合
-          if (urlParams.lat && urlParams.lng) {
-            selectedLatLng.lat = urlParams.lat;
-            selectedLatLng.lng = urlParams.lng;
-            map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
-            fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
-          }
-          
-          // 日時パラメータが含まれている場合
-          if (urlParams.isValidDateTime) {
-            selectedDateIndex.value = urlParams.dateIndex;
-            targetHighlightHour.value = urlParams.targetHour; // ハイライト時刻を設定
-            // 天気データ取得後に時刻スクロール
-            nextTick(() => {
-              setTimeout(() => {
-                scrollToSpecificHour(urlParams.targetHour);
-              }, 100);
-            });
-          }
-          
-          fetchWeatherData();
-        } else if (locationMemories.value[0].name && locationMemories.value[0].lat && locationMemories.value[0].lng) {
-          selectedMemoryIndex.value = 0;
-          selectedLatLng.lat = locationMemories.value[0].lat;
-          selectedLatLng.lng = locationMemories.value[0].lng;
-          map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 10), updateMarker());
-          fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
-          fetchWeatherData();
-        } else {
+      loadLocationMemoriesFromStorage();
+      generateDateList();
+      
+      // URLパラメータを確認
+      const params = getUrlParams();
+      if (params) {
+        if (params.lat && params.lng) {
+          selectedLatLng.lat = params.lat;
+          selectedLatLng.lng = params.lng;
+          fetchAddress(params.lat, params.lng);
           fetchWeatherData();
         }
-      }, 200));
+        
+        // 日時パラメータの処理
+        if (params.isValidDateTime) {
+          selectedDateIndex.value = params.dateIndex;
+          targetHighlightHour.value = params.targetHour;
+          
+          // 指定時刻にスクロール
+          setTimeout(() => {
+            scrollToSpecificHour(params.targetHour);
+          }, 1000);
+        }
+      }
+      
+      showMap.value = !isMobile.value;
+      
+      setTimeout(() => {
+        initMap();
+      }, 100);
     });
 
-    onUnmounted(() => window.removeEventListener('resize', updateWindowWidth));
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateWindowWidth);
+      longPressTimer.value && clearTimeout(longPressTimer.value);
+      map.value && map.value.remove();
+    });
 
     return {
       dateList,
       selectedDateIndex,
-      selectDate,
-      dateLabel,
-      formatDateDetail,
       weatherData,
-      hours,
-      clothingIcon,
-      clothingLabel,
-      weatherIcon,
-      calculateDiscomfortIndex,
-      discomfortLevel,
       errorMessage,
-      hasWeatherData,
-      getCurrentLocation,
       currentAddress,
-      isCurrentHour,
-      temperatureClass,
-      locationMemories,
-      showSaveDialog,
-      saveLocationName,
-      selectedPreset,
-      saveLocationInput,
-      startLongPress,
-      endLongPress,
-      saveLocationMemory,
-      closeSaveDialog,
-      loadLocationMemory,
+      hours,
       tableContainer,
-      scrollToCurrentTime,
-      getMemoryNumber,
       showContextMenu,
       contextMenuPosition,
       contextMenuIndex,
+      showSaveDialog,
+      locationMemories,
+      saveLocationName,
+      selectedPreset,
+      saveLocationInput,
+      showMap,
+      selectedMemoryIndex,
+      hasWeatherData,
+      isMobile,
+      getMemoryNumber,
       isMemorySlotSaved,
+      toggleMap,
+      startLongPress,
       openSaveDialog,
       confirmDeleteMemory,
-      deleteLocationMemory,
       closeContextMenu,
-      showMap,
-      toggleMap,
-      isMobile,
-      selectedMemoryIndex,
-      targetHighlightHour
+      closeSaveDialog,
+      endLongPress,
+      isCurrentHour,
+      temperatureClass,
+      weatherIcon,
+      calculateDiscomfortIndex,
+      discomfortLevel,
+      saveLocationMemory,
+      loadLocationMemory,
+      getCurrentLocation,
+      dateLabel,
+      formatDateDetail,
+      selectDate,
+      clothingIcon,
+      clothingLabel
     };
   }
 }).mount('#app');
 
 // ServiceWorkerファイルが存在する場合のみ登録
 'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => {
-  fetch('sw.js', { method: 'HEAD' }).then(response => {
-    if (response.ok) {
+  // manifest.jsonとsw.jsの両方をチェック
+  Promise.all([
+    fetch('manifest.json', { method: 'HEAD' }).catch(() => ({ ok: false })),
+    fetch('sw.js', { method: 'HEAD' }).catch(() => ({ ok: false }))
+  ]).then(([manifestResponse, swResponse]) => {
+    if (swResponse.ok) {
       navigator.serviceWorker.register('sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e));
     }
-  }).catch(() => {
-    // sw.jsが存在しない場合は無視
   });
 });
 </script>
 </body>
 </html>
+
