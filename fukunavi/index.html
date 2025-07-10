@@ -244,7 +244,7 @@ th,td{font-size:13px;padding:6px 3px}
 <div style="font-size: 0.9em; font-weight: bold;">
 {{ calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) !== null ? calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) : '-' }}
 </div>
-<div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+<div style="font-size: 0.8em; color: #666; margin-top: 2px; white-space: pre-line;">
 {{ discomfortLevel(calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m)) }}
 </div>
 </td>
@@ -297,7 +297,7 @@ th,td{font-size:13px;padding:6px 3px}
 <div style="font-size: 0.8em; font-weight: bold;">
 {{ calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) !== null ? calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) : '-' }}
 </div>
-<div style="font-size: 0.7em; color: #666;">
+<div style="font-size: 0.7em; color: #666; white-space: pre-line;">
 {{ discomfortLevel(calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m)) }}
 </div>
 </td>
