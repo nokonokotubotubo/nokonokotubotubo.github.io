@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Fukuなび</title>
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3385ff">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fukuなび">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -344,7 +344,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
-<script src="https://unpkg.com/vue@3.0.0"></script>
+<script src="https://unpkg.com/vue@3.4.31/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
@@ -416,16 +416,14 @@ createApp({
             hour >= 0 && hour <= 23 && 
             minute >= 0 && minute <= 59) {
           
+          // 現在時刻を日本時間で取得
           const targetDate = new Date(year, month - 1, day, hour, minute);
           const today = new Date();
-          
-          // 日本時間での日付差を正確に計算
-          const targetDateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-          const todayStr = today.getFullYear() + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getDate().toString().padStart(2, '0');
-          
-          const targetDateOnly = new Date(targetDateStr);
-          const todayDateOnly = new Date(todayStr);
-          const diffDays = Math.floor((targetDateOnly - todayDateOnly) / (1000 * 60 * 60 * 24));
+
+          // 日付の境界を考慮した日数差計算
+          const targetStartOfDay = new Date(year, month - 1, day, 0, 0, 0);
+          const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+          const diffDays = Math.floor((targetStartOfDay - todayStartOfDay) / (1000 * 60 * 60 * 24));
           
           // 今日から7日後まで、時刻は6-22時の範囲内をチェック
           if (diffDays >= 0 && diffDays <= 7 && hour >= 6 && hour <= 22) {
@@ -941,8 +939,16 @@ createApp({
   }
 }).mount('#app');
 
-'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e)));
+// ServiceWorkerファイルが存在する場合のみ登録
+'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => {
+  fetch('sw.js', { method: 'HEAD' }).then(response => {
+    if (response.ok) {
+      navigator.serviceWorker.register('sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e));
+    }
+  }).catch(() => {
+    // sw.jsが存在しない場合は無視
+  });
+});
 </script>
 </body>
 </html>
-
