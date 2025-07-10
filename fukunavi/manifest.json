@@ -1,21 +1,32 @@
 {
-  "name": "Fukuなび",
+  "name": "Fukuなび - 天気予報アプリ",
   "short_name": "Fukuなび",
-  "description": "天気予報と服装指数を提供するWebアプリ",
+  "description": "服装指数付き天気予報アプリ",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#e6f2ff",
   "theme_color": "#3385ff",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxOTIiIHkyPSIxOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjNjZhM2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDA1OWIzIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9InVybCgjYSkiIHJ4PSIyMCIvPjxnIGZpbGw9IiNmZmYiPjxwYXRoIGQ9Ik05NiA0OGMtMjYuNTEgMC00OCAyMS40OS00OCA0OHMyMS40OSA0OCA0OCA0OCA0OC0yMS40OSA0OC00OC0yMS40OS00OC00OC00OHptMCA4MGMtMTcuNjcgMC0zMi0xNC4zMy0zMi0zMnMxNC4zMy0zMiAzMi0zMiAzMiAxNC4zMyAzMiAzMi0xNC4zMy0zMi0zMiAzMnoiLz48Y2lyY2xlIGN4PSI5NiIgY3k9IjU2IiByPSI4Ii8+PGNpcmNsZSBjeD0iNzYiIGN5PSI3NiIgcj0iNCIvPjxjaXJjbGUgY3g9IjExNiIgY3k9Ijc2IiByPSI0Ii8+PGNpcmNsZSBjeD0iOTYiIGN5PSIxMTYiIHI9IjQiLz48L2c+PC9zdmc+",
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMzM4NWZmIiByeD0iMjAiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAydjJhMTAgMTAgMCAwIDEgMTAgMTBoMnYtMmExMiAxMiAwIDAgMC0xMi0xMnoiLz4KPHN2ZyB4PSIyIiB5PSIyIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTkgMTRoLTN2LTJoM2ExIDEgMCAwIDEgMCAyem0wIDRoLTN2LTJoM2ExIDEgMCAwIDEgMCAyem0wLThoLTN2LTJoM2ExIDEgMCAwIDEgMCAyeiIvPgo8L3N2Zz4KPC9zdmc+",
       "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMzM4NWZmIiByeD0iNDAiLz4KPHN2ZyB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTIgMnYyYTEwIDEwIDAgMCAxIDEwIDEwaDJ2LTJhMTIgMTIgMCAwIDAtMTItMTJ6Ii8+CjxzdmcgeD0iNiIgeT0iNiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjUyIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IndoaXRlIj4KPHN0eWxlPmZvbnQtc2l6ZTo0OHB4PC9zdHlsZT4KPHR2eHQgeD0iMTIiIHk9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5GJPC90ZXh0Pgo8L3N2Zz4KPC9zdmc+",
+      "sizes": "512x512",
       "type": "image/svg+xml"
     }
   ],
-  "categories": ["weather", "lifestyle", "utilities"],
-  "screenshots": [],
-  "related_applications": [],
-  "prefer_related_applications": false
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzkwIiBoZWlnaHQ9IjY5NCIgdmlld0JveD0iMCAwIDM5MCA2OTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzOTAiIGhlaWdodD0iNjk0IiBmaWxsPSIjZTZmMmZmIiByeD0iMjAiLz4KPHN0eWxlPmZvbnQtZmFtaWx5OkFyaWFsO2ZvbnQtc2l6ZToyNHB4PC9zdHlsZT4KPHR2eHQgeD0iMTk1IiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzMzODVmZiI+Rkb\n",
+      "sizes": "390x694",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["weather", "utilities"],
+  "lang": "ja"
 }
