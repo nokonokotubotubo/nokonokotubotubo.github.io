@@ -313,6 +313,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
+</div>
 <footer class="footer">
 <small>&copy; 2025 nokotubo</small>
 </footer>
@@ -381,7 +382,7 @@ createApp({
     const isMobile = computed(() => windowWidth.value <= 600);
     const hasWeatherData = computed(() => Object.keys(weatherData).length > 0);
 
-    // URLパラメータを読み取る関数（日時パラメータ対応）
+    // URLパラメータを読み取る関数（日時パラメータ対応・改善版）
     const getUrlParams = () => {
       const params = new URLSearchParams(window.location.search);
       const lat = params.get('lat');
@@ -401,13 +402,15 @@ createApp({
         }
       }
       
-      // 日時パラメータの処理（軽量実装）
+      // 日時パラメータの処理（改善版）
       if (datetime && datetime.length === 12) {
         const year = parseInt(datetime.substring(0, 4));
         const month = parseInt(datetime.substring(4, 6));
         const day = parseInt(datetime.substring(6, 8));
         const hour = parseInt(datetime.substring(8, 10));
         const minute = parseInt(datetime.substring(10, 12));
+        
+        console.log('URLパラメータ解析:', { year, month, day, hour, minute });
         
         // 基本的な数値範囲チェック（軽量）
         if (year >= 2020 && year <= 2030 && 
@@ -418,7 +421,13 @@ createApp({
           
           const targetDate = new Date(year, month - 1, day, hour, minute);
           const today = new Date();
-          const diffDays = Math.floor((targetDate - today) / (1000 * 60 * 60 * 24));
+          
+          // 日付の開始時刻（0時0分）で比較して日数差を計算
+          const targetDateStart = new Date(year, month - 1, day, 0, 0, 0);
+          const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+          const diffDays = Math.floor((targetDateStart - todayStart) / (1000 * 60 * 60 * 24));
+          
+          console.log('日付計算:', { targetDate, today, diffDays });
           
           // 今日から7日後まで、時刻は6-22時の範囲内をチェック
           if (diffDays >= 0 && diffDays <= 7 && hour >= 6 && hour <= 22) {
@@ -426,7 +435,12 @@ createApp({
             result.dateIndex = diffDays;
             result.targetHour = hour;
             result.isValidDateTime = true;
+            console.log('URLパラメータ処理成功:', result);
+          } else {
+            console.log('URLパラメータ範囲外:', { diffDays, hour, validRange: '今日から7日後、6-22時' });
           }
+        } else {
+          console.log('URLパラメータ形式エラー:', { year, month, day, hour, minute });
         }
       }
       
@@ -477,427 +491,427 @@ createApp({
       } else if (e) {
         clientX = e.clientX;
         clientY = e.clientY;
-        } else {
-    clientX = windowWidth.value / 2;
-    clientY = window.innerHeight / 2;
-  }
-  const w = 180, h = 120;
-  let x = clientX, y = clientY;
-  x + w > windowWidth.value - 20 && (x = windowWidth.value - w - 20);
-  y + h > window.innerHeight - 20 && (y = clientY - h - 10);
-  contextMenuPosition.x = Math.max(20, x);
-  contextMenuPosition.y = Math.max(20, y);
-  showContextMenu.value = true;
-};
+      } else {
+        clientX = windowWidth.value / 2;
+        clientY = window.innerHeight / 2;
+      }
+      const w = 180, h = 120;
+      let x = clientX, y = clientY;
+      x + w > windowWidth.value - 20 && (x = windowWidth.value - w - 20);
+      y + h > window.innerHeight - 20 && (y = clientY - h - 10);
+      contextMenuPosition.x = Math.max(20, x);
+      contextMenuPosition.y = Math.max(20, y);
+      showContextMenu.value = true;
+    };
 
-const openSaveDialog = () => {
-  saveLocationIndex.value = contextMenuIndex.value;
-  saveLocationName.value = '';
-  selectedPreset.value = '';
-  closeContextMenu();
-  showSaveDialog.value = true;
-  nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
-};
+    const openSaveDialog = () => {
+      saveLocationIndex.value = contextMenuIndex.value;
+      saveLocationName.value = '';
+      selectedPreset.value = '';
+      closeContextMenu();
+      showSaveDialog.value = true;
+      nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
+    };
 
-const confirmDeleteMemory = () => {
-  const m = locationMemories.value[contextMenuIndex.value];
-  confirm(`「${m.name}」を削除しますか？`) && deleteLocationMemory();
-  closeContextMenu();
-};
+    const confirmDeleteMemory = () => {
+      const m = locationMemories.value[contextMenuIndex.value];
+      confirm(`「${m.name}」を削除しますか？`) && deleteLocationMemory();
+      closeContextMenu();
+    };
 
-const deleteLocationMemory = () => {
-  selectedMemoryIndex.value === contextMenuIndex.value && (selectedMemoryIndex.value = -1);
-  locationMemories.value[contextMenuIndex.value] = { name: '', lat: null, lng: null, address: '' };
-  saveLocationMemoriesToStorage();
-  errorMessage.value = 'メモリーを削除しました';
-  setTimeout(() => errorMessage.value = '', 2000);
-};
+    const deleteLocationMemory = () => {
+      selectedMemoryIndex.value === contextMenuIndex.value && (selectedMemoryIndex.value = -1);
+      locationMemories.value[contextMenuIndex.value] = { name: '', lat: null, lng: null, address: '' };
+      saveLocationMemoriesToStorage();
+      errorMessage.value = 'メモリーを削除しました';
+      setTimeout(() => errorMessage.value = '', 2000);
+    };
 
-const closeContextMenu = () => {
-  showContextMenu.value = false;
-  contextMenuPosition.x = 0;
-  contextMenuPosition.y = 0;
-  contextMenuIndex.value = 0;
-};
+    const closeContextMenu = () => {
+      showContextMenu.value = false;
+      contextMenuPosition.x = 0;
+      contextMenuPosition.y = 0;
+      contextMenuIndex.value = 0;
+    };
 
-const closeSaveDialog = () => {
-  showSaveDialog.value = false;
-  saveLocationName.value = '';
-  selectedPreset.value = '';
-  saveLocationIndex.value = 0;
-};
+    const closeSaveDialog = () => {
+      showSaveDialog.value = false;
+      saveLocationName.value = '';
+      selectedPreset.value = '';
+      saveLocationIndex.value = 0;
+    };
 
-const endLongPress = () => {
-  longPressTimer.value && (clearTimeout(longPressTimer.value), longPressTimer.value = null);
-};
+    const endLongPress = () => {
+      longPressTimer.value && (clearTimeout(longPressTimer.value), longPressTimer.value = null);
+    };
 
-const getJSTDateString = (d = new Date()) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+    const getJSTDateString = (d = new Date()) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
 
-const isCurrentHour = h => {
-  if (urlTargetHour.value !== null && selectedDateIndex.value === 0) return h === urlTargetHour.value;
-  return 0 === selectedDateIndex.value && new Date().getHours() === h;
-};
+    const isCurrentHour = h => {
+      if (urlTargetHour.value !== null && selectedDateIndex.value === 0) return h === urlTargetHour.value;
+      return 0 === selectedDateIndex.value && new Date().getHours() === h;
+    };
 
-const scrollToCurrentTime = () => {
-  if (0 !== selectedDateIndex.value) return;
-  const h = urlTargetHour.value ?? new Date().getHours();
-  const targetHour = h + 3;
-  
-  if (h < 6 || h > 22 || windowWidth.value > 600) return;
-  
-  const scrollTarget = targetHour > 22 ? 22 : targetHour;
-  
-  setTimeout(() => {
-    const el = document.getElementById(`mobile-hour-${scrollTarget}`);
-    if (el && tableContainer.value) {
-      const c = tableContainer.value;
-      const rect = c.getBoundingClientRect();
-      const abs = el.offsetTop;
-      const vh = rect.height;
-      const rh = el.offsetHeight;
-      const target = abs - vh / 2 + rh / 2;
-      c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
-    }
-  }, 50);
-};
-
-watch(hasWeatherData, v => v && scrollToCurrentTime());
-
-const temperatureClass = t => void 0 === t || null === t ? '' : t >= 35 ? 'hot-temperature' : t <= 0 ? 'cold-temperature' : '';
-
-const weatherIcon = (c, p) => {
-  if (void 0 !== p) {
-    if (p <= 10) return 0 === c ? '☀️' : '⛅';
-    if (p >= 50) return '☔';
-    if (p >= 30) return '🌧️';
-    if (p >= 11) return '🌦️';
-    return '⛅';
-  }
-  if (void 0 === c || null === c) return '☀️';
-  const icons = {
-    0: '☀️', 1: '⛅', 2: '⛅', 3: '⛅', 45: '🌫️', 48: '🌫️',
-    51: '🌦️', 53: '🌦️', 55: '🌦️', 56: '🌨️', 57: '🌨️',
-    61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌨️', 67: '🌨️',
-    71: '❄️', 73: '❄️', 75: '❄️', 77: '❄️',
-    80: '🌦️', 81: '🌦️', 82: '🌦️', 85: '🌨️', 86: '🌨️',
-    95: '⛈️', 96: '⛈️', 99: '⛈️'
-  };
-  return icons[c] || '☀️';
-};
-
-const calculateDiscomfortIndex = (t, h) => void 0 === t || null === t || void 0 === h || null === h ? null : Math.round((0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3) * 10) / 10;
-
-const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて汗が出る' : '暑くてたまらない';
-
-const loadLocationMemoriesFromStorage = () => {
-  const s = localStorage.getItem('fukuanvi-location-memories');
-  if (s) try {
-    locationMemories.value = JSON.parse(s);
-  } catch (e) {
-    console.error('位置メモリーの読み込みに失敗:', e);
-  }
-};
-
-const saveLocationMemoriesToStorage = () => localStorage.setItem('fukuanvi-location-memories', JSON.stringify(locationMemories.value));
-
-const saveLocationMemory = () => {
-  let n = selectedPreset.value || saveLocationName.value.trim();
-  if (!n) {
-    errorMessage.value = '位置名を選択または入力してください。';
-    saveLocationInput.value && saveLocationInput.value.focus();
-    setTimeout(() => errorMessage.value = '', 3000);
-    return;
-  }
-  if (n.length > 20) {
-    errorMessage.value = '位置名は20文字以内で入力してください。';
-    return;
-  }
-  locationMemories.value[saveLocationIndex.value] = {
-    name: n,
-    lat: selectedLatLng.lat,
-    lng: selectedLatLng.lng,
-    address: currentAddress.value
-  };
-  saveLocationMemoriesToStorage();
-  closeSaveDialog();
-};
-
-const loadLocationMemory = i => {
-  const m = locationMemories.value[i];
-  m.name && m.lat && m.lng && (
-    selectedMemoryIndex.value = i,
-    selectedLatLng.lat = m.lat,
-    selectedLatLng.lng = m.lng,
-    currentAddress.value = '位置情報取得中...',
-    map.value && (map.value.setView([m.lat, m.lng], 10), updateMarker()),
-    fetchAddress(m.lat, m.lng),
-    fetchWeatherData()
-  );
-};
-
-const fetchAddress = async (lat, lng) => {
-  const k = `${lat.toFixed(3)},${lng.toFixed(3)}`;
-  if (addressCache.has(k)) return void (currentAddress.value = addressCache.get(k));
-  if (addressRequestInProgress.value) return;
-  addressRequestInProgress.value = true;
-  try {
-    const c = new AbortController();
-    const tid = setTimeout(() => c.abort(), 3000);
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=ja&zoom=10`, { signal: c.signal });
-    if (clearTimeout(tid), !r.ok) throw new Error('住所取得に失敗');
-    const d = await r.json();
-    const a = d.address;
-    let display = '位置を選択';
-    if (a) {
-      const pref = a.state || a.prefecture || '';
-      const city = a.city || a.town || a.village || a.municipality || '';
-      display = pref && city ? `${pref} ${city}` : pref || city;
-    }
-    addressCache.size >= 100 && addressCache.delete(addressCache.keys().next().value);
-    addressCache.set(k, display);
-    currentAddress.value = display;
-  } catch (e) {
-    currentAddress.value = '位置を選択';
-  } finally {
-    addressRequestInProgress.value = false;
-  }
-};
-
-const initMap = () => {
-  const el = document.getElementById('map');
-  if (!el) return;
-  map.value && (map.value.remove(), map.value = null);
-  try {
-    map.value = L.map('map', { preferCanvas: true, zoomControl: true }).setView([selectedLatLng.lat, selectedLatLng.lng], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors',
-      loading: 'lazy'
-    }).addTo(map.value);
-    const icon = L.divIcon({
-      html: '<div style="background: linear-gradient(135deg, #3385ff, #0059b3); color: white; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51, 133, 255, 0.4); border: 3px solid white;"><i class="fas fa-shirt" style="transform: rotate(45deg); font-size: 14px;"></i></div>',
-      className: 'custom-location-marker',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    });
-    marker.value = L.marker([selectedLatLng.lat, selectedLatLng.lng], { icon }).addTo(map.value);
-    map.value.on('click', e => {
-      selectedMemoryIndex.value = -1;
-      selectedLatLng.lat = e.latlng.lat;
-      selectedLatLng.lng = e.latlng.lng;
-      updateMarker();
-      fetchWeatherData();
-      fetchAddress(e.latlng.lat, e.latlng.lng);
-      updateUrl(e.latlng.lat, e.latlng.lng);
-    });
-    setTimeout(() => map.value && map.value.invalidateSize(), 100);
-  } catch (e) {
-    errorMessage.value = '地図の初期化に失敗しました。ページを再読み込みしてください。';
-  }
-};
-
-const updateMarker = () => marker.value && marker.value.setLatLng([selectedLatLng.lat, selectedLatLng.lng]);
-
-const getCurrentLocation = () => {
-  if (!navigator.geolocation) return void (errorMessage.value = '❌ このデバイスは位置情報に対応していません。\n手動で地図をクリックして位置を選択してください。');
-  selectedMemoryIndex.value = -1;
-  currentAddress.value = '🔄 位置情報取得中...';
-  errorMessage.value = '';
-  const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 };
-  navigator.geolocation.getCurrentPosition(pos => {
-    selectedLatLng.lat = pos.coords.latitude;
-    selectedLatLng.lng = pos.coords.longitude;
-    map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
-    fetchWeatherData();
-    fetchAddress(pos.coords.latitude, pos.coords.longitude);
-    updateUrl(pos.coords.latitude, pos.coords.longitude);
-  }, err => {
-    let msg = '';
-    switch (err.code) {
-      case err.PERMISSION_DENIED:
-        msg = '🚫 位置情報のアクセスが拒否されました。\n\n【解決方法】\n1. ブラウザのアドレスバー左の🔒マークをタップ\n2. 位置情報を「許可」に変更\n3. ページを再読み込みして再度お試しください';
-        break;
-      case err.POSITION_UNAVAILABLE:
-        msg = '📍 位置情報を取得できません。\n\n【確認事項】\n• GPSがオンになっているか\n• 屋外にいるか（屋内では取得困難）\n• 機内モードがオフになっているか';
-        break;
-      case err.TIMEOUT:
-        msg = '⏱️ 位置情報の取得がタイムアウトしました。\n\n【お試しください】\n• 電波の良い場所に移動\n• 少し時間をおいて再度実行\n• 手動で地図をクリックして位置選択';
-        break;
-      default:
-        msg = `❌ 位置情報取得エラー\n\nエラーコード: ${err.code}\nメッセージ: ${err.message}\n\n手動で地図をクリックして位置を選択してください。`;
-    }
-    errorMessage.value = msg;
-    currentAddress.value = '位置を選択';
-    setTimeout(() => errorMessage.value = '', 15000);
-  }, opts);
-};
-
-const generateDateList = () => {
-  const today = new Date();
-  dateList.value = [];
-  for (let i = 0; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dateList.value.push(getJSTDateString(d));
-  }
-};
-
-const dateLabel = (s, i) => 0 === i ? '今日' : 1 === i ? '明日' : 2 === i ? '明後日' : 7 === i ? '1週間後' : `${i}日後`;
-
-const formatDateDetail = s => {
-  const d = new Date(s);
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const w = d.toLocaleDateString('ja-JP', { weekday: 'short' });
-  return `${m}/${day}（${w}）`;
-};
-
-const selectDate = i => {
-  selectedDateIndex.value = i;
-  selectedLatLng.lat && selectedLatLng.lng && fetchWeatherData();
-};
-
-const fetchWeatherData = () => {
-  errorMessage.value = '';
-  Object.keys(weatherData).forEach(k => delete weatherData[k]);
-  const d = dateList.value[selectedDateIndex.value];
-  const lat = selectedLatLng.lat.toFixed(4);
-  const lng = selectedLatLng.lng.toFixed(4);
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=auto`;
-  const c = new AbortController();
-  const tid = setTimeout(() => c.abort(), 15000);
-  fetch(url, { signal: c.signal }).then(r => {
-    if (clearTimeout(tid), !r.ok) throw new Error('天気データの取得に失敗しました。インターネット接続を確認してください。');
-    return r.json();
-  }).then(data => {
-    if (!data.hourly) throw new Error('天気データの解析に失敗しました。しばらく時間をおいて再試行してください。');
-    for (const h of hours) {
-      const idx = data.hourly.time.findIndex(t => t.endsWith(`T${h.toString().padStart(2, '0')}:00`));
-      -1 !== idx && (weatherData[h] = {
-        temperature_2m: Math.round(data.hourly.temperature_2m[idx]),
-        apparent_temperature: Math.round(data.hourly.apparent_temperature[idx]),
-        relative_humidity_2m: Math.round(data.hourly.relative_humidity_2m[idx]),
-        precipitation_probability: Math.round(data.hourly.precipitation_probability[idx] || 0),
-        weather_code: data.hourly.weather_code[idx]
-      });
-    }
-  }).catch(e => {
-    clearTimeout(tid);
-    errorMessage.value = 'AbortError' === e.name ? '天気データの取得がタイムアウトしました。再試行してください。' : e.message;
-    setTimeout(() => errorMessage.value = '', 8000);
-  });
-};
-
-const clothingIcon = (t, h) => {
-  if (void 0 === t || null === t) return '';
-  let adj = t;
-  h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
-  return adj >= 35 ? '🧘‍♂️' : adj >= 30 ? '🏋️‍♂️' : adj >= 27 ? '👕' : adj >= 24 ? '👔' : adj >= 21 ? '🦺' : '🧥';
-};
-
-const clothingLabel = (t, h) => {
-  if (void 0 === t || null === t) return '-';
-  let adj = t;
-  h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
-  return adj >= 35 ? '全裸レベル' : adj >= 30 ? 'タンクトップ' : adj >= 27 ? '半袖Tシャツ' : adj >= 24 ? '長袖Tシャツ' : adj >= 21 ? '薄手カーディガン' : adj >= 18 ? 'セーター' : adj >= 15 ? 'パーカー' : adj >= 12 ? 'ジャケット' : adj >= 9 ? 'コート' : adj >= 6 ? '厚手コート' : adj >= 3 ? 'ダウンジャケット' : '防寒着完全装備';
-};
-
-onMounted(() => {
-  generateDateList();
-  const now = new Date();
-  now.getHours() >= 21 && (selectedDateIndex.value = 1);
-  window.addEventListener('resize', updateWindowWidth);
-  nextTick(() => setTimeout(() => {
-    initMap();
-    loadLocationMemoriesFromStorage();
-    
-    // URLパラメータを優先的にチェック
-    const urlParams = getUrlParams();
-    if (urlParams) {
-      selectedMemoryIndex.value = -1;
+    const scrollToCurrentTime = () => {
+      if (0 !== selectedDateIndex.value) return;
+      const h = urlTargetHour.value ?? new Date().getHours();
+      const targetHour = h + 3;
       
-      // 位置情報が含まれている場合
-      if (urlParams.lat && urlParams.lng) {
-        selectedLatLng.lat = urlParams.lat;
-        selectedLatLng.lng = urlParams.lng;
+      if (h < 6 || h > 22 || windowWidth.value > 600) return;
+      
+      const scrollTarget = targetHour > 22 ? 22 : targetHour;
+      
+      setTimeout(() => {
+        const el = document.getElementById(`mobile-hour-${scrollTarget}`);
+        if (el && tableContainer.value) {
+          const c = tableContainer.value;
+          const rect = c.getBoundingClientRect();
+          const abs = el.offsetTop;
+          const vh = rect.height;
+          const rh = el.offsetHeight;
+          const target = abs - vh / 2 + rh / 2;
+          c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
+        }
+      }, 50);
+    };
+
+    watch(hasWeatherData, v => v && scrollToCurrentTime());
+
+    const temperatureClass = t => void 0 === t || null === t ? '' : t >= 35 ? 'hot-temperature' : t <= 0 ? 'cold-temperature' : '';
+
+    const weatherIcon = (c, p) => {
+      if (void 0 !== p) {
+        if (p <= 10) return 0 === c ? '☀️' : '⛅';
+        if (p >= 50) return '☔';
+        if (p >= 30) return '🌧️';
+        if (p >= 11) return '🌦️';
+        return '⛅';
+      }
+      if (void 0 === c || null === c) return '☀️';
+      const icons = {
+        0: '☀️', 1: '⛅', 2: '⛅', 3: '⛅', 45: '🌫️', 48: '🌫️',
+        51: '🌦️', 53: '🌦️', 55: '🌦️', 56: '🌨️', 57: '🌨️',
+        61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌨️', 67: '🌨️',
+        71: '❄️', 73: '❄️', 75: '❄️', 77: '❄️',
+        80: '🌦️', 81: '🌦️', 82: '🌦️', 85: '🌨️', 86: '🌨️',
+        95: '⛈️', 96: '⛈️', 99: '⛈️'
+      };
+      return icons[c] || '☀️';
+    };
+
+    const calculateDiscomfortIndex = (t, h) => void 0 === t || null === t || void 0 === h || null === h ? null : Math.round((0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3) * 10) / 10;
+
+    const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて汗が出る' : '暑くてたまらない';
+
+    const loadLocationMemoriesFromStorage = () => {
+      const s = localStorage.getItem('fukuanvi-location-memories');
+      if (s) try {
+        locationMemories.value = JSON.parse(s);
+      } catch (e) {
+        console.error('位置メモリーの読み込みに失敗:', e);
+      }
+    };
+
+    const saveLocationMemoriesToStorage = () => localStorage.setItem('fukuanvi-location-memories', JSON.stringify(locationMemories.value));
+
+    const saveLocationMemory = () => {
+      let n = selectedPreset.value || saveLocationName.value.trim();
+      if (!n) {
+        errorMessage.value = '位置名を選択または入力してください。';
+        saveLocationInput.value && saveLocationInput.value.focus();
+        setTimeout(() => errorMessage.value = '', 3000);
+        return;
+      }
+      if (n.length > 20) {
+        errorMessage.value = '位置名は20文字以内で入力してください。';
+        return;
+      }
+      locationMemories.value[saveLocationIndex.value] = {
+        name: n,
+        lat: selectedLatLng.lat,
+        lng: selectedLatLng.lng,
+        address: currentAddress.value
+      };
+      saveLocationMemoriesToStorage();
+      closeSaveDialog();
+    };
+
+    const loadLocationMemory = i => {
+      const m = locationMemories.value[i];
+      m.name && m.lat && m.lng && (
+        selectedMemoryIndex.value = i,
+        selectedLatLng.lat = m.lat,
+        selectedLatLng.lng = m.lng,
+        currentAddress.value = '位置情報取得中...',
+        map.value && (map.value.setView([m.lat, m.lng], 10), updateMarker()),
+        fetchAddress(m.lat, m.lng),
+        fetchWeatherData()
+      );
+    };
+
+    const fetchAddress = async (lat, lng) => {
+      const k = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+      if (addressCache.has(k)) return void (currentAddress.value = addressCache.get(k));
+      if (addressRequestInProgress.value) return;
+      addressRequestInProgress.value = true;
+      try {
+        const c = new AbortController();
+        const tid = setTimeout(() => c.abort(), 3000);
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&accept-language=ja&zoom=10`, { signal: c.signal });
+        if (clearTimeout(tid), !r.ok) throw new Error('住所取得に失敗');
+        const d = await r.json();
+        const a = d.address;
+        let display = '位置を選択';
+        if (a) {
+          const pref = a.state || a.prefecture || '';
+          const city = a.city || a.town || a.village || a.municipality || '';
+          display = pref && city ? `${pref} ${city}` : pref || city;
+        }
+        addressCache.size >= 100 && addressCache.delete(addressCache.keys().next().value);
+        addressCache.set(k, display);
+        currentAddress.value = display;
+      } catch (e) {
+        currentAddress.value = '位置を選択';
+      } finally {
+        addressRequestInProgress.value = false;
+      }
+    };
+
+    const initMap = () => {
+      const el = document.getElementById('map');
+      if (!el) return;
+      map.value && (map.value.remove(), map.value = null);
+      try {
+        map.value = L.map('map', { preferCanvas: true, zoomControl: true }).setView([selectedLatLng.lat, selectedLatLng.lng], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors',
+          loading: 'lazy'
+        }).addTo(map.value);
+        const icon = L.divIcon({
+          html: '<div style="background: linear-gradient(135deg, #3385ff, #0059b3); color: white; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(51, 133, 255, 0.4); border: 3px solid white;"><i class="fas fa-shirt" style="transform: rotate(45deg); font-size: 14px;"></i></div>',
+          className: 'custom-location-marker',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        marker.value = L.marker([selectedLatLng.lat, selectedLatLng.lng], { icon }).addTo(map.value);
+        map.value.on('click', e => {
+          selectedMemoryIndex.value = -1;
+          selectedLatLng.lat = e.latlng.lat;
+          selectedLatLng.lng = e.latlng.lng;
+          updateMarker();
+          fetchWeatherData();
+          fetchAddress(e.latlng.lat, e.latlng.lng);
+          updateUrl(e.latlng.lat, e.latlng.lng);
+        });
+        setTimeout(() => map.value && map.value.invalidateSize(), 100);
+      } catch (e) {
+        errorMessage.value = '地図の初期化に失敗しました。ページを再読み込みしてください。';
+      }
+    };
+
+    const updateMarker = () => marker.value && marker.value.setLatLng([selectedLatLng.lat, selectedLatLng.lng]);
+
+    const getCurrentLocation = () => {
+      if (!navigator.geolocation) return void (errorMessage.value = '❌ このデバイスは位置情報に対応していません。\n手動で地図をクリックして位置を選択してください。');
+      selectedMemoryIndex.value = -1;
+      currentAddress.value = '🔄 位置情報取得中...';
+      errorMessage.value = '';
+      const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 };
+      navigator.geolocation.getCurrentPosition(pos => {
+        selectedLatLng.lat = pos.coords.latitude;
+        selectedLatLng.lng = pos.coords.longitude;
         map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
-        fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
-      }
-      
-      // 日時パラメータが含まれている場合
-      if (urlParams.isValidDateTime) {
-        selectedDateIndex.value = urlParams.dateIndex;
-        urlTargetHour.value = urlParams.targetHour;
-      }
-      
-      fetchWeatherData();
-    } else if (locationMemories.value[0].name && locationMemories.value[0].lat && locationMemories.value[0].lng) {
-      selectedMemoryIndex.value = 0;
-      selectedLatLng.lat = locationMemories.value[0].lat;
-      selectedLatLng.lng = locationMemories.value[0].lng;
-      map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 10), updateMarker());
-      fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
-      fetchWeatherData();
-    } else {
-      fetchWeatherData();
-    }
-  }, 200));
-});
+        fetchWeatherData();
+        fetchAddress(pos.coords.latitude, pos.coords.longitude);
+        updateUrl(pos.coords.latitude, pos.coords.longitude);
+      }, err => {
+        let msg = '';
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            msg = '🚫 位置情報のアクセスが拒否されました。\n\n【解決方法】\n1. ブラウザのアドレスバー左の🔒マークをタップ\n2. 位置情報を「許可」に変更\n3. ページを再読み込みして再度お試しください';
+            break;
+          case err.POSITION_UNAVAILABLE:
+            msg = '📍 位置情報を取得できません。\n\n【確認事項】\n• GPSがオンになっているか\n• 屋外にいるか（屋内では取得困難）\n• 機内モードがオフになっているか';
+            break;
+          case err.TIMEOUT:
+            msg = '⏱️ 位置情報の取得がタイムアウトしました。\n\n【お試しください】\n• 電波の良い場所に移動\n• 少し時間をおいて再度実行\n• 手動で地図をクリックして位置選択';
+            break;
+          default:
+            msg = `❌ 位置情報取得エラー\n\nエラーコード: ${err.code}\nメッセージ: ${err.message}\n\n手動で地図をクリックして位置を選択してください。`;
+        }
+        errorMessage.value = msg;
+        currentAddress.value = '位置を選択';
+        setTimeout(() => errorMessage.value = '', 15000);
+      }, opts);
+    };
 
-onUnmounted(() => window.removeEventListener('resize', updateWindowWidth));
+    const generateDateList = () => {
+      const today = new Date();
+      dateList.value = [];
+      for (let i = 0; i <= 7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        dateList.value.push(getJSTDateString(d));
+      }
+    };
 
-return {
-  dateList,
-  selectedDateIndex,
-  selectDate,
-  dateLabel,
-  formatDateDetail,
-  weatherData,
-  hours,
-  clothingIcon,
-  clothingLabel,
-  weatherIcon,
-  calculateDiscomfortIndex,
-  discomfortLevel,
-  errorMessage,
-  hasWeatherData,
-  getCurrentLocation,
-  currentAddress,
-  isCurrentHour,
-  temperatureClass,
-  locationMemories,
-  showSaveDialog,
-  saveLocationName,
-  selectedPreset,
-  saveLocationInput,
-  startLongPress,
-  endLongPress,
-  saveLocationMemory,
-  closeSaveDialog,
-  loadLocationMemory,
-  tableContainer,
-  scrollToCurrentTime,
-  getMemoryNumber,
-  showContextMenu,
-  contextMenuPosition,
-  contextMenuIndex,
-  isMemorySlotSaved,
-  openSaveDialog,
-  confirmDeleteMemory,
-  deleteLocationMemory,
-  closeContextMenu,
-  showMap,
-  toggleMap,
-  isMobile,
-  selectedMemoryIndex
-};
-}
+    const dateLabel = (s, i) => 0 === i ? '今日' : 1 === i ? '明日' : 2 === i ? '明後日' : 7 === i ? '1週間後' : `${i}日後`;
+
+    const formatDateDetail = s => {
+      const d = new Date(s);
+      const m = d.getMonth() + 1;
+      const day = d.getDate();
+      const w = d.toLocaleDateString('ja-JP', { weekday: 'short' });
+      return `${m}/${day}（${w}）`;
+    };
+
+    const selectDate = i => {
+      selectedDateIndex.value = i;
+      selectedLatLng.lat && selectedLatLng.lng && fetchWeatherData();
+    };
+
+    const fetchWeatherData = () => {
+      errorMessage.value = '';
+      Object.keys(weatherData).forEach(k => delete weatherData[k]);
+      const d = dateList.value[selectedDateIndex.value];
+      const lat = selectedLatLng.lat.toFixed(4);
+      const lng = selectedLatLng.lng.toFixed(4);
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=auto`;
+      const c = new AbortController();
+      const tid = setTimeout(() => c.abort(), 15000);
+      fetch(url, { signal: c.signal }).then(r => {
+        if (clearTimeout(tid), !r.ok) throw new Error('天気データの取得に失敗しました。インターネット接続を確認してください。');
+        return r.json();
+      }).then(data => {
+        if (!data.hourly) throw new Error('天気データの解析に失敗しました。しばらく時間をおいて再試行してください。');
+        for (const h of hours) {
+          const idx = data.hourly.time.findIndex(t => t.endsWith(`T${h.toString().padStart(2, '0')}:00`));
+          -1 !== idx && (weatherData[h] = {
+            temperature_2m: Math.round(data.hourly.temperature_2m[idx]),
+            apparent_temperature: Math.round(data.hourly.apparent_temperature[idx]),
+            relative_humidity_2m: Math.round(data.hourly.relative_humidity_2m[idx]),
+            precipitation_probability: Math.round(data.hourly.precipitation_probability[idx] || 0),
+            weather_code: data.hourly.weather_code[idx]
+          });
+        }
+      }).catch(e => {
+        clearTimeout(tid);
+        errorMessage.value = 'AbortError' === e.name ? '天気データの取得がタイムアウトしました。再試行してください。' : e.message;
+        setTimeout(() => errorMessage.value = '', 8000);
+      });
+    };
+
+    const clothingIcon = (t, h) => {
+      if (void 0 === t || null === t) return '';
+      let adj = t;
+      h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
+      return adj >= 35 ? '🧘‍♂️' : adj >= 30 ? '🏋️‍♂️' : adj >= 27 ? '👕' : adj >= 24 ? '👔' : adj >= 21 ? '🦺' : '🧥';
+    };
+
+    const clothingLabel = (t, h) => {
+      if (void 0 === t || null === t) return '-';
+      let adj = t;
+      h >= 6 && h <= 9 || h >= 18 && h <= 21 ? adj -= 1.5 : (h >= 22 || h <= 5) && (adj -= 1);
+      return adj >= 35 ? '全裸レベル' : adj >= 30 ? 'タンクトップ' : adj >= 27 ? '半袖Tシャツ' : adj >= 24 ? '長袖Tシャツ' : adj >= 21 ? '薄手カーディガン' : adj >= 18 ? 'セーター' : adj >= 15 ? 'パーカー' : adj >= 12 ? 'ジャケット' : adj >= 9 ? 'コート' : adj >= 6 ? '厚手コート' : adj >= 3 ? 'ダウンジャケット' : '防寒着完全装備';
+    };
+
+    onMounted(() => {
+      generateDateList();
+      const now = new Date();
+      now.getHours() >= 21 && (selectedDateIndex.value = 1);
+      window.addEventListener('resize', updateWindowWidth);
+      nextTick(() => setTimeout(() => {
+        initMap();
+        loadLocationMemoriesFromStorage();
+        
+        // URLパラメータを優先的にチェック
+        const urlParams = getUrlParams();
+        if (urlParams) {
+          selectedMemoryIndex.value = -1;
+          
+          // 位置情報が含まれている場合
+          if (urlParams.lat && urlParams.lng) {
+            selectedLatLng.lat = urlParams.lat;
+            selectedLatLng.lng = urlParams.lng;
+            map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
+            fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
+          }
+          
+          // 日時パラメータが含まれている場合
+          if (urlParams.isValidDateTime) {
+            selectedDateIndex.value = urlParams.dateIndex;
+            urlTargetHour.value = urlParams.targetHour;
+          }
+          
+          fetchWeatherData();
+        } else if (locationMemories.value[0].name && locationMemories.value[0].lat && locationMemories.value[0].lng) {
+          selectedMemoryIndex.value = 0;
+          selectedLatLng.lat = locationMemories.value[0].lat;
+          selectedLatLng.lng = locationMemories.value[0].lng;
+          map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 10), updateMarker());
+          fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
+          fetchWeatherData();
+        } else {
+          fetchWeatherData();
+        }
+      }, 200));
+    });
+
+    onUnmounted(() => window.removeEventListener('resize', updateWindowWidth));
+
+    return {
+      dateList,
+      selectedDateIndex,
+      selectDate,
+      dateLabel,
+      formatDateDetail,
+      weatherData,
+      hours,
+      clothingIcon,
+      clothingLabel,
+      weatherIcon,
+      calculateDiscomfortIndex,
+      discomfortLevel,
+      errorMessage,
+      hasWeatherData,
+      getCurrentLocation,
+      currentAddress,
+      isCurrentHour,
+      temperatureClass,
+      locationMemories,
+      showSaveDialog,
+      saveLocationName,
+      selectedPreset,
+      saveLocationInput,
+      startLongPress,
+      endLongPress,
+      saveLocationMemory,
+      closeSaveDialog,
+      loadLocationMemory,
+      tableContainer,
+      scrollToCurrentTime,
+      getMemoryNumber,
+      showContextMenu,
+      contextMenuPosition,
+      contextMenuIndex,
+      isMemorySlotSaved,
+      openSaveDialog,
+      confirmDeleteMemory,
+      deleteLocationMemory,
+      closeContextMenu,
+      showMap,
+      toggleMap,
+      isMobile,
+      selectedMemoryIndex
+    };
+  }
 }).mount('#app');
 
 'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e)));
