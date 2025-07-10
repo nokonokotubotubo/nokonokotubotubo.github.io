@@ -787,7 +787,7 @@ createApp({
       const d = dateList.value[selectedDateIndex.value];
       const lat = selectedLatLng.lat.toFixed(4);
       const lng = selectedLatLng.lng.toFixed(4);
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=Asia/Tokyo`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weather_code&start_date=${d}&end_date=${d}&timezone=auto`;
       const c = new AbortController();
       const tid = setTimeout(() => c.abort(), 15000);
       fetch(url, { signal: c.signal }).then(r => {
