@@ -380,30 +380,85 @@ createApp({
     const isMobile = computed(() => windowWidth.value <= 600);
     const hasWeatherData = computed(() => Object.keys(weatherData).length > 0);
 
-    // URLパラメータを読み取る関数を追加
+    // URLパラメータを読み取る関数（日時パラメータ対応）
     const getUrlParams = () => {
       const params = new URLSearchParams(window.location.search);
       const lat = params.get('lat');
       const lng = params.get('lng');
+      const datetime = params.get('datetime');
       
+      let result = null;
+      
+      // 緯度経度の処理
       if (lat && lng) {
         const parsedLat = parseFloat(lat);
         const parsedLng = parseFloat(lng);
         if (!isNaN(parsedLat) && !isNaN(parsedLng) && 
             parsedLat >= -90 && parsedLat <= 90 && 
             parsedLng >= -180 && parsedLng <= 180) {
-          return { lat: parsedLat, lng: parsedLng };
+          result = { lat: parsedLat, lng: parsedLng };
         }
       }
-      return null;
+      
+      // 日時パラメータの処理（軽量実装）
+      if (datetime && datetime.length === 12) {
+        const year = parseInt(datetime.substring(0, 4));
+        const month = parseInt(datetime.substring(4, 6));
+        const day = parseInt(datetime.substring(6, 8));
+        const hour = parseInt(datetime.substring(8, 10));
+        const minute = parseInt(datetime.substring(10, 12));
+        
+        // 基本的な数値範囲チェック（軽量）
+        if (year >= 2020 && year <= 2030 && 
+            month >= 1 && month <= 12 && 
+            day >= 1 && day <= 31 && 
+            hour >= 0 && hour <= 23 && 
+            minute >= 0 && minute <= 59) {
+          
+          const targetDate = new Date(year, month - 1, day, hour, minute);
+          const today = new Date();
+          const diffDays = Math.floor((targetDate - today) / (1000 * 60 * 60 * 24));
+          
+          // 今日から7日後まで、時刻は6-22時の範囲内をチェック
+          if (diffDays >= 0 && diffDays <= 7 && hour >= 6 && hour <= 22) {
+            result = result || {};
+            result.dateIndex = diffDays;
+            result.targetHour = hour;
+            result.isValidDateTime = true;
+          }
+        }
+      }
+      
+      return result;
     };
 
-    // URL更新関数を追加
+    // URL更新関数
     const updateUrl = (lat, lng) => {
       const url = new URL(window.location);
       url.searchParams.set('lat', lat.toFixed(6));
       url.searchParams.set('lng', lng.toFixed(6));
       window.history.replaceState({}, '', url);
+    };
+
+    // 指定時刻にスクロールする関数（既存仕様準拠）
+    const scrollToSpecificHour = (targetHour) => {
+      if (windowWidth.value > 600) return;
+      
+      // 既存の調整ロジックを適用
+      const scrollTarget = targetHour > 22 ? 22 : targetHour;
+      
+      setTimeout(() => {
+        const el = document.getElementById(`mobile-hour-${scrollTarget}`);
+        if (el && tableContainer.value) {
+          const c = tableContainer.value;
+          const rect = c.getBoundingClientRect();
+          const abs = el.offsetTop;
+          const vh = rect.height;
+          const rh = el.offsetHeight;
+          const target = abs - vh / 2 + rh / 2;
+          c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
+        }
+      }, 50);
     };
 
     const updateWindowWidth = () => windowWidth.value = window.innerWidth;
@@ -505,29 +560,29 @@ createApp({
 
     const isCurrentHour = h => 0 === selectedDateIndex.value && new Date().getHours() === h;
 
-const scrollToCurrentTime = () => {
-  if (0 !== selectedDateIndex.value) return;
-  const now = new Date();
-  const h = now.getHours();
-  const targetHour = h + 3;
-  
-  if (h < 6 || h > 22 || windowWidth.value > 600) return;
-  
-  const scrollTarget = targetHour > 22 ? 22 : targetHour;
-  
-  setTimeout(() => {
-    const el = document.getElementById(`mobile-hour-${scrollTarget}`);
-    if (el && tableContainer.value) {
-      const c = tableContainer.value;
-      const rect = c.getBoundingClientRect();
-      const abs = el.offsetTop;
-      const vh = rect.height;
-      const rh = el.offsetHeight;
-      const target = abs - vh / 2 + rh / 2;
-      c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
-    }
-  }, 50);
-};
+    const scrollToCurrentTime = () => {
+      if (0 !== selectedDateIndex.value) return;
+      const now = new Date();
+      const h = now.getHours();
+      const targetHour = h + 3;
+      
+      if (h < 6 || h > 22 || windowWidth.value > 600) return;
+      
+      const scrollTarget = targetHour > 22 ? 22 : targetHour;
+      
+      setTimeout(() => {
+        const el = document.getElementById(`mobile-hour-${scrollTarget}`);
+        if (el && tableContainer.value) {
+          const c = tableContainer.value;
+          const rect = c.getBoundingClientRect();
+          const abs = el.offsetTop;
+          const vh = rect.height;
+          const rh = el.offsetHeight;
+          const target = abs - vh / 2 + rh / 2;
+          c.scrollTo({ top: Math.max(0, target), behavior: 'instant' });
+        }
+      }, 50);
+    };
 
     watch(hasWeatherData, v => v && scrollToCurrentTime());
 
@@ -657,7 +712,7 @@ const scrollToCurrentTime = () => {
           updateMarker();
           fetchWeatherData();
           fetchAddress(e.latlng.lat, e.latlng.lng);
-          updateUrl(e.latlng.lat, e.latlng.lng);  // URL更新を追加
+          updateUrl(e.latlng.lat, e.latlng.lng);
         });
         setTimeout(() => map.value && map.value.invalidateSize(), 100);
       } catch (e) {
@@ -679,7 +734,7 @@ const scrollToCurrentTime = () => {
         map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
         fetchWeatherData();
         fetchAddress(pos.coords.latitude, pos.coords.longitude);
-        updateUrl(pos.coords.latitude, pos.coords.longitude);  // URL更新を追加
+        updateUrl(pos.coords.latitude, pos.coords.longitude);
       }, err => {
         let msg = '';
         switch (err.code) {
@@ -784,10 +839,26 @@ const scrollToCurrentTime = () => {
         const urlParams = getUrlParams();
         if (urlParams) {
           selectedMemoryIndex.value = -1;
-          selectedLatLng.lat = urlParams.lat;
-          selectedLatLng.lng = urlParams.lng;
-          map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
-          fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
+          
+          // 位置情報が含まれている場合
+          if (urlParams.lat && urlParams.lng) {
+            selectedLatLng.lat = urlParams.lat;
+            selectedLatLng.lng = urlParams.lng;
+            map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
+            fetchAddress(selectedLatLng.lat, selectedLatLng.lng);
+          }
+          
+          // 日時パラメータが含まれている場合
+          if (urlParams.isValidDateTime) {
+            selectedDateIndex.value = urlParams.dateIndex;
+            // 天気データ取得後に時刻スクロール
+            nextTick(() => {
+              setTimeout(() => {
+                scrollToSpecificHour(urlParams.targetHour);
+              }, 100);
+            });
+          }
+          
           fetchWeatherData();
         } else if (locationMemories.value[0].name && locationMemories.value[0].lat && locationMemories.value[0].lng) {
           selectedMemoryIndex.value = 0;
