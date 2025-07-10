@@ -841,8 +841,12 @@ createApp({
     };
 
     onMounted(() => {
-      generateDateList();
-      const now = new Date();
+  // 強制的にモーダル表示フラグを初期化
+  showSaveDialog.value = false;
+  showContextMenu.value = false;
+  
+  generateDateList();
+  const now = new Date();
       
       // URLパラメータの取得
       const urlParams = getUrlParams();
