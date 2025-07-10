@@ -76,6 +76,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 @keyframes bounceIcon{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.2)}}
 .event-block.dragging{z-index:1000;opacity:0.8;transform:scale(1.02)}
 .event-block.dragging .event-actions{display:none!important}
+.event-block.layered{/* 動的にz-indexが設定される */}
 .event-content-inline{font-size:0.9rem;line-height:1.2;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;font-weight:bold}
 .event-title,.event-time,.event-description{display:none}
 .event-category-travel{background:#FF6B6B}
@@ -494,7 +495,11 @@ category: 'travel',
 description: '',
 coordinates: ''
 },
-modals: []
+modals: [],
+// ドラッグした順序でz-indexを管理
+eventLayerOrder: [],
+baseZIndex: 10,
+maxZIndex: 10
 };
 },
 methods: {
@@ -587,6 +592,49 @@ inlineText
 };
 });
 },
+// 重なり判定メソッド
+checkEventOverlap(eventA, eventB) {
+if (eventA.dayIndex !== eventB.dayIndex) return false;
+  
+const startA = this.timeToMinutes(eventA.startTime);
+const endA = this.timeToMinutes(eventA.endTime);
+const startB = this.timeToMinutes(eventB.startTime);
+const endB = this.timeToMinutes(eventB.endTime);
+  
+return !(endA <= startB || endB <= startA);
+},
+
+// 特定のイベントと重なる全てのイベントを取得
+getOverlappingEvents(targetEvent) {
+return this.events.filter(event => 
+event.id !== targetEvent.id && 
+this.checkEventOverlap(targetEvent, event)
+);
+},
+
+// z-indexを更新する
+updateEventZIndex(eventId) {
+const targetEvent = this.events.find(e => e.id === eventId);
+if (!targetEvent) return;
+  
+const overlappingEvents = this.getOverlappingEvents(targetEvent);
+  
+// 重なりがない場合は何もしない
+if (overlappingEvents.length === 0) return;
+  
+// 既存の順序から削除
+this.eventLayerOrder = this.eventLayerOrder.filter(id => id !== eventId);
+  
+// 最前面に追加
+this.eventLayerOrder.push(eventId);
+  
+// 最大z-indexを更新
+this.maxZIndex = Math.max(this.maxZIndex, this.baseZIndex + this.eventLayerOrder.length);
+  
+// データを保存
+this.saveLayerOrder();
+},
+
 handleEventClick(event, eventData) {
 if (this.isDragComplete) {
 this.isDragComplete = false;
@@ -643,6 +691,10 @@ document.removeEventListener('mousemove', moveHandler);
 document.removeEventListener('mouseup', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
+
+// ドラッグした予定のz-indexを更新
+this.updateEventZIndex(eventData.id);
+
 this.saveData();
 setTimeout(() => {
 this.isDragComplete = false;
@@ -673,6 +725,10 @@ document.removeEventListener('touchmove', moveHandler);
 document.removeEventListener('touchend', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
+
+// ドラッグした予定のz-indexを更新
+this.updateEventZIndex(eventData.id);
+
 this.saveData();
 setTimeout(() => {
 this.isDragComplete = false;
@@ -1011,10 +1067,19 @@ getEventStyle(event) {
 const startPixels = this.timeToPixels(event.startTime);
 const endPixels = this.timeToPixels(event.endTime);
 const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+
+// z-indexを動的に設定
+let zIndex = this.baseZIndex;
+const layerIndex = this.eventLayerOrder.indexOf(event.id);
+if (layerIndex !== -1) {
+zIndex = this.baseZIndex + layerIndex + 1;
+}
+
 return {
 top: `${startPixels}px`,
 height: `${duration}px`,
-minHeight: this.isMobile ? '32px' : '35px'
+minHeight: this.isMobile ? '32px' : '35px',
+zIndex: zIndex
 };
 },
 getCategoryIcon(category) {
@@ -1197,231 +1262,309 @@ alert('予定の編集準備に失敗しました。もう一度お試しくだ�
 }
 },
 openEventModal(event = null, fromContextMenu = false) {
-const isEdit = !!event;
-if (!fromContextMenu) {
-if (event) {
-this.eventForm = { ...event };
-} else {
-this.eventForm = {
-title: '',
-dayIndex: this.activeDay,
-startTime: '09:00',
-endTime: '10:00',
-category: 'travel',
-description: '',
-coordinates: ''
-};
-}
-}
-const safeTitle = String(this.eventForm.title || '').replace(/"/g, "&quot;");
-const safeDescription = String(this.eventForm.description || '').replace(/"/g, "&quot;");
-const safeCoordinates = String(this.eventForm.coordinates || '').replace(/"/g, "&quot;");
-const safeEventId = event ? String(event.id).replace(/'/g, "\\'") : null;
-this.openModal(isEdit ? '予定を編集' : '新しい予定を追加', `
-<div class="mb-3">
-<label class="form-label">予定名</label>
-<input type="text" class="form-control" id="eventTitle" value="${safeTitle}" required>
-</div>
-<div class="mb-3">
-<label class="form-label">日付</label>
-<select class="form-control" id="eventDayIndex">
-${this.tripDays.map((day, index) => `<option value="${index}" ${index === this.eventForm.dayIndex ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`).join('')}
-</select>
-</div>
-<div class="row">
-<div class="col-md-6">
-<div class="mb-3">
-<label class="form-label">開始時間</label>
-<input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" required>
-</div>
-</div>
-<div class="col-md-6">
-<div class="mb-3">
-<label class="form-label">終了時間</label>
-<input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" required>
-</div>
-</div>
-</div>
-<div class="mb-3">
-<label class="form-label">カテゴリ</label>
-<select class="form-control" id="eventCategory">
-<option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
-<option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
-<option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>🏛️ 観光</option>
-<option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
-<option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>✨ その他</option>
-</select>
-</div>
-<div class="mb-3">
-<label class="form-label">緯度経度</label>
-<div class="row">
-<div class="col-md-4">
-<input type="text" class="form-control" id="eventCoordinates" placeholder="緯度,経度" value="${safeCoordinates}">
-</div>
-<div class="col-md-4">
-<button type="button" class="btn btn-outline-secondary w-100" onclick="window.app.setLocationFromMap()" title="位置設定">
-<i class="fas fa-map-marker-alt"></i> 位置設定
-</button>
-</div>
-<div class="col-md-4">
-<button type="button" class="btn btn-outline-info w-100" onclick="window.app.copyCoordinates()" title="緯度経度をコピー">
-<i class="fas fa-copy"></i> コピー
-</button>
-</div>
-</div>
-</div>
-<div class="mb-3">
-<label class="form-label">詳細</label>
-<textarea class="form-control" id="eventDescription" rows="3">${safeDescription}</textarea>
-</div>
-`, `
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.app.deleteEventById('${safeEventId}')">削除</button>` : ''}
-<button type="button" class="btn btn-primary" onclick="window.app.saveEventFromModal(${isEdit ? `'${safeEventId}'` : 'null'})">保存</button>
-`);
+  const isEdit = !!event;
+  if (isEdit) {
+    // 編集モード
+    this.eventForm = { ...event };
+  } else {
+    // 新規追加モード
+    this.eventForm = {
+      title: '',
+      dayIndex: this.activeDay,
+      startTime: '09:00',
+      endTime: '10:00',
+      category: 'travel',
+      description: '',
+      coordinates: ''
+    };
+  }
+  
+  // モーダルのタイトルと内容を設定
+  const modalTitle = isEdit ? '予定を編集' : '新しい予定を追加';
+  const modalBody = this.generateEventModalBody();
+  const modalFooter = this.generateEventModalFooter(isEdit);
+  
+  this.openModal(modalTitle, modalBody, modalFooter);
 },
-openStartDateModal() {
-this.openModal('旅行開始日の変更', `
-<div class="mb-3">
-<label class="form-label">新しい開始日</label>
-<input type="date" id="newStartDate" class="form-control" value="${this.tripDays[0]?.fullDate}" min="${this.today}">
-</div>
-<div class="alert alert-info" role="alert">
-<small><i class="fas fa-info-circle"></i> 全日程が連動して更新されます</small>
-</div>
-`, `
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-<button type="button" class="btn btn-primary" onclick="window.app.saveStartDateFromModal()">変更</button>
-`, 'modal-sm');
+
+generateEventModalBody() {
+  return `
+    <div class="mb-3">
+      <label for="eventTitle" class="form-label">予定タイトル</label>
+      <input type="text" class="form-control" id="eventTitle" value="${this.eventForm.title.replace(/"/g, '&quot;')}" placeholder="予定のタイトルを入力">
+    </div>
+    <div class="mb-3">
+      <label for="eventDay" class="form-label">日程</label>
+      <select class="form-select" id="eventDay">
+        ${this.tripDays.map((day, index) => 
+          `<option value="${index}" ${this.eventForm.dayIndex === index ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="eventStartTime" class="form-label">開始時間</label>
+          <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" min="04:00" max="23:59">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="eventEndTime" class="form-label">終了時間</label>
+          <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" min="04:00" max="24:00">
+        </div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="eventCategory" class="form-label">カテゴリー</label>
+      <select class="form-select" id="eventCategory">
+        <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
+        <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
+        <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>📸 観光</option>
+        <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
+        <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>⭐ その他</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="eventCoordinates" class="form-label">緯度経度 (オプション)</label>
+      <div class="input-group">
+        <input type="text" class="form-control" id="eventCoordinates" value="${this.eventForm.coordinates.replace(/"/g, '&quot;')}" placeholder="例: 34.702485,135.495951">
+        <button class="btn btn-outline-secondary" type="button" onclick="window.app.setLocationFromMap()" title="地図から選択">🗾</button>
+        <button class="btn btn-outline-secondary" type="button" onclick="window.app.copyCoordinates()" title="コピー">📋</button>
+      </div>
+      <div class="form-text">地図から位置を選択するか、緯度,経度の形式で入力してください</div>
+    </div>
+    <div class="mb-3">
+      <label for="eventDescription" class="form-label">詳細 (オプション)</label>
+      <textarea class="form-control" id="eventDescription" rows="3" placeholder="予定の詳細を入力">${this.eventForm.description.replace(/"/g, '&quot;')}</textarea>
+    </div>
+  `;
 },
-saveStartDateFromModal() {
-const newStartDate = document.getElementById('newStartDate').value;
-if (!newStartDate) {
-alert('開始日を選択してください');
-return;
-}
-this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
-this.saveData();
-this.closeAllModals();
+
+generateEventModalFooter(isEdit) {
+  return `
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+    <button type="button" class="btn btn-primary" onclick="window.app.saveEvent(${isEdit})">${isEdit ? '更新' : '追加'}</button>
+  `;
 },
-saveEventFromModal(eventId = null) {
-const title = document.getElementById('eventTitle').value.trim();
-const dayIndex = parseInt(document.getElementById('eventDayIndex').value);
-const startTime = document.getElementById('eventStartTime').value;
-const endTime = document.getElementById('eventEndTime').value;
-const category = document.getElementById('eventCategory').value;
-const description = document.getElementById('eventDescription').value.trim();
-const coordinates = document.getElementById('eventCoordinates').value.trim();
-if (!title || !startTime || !endTime) {
-alert('必須項目を入力してください');
-return;
-}
-if (startTime >= endTime) {
-alert('終了時間は開始時間より後にしてください');
-return;
-}
-if (eventId) {
-const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex !== -1) {
-this.events[eventIndex] = {
-...this.events[eventIndex],
-title,
-dayIndex,
-startTime,
-endTime,
-category,
-description,
-coordinates
-};
-}
-} else {
-this.events.push({
-id: Date.now() + Math.random(),
-title,
-dayIndex,
-startTime,
-endTime,
-category,
-description,
-coordinates
-});
-}
-this.saveData();
-this.closeAllModals();
-this.editModeEvent = null;
+
+saveEvent(isEdit) {
+  const title = document.getElementById('eventTitle').value.trim();
+  const dayIndex = parseInt(document.getElementById('eventDay').value);
+  const startTime = document.getElementById('eventStartTime').value;
+  const endTime = document.getElementById('eventEndTime').value;
+  const category = document.getElementById('eventCategory').value;
+  const coordinates = document.getElementById('eventCoordinates').value.trim();
+  const description = document.getElementById('eventDescription').value.trim();
+  
+  if (!title) {
+    alert('予定タイトルを入力してください');
+    return;
+  }
+  
+  if (!startTime || !endTime) {
+    alert('開始時間と終了時間を選択してください');
+    return;
+  }
+  
+  if (startTime >= endTime) {
+    alert('終了時間は開始時間より後に設定してください');
+    return;
+  }
+  
+  // 座標の形式チェック
+  if (coordinates && !this.validateCoordinates(coordinates)) {
+    alert('緯度経度の形式が正しくありません。\n正しい形式：34.702485,135.495951');
+    return;
+  }
+  
+  const eventData = {
+    title,
+    dayIndex,
+    startTime,
+    endTime,
+    category,
+    coordinates,
+    description
+  };
+  
+  if (isEdit) {
+    // 編集の場合
+    const eventIndex = this.events.findIndex(e => e.id === this.eventForm.id);
+    if (eventIndex !== -1) {
+      this.events[eventIndex] = { ...this.events[eventIndex], ...eventData };
+    }
+  } else {
+    // 新規追加の場合
+    eventData.id = Date.now() + Math.random();
+    this.events.push(eventData);
+  }
+  
+  this.saveData();
+  this.closeAllModals();
+  this.editModeEvent = null;
+  
+  // 追加・編集した日程をアクティブにする
+  this.activeDay = dayIndex;
+  
+  if (navigator.vibrate) navigator.vibrate(100);
 },
-deleteEventById(eventId) {
-if (!confirm('この予定を削除しますか？')) return;
-const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
-if (eventIndex !== -1) {
-this.events.splice(eventIndex, 1);
-this.saveData();
-this.editModeEvent = null;
-this.closeAllModals();
-}
+
+validateCoordinates(coordinates) {
+  const coordPattern = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
+  if (!coordPattern.test(coordinates)) return false;
+  
+  const [lat, lng] = coordinates.split(',').map(Number);
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 },
-openModal(title, body, footer = '', size = '') {
-const modalId = 'modal-' + Date.now();
-const modal = { id: modalId, title, body, footer, size };
-this.modals.push(modal);
-this.$nextTick(() => {
-const modalElement = document.getElementById(modalId);
-if (modalElement) {
-const bsModal = new bootstrap.Modal(modalElement);
-bsModal.show();
-modalElement.addEventListener('hidden.bs.modal', () => {
-this.modals = this.modals.filter(m => m.id !== modalId);
-});
-}
-});
+
+openModal(title, body, footer, size = '') {
+  const modalId = 'modal-' + Date.now();
+  const modal = {
+    id: modalId,
+    title,
+    body,
+    footer,
+    size
+  };
+  
+  this.modals.push(modal);
+  
+  this.$nextTick(() => {
+    const modalElement = document.getElementById(modalId);
+    if (modalElement) {
+      const bootstrapModal = new bootstrap.Modal(modalElement);
+      bootstrapModal.show();
+      
+      // モーダルが閉じられたときにmodals配列から削除
+      modalElement.addEventListener('hidden.bs.modal', () => {
+        const index = this.modals.findIndex(m => m.id === modalId);
+        if (index !== -1) {
+          this.modals.splice(index, 1);
+        }
+      });
+    }
+  });
 },
+
 closeAllModals() {
-document.querySelectorAll('.modal.show').forEach(modal => {
-const bsModal = bootstrap.Modal.getInstance(modal);
-if (bsModal) bsModal.hide();
-});
+  this.modals.forEach(modal => {
+    const modalElement = document.getElementById(modal.id);
+    if (modalElement) {
+      const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+      if (bootstrapModal) {
+        bootstrapModal.hide();
+      }
+    }
+  });
+  this.modals = [];
 },
+
+openStartDateModal() {
+  this.openModal('開始日を変更', `
+    <div class="mb-3">
+      <label for="newStartDate" class="form-label">新しい開始日</label>
+      <input type="date" class="form-control" id="newStartDate" value="${this.tripDays[0].fullDate}" min="${this.today}">
+    </div>
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>注意:</strong> 開始日を変更すると、既存の予定の日程も自動的に調整されます。
+    </div>
+  `, `
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+    <button type="button" class="btn btn-primary" onclick="window.app.updateStartDate()">変更</button>
+  `);
+},
+
+updateStartDate() {
+  const newStartDate = document.getElementById('newStartDate').value;
+  if (!newStartDate) {
+    alert('新しい開始日を選択してください');
+    return;
+  }
+  
+  if (newStartDate < this.today) {
+    alert('開始日は今日以降の日付を選択してください');
+    return;
+  }
+  
+  if (confirm('開始日を変更しますか？既存の予定も日程が調整されます。')) {
+    this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
+    this.saveData();
+    this.closeAllModals();
+    if (navigator.vibrate) navigator.vibrate(100);
+  }
+},
+
+// レイヤー順序の保存
+saveLayerOrder() {
+  localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
+  localStorage.setItem('trippenMaxZIndex', this.maxZIndex.toString());
+},
+
+// レイヤー順序の読み込み
+loadLayerOrder() {
+  const savedLayerOrder = localStorage.getItem('trippenLayerOrder');
+  const savedMaxZIndex = localStorage.getItem('trippenMaxZIndex');
+  
+  if (savedLayerOrder) {
+    try {
+      this.eventLayerOrder = JSON.parse(savedLayerOrder);
+    } catch (e) {
+      console.error('レイヤー順序データの読み込みに失敗しました:', e);
+      this.eventLayerOrder = [];
+    }
+  }
+  
+  if (savedMaxZIndex) {
+    this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
+  }
+},
+
+// saveDataメソッドの修正
 saveData() {
-localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+  localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+  localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+  this.saveLayerOrder();
 },
+
+// loadDataメソッドの修正
 loadData() {
-const savedEvents = localStorage.getItem('trippenEvents');
-const savedDays = localStorage.getItem('trippenDays');
-if (savedEvents) {
-try {
-this.events = JSON.parse(savedEvents);
-} catch (e) {
-console.error('予定データの読み込みに失敗しました:', e);
-this.events = [];
-}
-}
-if (savedDays) {
-try {
-this.tripDays = JSON.parse(savedDays);
-} catch (e) {
-console.error('日程データの読み込みに失敗しました:', e);
-this.tripDays = [];
-}
-}
+  const savedEvents = localStorage.getItem('trippenEvents');
+  const savedDays = localStorage.getItem('trippenDays');
+  
+  if (savedEvents) {
+    try {
+      this.events = JSON.parse(savedEvents);
+    } catch (e) {
+      console.error('予定データの読み込みに失敗しました:', e);
+      this.events = [];
+    }
+  }
+  
+  if (savedDays) {
+    try {
+      this.tripDays = JSON.parse(savedDays);
+    } catch (e) {
+      console.error('日程データの読み込みに失敗しました:', e);
+      this.tripDays = [];
+    }
+  }
+  
+  // レイヤー順序の読み込み
+  this.loadLayerOrder();
 }
 },
 mounted() {
-this.detectMobile();
-this.checkExistingData();
-this.loadData();
-if (this.tripDays.length > 0) this.tripInitialized = true;
-window.addEventListener('resize', this.detectMobile);
-window.app = this;
-},
-beforeUnmount() {
-window.removeEventListener('resize', this.detectMobile);
-if (this.longPressTimer) {
-clearTimeout(this.longPressTimer);
-this.longPressTimer = null;
-}
+  this.detectMobile();
+  this.checkExistingData();
+  this.loadData();
+  if (this.tripDays.length > 0) this.tripInitialized = true;
+  window.addEventListener('resize', this.detectMobile);
+  window.app = this;
 }
 }).mount('#app');
 </script>
 </body>
 </html>
+
