@@ -504,13 +504,19 @@ createApp({
     };
 
     const openSaveDialog = () => {
-      saveLocationIndex.value = contextMenuIndex.value;
-      saveLocationName.value = '';
-      selectedPreset.value = '';
-      closeContextMenu();
-      showSaveDialog.value = true;
-      nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
-    };
+  if (!selectedLatLng.lat || !selectedLatLng.lng) {
+    errorMessage.value = '先に地図をクリックして位置を選択してください';
+    setTimeout(() => errorMessage.value = '', 3000);
+    return;
+  }
+  saveLocationIndex.value = contextMenuIndex.value;
+  saveLocationName.value = '';
+  selectedPreset.value = '';
+  closeContextMenu();
+  showSaveDialog.value = true;
+  nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
+};
+
 
     const confirmDeleteMemory = () => {
       const m = locationMemories.value[contextMenuIndex.value];
