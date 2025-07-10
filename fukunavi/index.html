@@ -327,7 +327,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
-<div v-if="showSaveDialog" class="location-save-modal" @click="closeSaveDialog">
+<div v-if="showSaveDialog" class="location-save-modal" @click.self="closeSaveDialog">
 <div class="location-save-content" @click.stop>
 <div class="location-save-title">位置を登録</div>
 <select v-model="selectedPreset" class="location-save-select">
