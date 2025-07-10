@@ -504,9 +504,14 @@ createApp({
     };
 
     const openSaveDialog = () => {
+  // 不正な呼び出しを防ぐ追加チェック
   if (!selectedLatLng.lat || !selectedLatLng.lng) {
     errorMessage.value = '先に地図をクリックして位置を選択してください';
     setTimeout(() => errorMessage.value = '', 3000);
+    return;
+  }
+  // コンテキストメニューからの正当な呼び出しかチェック
+  if (!showContextMenu.value) {
     return;
   }
   saveLocationIndex.value = contextMenuIndex.value;
