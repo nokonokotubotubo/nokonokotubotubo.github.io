@@ -4,11 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Fukuなび</title>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#3385ff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Fukuなび">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
@@ -244,7 +240,7 @@ th,td{font-size:13px;padding:6px 3px}
 <div style="font-size: 0.9em; font-weight: bold;">
 {{ calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) !== null ? calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) : '-' }}
 </div>
-<div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+<div style="font-size: 0.8em; color: #666; margin-top: 2px; white-space: pre-line;">
 {{ discomfortLevel(calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m)) }}
 </div>
 </td>
@@ -297,7 +293,7 @@ th,td{font-size:13px;padding:6px 3px}
 <div style="font-size: 0.8em; font-weight: bold;">
 {{ calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) !== null ? calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m) : '-' }}
 </div>
-<div style="font-size: 0.7em; color: #666;">
+<div style="font-size: 0.7em; color: #666; white-space: pre-line;">
 {{ discomfortLevel(calculateDiscomfortIndex(weatherData[hour]?.temperature_2m, weatherData[hour]?.relative_humidity_2m)) }}
 </div>
 </td>
@@ -316,6 +312,7 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
+</div>
 <footer class="footer">
 <small>&copy; 2025 nokotubo</small>
 </footer>
@@ -330,16 +327,16 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
-<div v-if="showSaveDialog" class="location-save-modal" @click="closeSaveDialog">
+<div v-if="showSaveDialog" class="location-save-modal" @click.self="closeSaveDialog">
 <div class="location-save-content" @click.stop>
 <div class="location-save-title">位置を登録</div>
-<select v-model="selectedPreset" class="location-save-select">
+<select v-model="selectedPreset" class="location-save-select" id="location-preset" name="location-preset">
 <option value="">選択してください</option>
 <option value="自宅">自宅</option>
 <option value="職場">職場</option>
 <option value="実家">実家</option>
 </select>
-<input v-model="saveLocationName" class="location-save-input" placeholder="自由入力欄（例: カフェ、友人宅など）" @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20">
+<input v-model="saveLocationName" class="location-save-input" placeholder="自由入力欄（例: カフェ、友人宅など）" @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20" id="location-name" name="location-name">
 <div class="location-save-buttons">
 <button class="location-save-btn save-btn" @click="saveLocationMemory">登録</button>
 <button class="location-save-btn cancel-btn" @click="closeSaveDialog">キャンセル</button>
@@ -347,8 +344,8 @@ th,td{font-size:13px;padding:6px 3px}
 </div>
 </div>
 </div>
-<script src="https://unpkg.com/vue@3.0.0"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/vue@3.0.0/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/leaflet@2.0.0/dist/leaflet-global.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
 const { createApp, ref, reactive, onMounted, computed, nextTick, watch, onUnmounted } = Vue;
@@ -506,14 +503,45 @@ createApp({
       showContextMenu.value = true;
     };
 
-    const openSaveDialog = () => {
-      saveLocationIndex.value = contextMenuIndex.value;
-      saveLocationName.value = '';
-      selectedPreset.value = '';
-      closeContextMenu();
-      showSaveDialog.value = true;
-      nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
-    };
+    // 【修正後】デバッグ用ログあり版（ご選択：A）
+const openSaveDialog = () => {
+  // デバッグ用ログを追加
+  console.log('openSaveDialog called', {
+    hasLocation: !!(selectedLatLng.lat && selectedLatLng.lng),
+    showContextMenu: showContextMenu.value,
+    contextMenuIndex: contextMenuIndex.value,
+    alreadyOpen: showSaveDialog.value
+  });
+
+  // 1. 位置未選択時の呼び出し防止
+  if (!selectedLatLng.lat || !selectedLatLng.lng) {
+    errorMessage.value = '先に地図をクリックして位置を選択してください';
+    setTimeout(() => errorMessage.value = '', 3000);
+    return;
+  }
+
+  // 2. 不正なコンテキストメニュー呼び出し防止
+  if (!showContextMenu.value || contextMenuIndex.value < 0 || contextMenuIndex.value >= 5) {
+    console.warn('openSaveDialog: Invalid context menu state');
+    return;
+  }
+
+  // 3. 既にダイアログが開いている場合は二重起動防止
+  if (showSaveDialog.value) {
+    console.warn('openSaveDialog: Dialog already open');
+    return;
+  }
+
+  // 4. 正常処理
+  saveLocationIndex.value = contextMenuIndex.value;
+  saveLocationName.value = '';
+  selectedPreset.value = '';
+  closeContextMenu();
+  showSaveDialog.value = true;
+  nextTick(() => setTimeout(() => saveLocationInput.value && saveLocationInput.value.focus(), 200));
+};
+
+
 
     const confirmDeleteMemory = () => {
       const m = locationMemories.value[contextMenuIndex.value];
@@ -621,7 +649,7 @@ createApp({
 
     const calculateDiscomfortIndex = (t, h) => void 0 === t || null === t || void 0 === h || null === h ? null : Math.round((0.81 * t + 0.01 * h * (0.99 * t - 14.3) + 46.3) * 10) / 10;
 
-    const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も<br>感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて<br>汗が出る' : '暑くて<br>たまらない';
+    const discomfortLevel = d => null === d || void 0 === d ? '-' : d < 55 ? '寒い' : d < 60 ? '肌寒い' : d < 65 ? '何も感じない' : d < 70 ? '快い' : d < 75 ? '暑くない' : d < 80 ? 'やや暑い' : d < 85 ? '暑くて汗が出る' : '暑くて\nたまらない';
 
     const loadLocationMemoriesFromStorage = () => {
       const s = localStorage.getItem('fukuanvi-location-memories');
@@ -838,8 +866,8 @@ createApp({
     };
 
     onMounted(() => {
-      generateDateList();
-      const now = new Date();
+  generateDateList();
+  const now = new Date();
       
       // URLパラメータの取得
       const urlParams = getUrlParams();
@@ -934,8 +962,6 @@ createApp({
     };
   }
 }).mount('#app');
-
-'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e)));
 </script>
 </body>
 </html>
