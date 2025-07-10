@@ -720,7 +720,7 @@ createApp({
           updateMarker();
           fetchWeatherData();
           fetchAddress(e.latlng.lat, e.latlng.lng);
-          updateUrl(e.latlng.lat, e.latlng.lng);  // URL更新を追加
+          updateUrl(e.latlng.lat, e.latlng.lng);
         });
         setTimeout(() => map.value && map.value.invalidateSize(), 100);
       } catch (e) {
@@ -742,7 +742,7 @@ createApp({
         map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
         fetchWeatherData();
         fetchAddress(pos.coords.latitude, pos.coords.longitude);
-        updateUrl(pos.coords.latitude, pos.coords.longitude);  // URL更新を追加
+        updateUrl(pos.coords.latitude, pos.coords.longitude);
       }, err => {
         let msg = '';
         switch (err.code) {
@@ -845,6 +845,11 @@ createApp({
       if (urlParams.datetime) {
         specifiedDateTime.value = urlParams.datetime;
         selectedDateIndex.value = Math.max(0, Math.min(7, urlParams.datetime.targetDateIndex));
+        
+        // datetimeパラメータをURLから削除
+        const url = new URL(window.location);
+        url.searchParams.delete('datetime');
+        window.history.replaceState({}, '', url);
       } else {
         // 現在時刻による処理（従来通り）
         now.getHours() >= 21 && (selectedDateIndex.value = 1);
