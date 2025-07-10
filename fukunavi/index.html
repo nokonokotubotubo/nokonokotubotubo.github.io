@@ -330,13 +330,13 @@ th,td{font-size:13px;padding:6px 3px}
 <div v-if="showSaveDialog" class="location-save-modal" @click.self="closeSaveDialog">
 <div class="location-save-content" @click.stop>
 <div class="location-save-title">位置を登録</div>
-<select v-model="selectedPreset" class="location-save-select">
+<select v-model="selectedPreset" class="location-save-select" id="location-preset" name="location-preset">
 <option value="">選択してください</option>
 <option value="自宅">自宅</option>
 <option value="職場">職場</option>
 <option value="実家">実家</option>
 </select>
-<input v-model="saveLocationName" class="location-save-input" placeholder="自由入力欄（例: カフェ、友人宅など）" @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20">
+<input v-model="saveLocationName" class="location-save-input" placeholder="自由入力欄（例: カフェ、友人宅など）" @keyup.enter="saveLocationMemory" ref="saveLocationInput" maxlength="20" id="location-name" name="location-name">
 <div class="location-save-buttons">
 <button class="location-save-btn save-btn" @click="saveLocationMemory">登録</button>
 <button class="location-save-btn cancel-btn" @click="closeSaveDialog">キャンセル</button>
