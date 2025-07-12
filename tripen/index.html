@@ -226,8 +226,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </header>
 <div v-if="!tripInitialized" class="container">
 <div class="trip-setup">
-<h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定してください</h2>
-<p>旅行の開始日と終了日を選択して、スケジュールを作成しましょう！</p>
+<h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定</h2>
 <div class="date-input-group">
 <label for="startDate"><strong>開始日:</strong></label>
 <input type="date" id="startDate" v-model="tripStartDate" :min="today">
