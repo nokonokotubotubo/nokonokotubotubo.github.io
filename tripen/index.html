@@ -228,12 +228,15 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="trip-setup">
 <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定</h2>
 <div class="date-input-group">
-<label for="startDate"><strong>開始日:</strong></label><input type="date" id="startDate" v-model="tripStartDate" :min="today">
-<label for="endDate"><strong>終了日:</strong></label><input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
+<label for="startDate"><strong>開始日:</strong></label>
+<input type="date" id="startDate" v-model="tripStartDate" :min="today">
+<span>〜</span>
+<label for="endDate"><strong>終了日:</strong></label>
+<input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
 </div>
 <div class="mt-4">
 <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
-<i class="fas fa-check"></i> 作成
+<i class="fas fa-check"></i> 旅行スケジュールを作成
 </button>
 </div>
 <div class="mt-3">
@@ -1571,21 +1574,16 @@ this.modals.splice(index, 1);
 },
 
 closeAllModals() {
-    this.modals.forEach(modal => {
-        const modalElement = document.getElementById(modal.id);
-        if (modalElement) {
-            // フォーカスがモーダル内の要素にある場合は削除
-            if (document.activeElement && modalElement.contains(document.activeElement)) {
-                document.activeElement.blur();
-            }
-            
-            const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
-            if (bootstrapModal) {
-                bootstrapModal.hide();
-            }
-        }
-    });
-    this.modals = [];
+this.modals.forEach(modal => {
+const modalElement = document.getElementById(modal.id);
+if (modalElement) {
+const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+if (bootstrapModal) {
+bootstrapModal.hide();
+}
+}
+});
+this.modals = [];
 },
 
 openStartDateModal() {
