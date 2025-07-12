@@ -125,7 +125,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     font-size: 2rem;
     z-index: 30;
     line-height: 1;
-    pointer-events: none;
+    cursor: pointer; /* クリック可能であることを示すカーソルに変更 */
+    -webkit-tap-highlight-color: transparent; /* モバイルでのタップ時のハイライトを無効化 */
 }
 
 /* OpenStreetMap地図のスタイル */
@@ -197,6 +198,57 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     font-size: 0.9rem;
     text-align: center;
 }
+
+/* 天気予報ポップアップ */
+.weather-popup-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weather-popup-content {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    position: relative;
+}
+
+.weather-popup-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid white;
+    color: white;
+    font-size: 2rem;
+    line-height: 36px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 5001;
+    padding: 0;
+    -webkit-appearance: none;
+}
+
+.weather-popup-close:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+.weather-popup-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
 
 @media (max-width:768px){
 .header{padding:6px 0}
@@ -306,7 +358,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
 </div>
-<span class="weather-emoji-top-left" v-if="getEventWeatherEmoji(event)">
+<span class="weather-emoji-top-left" v-if="getEventWeatherEmoji(event)" @click.stop="openWeatherPopup(event)" title="天気詳細を見る">
 {{ getEventWeatherEmoji(event) }}
 </span>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
@@ -375,7 +427,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i :class="getCategoryIcon(event.category)"></i>
 {{ event.inlineText }}
 </div>
-<span class="weather-emoji-top-left" v-if="getEventWeatherEmoji(event)">
+<span class="weather-emoji-top-left" v-if="getEventWeatherEmoji(event)" @click.stop="openWeatherPopup(event)" title="天気詳細を見る">
 {{ getEventWeatherEmoji(event) }}
 </span>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
@@ -441,6 +493,14 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                 <strong>選択した座標:</strong> {{ selectedCoordinates }}
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 天気予報ポップアップモーダル -->
+<div v-if="showWeatherPopup" class="weather-popup-modal">
+    <div class="weather-popup-content">
+        <button class="weather-popup-close" @click="closeWeatherPopup" title="閉じる">&times;</button>
+        <iframe :src="weatherPopupUrl" class="weather-popup-iframe" frameborder="0"></iframe>
     </div>
 </div>
 
@@ -518,7 +578,10 @@ baseZIndex: 10,
 maxZIndex: 10,
 // 天気予報機能のデータ
 weatherCache: {},
-weatherCacheExpiry: 6 * 60 * 60 * 1000 // 6時間（ミリ秒）
+weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
+// 天気予報ポップアップ用データ
+showWeatherPopup: false,
+weatherPopupUrl: ''
 };
 },
 methods: {
@@ -653,7 +716,6 @@ this.maxZIndex = Math.max(this.maxZIndex, this.baseZIndex + this.eventLayerOrder
 // データを保存
 this.saveLayerOrder();
 },
-
 handleEventClick(event, eventData) {
 if (this.isDragComplete) {
 this.isDragComplete = false;
@@ -670,7 +732,8 @@ if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 return;
 }
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-emoji-top-left')) {
 this.openDetailModal(eventData);
 }
 },
@@ -747,7 +810,6 @@ this.isDragComplete = true;
 
 // ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
-
 this.saveData();
 setTimeout(() => {
 this.isDragComplete = false;
@@ -845,7 +907,8 @@ this.startEventDragTouch(event, eventData);
 }
 } else {
 if (!event.target.closest('.event-action-btn') && 
-!event.target.closest('.resize-handle')) {
+!event.target.closest('.resize-handle') &&
+!event.target.closest('.weather-emoji-top-left')) {
 event.preventDefault();
 event.stopPropagation();
 this.touchStartTime = Date.now();
@@ -1154,7 +1217,7 @@ return null;
 
 // 天気コードを絵文字に変換
 getWeatherEmoji(weatherCode) {
-if (!weatherCode) return '';
+if (weatherCode === null || weatherCode === undefined) return '';
 
 const weatherMap = {
 0: '☀️',    // 晴れ
@@ -1227,7 +1290,6 @@ const initialLat = 34.7024;
 const initialLng = 135.4959;
 
 this.map = L.map('map').setView([initialLat, initialLng], 15);
-
 // OpenStreetMap APIを使用
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 attribution: '© OpenStreetMap contributors'
@@ -1409,7 +1471,6 @@ const modalFooter = this.generateEventModalFooter(isEdit);
 
 this.openModal(modalTitle, modalBody, modalFooter);
 },
-
 generateEventModalBody() {
 return `
 <div class="mb-3">
@@ -1624,6 +1685,35 @@ if (navigator.vibrate) navigator.vibrate(100);
 }
 },
 
+openWeatherPopup(event) {
+    if (!event.coordinates) {
+        alert('この予定には位置情報が設定されていません。');
+        return;
+    }
+    
+    try {
+        const [lat, lng] = event.coordinates.split(',');
+        const dayData = this.tripDays[event.dayIndex];
+        if (!dayData) {
+            throw new Error('該当日程データが見つかりません。');
+        }
+        const date = dayData.fullDate.replace(/-/g, ''); // YYYY-MM-DD -> YYYYMMDD
+        const hour = event.startTime.split(':')[0].padStart(2, '0'); // HH:MM -> HH
+        const datetime = `${date}${hour}00`; // YYYYMMDDHH00
+        
+        this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat.trim()}&lng=${lng.trim()}&datetime=${datetime}`;
+        this.showWeatherPopup = true;
+
+    } catch (error) {
+        console.error('天気予報ポップアップのURL生成中にエラーが発生しました:', error);
+        alert('天気予報ポップアップの表示に失敗しました。');
+    }
+},
+closeWeatherPopup() {
+    this.showWeatherPopup = false;
+    this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
+},
+
 // レイヤー順序の保存
 saveLayerOrder() {
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
@@ -1648,7 +1738,6 @@ if (savedMaxZIndex) {
 this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
 }
 },
-
 // saveDataメソッドの修正
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
