@@ -1571,16 +1571,21 @@ this.modals.splice(index, 1);
 },
 
 closeAllModals() {
-this.modals.forEach(modal => {
-const modalElement = document.getElementById(modal.id);
-if (modalElement) {
-const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
-if (bootstrapModal) {
-bootstrapModal.hide();
-}
-}
-});
-this.modals = [];
+    this.modals.forEach(modal => {
+        const modalElement = document.getElementById(modal.id);
+        if (modalElement) {
+            // フォーカスがモーダル内の要素にある場合は削除
+            if (document.activeElement && modalElement.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            
+            const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+            }
+        }
+    });
+    this.modals = [];
 },
 
 openStartDateModal() {
