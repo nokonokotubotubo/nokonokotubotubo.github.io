@@ -230,13 +230,12 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="date-input-group">
 <label for="startDate"><strong>開始日:</strong></label>
 <input type="date" id="startDate" v-model="tripStartDate" :min="today">
-<span>〜</span>
 <label for="endDate"><strong>終了日:</strong></label>
 <input type="date" id="endDate" v-model="tripEndDate" :min="tripStartDate">
 </div>
 <div class="mt-4">
 <button class="btn btn-primary btn-lg" @click="initializeTripDays" :disabled="!tripStartDate || !tripEndDate">
-<i class="fas fa-check"></i> 旅行スケジュールを作成
+<i class="fas fa-check"></i> 作成
 </button>
 </div>
 <div class="mt-3">
