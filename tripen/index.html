@@ -397,7 +397,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </button>
 </div>
 <div class="context-menu" :class="{ show: showContextMenu }" :style="contextMenuStyle">
-<div class="context-menu-item add-event" @click="addEventFromContext">
+<div class="context-menu-item add-event" @click="() => addEventFromContext()">
 <i class="fas fa-plus"></i>新しい予定を追加
 </div>
 <div class="context-menu-item paste" :class="{ disabled: !clipboardEvent }" @click="pasteFromContext" v-if="clipboardEvent">
