@@ -1387,22 +1387,22 @@ alert('予定の編集準備に失敗しました。もう一度お試しくだ�
 },
 
 openEventModal(event = null, fromContextMenu = false) {
-const isEdit = !!event;
-if (isEdit) {
-// 編集モード
-this.eventForm = { ...event };
-} else {
-// 新規追加モード
-this.eventForm = {
-title: '',
-dayIndex: this.activeDay,
-startTime: '09:00',
-endTime: '10:00',
-category: 'travel',
-description: '',
-coordinates: ''
-};
-}
+    const isEdit = !!event;
+    if (isEdit) {
+        // 編集モード
+        this.eventForm = { ...event };
+    } else if (!fromContextMenu) {
+        // 新規追加モード（コンテキストメニュー以外から）
+        this.eventForm = {
+            title: '',
+            dayIndex: this.activeDay,
+            startTime: '09:00',
+            endTime: '10:00',
+            category: 'travel',
+            description: '',
+            coordinates: ''
+        };
+    }
 
 // モーダルのタイトルと内容を設定
 const modalTitle = isEdit ? '予定を編集' : '新しい予定を追加';
