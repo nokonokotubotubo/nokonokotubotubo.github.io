@@ -4,11 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Fukuなび</title>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#3385ff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Fukuなび">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
@@ -934,8 +929,6 @@ createApp({
     };
   }
 }).mount('#app');
-
-'serviceWorker' in navigator && ('https:' === location.protocol || 'localhost' === location.hostname) && window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => console.log('SW registered: ', r)).catch(e => console.log('SW registration failed: ', e)));
 </script>
 </body>
 </html>
