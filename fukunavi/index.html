@@ -16,6 +16,7 @@ body{background:#e6f2ff;overflow:hidden}
 .title-icon{font-size:1.4em;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.2)}
 .title-text{color:#fff;font-size:1.1em;font-weight:bold;letter-spacing:2px;line-height:1.2}
 .mobile-copyright{display:none}
+.mobile-location-address{position:absolute;top:50%;left:8px;transform:translateY(-50%);z-index:5001;font-size:.7em;color:#0059b3;background:rgba(240,248,255,.95);padding:3px 6px;border-radius:3px;border:1px solid #cce0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;backdrop-filter:blur(3px)}
 .date-row{display:flex;align-items:center;gap:10px;margin:6px 0 6px 8px;flex:0 0 36px;flex-wrap:wrap}
 .location-address{width:8em;font-size:.9em;color:#0059b3;background:#f0f8ff;padding:4px 8px;border-radius:3px;border:1px solid #cce0ff;margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .memory-group,.date-group{display:flex;align-items:flex-start;gap:8px;margin-left:0;min-height:40px}
@@ -36,7 +37,7 @@ body{background:#e6f2ff;overflow:hidden}
 .main-content{flex:1;display:flex;flex-direction:column;height:100%;width:100vw;min-height:0}
 .map-area{flex:0 0 39%;min-height:260px;max-height:45.5vh;position:relative;width:100vw;background:#e6f2ff;border-bottom:2px solid #99c2ff;display:flex;align-items:stretch;justify-content:center}
 #map{flex:1;min-width:0;min-height:260px;width:100vw;height:100%;border-radius:8px;border:2px solid #99c2ff;margin:0}
-.desktop-location-address{width:12em;font-size:.9em;color:#0059b3;background:#f0f8ff;padding:4px 8px;border-radius:3px;border:1px solid #cce0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:auto;margin-right: 40px;align-self:center}
+.desktop-location-address{position:absolute;top:12px;left:12px;z-index:1000;width:12em;font-size:.9em;color:#0059b3;background:#f0f8ff;padding:4px 8px;border-radius:3px;border:1px solid #cce0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 6px rgba(0,89,179,.15)}
 .current-location-btn{position:absolute;bottom:12px;left:12px;z-index:1000;padding:8px 16px;background:linear-gradient(135deg,#66a3ff,#3385ff);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:1em;box-shadow:0 3px 8px rgba(51,133,255,.25);transition:all .3s ease;user-select:none;outline:none}
 .current-location-btn:hover{background:linear-gradient(135deg,#3385ff,#0059b3);transform:translateY(-2px);box-shadow:0 5px 15px rgba(51,133,255,.35)}
 .table-area{flex:0 0 61%;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;background:#fff;padding-top:6px;min-height:0}
@@ -91,6 +92,7 @@ th{background:linear-gradient(135deg,#f0f8ff,#e6f2ff);font-weight:bold;position:
 @keyframes modalContentFadeIn{from{opacity:0;transform:scale(.85)translateY(-30px)}to{opacity:1;transform:scale(1)translateY(0)}}
 @media(min-width: 901px){
 .date-row {gap: 30px;}
+.mobile-location-address{display:none}
 }
 @media(max-width:900px){
 .title-header{padding:8px 0;justify-content:center;flex:0 0 28px}
@@ -105,6 +107,7 @@ th,td{font-size:13px;padding:6px 3px}
 .memory-btn{padding:6px 10px;font-size:.88em;min-width:60px;min-height:34px}
 .memory-group,.date-group{min-height:36px}
 .memory-group-icon,.date-group-icon{font-size:1.65em;margin-right:4px;width:1.3em;height:1.3em}
+.mobile-location-address{display:block}
 }
 @media(max-width:600px){
 .title-text{font-size:.9em;letter-spacing:.5px}
@@ -113,6 +116,7 @@ th,td{font-size:13px;padding:6px 3px}
 .title-content{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:6px;height:100%}
 .date-row{margin:6px 0 6px 1vw;align-items:flex-start;width:calc(100% - 2vw);flex-direction:column;gap:4px;flex:0 0 76px}
 .desktop-location-address{display:none!important}
+.mobile-location-address{display:block}
 .memory-group,.date-group{margin:0 5px;gap:3px;width:calc(100% - 10px);align-items:flex-start}
 .memory-buttons,.date-buttons{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;gap:3px}
 .memory-btn,.date-button{min-width:55px;flex-shrink:0}
@@ -159,6 +163,7 @@ th,td{font-size:13px;padding:6px 3px}
 <body>
 <div id="app">
 <div class="title-header">
+<div class="mobile-location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 <div class="title-content" @click="isMobile ? toggleMap() : null" :style="{ cursor: isMobile ? 'pointer' : 'default' }">
 <i class="fas fa-shirt title-icon"></i>
 <div class="title-text">Fukuなび <i class="fas fa-cloud-sun title-icon"></i></div>
@@ -185,11 +190,11 @@ th,td{font-size:13px;padding:6px 3px}
 </button>
 </div>
 </div>
-<div class="desktop-location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 </div>
 <div class="main-content">
 <div class="map-area" :class="{ 'map-hidden': !showMap }">
 <div id="map">
+<div class="desktop-location-address">📍 {{ currentAddress || '位置を選択' }}</div>
 <button class="current-location-btn" @click="getCurrentLocation" @touchend.prevent="getCurrentLocation">📍 現在地</button>
 </div>
 </div>
