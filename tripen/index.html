@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>とりっぺんちゃん - 旅行予定調整サイト</title>
 
-<!-- CSP設定（修正版：data:フォント対応） -->
+<!-- CSP設定（Google認証対応） -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
   style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
   img-src 'self' data: https://*.tile.openstreetmap.org https://*.googleapis.com https://accounts.google.com;
-  font-src 'self' data: https://cdnjs.cloudflare.com;
+  font-src 'self' https://cdnjs.cloudflare.com data:;
   connect-src 'self' https://accounts.google.com https://script.google.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://nokonokotubotubo.github.io;
   frame-src 'self' https://accounts.google.com https://nokonokotubotubo.github.io;
 ">
@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer onload="window.googleLoaded = true"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <!-- Google Sheets API連携用設定 -->
 <script>
@@ -612,12 +612,12 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// Google Identity Services コールバック関数（グローバル）
-function handleCredentialResponse(response) {
-  if (window.app && window.app.handleGoogleSignIn) {
-    window.app.handleGoogleSignIn(response);
+// Google Identity Services のグローバルコールバック関数
+window.handleCredentialResponse = function(response) {
+  if (window.vueApp) {
+    window.vueApp.handleGoogleSignIn(response);
   }
-}
+};
 
 const { createApp } = Vue;
 const app = createApp({
@@ -655,7 +655,6 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
-// OpenStreetMap地図機能用のデータ
 showMapModal: false,
 map: null,
 selectedCoordinates: null,
@@ -670,27 +669,22 @@ description: '',
 coordinates: ''
 },
 modals: [],
-// ドラッグした順序でz-indexを管理
 eventLayerOrder: [],
 baseZIndex: 10,
 maxZIndex: 10,
-// 天気予報機能のデータ
 weatherCache: {},
-weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
-// 天気予報ポップアップ用データ
+weatherCacheExpiry: 6 * 60 * 60 * 1000,
 showWeatherPopup: false,
 weatherPopupUrl: '',
 
-// Google Identity Services認証関連（修正版）
+// Google Identity Services用（修正版）
+googleClientId: window.GOOGLE_CLIENT_ID,
 isGoogleReady: false,
 isSignedIn: false,
 userEmail: '',
 userName: '',
-userPicture: '',
-isGoogleSheetsConnected: false,
 isUserApproved: false,
 gasProxyUrl: window.GAS_PROXY_URL || '',
-googleClientId: window.GOOGLE_CLIENT_ID || '',
 syncStatus: 'idle',
 syncMessage: '',
 spreadsheetId: null,
@@ -698,66 +692,91 @@ isSyncing: false,
 };
 },
 methods: {
-// Google API初期化（修正版）
-initializeGoogleApi() {
-  this.initializeGoogleIdentity();
-},
-
 // Google Identity Services 初期化
-initializeGoogleIdentity() {
-  if (typeof google !== 'undefined' && google.accounts) {
+async initializeGoogleAuth() {
+  try {
+    // Google Identity Services が読み込まれるまで待機
+    let attempts = 0;
+    while (!window.google && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    if (!window.google) {
+      throw new Error('Google Identity Services の読み込みに失敗しました');
+    }
+    
+    // Google Identity Services の初期化
+    window.google.accounts.id.initialize({
+      client_id: this.googleClientId,
+      callback: this.handleGoogleSignIn,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    
     this.isGoogleReady = true;
     console.log('Google Identity Services 初期化完了');
-  } else {
-    console.log('Google Identity Services 初期化待機中...');
-    setTimeout(() => this.initializeGoogleIdentity(), 100);
+    
+  } catch (error) {
+    console.error('Google認証初期化エラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'Google認証の初期化に失敗しました';
   }
 },
 
-// Google サインイン処理
-handleGoogleSignIn(response) {
+// Google認証コールバック
+async handleGoogleSignIn(response) {
   try {
+    this.isSyncing = true;
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'Google認証を処理中...';
+    
     // JWT トークンをデコード
-    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const userInfo = this.parseJwt(response.credential);
     
     this.isSignedIn = true;
-    this.userEmail = payload.email;
-    this.userName = payload.name;
-    this.userPicture = payload.picture;
+    this.userEmail = userInfo.email;
+    this.userName = userInfo.name;
     
-    console.log('Google認証成功:', this.userName);
+    console.log('Google認証成功:', userInfo.name);
     
     // GASプロキシとの接続確認
-    this.initializeGoogleSheets();
+    await this.initializeGoogleSheets();
     
     // 承認状態確認
-    this.checkUserApproval();
+    await this.checkUserApproval();
     
   } catch (error) {
     console.error('Google認証処理エラー:', error);
     this.syncStatus = 'error';
     this.syncMessage = 'Google認証の処理に失敗しました';
+  } finally {
+    this.isSyncing = false;
   }
+},
+
+// JWT トークンのデコード
+parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  
+  return JSON.parse(jsonPayload);
 },
 
 // サインアウト
 signOut() {
-  try {
-    this.isSignedIn = false;
-    this.userEmail = '';
-    this.userName = '';
-    this.userPicture = '';
-    this.isUserApproved = false;
-    this.isGoogleSheetsConnected = false;
-    this.syncStatus = 'idle';
-    this.syncMessage = '';
-    
-    // ページをリロードしてGoogle認証状態をリセット
-    location.reload();
-    
-  } catch (error) {
-    console.error('サインアウトエラー:', error);
-  }
+  this.isSignedIn = false;
+  this.userEmail = '';
+  this.userName = '';
+  this.isUserApproved = false;
+  this.syncStatus = 'idle';
+  this.syncMessage = '';
+  
+  console.log('サインアウト完了');
+  location.reload();
 },
 
 // GASプロキシとの接続確認
@@ -776,7 +795,6 @@ async initializeGoogleSheets() {
     });
     
     if (response.ok) {
-      this.isGoogleSheetsConnected = true;
       this.syncStatus = 'success';
       this.syncMessage = 'Google Sheetsとの接続が確立されました';
       console.log('Google Sheets接続確認完了');
@@ -790,9 +808,9 @@ async initializeGoogleSheets() {
   }
 },
 
-// 承認状態確認（メールアドレス露出なし）
+// 承認状態確認
 async checkUserApproval() {
-  if (!this.userEmail || !this.isGoogleSheetsConnected) return false;
+  if (!this.userEmail) return false;
   
   try {
     this.syncStatus = 'syncing';
@@ -833,7 +851,7 @@ async checkUserApproval() {
 
 // Google Sheetsにデータを保存
 async saveToGoogleSheets() {
-  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
+  if (!this.isUserApproved) {
     alert('Google Sheetsへの保存には承認が必要です');
     return;
   }
@@ -875,7 +893,7 @@ async saveToGoogleSheets() {
 
 // Google Sheetsからデータを読み込み
 async loadFromGoogleSheets() {
-  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
+  if (!this.isUserApproved) {
     alert('Google Sheetsからの読み込みには承認が必要です');
     return;
   }
@@ -910,7 +928,6 @@ async loadFromGoogleSheets() {
       this.syncStatus = 'success';
       this.syncMessage = 'Google Sheetsから正常に読み込まれました';
       
-      // ローカルストレージにも保存
       this.saveData();
       
       if (navigator.vibrate) navigator.vibrate(100);
@@ -2049,8 +2066,8 @@ this.detectMobile();
 this.checkExistingData();
 this.loadData();
 
-// Google API初期化（修正版）
-this.initializeGoogleApi();
+// Google認証初期化
+this.initializeGoogleAuth();
 
 if (this.tripDays.length > 0) {
 this.tripInitialized = true;
@@ -2059,8 +2076,11 @@ this.loadWeatherForAllEvents();
 
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
+window.vueApp = this;
 }
-}).mount('#app');
+});
+
+window.app = app.mount('#app');
 </script>
 </body>
 </html>
