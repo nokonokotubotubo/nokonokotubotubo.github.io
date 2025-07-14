@@ -4,26 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>とりっぺんちゃん - 旅行予定調整サイト</title>
-
-<!-- CSP設定（Google認証対応） -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-  img-src 'self' data: https://*.tile.openstreetmap.org https://*.googleapis.com https://accounts.google.com;
-  font-src 'self' https://cdnjs.cloudflare.com;
-  connect-src 'self' https://accounts.google.com https://script.google.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://nokonokotubotubo.github.io;
-  frame-src 'self' https://accounts.google.com https://nokonokotubotubo.github.io;
-">
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<!-- Leafletライブラリ（OpenStreetMap API用）-->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google API JavaScript Client -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 
-<!-- Google Sheets API連携用設定 -->
+<!-- Google Sheets API連携用 -->
 <script>
 // GASプロキシのURL
 window.GAS_PROXY_URL = 'https://script.google.com/macros/s/AKfycbw8rZz3sRgiPgXtVvbDRlW-AKXXcFFwtyL1F6CsjlGIfA5V0QZY-SRWu4kk5UFJ06y8/exec';
@@ -99,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 @keyframes bounceIcon{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.2)}}
 .event-block.dragging{z-index:1000;opacity:0.8;transform:scale(1.02)}
 .event-block.dragging .event-actions{display:none!important}
-.event-block.layered{}
+.event-block.layered{/* 動的にz-indexが設定される */}
 .event-content-inline{font-size:0.9rem;line-height:1.2;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;font-weight:bold}
 .event-title,.event-time,.event-description{display:none}
 .event-category-travel{background:#FF6B6B}
@@ -140,6 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
 
+/* 天気アイコン用スタイル（左上配置・大きめサイズ） */
 .weather-emoji-top-left {
     position: absolute;
     top: -12px;
@@ -151,6 +142,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     -webkit-tap-highlight-color: transparent;
 }
 
+/* OpenStreetMap地図のスタイル */
 .map-modal {
     position: fixed;
     top: 0;
@@ -220,6 +212,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     text-align: center;
 }
 
+/* 天気予報ポップアップ */
 .weather-popup-modal {
     position: fixed;
     top: 0;
@@ -294,17 +287,19 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="container">
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
 
-<!-- Google Identity Services認証状況表示 -->
-<div class="mt-2" v-if="!isGoogleReady">
+<!-- Google OAuth認証状況表示 -->
+<div class="mt-2" v-if="!isGoogleApiLoaded">
   <div class="d-flex justify-content-center">
-    <small class="text-white">Google認証システムを初期化中...</small>
+    <small class="text-white">Google APIを初期化中...</small>
   </div>
 </div>
 
-<div class="mt-2" v-if="isGoogleReady && !isSignedIn">
+<div class="mt-2" v-if="isGoogleApiLoaded && !isSignedIn">
   <div class="d-flex justify-content-center">
-    <div id="g_id_onload" :data-client_id="googleClientId" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+    <button class="btn btn-light btn-sm" @click="signInWithGoogle" :disabled="isSyncing">
+      <i class="fab fa-google"></i> 
+      {{ isSyncing ? 'Google認証中...' : 'Googleアカウントでサインイン' }}
+    </button>
   </div>
 </div>
 
@@ -335,7 +330,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     
     <!-- ユーザー状況 -->
     <div v-if="userEmail" class="d-flex align-items-center gap-2">
-      <small class="text-white">{{ userName || userEmail }}</small>
+      <small class="text-white">{{ userProfile ? userProfile.getName() : userEmail }}</small>
       <span class="badge bg-success">承認済み</span>
     </div>
     
@@ -612,13 +607,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// Google Identity Services のグローバルコールバック関数
-window.handleCredentialResponse = function(response) {
-  if (window.vueApp) {
-    window.vueApp.handleGoogleSignIn(response);
-  }
-};
-
 const { createApp } = Vue;
 const app = createApp({
 data() {
@@ -655,6 +643,7 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
+// OpenStreetMap地図機能用のデータ
 showMapModal: false,
 map: null,
 selectedCoordinates: null,
@@ -669,20 +658,24 @@ description: '',
 coordinates: ''
 },
 modals: [],
+// ドラッグした順序でz-indexを管理
 eventLayerOrder: [],
 baseZIndex: 10,
 maxZIndex: 10,
+// 天気予報機能のデータ
 weatherCache: {},
-weatherCacheExpiry: 6 * 60 * 60 * 1000,
+weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
+// 天気予報ポップアップ用データ
 showWeatherPopup: false,
 weatherPopupUrl: '',
 
-// Google Identity Services用（修正版）
-googleClientId: window.GOOGLE_CLIENT_ID,
-isGoogleReady: false,
+// Google OAuth認証関連
+isGoogleApiLoaded: false,
 isSignedIn: false,
+userProfile: null,
 userEmail: '',
-userName: '',
+authInstance: null,
+isGoogleSheetsConnected: false,
 isUserApproved: false,
 gasProxyUrl: window.GAS_PROXY_URL || '',
 syncStatus: 'idle',
@@ -692,90 +685,84 @@ isSyncing: false,
 };
 },
 methods: {
-// Google Identity Services 初期化
-async initializeGoogleAuth() {
+// Google API初期化
+async initializeGoogleApi() {
   try {
-    // Google Identity Services が読み込まれるまで待機
-    let attempts = 0;
-    while (!window.google && attempts < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-    
-    if (!window.google) {
-      throw new Error('Google Identity Services の読み込みに失敗しました');
-    }
-    
-    // Google Identity Services の初期化
-    window.google.accounts.id.initialize({
-      client_id: this.googleClientId,
-      callback: this.handleGoogleSignIn,
-      auto_select: false,
-      cancel_on_tap_outside: true
+    await new Promise((resolve, reject) => {
+      gapi.load('auth2', {
+        callback: resolve,
+        onerror: reject
+      });
     });
     
-    this.isGoogleReady = true;
-    console.log('Google Identity Services 初期化完了');
+    this.authInstance = await gapi.auth2.init({
+      client_id: window.GOOGLE_CLIENT_ID
+    });
+    
+    this.isGoogleApiLoaded = true;
+    
+    if (this.authInstance.isSignedIn.get()) {
+      this.userProfile = this.authInstance.currentUser.get().getBasicProfile();
+      this.userEmail = this.userProfile.getEmail();
+      this.isSignedIn = true;
+      await this.initializeGoogleSheets();
+      await this.checkUserApproval();
+    }
+    
+    console.log('Google API初期化完了');
     
   } catch (error) {
-    console.error('Google認証初期化エラー:', error);
+    console.error('Google API初期化エラー:', error);
     this.syncStatus = 'error';
-    this.syncMessage = 'Google認証の初期化に失敗しました';
+    this.syncMessage = 'Google APIの初期化に失敗しました';
   }
 },
 
-// Google認証コールバック
-async handleGoogleSignIn(response) {
+// Google OAuth認証でサインイン
+async signInWithGoogle() {
   try {
     this.isSyncing = true;
     this.syncStatus = 'syncing';
-    this.syncMessage = 'Google認証を処理中...';
+    this.syncMessage = 'Google認証を開始しています...';
     
-    // JWT トークンをデコード
-    const userInfo = this.parseJwt(response.credential);
+    const authResult = await this.authInstance.signIn();
+    const profile = authResult.getBasicProfile();
     
     this.isSignedIn = true;
-    this.userEmail = userInfo.email;
-    this.userName = userInfo.name;
+    this.userProfile = profile;
+    this.userEmail = profile.getEmail();
     
-    console.log('Google認証成功:', userInfo.name);
+    console.log('Google認証成功:', profile.getName());
     
-    // GASプロキシとの接続確認
     await this.initializeGoogleSheets();
-    
-    // 承認状態確認
     await this.checkUserApproval();
     
   } catch (error) {
-    console.error('Google認証処理エラー:', error);
+    console.error('Google認証エラー:', error);
     this.syncStatus = 'error';
-    this.syncMessage = 'Google認証の処理に失敗しました';
+    this.syncMessage = 'Google認証に失敗しました';
   } finally {
     this.isSyncing = false;
   }
 },
 
-// JWT トークンのデコード
-parseJwt(token) {
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  
-  return JSON.parse(jsonPayload);
-},
-
 // サインアウト
-signOut() {
-  this.isSignedIn = false;
-  this.userEmail = '';
-  this.userName = '';
-  this.isUserApproved = false;
-  this.syncStatus = 'idle';
-  this.syncMessage = '';
-  
-  console.log('サインアウト完了');
+async signOut() {
+  try {
+    await this.authInstance.signOut();
+    this.isSignedIn = false;
+    this.userProfile = null;
+    this.userEmail = '';
+    this.isUserApproved = false;
+    this.isGoogleSheetsConnected = false;
+    this.syncStatus = 'idle';
+    this.syncMessage = '';
+    
+    console.log('サインアウト完了');
+    
+  } catch (error) {
+    console.error('サインアウトエラー:', error);
+  }
 },
 
 // GASプロキシとの接続確認
@@ -794,6 +781,7 @@ async initializeGoogleSheets() {
     });
     
     if (response.ok) {
+      this.isGoogleSheetsConnected = true;
       this.syncStatus = 'success';
       this.syncMessage = 'Google Sheetsとの接続が確立されました';
       console.log('Google Sheets接続確認完了');
@@ -809,7 +797,7 @@ async initializeGoogleSheets() {
 
 // 承認状態確認
 async checkUserApproval() {
-  if (!this.userEmail) return false;
+  if (!this.userEmail || !this.isGoogleSheetsConnected) return false;
   
   try {
     this.syncStatus = 'syncing';
@@ -850,7 +838,7 @@ async checkUserApproval() {
 
 // Google Sheetsにデータを保存
 async saveToGoogleSheets() {
-  if (!this.isUserApproved) {
+  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
     alert('Google Sheetsへの保存には承認が必要です');
     return;
   }
@@ -892,7 +880,7 @@ async saveToGoogleSheets() {
 
 // Google Sheetsからデータを読み込み
 async loadFromGoogleSheets() {
-  if (!this.isUserApproved) {
+  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
     alert('Google Sheetsからの読み込みには承認が必要です');
     return;
   }
@@ -1040,12 +1028,14 @@ const endB = this.timeToMinutes(eventB.endTime);
   
 return !(endA <= startB || endB <= startA);
 },
+
 getOverlappingEvents(targetEvent) {
 return this.events.filter(event => 
 event.id !== targetEvent.id && 
 this.checkEventOverlap(targetEvent, event)
 );
 },
+
 updateEventZIndex(eventId) {
 const targetEvent = this.events.find(e => e.id === eventId);
 if (!targetEvent) return;
@@ -1055,8 +1045,11 @@ const overlappingEvents = this.getOverlappingEvents(targetEvent);
 if (overlappingEvents.length === 0) return;
   
 this.eventLayerOrder = this.eventLayerOrder.filter(id => id !== eventId);
+  
 this.eventLayerOrder.push(eventId);
+  
 this.maxZIndex = Math.max(this.maxZIndex, this.baseZIndex + this.eventLayerOrder.length);
+  
 this.saveLayerOrder();
 },
 handleEventClick(event, eventData) {
@@ -1099,6 +1092,7 @@ if (navigator.vibrate) navigator.vibrate(50);
 startEventDrag(event, eventData) {
 this.draggingEvent = eventData;
 this.isDragComplete = false;
+const startY = event.clientY;
 const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
@@ -1115,7 +1109,9 @@ document.removeEventListener('mousemove', moveHandler);
 document.removeEventListener('mouseup', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
+
 this.updateEventZIndex(eventData.id);
+
 this.saveData();
 setTimeout(() => {
 this.isDragComplete = false;
@@ -1127,6 +1123,7 @@ document.addEventListener('mouseup', endHandler);
 startEventDragTouch(event, eventData) {
 this.draggingEvent = eventData;
 this.isDragComplete = false;
+const coords = event.touches[0];
 const container = this.$refs.mobileTimelineContainer;
 const rect = container.getBoundingClientRect();
 const timelineHeader = container.querySelector('.timeline-header');
@@ -1145,6 +1142,7 @@ document.removeEventListener('touchmove', moveHandler);
 document.removeEventListener('touchend', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
+
 this.updateEventZIndex(eventData.id);
 this.saveData();
 setTimeout(() => {
@@ -1228,8 +1226,12 @@ if (!container) return;
 container.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
 },
 handleEventTouchStart(event, eventData) {
-if (this.isDragComplete) return;
-if (this.draggingEvent) return;
+if (this.isDragComplete) {
+return;
+}
+if (this.draggingEvent) {
+return;
+}
 if (this.editModeEvent && this.editModeEvent.id === eventData.id) {
 if (!event.target.closest('.event-action-btn') && 
 !event.target.closest('.resize-handle')) {
@@ -1389,6 +1391,7 @@ const containerRect = container.getBoundingClientRect();
 this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
 } else {
 const containerRect = container.getBoundingClientRect();
+const scheduleAreaRect = scheduleArea.getBoundingClientRect();
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
 const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
 const snappedY = Math.round(relativeY / 15) * 15;
@@ -1403,7 +1406,9 @@ document.addEventListener('click', this.hideContextMenu, { once: true });
 hideContextMenu() { this.showContextMenu = false; },
 handleScheduleTouchStart(event) {
 if (!this.isMobile) return;
-if (event.target.closest('.event-block')) return;
+if (event.target.closest('.event-block')) {
+return;
+}
 this.touchStartTime = Date.now();
 this.touchStartPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
 this.longPressTimer = setTimeout(() => {
@@ -1413,14 +1418,18 @@ if (navigator.vibrate) navigator.vibrate(50);
 },
 handleScheduleTouchMove(event) {
 if (!this.isMobile) return;
-if (event.target.closest('.event-block')) return;
+if (event.target.closest('.event-block')) {
+return;
+}
 const deltaX = Math.abs(event.touches[0].clientX - this.touchStartPosition.x);
 const deltaY = Math.abs(event.touches[0].clientY - this.touchStartPosition.y);
 if (deltaX > 10 || deltaY > 10) this.clearLongPress();
 },
 handleScheduleTouchEnd(event) {
 if (!this.isMobile) return;
-if (event.target.closest('.event-block')) return;
+if (event.target.closest('.event-block')) {
+return;
+}
 this.clearLongPress();
 if (Date.now() - this.touchStartTime < 300) this.editModeEvent = null;
 },
@@ -1540,12 +1549,34 @@ getWeatherEmoji(weatherCode) {
 if (weatherCode === null || weatherCode === undefined) return '';
 
 const weatherMap = {
-0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
-51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️',
-61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️',
-71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️',
-80: '🌦️', 81: '🌦️', 82: '🌧️', 85: '🌨️', 86: '🌨️',
-95: '⛈️', 96: '⛈️', 99: '⛈️'
+0: '☀️',    // 晴れ
+1: '🌤️',   // 主に晴れ
+2: '⛅',    // 部分的に曇り
+3: '☁️',    // 曇り
+45: '🌫️',  // 霧
+48: '🌫️',  // 霧氷
+51: '🌦️',  // 軽い霧雨
+53: '🌦️',  // 中程度の霧雨
+55: '🌧️',  // 激しい霧雨
+56: '🌧️',  // 軽い氷雨
+57: '🌧️',  // 激しい氷雨
+61: '🌧️',  // 軽い雨
+63: '🌧️',  // 中程度の雨
+65: '🌧️',  // 激しい雨
+66: '🌧️',  // 軽い氷雨
+67: '🌧️',  // 激しい氷雨
+71: '🌨️',  // 軽い雪
+73: '🌨️',  // 中程度の雪
+75: '🌨️',  // 激しい雪
+77: '🌨️',  // 雪の粒
+80: '🌦️',  // 軽いにわか雨
+81: '🌦️',  // 中程度のにわか雨
+82: '🌧️',  // 激しいにわか雨
+85: '🌨️',  // 軽いにわか雪
+86: '🌨️',  // 激しいにわか雪
+95: '⛈️',  // 雷雨
+96: '⛈️',  // 軽い雹を伴う雷雨
+99: '⛈️'   // 激しい雹を伴う雷雨
 };
 
 return weatherMap[weatherCode] || '';
@@ -1610,6 +1641,7 @@ coordinatesInput.value = this.selectedCoordinates;
 }
 
 if (navigator.vibrate) navigator.vibrate(100);
+
 this.closeMapModal();
 },
 
@@ -1693,7 +1725,9 @@ ${eventData.description ? `<div class="mb-3"><strong>詳細:</strong><br>${this.
 
 deleteEventFromDetail(eventId) {
 try {
-if (!confirm('この予定を削除しますか？')) return;
+if (!confirm('この予定を削除しますか？')) {
+return;
+}
 const eventIndex = this.events.findIndex(e => String(e.id) === String(eventId));
 if (eventIndex === -1) {
 alert('予定が見つかりません。ページを再読み込みしてお試しください。');
@@ -1728,20 +1762,20 @@ alert('予定の編集準備に失敗しました。もう一度お試しくだ�
 },
 
 openEventModal(event = null, fromContextMenu = false) {
-const isEdit = !!event;
-if (isEdit) {
-this.eventForm = { ...event };
-} else if (!fromContextMenu) {
-this.eventForm = {
-title: '',
-dayIndex: this.activeDay,
-startTime: '09:00',
-endTime: '10:00',
-category: 'travel',
-description: '',
-coordinates: ''
-};
-}
+    const isEdit = !!event;
+    if (isEdit) {
+        this.eventForm = { ...event };
+    } else if (!fromContextMenu) {
+        this.eventForm = {
+            title: '',
+            dayIndex: this.activeDay,
+            startTime: '09:00',
+            endTime: '10:00',
+            category: 'travel',
+            description: '',
+            coordinates: ''
+        };
+    }
 
 const modalTitle = isEdit ? '予定を編集' : '新しい予定を追加';
 const modalBody = this.generateEventModalBody();
@@ -1799,7 +1833,7 @@ ${this.tripDays.map((day, index) =>
 </div>
 <div class="mb-3">
 <label for="eventDescription" class="form-label">詳細 (オプション)</label>
-<textarea class="form-control" id="eventDescription" rows="3" placeholder="予定の詳細を入力">${this.eventForm.description.replace(/"/g, '&quot;')}</textarea>
+<textarea class="form-control" id="eventDescription" rows="3" placeholder="予定の詳細を入力"></textarea>
 </div>
 `;
 },
@@ -1835,6 +1869,7 @@ alert('終了時間は開始時間より後に設定してください');
 return;
 }
 
+// 座標の形式チェック
 if (coordinates && !this.validateCoordinates(coordinates)) {
 alert('緯度経度の形式が正しくありません。\n正しい形式：34.702485,135.495951');
 return;
@@ -1851,11 +1886,13 @@ description
 };
 
 if (isEdit) {
+// 編集の場合
 const eventIndex = this.events.findIndex(e => e.id === this.eventForm.id);
 if (eventIndex !== -1) {
 this.events[eventIndex] = { ...this.events[eventIndex], ...eventData };
 }
 } else {
+// 新規追加の場合
 eventData.id = Date.now() + Math.random();
 this.events.push(eventData);
 }
@@ -1863,7 +1900,11 @@ this.events.push(eventData);
 this.saveData();
 this.closeAllModals();
 this.editModeEvent = null;
+
+// 追加・編集した日程をアクティブにする
 this.activeDay = dayIndex;
+
+// 天気予報を再取得
 this.loadWeatherForAllEvents();
 
 if (navigator.vibrate) navigator.vibrate(100);
@@ -1895,6 +1936,7 @@ if (modalElement) {
 const bootstrapModal = new bootstrap.Modal(modalElement);
 bootstrapModal.show();
 
+// モーダルが閉じられたときにmodals配列から削除
 modalElement.addEventListener('hidden.bs.modal', () => {
 const index = this.modals.findIndex(m => m.id === modalId);
 if (index !== -1) {
@@ -1950,6 +1992,7 @@ if (confirm('開始日を変更しますか？既存の予定も日程が調整�
 this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
 this.saveData();
 this.closeAllModals();
+// 天気予報を再取得
 this.loadWeatherForAllEvents();
 if (navigator.vibrate) navigator.vibrate(100);
 }
@@ -1967,9 +2010,9 @@ const dayData = this.tripDays[event.dayIndex];
 if (!dayData) {
 throw new Error('該当日程データが見つかりません。');
 }
-const date = dayData.fullDate.replace(/-/g, '');
-const hour = event.startTime.split(':')[0].padStart(2, '0');
-const datetime = `${date}${hour}00`;
+const date = dayData.fullDate.replace(/-/g, ''); // YYYY-MM-DD -> YYYYMMDD
+const hour = event.startTime.split(':')[0].padStart(2, '0'); // HH:MM -> HH
+const datetime = `${date}${hour}00`; // YYYYMMDDHH00
 
 this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat.trim()}&lng=${lng.trim()}&datetime=${datetime}`;
 this.showWeatherPopup = true;
@@ -1982,14 +2025,16 @@ alert('天気予報ポップアップの表示に失敗しました。');
 
 closeWeatherPopup() {
 this.showWeatherPopup = false;
-this.weatherPopupUrl = '';
+this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
 },
 
+// レイヤー順序の保存
 saveLayerOrder() {
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
 localStorage.setItem('trippenMaxZIndex', this.maxZIndex.toString());
 },
 
+// レイヤー順序の読み込み
 loadLayerOrder() {
 const savedLayerOrder = localStorage.getItem('trippenLayerOrder');
 const savedMaxZIndex = localStorage.getItem('trippenMaxZIndex');
@@ -2008,12 +2053,14 @@ this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
 }
 },
 
+// saveDataメソッドの修正
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
 this.saveLayerOrder();
 },
 
+// loadDataメソッドの修正
 loadData() {
 const savedEvents = localStorage.getItem('trippenEvents');
 const savedDays = localStorage.getItem('trippenDays');
@@ -2036,6 +2083,7 @@ this.tripDays = [];
 }
 }
 
+// レイヤー順序の読み込み
 this.loadLayerOrder();
 }
 },
@@ -2044,8 +2092,8 @@ this.detectMobile();
 this.checkExistingData();
 this.loadData();
 
-// Google Identity Services初期化
-this.initializeGoogleAuth();
+// Google Identity Services 初期化（修正版）
+this.initializeGoogleApi();
 
 if (this.tripDays.length > 0) {
 this.tripInitialized = true;
@@ -2054,7 +2102,6 @@ this.loadWeatherForAllEvents();
 
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
-window.vueApp = this;
 }
 }).mount('#app');
 </script>
