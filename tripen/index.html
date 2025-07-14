@@ -8,6 +8,13 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <!-- Leafletライブラリ（OpenStreetMap API用）-->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Google Sheets API連携用 -->
+<script>
+// GASプロキシのURL
+window.GAS_PROXY_URL = 'https://script.google.com/macros/s/AKfycbw8rZz3sRgiPgXtVvbDRlW-AKXXcFFwtyL1F6CsjlGIfA5V0QZY-SRWu4kk5UFJ06y8/exec';
+</script>
+
 <style>
 :root{--primary:#87CEEB;--secondary:#B0E0E6;--accent:#4682B4;--text:#2F4F4F;--bg:#F0F8FF;--time-bg:#E6F3FF;--transition:all 0.3s ease;--radius:15px;--shadow:0 2px 10px rgba(0,0,0,0.1)}
 *{box-sizing:border-box}
@@ -249,7 +256,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     border: none;
 }
 
-
 @media (max-width:768px){
 .header{padding:6px 0}
 .timeline-header{padding:6px 15px}
@@ -274,8 +280,65 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <header class="header">
 <div class="container">
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+
+<!-- Google Sheets連携状況表示（新規追加） -->
+<div class="mt-2" v-if="isGoogleSheetsConnected">
+  <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+    <!-- 同期状況 -->
+    <div class="d-flex align-items-center gap-2">
+      <span v-if="syncStatus === 'syncing'" class="badge bg-info">
+        <i class="fas fa-sync fa-spin"></i> 同期中
+      </span>
+      <span v-else-if="syncStatus === 'success'" class="badge bg-success">
+        <i class="fas fa-check"></i> 同期完了
+      </span>
+      <span v-else-if="syncStatus === 'error'" class="badge bg-danger">
+        <i class="fas fa-exclamation"></i> エラー
+      </span>
+      <span v-else class="badge bg-secondary">
+        <i class="fas fa-cloud"></i> 待機中
+      </span>
+    </div>
+    
+    <!-- ユーザー状況 -->
+    <div v-if="userEmail" class="d-flex align-items-center gap-2">
+      <small class="text-white">{{ userEmail }}</small>
+      <span v-if="isUserApproved" class="badge bg-success">承認済み</span>
+      <span v-else class="badge bg-warning">承認待ち</span>
+    </div>
+    
+    <!-- Google Sheets操作ボタン -->
+    <div class="d-flex gap-2" v-if="isUserApproved">
+      <button class="btn btn-outline-light btn-sm" @click="saveToGoogleSheets" :disabled="syncStatus === 'syncing'" title="Google Sheetsに保存">
+        <i class="fas fa-save"></i>
+      </button>
+      <button class="btn btn-outline-light btn-sm" @click="loadFromGoogleSheets" :disabled="syncStatus === 'syncing'" title="Google Sheetsから読み込み">
+        <i class="fas fa-download"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- 同期メッセージ -->
+  <div v-if="syncMessage" class="text-center mt-1">
+    <small class="text-white">{{ syncMessage }}</small>
+  </div>
+</div>
+
+<!-- ユーザーメール入力 -->
+<div class="mt-2" v-if="!isGoogleSheetsConnected || !userEmail">
+  <div class="d-flex justify-content-center">
+    <div class="input-group" style="max-width: 300px;">
+      <input type="email" class="form-control form-control-sm" v-model="userEmail" placeholder="メールアドレスを入力" @keyup.enter="checkUserAuth">
+      <button class="btn btn-light btn-sm" @click="checkUserAuth" :disabled="!userEmail || syncStatus === 'syncing'">
+        <i class="fas fa-sign-in-alt"></i> 認証
+      </button>
+    </div>
+  </div>
+</div>
+
 </div>
 </header>
+
 <div v-if="!tripInitialized" class="container">
 <div class="trip-setup">
 <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定</h2>
@@ -298,6 +361,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 </div>
+
 <div v-if="tripInitialized && !isMobile" class="desktop-ui">
 <div class="day-tabs-container">
 <ul class="nav nav-tabs day-tabs">
@@ -377,6 +441,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-plus"></i>
 </button>
 </div>
+
 <div v-if="tripInitialized && isMobile" class="mobile-ui">
 <div class="mobile-day-selector">
 <div class="mobile-scroll-container">
@@ -446,6 +511,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-plus"></i>
 </button>
 </div>
+
 <div class="context-menu" :class="{ show: showContextMenu }" :style="contextMenuStyle">
 <div class="context-menu-item add-event" @click="() => addEventFromContext()">
 <i class="fas fa-plus"></i>新しい予定を追加
@@ -457,6 +523,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-paste"></i>貼り付け（コピー済みアイテムなし）
 </div>
 </div>
+
 <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
 <div class="mobile-popup-content" @click.stop>
 <div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}</div>
@@ -517,6 +584,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -581,10 +649,233 @@ weatherCache: {},
 weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
 // 天気予報ポップアップ用データ
 showWeatherPopup: false,
-weatherPopupUrl: ''
+weatherPopupUrl: '',
+
+// Google Sheets連携用データ
+isGoogleSheetsConnected: false,
+userEmail: '',
+isUserApproved: false,
+gasProxyUrl: window.GAS_PROXY_URL || '',
+syncStatus: 'idle', // idle, syncing, success, error
+syncMessage: '',
+spreadsheetId: null,
 };
 },
 methods: {
+// Google Sheets連携機能
+async initializeGoogleSheets() {
+  if (!this.gasProxyUrl) {
+    console.log('GASプロキシURLが設定されていません');
+    return;
+  }
+  
+  try {
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'Google Sheetsとの接続を確認中...';
+    
+    // プロキシサーバーの生存確認
+    const response = await fetch(this.gasProxyUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      this.isGoogleSheetsConnected = true;
+      this.syncStatus = 'success';
+      this.syncMessage = 'Google Sheetsとの接続が確立されました';
+      console.log('Google Sheets接続確認完了');
+    } else {
+      throw new Error('プロキシサーバーからの応答エラー');
+    }
+  } catch (error) {
+    console.error('Google Sheets接続エラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'Google Sheetsとの接続に失敗しました';
+  }
+},
+
+// ユーザー認証確認
+async checkUserAuth() {
+  if (!this.userEmail || !this.isGoogleSheetsConnected) return false;
+  
+  try {
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'ユーザー認証を確認中...';
+    
+    const response = await fetch(this.gasProxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'checkAuth',
+        userEmail: this.userEmail
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.approved) {
+      this.isUserApproved = true;
+      this.spreadsheetId = result.existingSpreadsheetId;
+      this.syncStatus = 'success';
+      this.syncMessage = 'ユーザー認証が完了しました';
+      return true;
+    } else {
+      this.isUserApproved = false;
+      this.syncStatus = 'error';
+      this.syncMessage = 'ユーザーが承認されていません';
+      return false;
+    }
+  } catch (error) {
+    console.error('ユーザー認証確認エラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'ユーザー認証の確認に失敗しました';
+    return false;
+  }
+},
+
+// Google Sheetsにデータを保存
+async saveToGoogleSheets() {
+  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
+    alert('Google Sheetsへの保存には承認が必要です');
+    return;
+  }
+  
+  try {
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'Google Sheetsにデータを保存中...';
+    
+    const response = await fetch(this.gasProxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'saveData',
+        userEmail: this.userEmail,
+        spreadsheetId: this.spreadsheetId,
+        tripDays: this.tripDays,
+        events: this.events
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      this.syncStatus = 'success';
+      this.syncMessage = 'Google Sheetsに正常に保存されました';
+      if (navigator.vibrate) navigator.vibrate(100);
+    } else {
+      throw new Error(result.error || '保存に失敗しました');
+    }
+  } catch (error) {
+    console.error('Google Sheets保存エラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'Google Sheetsへの保存に失敗しました';
+    alert('Google Sheetsへの保存に失敗しました: ' + error.message);
+  }
+},
+
+// Google Sheetsからデータを読み込み
+async loadFromGoogleSheets() {
+  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
+    alert('Google Sheetsからの読み込みには承認が必要です');
+    return;
+  }
+  
+  try {
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'Google Sheetsからデータを読み込み中...';
+    
+    const response = await fetch(this.gasProxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'loadData',
+        userEmail: this.userEmail,
+        spreadsheetId: this.spreadsheetId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      if (result.data.tripDays && result.data.tripDays.length > 0) {
+        this.tripDays = result.data.tripDays;
+        this.tripInitialized = true;
+      }
+      if (result.data.events) {
+        this.events = result.data.events;
+      }
+      
+      this.syncStatus = 'success';
+      this.syncMessage = 'Google Sheetsから正常に読み込まれました';
+      
+      // ローカルストレージにも保存
+      this.saveData();
+      
+      if (navigator.vibrate) navigator.vibrate(100);
+    } else {
+      throw new Error(result.error || '読み込みに失敗しました');
+    }
+  } catch (error) {
+    console.error('Google Sheets読み込みエラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'Google Sheetsからの読み込みに失敗しました';
+    alert('Google Sheetsからの読み込みに失敗しました: ' + error.message);
+  }
+},
+
+// 新しいスプレッドシートを作成
+async createNewSpreadsheet() {
+  if (!this.isUserApproved || !this.isGoogleSheetsConnected) {
+    alert('スプレッドシート作成には承認が必要です');
+    return;
+  }
+  
+  try {
+    this.syncStatus = 'syncing';
+    this.syncMessage = 'スプレッドシートを作成中...';
+    
+    const tripName = '旅行予定_' + new Date().toLocaleDateString('ja-JP');
+    
+    const response = await fetch(this.gasProxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'createSpreadsheet',
+        userEmail: this.userEmail,
+        tripName: tripName
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      this.spreadsheetId = result.spreadsheetId;
+      this.syncStatus = 'success';
+      this.syncMessage = 'スプレッドシートを作成しました';
+      
+      // 現在のデータを保存
+      await this.saveToGoogleSheets();
+    } else {
+      throw new Error(result.error || 'スプレッドシート作成に失敗しました');
+    }
+  } catch (error) {
+    console.error('スプレッドシート作成エラー:', error);
+    this.syncStatus = 'error';
+    this.syncMessage = 'スプレッドシート作成に失敗しました';
+    alert('スプレッドシート作成に失敗しました: ' + error.message);
+  }
+},
+
 linkifyUrls(text) {
 if (!text) return text;
 const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1471,6 +1762,7 @@ const modalFooter = this.generateEventModalFooter(isEdit);
 
 this.openModal(modalTitle, modalBody, modalFooter);
 },
+
 generateEventModalBody() {
 return `
 <div class="mb-3">
@@ -1709,6 +2001,7 @@ openWeatherPopup(event) {
         alert('天気予報ポップアップの表示に失敗しました。');
     }
 },
+
 closeWeatherPopup() {
     this.showWeatherPopup = false;
     this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
@@ -1738,6 +2031,7 @@ if (savedMaxZIndex) {
 this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
 }
 },
+
 // saveDataメソッドの修正
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
@@ -1776,6 +2070,10 @@ mounted() {
 this.detectMobile();
 this.checkExistingData();
 this.loadData();
+
+// Google Sheets連携の初期化（新規追加）
+this.initializeGoogleSheets();
+
 if (this.tripDays.length > 0) {
 this.tripInitialized = true;
 // 天気予報を読み込む
