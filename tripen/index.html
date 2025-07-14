@@ -4,9 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>とりっぺんちゃん - 旅行予定調整サイト</title>
+
+<!-- CSP設定（修正版：data:フォント対応） -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
+  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
+  img-src 'self' data: https://*.tile.openstreetmap.org https://*.googleapis.com https://accounts.google.com;
+  font-src 'self' data: https://cdnjs.cloudflare.com;
+  connect-src 'self' https://accounts.google.com https://script.google.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://nokonokotubotubo.github.io;
+  frame-src 'self' https://accounts.google.com https://nokonokotubotubo.github.io;
+">
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="window.googleLoaded = true"></script>
 
 <!-- Google Sheets API連携用設定 -->
 <script>
@@ -254,38 +269,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     border: none;
 }
 
-/* 簡素化されたGoogle認証ボタンスタイル */
-.google-signin-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: white;
-    color: #3c4043;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-}
-
-.google-signin-btn:hover {
-    background: #f8f9fa;
-    border-color: #dadce0;
-    color: #3c4043;
-    text-decoration: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.google-logo {
-    width: 18px;
-    height: 18px;
-    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgPHBhdGggZD0iTTkgMy40OGMxLjY5IDAgMi44My42MiAzLjQ3IDEuMTRMMTUuNTQgMS42NEM0Ljc5LS4zMS0uNzggNy4yMy0uNzggMTMuNSAwIDE3LjkgMy42IDIxLjk2IDguMzggMjJjNC40IDAgMi40OC0xLjE3IDMuMjEtMi44NyIgZmlsbD0iI0ZGRCIvPgogICAgPHBhdGggZD0iTTkgOGMtMS4xNSAwLTIuMDgtMS4xNC0yLjA4LTIuMDhzLjkzLTIuMDggMi4wOC0yLjA4IDIuMDguOTMgMi4wOCAyLjA4UzEwLjE1IDggOSA4eiIgZmlsbD0iIzM0QTg1MyIvPgogICAgPHBhdGggZD0iTTkgMTguNWMtMi45OSAwLTUuNTItMi42MS01LjUyLTUuNSAwLTEuNTIuNjItMi45MyAxLjY0LTMuOTVMMCAzLjY0QzAgOC4yOSA0LjAzIDEyIDkgMTJzOS0zLjcxIDktOC4zNmwtNC41MyA1LjQxYzEuMDIgMS4wMiAxLjY0IDIuNDMgMS42NCAzLjk1IDAgMi44OS0yLjUzIDUuNS01LjUyIDUuNXoiIGZpbGw9IiNGQkJDMDQiLz4KICA8L2c+Cjwvc3ZnPgo=') no-repeat center;
-    background-size: contain;
-}
-
 @media (max-width:768px){
 .header{padding:6px 0}
 .timeline-header{padding:6px 15px}
@@ -311,16 +294,23 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="container">
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
 
-<!-- 簡素化されたGoogle認証状況表示 -->
-<div class="mt-2" v-if="!isGoogleSheetsConnected">
+<!-- Google Identity Services認証状況表示 -->
+<div class="mt-2" v-if="!isGoogleReady">
   <div class="d-flex justify-content-center">
-    <button class="google-signin-btn" @click="signInWithSimpleAuth" :disabled="isSyncing">
-      <div class="google-logo"></div>
-      {{ isSyncing ? 'Google認証中...' : 'Googleアカウントでサインイン' }}
-    </button>
+    <small class="text-white">Google認証システムを初期化中...</small>
   </div>
-  <div v-if="authError" class="text-center mt-2">
-    <small class="text-warning">{{ authError }}</small>
+</div>
+
+<div class="mt-2" v-if="isGoogleReady && !isSignedIn">
+  <div class="d-flex justify-content-center">
+    <div id="g_id_onload" :data-client_id="googleClientId" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+  </div>
+</div>
+
+<div class="mt-2" v-if="isSignedIn && !isUserApproved">
+  <div class="d-flex justify-content-center">
+    <small class="text-white">アクセス権限を確認中...</small>
   </div>
 </div>
 
@@ -708,6 +698,11 @@ isSyncing: false,
 };
 },
 methods: {
+// Google API初期化（修正版）
+initializeGoogleApi() {
+  this.initializeGoogleIdentity();
+},
+
 // Google Identity Services 初期化
 initializeGoogleIdentity() {
   if (typeof google !== 'undefined' && google.accounts) {
@@ -1509,7 +1504,6 @@ custom: 'fas fa-star'
 return icons[category] || 'fas fa-calendar';
 },
 
-// 天気予報を取得する
 async fetchWeatherForEvent(event) {
 if (!event.coordinates) return null;
 
@@ -1551,34 +1545,7 @@ getWeatherEmoji(weatherCode) {
 if (weatherCode === null || weatherCode === undefined) return '';
 
 const weatherMap = {
-0: '☀️',    // 晴れ
-1: '🌤️',   // 主に晴れ
-2: '⛅',    // 部分的に曇り
-3: '☁️',    // 曇り
-45: '🌫️',  // 霧
-48: '🌫️',  // 霧氷
-51: '🌦️',  // 軽い霧雨
-53: '🌦️',  // 中程度の霧雨
-55: '🌧️',  // 激しい霧雨
-56: '🌧️',  // 軽い氷雨
-57: '🌧️',  // 激しい氷雨
-61: '🌧️',  // 軽い雨
-63: '🌧️',  // 中程度の雨
-65: '🌧️',  // 激しい雨
-66: '🌧️',  // 軽い氷雨
-67: '🌧️',  // 激しい氷雨
-71: '🌨️',  // 軽い雪
-73: '🌨️',  // 中程度の雪
-75: '🌨️',  // 激しい雪
-77: '🌨️',  // 雪の粒
-80: '🌦️',  // 軽いにわか雨
-81: '🌦️',  // 中程度のにわか雨
-82: '🌧️',  // 激しいにわか雨
-85: '🌨️',  // 軽いにわか雪
-86: '🌨️',  // 激しいにわか雪
-95: '⛈️',  // 雷雨
-96: '⛈️',  // 軽い雹を伴う雷雨
-99: '⛈️'   // 激しい雹を伴う雷雨
+0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️', 71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️', 80: '🌦️', 81: '🌦️', 82: '🌧️', 85: '🌨️', 86: '🌨️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
 };
 
 return weatherMap[weatherCode] || '';
@@ -2082,8 +2049,8 @@ this.detectMobile();
 this.checkExistingData();
 this.loadData();
 
-// Google Identity Services 初期化
-this.initializeGoogleIdentity();
+// Google API初期化（修正版）
+this.initializeGoogleApi();
 
 if (this.tripDays.length > 0) {
 this.tripInitialized = true;
