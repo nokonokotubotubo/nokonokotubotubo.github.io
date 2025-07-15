@@ -4,33 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>とりっぺんちゃん - 旅行予定調整サイト</title>
-
-<!-- CSP設定（Google認証対応） -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-  style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-  img-src 'self' data: https://*.tile.openstreetmap.org https://*.googleapis.com https://accounts.google.com;
-  font-src 'self' https://cdnjs.cloudflare.com data:;
-  connect-src 'self' https://accounts.google.com https://script.google.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://nokonokotubotubo.github.io;
-  frame-src 'self' https://accounts.google.com https://nokonokotubotubo.github.io;
-">
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<!-- Leafletライブラリ（OpenStreetMap API用）-->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-<!-- Google Sheets API連携用設定 -->
-<script>
-// GASプロキシのURL
-window.GAS_PROXY_URL = 'https://script.google.com/macros/s/AKfycbw8rZz3sRgiPgXtVvbDRlW-AKXXcFFwtyL1F6CsjlGIfA5V0QZY-SRWu4kk5UFJ06y8/exec';
-// Google OAuth クライアントID
-window.GOOGLE_CLIENT_ID = '807734792972-816kd6f15du0lkobjf6q2n6jhhd576lc.apps.googleusercontent.com';
-</script>
-
 <style>
 :root{--primary:#87CEEB;--secondary:#B0E0E6;--accent:#4682B4;--text:#2F4F4F;--bg:#F0F8FF;--time-bg:#E6F3FF;--transition:all 0.3s ease;--radius:15px;--shadow:0 2px 10px rgba(0,0,0,0.1)}
 *{box-sizing:border-box}
@@ -99,7 +76,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 @keyframes bounceIcon{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.2)}}
 .event-block.dragging{z-index:1000;opacity:0.8;transform:scale(1.02)}
 .event-block.dragging .event-actions{display:none!important}
-.event-block.layered{}
+.event-block.layered{/* 動的にz-indexが設定される */}
 .event-content-inline{font-size:0.9rem;line-height:1.2;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;font-weight:bold}
 .event-title,.event-time,.event-description{display:none}
 .event-category-travel{background:#FF6B6B}
@@ -140,6 +117,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
 
+/* 天気アイコン用スタイル（左上配置・大きめサイズ） */
 .weather-emoji-top-left {
     position: absolute;
     top: -12px;
@@ -147,10 +125,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     font-size: 2rem;
     z-index: 30;
     line-height: 1;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    cursor: pointer; /* クリック可能であることを示すカーソルに変更 */
+    -webkit-tap-highlight-color: transparent; /* モバイルでのタップ時のハイライトを無効化 */
 }
 
+/* OpenStreetMap地図のスタイル */
 .map-modal {
     position: fixed;
     top: 0;
@@ -220,6 +199,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     text-align: center;
 }
 
+/* 天気予報ポップアップ */
 .weather-popup-modal {
     position: fixed;
     top: 0;
@@ -269,6 +249,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     border: none;
 }
 
+
 @media (max-width:768px){
 .header{padding:6px 0}
 .timeline-header{padding:6px 15px}
@@ -293,75 +274,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <header class="header">
 <div class="container">
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
-
-<!-- Google Identity Services認証状況表示 -->
-<div class="mt-2" v-if="!isGoogleReady">
-  <div class="d-flex justify-content-center">
-    <small class="text-white">Google認証システムを初期化中...</small>
-  </div>
-</div>
-
-<div class="mt-2" v-if="isGoogleReady && !isSignedIn">
-  <div class="d-flex justify-content-center">
-    <div id="g_id_onload" :data-client_id="googleClientId" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
-  </div>
-</div>
-
-<div class="mt-2" v-if="isSignedIn && !isUserApproved">
-  <div class="d-flex justify-content-center">
-    <small class="text-white">アクセス権限を確認中...</small>
-  </div>
-</div>
-
-<!-- Google Sheets連携状況表示 -->
-<div class="mt-2" v-if="isUserApproved">
-  <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
-    <!-- 同期状況 -->
-    <div class="d-flex align-items-center gap-2">
-      <span v-if="syncStatus === 'syncing'" class="badge bg-info">
-        <i class="fas fa-sync fa-spin"></i> 同期中
-      </span>
-      <span v-else-if="syncStatus === 'success'" class="badge bg-success">
-        <i class="fas fa-check"></i> 同期完了
-      </span>
-      <span v-else-if="syncStatus === 'error'" class="badge bg-danger">
-        <i class="fas fa-exclamation"></i> エラー
-      </span>
-      <span v-else class="badge bg-secondary">
-        <i class="fas fa-cloud"></i> 待機中
-      </span>
-    </div>
-    
-    <!-- ユーザー状況 -->
-    <div v-if="userEmail" class="d-flex align-items-center gap-2">
-      <small class="text-white">{{ userName || userEmail }}</small>
-      <span class="badge bg-success">承認済み</span>
-    </div>
-    
-    <!-- Google Sheets操作ボタン -->
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-light btn-sm" @click="saveToGoogleSheets" :disabled="syncStatus === 'syncing'" title="Google Sheetsに保存">
-        <i class="fas fa-save"></i>
-      </button>
-      <button class="btn btn-outline-light btn-sm" @click="loadFromGoogleSheets" :disabled="syncStatus === 'syncing'" title="Google Sheetsから読み込み">
-        <i class="fas fa-download"></i>
-      </button>
-      <button class="btn btn-outline-light btn-sm" @click="signOut" title="サインアウト">
-        <i class="fas fa-sign-out-alt"></i>
-      </button>
-    </div>
-  </div>
-  
-  <!-- 同期メッセージ -->
-  <div v-if="syncMessage" class="text-center mt-1">
-    <small class="text-white">{{ syncMessage }}</small>
-  </div>
-</div>
-
 </div>
 </header>
-
 <div v-if="!tripInitialized" class="container">
 <div class="trip-setup">
 <h2><i class="fas fa-calendar-alt"></i> 旅行日程を設定</h2>
@@ -384,7 +298,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 </div>
-
 <div v-if="tripInitialized && !isMobile" class="desktop-ui">
 <div class="day-tabs-container">
 <ul class="nav nav-tabs day-tabs">
@@ -464,7 +377,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-plus"></i>
 </button>
 </div>
-
 <div v-if="tripInitialized && isMobile" class="mobile-ui">
 <div class="mobile-day-selector">
 <div class="mobile-scroll-container">
@@ -534,7 +446,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-plus"></i>
 </button>
 </div>
-
 <div class="context-menu" :class="{ show: showContextMenu }" :style="contextMenuStyle">
 <div class="context-menu-item add-event" @click="() => addEventFromContext()">
 <i class="fas fa-plus"></i>新しい予定を追加
@@ -546,7 +457,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <i class="fas fa-paste"></i>貼り付け（コピー済みアイテムなし）
 </div>
 </div>
-
 <div class="mobile-popup-menu" :class="{ show: showMobilePopup }" @click="closeMobilePopup" v-if="isMobile">
 <div class="mobile-popup-content" @click.stop>
 <div class="mobile-popup-title">{{ selectedDayForPopup ? `${selectedDayForPopup.dayNumber}日目の編集` : '日程編集' }}</div>
@@ -567,7 +477,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 
-<!-- OpenStreetMap地図モーダル -->
+<!-- OpenStreetMap地図モーダル（指示通りのみ）-->
 <div v-if="showMapModal" class="map-modal" @click="closeMapModal">
     <div class="map-container" @click.stop>
         <div class="map-header">
@@ -607,18 +517,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// Google Identity Services のグローバルコールバック関数
-window.handleCredentialResponse = function(response) {
-  if (window.vueApp) {
-    window.vueApp.handleGoogleSignIn(response);
-  }
-};
-
 const { createApp } = Vue;
 const app = createApp({
 data() {
@@ -655,6 +557,7 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
+// OpenStreetMap地図機能用のデータ
 showMapModal: false,
 map: null,
 selectedCoordinates: null,
@@ -669,279 +572,19 @@ description: '',
 coordinates: ''
 },
 modals: [],
+// ドラッグした順序でz-indexを管理
 eventLayerOrder: [],
 baseZIndex: 10,
 maxZIndex: 10,
+// 天気予報機能のデータ
 weatherCache: {},
-weatherCacheExpiry: 6 * 60 * 60 * 1000,
+weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
+// 天気予報ポップアップ用データ
 showWeatherPopup: false,
-weatherPopupUrl: '',
-
-// Google Identity Services用（修正版）
-googleClientId: window.GOOGLE_CLIENT_ID,
-isGoogleReady: false,
-isSignedIn: false,
-userEmail: '',
-userName: '',
-isUserApproved: false,
-gasProxyUrl: window.GAS_PROXY_URL || '',
-syncStatus: 'idle',
-syncMessage: '',
-spreadsheetId: null,
-isSyncing: false,
+weatherPopupUrl: ''
 };
 },
 methods: {
-// Google Identity Services 初期化
-async initializeGoogleAuth() {
-  try {
-    // Google Identity Services が読み込まれるまで待機
-    let attempts = 0;
-    while (!window.google && attempts < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-    
-    if (!window.google) {
-      throw new Error('Google Identity Services の読み込みに失敗しました');
-    }
-    
-    // Google Identity Services の初期化
-    window.google.accounts.id.initialize({
-      client_id: this.googleClientId,
-      callback: this.handleGoogleSignIn,
-      auto_select: false,
-      cancel_on_tap_outside: true
-    });
-    
-    this.isGoogleReady = true;
-    console.log('Google Identity Services 初期化完了');
-    
-  } catch (error) {
-    console.error('Google認証初期化エラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'Google認証の初期化に失敗しました';
-  }
-},
-
-// Google認証コールバック
-async handleGoogleSignIn(response) {
-  try {
-    this.isSyncing = true;
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'Google認証を処理中...';
-    
-    // JWT トークンをデコード
-    const userInfo = this.parseJwt(response.credential);
-    
-    this.isSignedIn = true;
-    this.userEmail = userInfo.email;
-    this.userName = userInfo.name;
-    
-    console.log('Google認証成功:', userInfo.name);
-    
-    // GASプロキシとの接続確認
-    await this.initializeGoogleSheets();
-    
-    // 承認状態確認
-    await this.checkUserApproval();
-    
-  } catch (error) {
-    console.error('Google認証処理エラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'Google認証の処理に失敗しました';
-  } finally {
-    this.isSyncing = false;
-  }
-},
-
-// JWT トークンのデコード
-parseJwt(token) {
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  
-  return JSON.parse(jsonPayload);
-},
-
-// サインアウト
-signOut() {
-  this.isSignedIn = false;
-  this.userEmail = '';
-  this.userName = '';
-  this.isUserApproved = false;
-  this.syncStatus = 'idle';
-  this.syncMessage = '';
-  
-  console.log('サインアウト完了');
-  location.reload();
-},
-
-// GASプロキシとの接続確認
-async initializeGoogleSheets() {
-  if (!this.gasProxyUrl) {
-    console.log('GASプロキシURLが設定されていません');
-    return;
-  }
-  
-  try {
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'Google Sheetsとの接続を確認中...';
-    
-    const response = await fetch(this.gasProxyUrl, {
-      method: 'GET'
-    });
-    
-    if (response.ok) {
-      this.syncStatus = 'success';
-      this.syncMessage = 'Google Sheetsとの接続が確立されました';
-      console.log('Google Sheets接続確認完了');
-    } else {
-      throw new Error('プロキシサーバーからの応答エラー');
-    }
-  } catch (error) {
-    console.error('Google Sheets接続エラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'Google Sheetsとの接続に失敗しました';
-  }
-},
-
-// 承認状態確認
-async checkUserApproval() {
-  if (!this.userEmail) return false;
-  
-  try {
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'ユーザー認証を確認中...';
-    
-    const response = await fetch(this.gasProxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-      body: JSON.stringify({
-        action: 'checkAuth',
-        userEmail: this.userEmail
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success && result.approved) {
-      this.isUserApproved = true;
-      this.spreadsheetId = result.existingSpreadsheetId;
-      this.syncStatus = 'success';
-      this.syncMessage = 'ユーザー認証が完了しました';
-      return true;
-    } else {
-      this.isUserApproved = false;
-      this.syncStatus = 'error';
-      this.syncMessage = 'アクセス権限がありません。管理者にお問い合わせください。';
-      return false;
-    }
-  } catch (error) {
-    console.error('ユーザー認証確認エラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'ユーザー認証の確認に失敗しました';
-    return false;
-  }
-},
-
-// Google Sheetsにデータを保存
-async saveToGoogleSheets() {
-  if (!this.isUserApproved) {
-    alert('Google Sheetsへの保存には承認が必要です');
-    return;
-  }
-  
-  try {
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'Google Sheetsにデータを保存中...';
-    
-    const response = await fetch(this.gasProxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-      body: JSON.stringify({
-        action: 'saveData',
-        userEmail: this.userEmail,
-        spreadsheetId: this.spreadsheetId,
-        tripDays: this.tripDays,
-        events: this.events
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      this.syncStatus = 'success';
-      this.syncMessage = 'Google Sheetsに正常に保存されました';
-      if (navigator.vibrate) navigator.vibrate(100);
-    } else {
-      throw new Error(result.error || '保存に失敗しました');
-    }
-  } catch (error) {
-    console.error('Google Sheets保存エラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'Google Sheetsへの保存に失敗しました';
-    alert('Google Sheetsへの保存に失敗しました: ' + error.message);
-  }
-},
-
-// Google Sheetsからデータを読み込み
-async loadFromGoogleSheets() {
-  if (!this.isUserApproved) {
-    alert('Google Sheetsからの読み込みには承認が必要です');
-    return;
-  }
-  
-  try {
-    this.syncStatus = 'syncing';
-    this.syncMessage = 'Google Sheetsからデータを読み込み中...';
-    
-    const response = await fetch(this.gasProxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-      body: JSON.stringify({
-        action: 'loadData',
-        userEmail: this.userEmail,
-        spreadsheetId: this.spreadsheetId
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success && result.data) {
-      if (result.data.tripDays && result.data.tripDays.length > 0) {
-        this.tripDays = result.data.tripDays;
-        this.tripInitialized = true;
-      }
-      if (result.data.events) {
-        this.events = result.data.events;
-      }
-      
-      this.syncStatus = 'success';
-      this.syncMessage = 'Google Sheetsから正常に読み込まれました';
-      
-      this.saveData();
-      
-      if (navigator.vibrate) navigator.vibrate(100);
-    } else {
-      throw new Error(result.error || '読み込みに失敗しました');
-    }
-  } catch (error) {
-    console.error('Google Sheets読み込みエラー:', error);
-    this.syncStatus = 'error';
-    this.syncMessage = 'Google Sheetsからの読み込みに失敗しました';
-    alert('Google Sheetsからの読み込みに失敗しました: ' + error.message);
-  }
-},
-
 linkifyUrls(text) {
 if (!text) return text;
 const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1031,6 +674,7 @@ inlineText
 };
 });
 },
+// 重なり判定メソッド
 checkEventOverlap(eventA, eventB) {
 if (eventA.dayIndex !== eventB.dayIndex) return false;
   
@@ -1042,6 +686,7 @@ const endB = this.timeToMinutes(eventB.endTime);
 return !(endA <= startB || endB <= startA);
 },
 
+// 特定のイベントと重なる全てのイベントを取得
 getOverlappingEvents(targetEvent) {
 return this.events.filter(event => 
 event.id !== targetEvent.id && 
@@ -1049,20 +694,26 @@ this.checkEventOverlap(targetEvent, event)
 );
 },
 
+// z-indexを更新する
 updateEventZIndex(eventId) {
 const targetEvent = this.events.find(e => e.id === eventId);
 if (!targetEvent) return;
   
 const overlappingEvents = this.getOverlappingEvents(targetEvent);
   
+// 重なりがない場合は何もしない
 if (overlappingEvents.length === 0) return;
   
+// 既存の順序から削除
 this.eventLayerOrder = this.eventLayerOrder.filter(id => id !== eventId);
   
+// 最前面に追加
 this.eventLayerOrder.push(eventId);
   
+// 最大z-indexを更新
 this.maxZIndex = Math.max(this.maxZIndex, this.baseZIndex + this.eventLayerOrder.length);
   
+// データを保存
 this.saveLayerOrder();
 },
 handleEventClick(event, eventData) {
@@ -1123,6 +774,7 @@ document.removeEventListener('mouseup', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
 
+// ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
 
 this.saveData();
@@ -1156,6 +808,7 @@ document.removeEventListener('touchend', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
 
+// ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
 this.saveData();
 setTimeout(() => {
@@ -1497,6 +1150,7 @@ const startPixels = this.timeToPixels(event.startTime);
 const endPixels = this.timeToPixels(event.endTime);
 const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
 
+// z-indexを動的に設定
 let zIndex = this.baseZIndex;
 const layerIndex = this.eventLayerOrder.indexOf(event.id);
 if (layerIndex !== -1) {
@@ -1521,6 +1175,7 @@ custom: 'fas fa-star'
 return icons[category] || 'fas fa-calendar';
 },
 
+// 天気予報を取得する
 async fetchWeatherForEvent(event) {
 if (!event.coordinates) return null;
 
@@ -1531,6 +1186,7 @@ if (isNaN(lat) || isNaN(lng)) return null;
 const cacheKey = `${lat},${lng}_${event.dayIndex}`;
 const cachedWeather = this.weatherCache[cacheKey];
 
+// キャッシュが有効な場合は返す
 if (cachedWeather && Date.now() - cachedWeather.timestamp < this.weatherCacheExpiry) {
 return cachedWeather.data;
 }
@@ -1546,6 +1202,7 @@ if (!response.ok) throw new Error('Weather API request failed');
 const data = await response.json();
 const weatherCode = data.daily.weathercode[0];
 
+// キャッシュに保存
 this.weatherCache[cacheKey] = {
 data: weatherCode,
 timestamp: Date.now()
@@ -1558,16 +1215,45 @@ return null;
 }
 },
 
+// 天気コードを絵文字に変換
 getWeatherEmoji(weatherCode) {
 if (weatherCode === null || weatherCode === undefined) return '';
 
 const weatherMap = {
-0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️', 71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️', 80: '🌦️', 81: '🌦️', 82: '🌧️', 85: '🌨️', 86: '🌨️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
+0: '☀️',    // 晴れ
+1: '🌤️',   // 主に晴れ
+2: '⛅',    // 部分的に曇り
+3: '☁️',    // 曇り
+45: '🌫️',  // 霧
+48: '🌫️',  // 霧氷
+51: '🌦️',  // 軽い霧雨
+53: '🌦️',  // 中程度の霧雨
+55: '🌧️',  // 激しい霧雨
+56: '🌧️',  // 軽い氷雨
+57: '🌧️',  // 激しい氷雨
+61: '🌧️',  // 軽い雨
+63: '🌧️',  // 中程度の雨
+65: '🌧️',  // 激しい雨
+66: '🌧️',  // 軽い氷雨
+67: '🌧️',  // 激しい氷雨
+71: '🌨️',  // 軽い雪
+73: '🌨️',  // 中程度の雪
+75: '🌨️',  // 激しい雪
+77: '🌨️',  // 雪の粒
+80: '🌦️',  // 軽いにわか雨
+81: '🌦️',  // 中程度のにわか雨
+82: '🌧️',  // 激しいにわか雨
+85: '🌨️',  // 軽いにわか雪
+86: '🌨️',  // 激しいにわか雪
+95: '⛈️',  // 雷雨
+96: '⛈️',  // 軽い雹を伴う雷雨
+99: '⛈️'   // 激しい雹を伴う雷雨
 };
 
 return weatherMap[weatherCode] || '';
 },
 
+// 全ての予定の天気予報を取得
 async loadWeatherForAllEvents() {
 const promises = this.events
 .filter(event => event.coordinates)
@@ -1576,6 +1262,7 @@ const promises = this.events
 await Promise.all(promises);
 },
 
+// 予定の天気予報絵文字を取得
 getEventWeatherEmoji(event) {
 if (!event.coordinates) return '';
 
@@ -1589,6 +1276,7 @@ return this.getWeatherEmoji(cachedWeather.data);
 return '';
 },
 
+// OpenStreetMap地図機能メソッド（指示通りのみ）
 setLocationFromMap() {
 this.showMapModal = true;
 this.$nextTick(() => {
@@ -1597,14 +1285,17 @@ this.initializeMap();
 },
 
 initializeMap() {
+// 大阪府大阪市北区の座標 (34.7024, 135.4959)
 const initialLat = 34.7024;
 const initialLng = 135.4959;
 
 this.map = L.map('map').setView([initialLat, initialLng], 15);
+// OpenStreetMap APIを使用
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 attribution: '© OpenStreetMap contributors'
 }).addTo(this.map);
 
+// 地図クリック（タップ）イベント - 座標取得
 this.map.on('click', (e) => {
 this.handleMapClick(e);
 });
@@ -1615,19 +1306,24 @@ const lat = e.latlng.lat.toFixed(6);
 const lng = e.latlng.lng.toFixed(6);
 this.selectedCoordinates = `${lat},${lng}`;
 
+// 既存のマーカーを削除
 if (this.mapMarker) {
 this.map.removeLayer(this.mapMarker);
 }
 
+// 新しいマーカーを追加
 this.mapMarker = L.marker([lat, lng]).addTo(this.map);
 
+// 座標を入力フィールドに設定
 const coordinatesInput = document.getElementById('eventCoordinates');
 if (coordinatesInput) {
 coordinatesInput.value = this.selectedCoordinates;
 }
 
+// タップフィードバック
 if (navigator.vibrate) navigator.vibrate(100);
 
+// 地図を自動で閉じる
 this.closeMapModal();
 },
 
@@ -1654,6 +1350,7 @@ navigator.clipboard.writeText(coordinates).then(() => {
 alert('緯度経度をクリップボードにコピーしました');
 if (navigator.vibrate) navigator.vibrate(100);
 }).catch(() => {
+// フォールバック処理
 coordinatesInput.select();
 document.execCommand('copy');
 alert('緯度経度をクリップボードにコピーしました');
@@ -1676,8 +1373,10 @@ const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=15`;
 
 try {
 if (this.isMobile) {
+// モバイルの場合はアプリで開く
 window.location.href = googleMapsUrl;
 } else {
+// デスクトップの場合は別タブで開く
 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
 }
 } catch (error) {
@@ -1748,28 +1447,30 @@ alert('予定の編集準備に失敗しました。もう一度お試しくだ�
 },
 
 openEventModal(event = null, fromContextMenu = false) {
-const isEdit = !!event;
-if (isEdit) {
-this.eventForm = { ...event };
-} else if (!fromContextMenu) {
-this.eventForm = {
-title: '',
-dayIndex: this.activeDay,
-startTime: '09:00',
-endTime: '10:00',
-category: 'travel',
-description: '',
-coordinates: ''
-};
-}
+    const isEdit = !!event;
+    if (isEdit) {
+        // 編集モード
+        this.eventForm = { ...event };
+    } else if (!fromContextMenu) {
+        // 新規追加モード（コンテキストメニュー以外から）
+        this.eventForm = {
+            title: '',
+            dayIndex: this.activeDay,
+            startTime: '09:00',
+            endTime: '10:00',
+            category: 'travel',
+            description: '',
+            coordinates: ''
+        };
+    }
 
+// モーダルのタイトルと内容を設定
 const modalTitle = isEdit ? '予定を編集' : '新しい予定を追加';
 const modalBody = this.generateEventModalBody();
 const modalFooter = this.generateEventModalFooter(isEdit);
 
 this.openModal(modalTitle, modalBody, modalFooter);
 },
-
 generateEventModalBody() {
 return `
 <div class="mb-3">
@@ -1855,6 +1556,7 @@ alert('終了時間は開始時間より後に設定してください');
 return;
 }
 
+// 座標の形式チェック
 if (coordinates && !this.validateCoordinates(coordinates)) {
 alert('緯度経度の形式が正しくありません。\n正しい形式：34.702485,135.495951');
 return;
@@ -1871,11 +1573,13 @@ description
 };
 
 if (isEdit) {
+// 編集の場合
 const eventIndex = this.events.findIndex(e => e.id === this.eventForm.id);
 if (eventIndex !== -1) {
 this.events[eventIndex] = { ...this.events[eventIndex], ...eventData };
 }
 } else {
+// 新規追加の場合
 eventData.id = Date.now() + Math.random();
 this.events.push(eventData);
 }
@@ -1884,8 +1588,10 @@ this.saveData();
 this.closeAllModals();
 this.editModeEvent = null;
 
+// 追加・編集した日程をアクティブにする
 this.activeDay = dayIndex;
 
+// 天気予報を再取得
 this.loadWeatherForAllEvents();
 
 if (navigator.vibrate) navigator.vibrate(100);
@@ -1917,6 +1623,7 @@ if (modalElement) {
 const bootstrapModal = new bootstrap.Modal(modalElement);
 bootstrapModal.show();
 
+// モーダルが閉じられたときにmodals配列から削除
 modalElement.addEventListener('hidden.bs.modal', () => {
 const index = this.modals.findIndex(m => m.id === modalId);
 if (index !== -1) {
@@ -1972,46 +1679,48 @@ if (confirm('開始日を変更しますか？既存の予定も日程が調整�
 this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
 this.saveData();
 this.closeAllModals();
+// 天気予報を再取得
 this.loadWeatherForAllEvents();
 if (navigator.vibrate) navigator.vibrate(100);
 }
 },
 
 openWeatherPopup(event) {
-if (!event.coordinates) {
-alert('この予定には位置情報が設定されていません。');
-return;
-}
+    if (!event.coordinates) {
+        alert('この予定には位置情報が設定されていません。');
+        return;
+    }
+    
+    try {
+        const [lat, lng] = event.coordinates.split(',');
+        const dayData = this.tripDays[event.dayIndex];
+        if (!dayData) {
+            throw new Error('該当日程データが見つかりません。');
+        }
+        const date = dayData.fullDate.replace(/-/g, ''); // YYYY-MM-DD -> YYYYMMDD
+        const hour = event.startTime.split(':')[0].padStart(2, '0'); // HH:MM -> HH
+        const datetime = `${date}${hour}00`; // YYYYMMDDHH00
+        
+        this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat.trim()}&lng=${lng.trim()}&datetime=${datetime}`;
+        this.showWeatherPopup = true;
 
-try {
-const [lat, lng] = event.coordinates.split(',');
-const dayData = this.tripDays[event.dayIndex];
-if (!dayData) {
-throw new Error('該当日程データが見つかりません。');
-}
-const date = dayData.fullDate.replace(/-/g, '');
-const hour = event.startTime.split(':')[0].padStart(2, '0');
-const datetime = `${date}${hour}00`;
-
-this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat.trim()}&lng=${lng.trim()}&datetime=${datetime}`;
-this.showWeatherPopup = true;
-
-} catch (error) {
-console.error('天気予報ポップアップのURL生成中にエラーが発生しました:', error);
-alert('天気予報ポップアップの表示に失敗しました。');
-}
+    } catch (error) {
+        console.error('天気予報ポップアップのURL生成中にエラーが発生しました:', error);
+        alert('天気予報ポップアップの表示に失敗しました。');
+    }
 },
-
 closeWeatherPopup() {
-this.showWeatherPopup = false;
-this.weatherPopupUrl = '';
+    this.showWeatherPopup = false;
+    this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
 },
 
+// レイヤー順序の保存
 saveLayerOrder() {
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
 localStorage.setItem('trippenMaxZIndex', this.maxZIndex.toString());
 },
 
+// レイヤー順序の読み込み
 loadLayerOrder() {
 const savedLayerOrder = localStorage.getItem('trippenLayerOrder');
 const savedMaxZIndex = localStorage.getItem('trippenMaxZIndex');
@@ -2029,13 +1738,14 @@ if (savedMaxZIndex) {
 this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
 }
 },
-
+// saveDataメソッドの修正
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
 this.saveLayerOrder();
 },
 
+// loadDataメソッドの修正
 loadData() {
 const savedEvents = localStorage.getItem('trippenEvents');
 const savedDays = localStorage.getItem('trippenDays');
@@ -2058,6 +1768,7 @@ this.tripDays = [];
 }
 }
 
+// レイヤー順序の読み込み
 this.loadLayerOrder();
 }
 },
@@ -2065,22 +1776,15 @@ mounted() {
 this.detectMobile();
 this.checkExistingData();
 this.loadData();
-
-// Google認証初期化
-this.initializeGoogleAuth();
-
 if (this.tripDays.length > 0) {
 this.tripInitialized = true;
+// 天気予報を読み込む
 this.loadWeatherForAllEvents();
 }
-
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
-window.vueApp = this;
 }
-});
-
-window.app = app.mount('#app');
+}).mount('#app');
 </script>
 </body>
 </html>
