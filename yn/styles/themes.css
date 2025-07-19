@@ -1,0 +1,11 @@
+/* themes.css - Phase C で詳細実装予定 */
+
+/* 基本テーマ変数（Phase Bでは最小限） */
+:root {
+    --primary-color: #2196F3;
+    --secondary-color: #f5f5f5;
+    --text-color: #333333;
+    --border-color: #e0e0e0;
+}
+
+/* Phase Cで詳細なテーマ機能を実装します */
