@@ -110,6 +110,7 @@
             align-items: center;
             gap: 1rem;
             transition: background-color 0.2s ease;
+            position: relative;
         }
         
         .rss-item:hover {
@@ -119,6 +120,16 @@
         .rss-item:last-child {
             border-bottom: none;
             border-radius: 0 0 8px 8px;
+        }
+        
+        .rss-item.has-errors {
+            border-left: 4px solid #f44336;
+            background: #fff8f8;
+        }
+        
+        .rss-item.testing {
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
         }
         
         .rss-toggle {
@@ -196,9 +207,25 @@
             color: #2196F3;
         }
         
+        .article-count.error-indicator {
+            color: #f44336;
+        }
+        
         .last-fetch {
             font-size: 0.8rem;
             color: #666;
+        }
+        
+        .error-count {
+            font-size: 0.7rem;
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .success-indicator {
+            font-size: 0.7rem;
+            color: #4CAF50;
+            font-weight: bold;
         }
         
         .rss-actions {
@@ -213,6 +240,7 @@
             cursor: pointer;
             font-size: 0.9rem;
             transition: all 0.2s ease;
+            position: relative;
         }
         
         .test-btn {
@@ -227,6 +255,29 @@
         .test-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
+        }
+        
+        .test-btn.testing {
+            background: #2196F3;
+        }
+        
+        .test-btn.testing::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
         
         .edit-btn {
@@ -252,7 +303,7 @@
             border-radius: 4px;
             margin-top: 0.5rem;
             font-size: 0.9rem;
-            display: none; /* バリデーション無効化により常に非表示 */
+            display: none;
         }
         
         .empty-state {
@@ -462,6 +513,41 @@
             margin-top: 0.5rem;
         }
         
+        /* 成功表示 */
+        .success-display {
+            background: #E8F5E8;
+            color: #2E7D32;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border: 1px solid #C8E6C9;
+        }
+        
+        /* テスト結果表示 */
+        .test-result {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .test-result.success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .test-result.error {
+            background: #f44336;
+            color: white;
+        }
+        
         /* レスポンシブ */
         @media (max-width: 768px) {
             .rss-manager-container {
@@ -636,7 +722,7 @@
     <script src="../scripts/rss-fetcher.js"></script>
     <script src="../scripts/utils.js"></script>
     
-    <!-- RSS管理画面専用スクリプト（完全修正版） -->
+    <!-- RSS管理画面専用スクリプト（完全実装版） -->
     <script>
         class RSSManager {
             constructor() {
@@ -644,6 +730,7 @@
                 this.rssFetcher = null;
                 this.editingRssId = null;
                 this.selectedFeeds = new Set();
+                this.testingFeeds = new Set();
             }
             
             async initialize() {
@@ -870,7 +957,10 @@
                         addedDate: new Date().toISOString(),
                         lastFetch: null,
                         articleCount: 0,
-                        errorCount: 0
+                        errorCount: 0,
+                        successCount: 0,
+                        lastError: null,
+                        lastService: null
                     };
                     
                     existingFeeds.push(newFeed);
@@ -979,8 +1069,24 @@
                         ? this.formatDate(feed.lastFetch)
                         : '未取得';
                     
+                    // エラー状況の表示判定
+                    const hasErrors = (feed.errorCount || 0) > 0;
+                    const hasSuccess = (feed.successCount || 0) > 0;
+                    const errorClass = hasErrors ? 'has-errors' : '';
+                    const testingClass = this.testingFeeds.has(feed.id) ? 'testing' : '';
+                    
+                    // 最新テスト結果表示
+                    let testResultIndicator = '';
+                    if (hasSuccess && !hasErrors) {
+                        testResultIndicator = '<div class="test-result success">✓</div>';
+                    } else if (hasErrors) {
+                        testResultIndicator = '<div class="test-result error">✗</div>';
+                    }
+                    
                     return `
-                        <div class="rss-item" data-feed-id="${feed.id}">
+                        <div class="rss-item ${errorClass} ${testingClass}" data-feed-id="${feed.id}">
+                            ${testResultIndicator}
+                            
                             <div class="rss-toggle ${feed.enabled ? 'active' : ''}" 
                                  onclick="rssManager.toggleFeed('${feed.id}')">
                             </div>
@@ -991,12 +1097,15 @@
                                 <div class="rss-meta">
                                     <span>カテゴリ: ${feed.category}</span>
                                     <span>追加日: ${this.formatDate(feed.addedDate, true)}</span>
+                                    ${feed.lastService ? `<span>取得元: ${feed.lastService}</span>` : ''}
                                 </div>
                             </div>
                             
                             <div class="rss-stats">
-                                <div class="article-count">${feed.articleCount || 0}</div>
+                                <div class="article-count ${hasErrors && !hasSuccess ? 'error-indicator' : ''}">${feed.articleCount || 0}</div>
                                 <div class="last-fetch">${lastFetch}</div>
+                                ${hasErrors ? `<div class="error-count">⚠️ ${feed.errorCount}</div>` : ''}
+                                ${hasSuccess ? `<div class="success-indicator">✓ ${feed.successCount}</div>` : ''}
                             </div>
                             
                             <input type="checkbox" class="bulk-checkbox feed-checkbox" 
@@ -1004,9 +1113,11 @@
                                    onchange="rssManager.updateSelection('${feed.id}', this.checked)">
                             
                             <div class="rss-actions">
-                                <button class="action-btn test-btn" 
-                                        onclick="rssManager.testFeed('${feed.id}')">
-                                    テスト
+                                <button class="action-btn test-btn ${this.testingFeeds.has(feed.id) ? 'testing' : ''}" 
+                                        onclick="rssManager.testFeed('${feed.id}')"
+                                        title="RSS取得テストを実行"
+                                        ${this.testingFeeds.has(feed.id) ? 'disabled' : ''}>
+                                    ${this.testingFeeds.has(feed.id) ? 'テスト中' : 'テスト'}
                                 </button>
                                 <button class="action-btn edit-btn"
                                         onclick="rssManager.editFeed('${feed.id}')">
@@ -1056,34 +1167,130 @@
                 }
             }
             
+            // 完全なRSS取得テスト機能実装
             async testFeed(feedId) {
                 try {
                     const feeds = await this.dataManager.loadRssFeeds();
                     const feed = feeds.find(f => f.id === feedId);
                     
-                    if (!feed) return;
-                    
-                    const testBtn = document.querySelector(`[data-feed-id="${feedId}"] .test-btn`);
-                    if (testBtn) {
-                        testBtn.disabled = true;
-                        testBtn.textContent = 'テスト中...';
+                    if (!feed) {
+                        this.showNotification('フィードが見つかりません', 'error');
+                        return;
                     }
                     
-                    // テスト処理（バリデーション無効化版）
-                    this.showNotification(
-                        `${feed.name}: テストを実行しました（バリデーション無効化のため形式的なテストです）`,
-                        'info'
-                    );
+                    // テスト中状態に設定
+                    this.testingFeeds.add(feedId);
+                    
+                    // UI更新
+                    const rssItem = document.querySelector(`[data-feed-id="${feedId}"]`);
+                    const testBtn = document.querySelector(`[data-feed-id="${feedId}"] .test-btn`);
+                    
+                    if (rssItem) rssItem.classList.add('testing');
+                    if (testBtn) {
+                        testBtn.disabled = true;
+                        testBtn.textContent = 'テスト中';
+                        testBtn.classList.add('testing');
+                    }
+                    
+                    // 実際のRSS取得テスト実行
+                    console.log(`RSS取得テスト開始: ${feed.name} (${feed.url})`);
+                    
+                    const result = await this.rssFetcher.validateRSSFeed(feed.url);
+                    
+                    if (result.valid) {
+                        // 成功時の処理
+                        this.showNotification(
+                            `✅ ${feed.name}: ${result.articleCount}件の記事を取得できました（${result.service}経由）`,
+                            'success',
+                            8000
+                        );
+                        
+                        // フィード統計更新
+                        await this.updateFeedStats(feedId, {
+                            lastFetch: new Date().toISOString(),
+                            articleCount: result.articleCount,
+                            errorCount: 0,
+                            successCount: (feed.successCount || 0) + 1,
+                            lastService: result.service,
+                            lastError: null
+                        });
+                        
+                        console.log(`RSS取得テスト成功: ${feed.name}, ${result.articleCount}件, ${result.service}経由`);
+                        
+                    } else {
+                        // 失敗時の処理
+                        this.showNotification(
+                            `❌ ${feed.name}: 取得失敗 - ${result.error}`,
+                            'error',
+                            10000
+                        );
+                        
+                        // エラー統計更新
+                        await this.updateFeedStats(feedId, {
+                            errorCount: (feed.errorCount || 0) + 1,
+                            lastError: result.error,
+                            lastErrorTime: new Date().toISOString()
+                        });
+                        
+                        console.error(`RSS取得テスト失敗: ${feed.name}`, result.details);
+                        
+                        // エラー詳細表示（開発モード）
+                        if (result.details && result.details.length > 0) {
+                            console.table(result.details);
+                        }
+                    }
                     
                 } catch (error) {
                     console.error('フィードテストエラー:', error);
-                    this.showNotification('テストに失敗しました', 'error');
+                    this.showNotification(`テスト実行エラー: ${error.message}`, 'error');
+                    
+                    // 予期しないエラーの統計更新
+                    const feeds = await this.dataManager.loadRssFeeds();
+                    const feed = feeds.find(f => f.id === feedId);
+                    if (feed) {
+                        await this.updateFeedStats(feedId, {
+                            errorCount: (feed.errorCount || 0) + 1,
+                            lastError: 'テスト実行エラー: ' + error.message,
+                            lastErrorTime: new Date().toISOString()
+                        });
+                    }
+                    
                 } finally {
+                    // テスト中状態をリセット
+                    this.testingFeeds.delete(feedId);
+                    
+                    const rssItem = document.querySelector(`[data-feed-id="${feedId}"]`);
                     const testBtn = document.querySelector(`[data-feed-id="${feedId}"] .test-btn`);
+                    
+                    if (rssItem) rssItem.classList.remove('testing');
                     if (testBtn) {
                         testBtn.disabled = false;
                         testBtn.textContent = 'テスト';
+                        testBtn.classList.remove('testing');
                     }
+                }
+            }
+            
+            // フィード統計更新関数
+            async updateFeedStats(feedId, stats) {
+                try {
+                    const feeds = await this.dataManager.loadRssFeeds();
+                    const feedIndex = feeds.findIndex(f => f.id === feedId);
+                    
+                    if (feedIndex !== -1) {
+                        // 統計情報をマージ
+                        feeds[feedIndex] = { ...feeds[feedIndex], ...stats };
+                        
+                        await this.dataManager.saveRssFeeds(feeds);
+                        
+                        // UI更新（統計表示を最新化）
+                        await this.displayRSSList();
+                        
+                        console.log(`フィード統計更新完了: ${feedId}`, stats);
+                    }
+                    
+                } catch (error) {
+                    console.error('フィード統計更新エラー:', error);
                 }
             }
             
@@ -1158,12 +1365,18 @@
                 
                 try {
                     const feeds = await this.dataManager.loadRssFeeds();
+                    const feedToDelete = feeds.find(f => f.id === feedId);
                     const updatedFeeds = feeds.filter(f => f.id !== feedId);
                     
                     await this.dataManager.saveRssFeeds(updatedFeeds);
+                    
+                    // 選択状態からも削除
+                    this.selectedFeeds.delete(feedId);
+                    this.updateSelectionUI();
+                    
                     await this.displayRSSList();
                     
-                    this.showNotification('RSSフィードを削除しました', 'success');
+                    this.showNotification(`RSSフィード「${feedToDelete?.name || 'Unknown'}」を削除しました`, 'success');
                     
                 } catch (error) {
                     console.error('フィード削除エラー:', error);
@@ -1203,13 +1416,118 @@
                 if (deleteSelectedBtn) deleteSelectedBtn.disabled = !hasSelection;
             }
             
+            // 一括テスト機能の完全実装
             async testSelectedFeeds() {
-                if (this.selectedFeeds.size === 0) return;
+                if (this.selectedFeeds.size === 0) {
+                    this.showNotification('テスト対象のフィードを選択してください', 'warning');
+                    return;
+                }
                 
-                this.showNotification(
-                    `選択した${this.selectedFeeds.size}件のテストを実行しました（バリデーション無効化版）`,
-                    'info'
-                );
+                const feedIds = Array.from(this.selectedFeeds);
+                let successCount = 0;
+                let errorCount = 0;
+                const results = [];
+                
+                this.showNotification(`${feedIds.length}件のRSSフィードをテスト中...`, 'info', 3000);
+                
+                // 並列実行（最大3件同時）
+                const chunks = this.chunkArray(feedIds, 3);
+                
+                for (const chunk of chunks) {
+                    const promises = chunk.map(async (feedId) => {
+                        try {
+                            const feeds = await this.dataManager.loadRssFeeds();
+                            const feed = feeds.find(f => f.id === feedId);
+                            
+                            if (!feed) {
+                                results.push({ feedId, name: 'Unknown', success: false, error: 'フィードが見つかりません' });
+                                return;
+                            }
+                            
+                            // テスト中表示
+                            this.testingFeeds.add(feedId);
+                            const rssItem = document.querySelector(`[data-feed-id="${feedId}"]`);
+                            if (rssItem) rssItem.classList.add('testing');
+                            
+                            const result = await this.rssFetcher.validateRSSFeed(feed.url);
+                            
+                            if (result.valid) {
+                                results.push({
+                                    feedId: feedId,
+                                    name: feed.name,
+                                    success: true,
+                                    articleCount: result.articleCount,
+                                    service: result.service
+                                });
+                                successCount++;
+                                
+                                // 統計更新
+                                await this.updateFeedStats(feedId, {
+                                    lastFetch: new Date().toISOString(),
+                                    articleCount: result.articleCount,
+                                    errorCount: 0,
+                                    successCount: (feed.successCount || 0) + 1,
+                                    lastService: result.service
+                                });
+                                
+                            } else {
+                                results.push({
+                                    feedId: feedId,
+                                    name: feed.name,
+                                    success: false,
+                                    error: result.error
+                                });
+                                errorCount++;
+                                
+                                // エラー統計更新
+                                await this.updateFeedStats(feedId, {
+                                    errorCount: (feed.errorCount || 0) + 1,
+                                    lastError: result.error
+                                });
+                            }
+                            
+                        } catch (error) {
+                            results.push({
+                                feedId: feedId,
+                                name: 'Unknown',
+                                success: false,
+                                error: error.message
+                            });
+                            errorCount++;
+                        } finally {
+                            // テスト中表示をリセット
+                            this.testingFeeds.delete(feedId);
+                            const rssItem = document.querySelector(`[data-feed-id="${feedId}"]`);
+                            if (rssItem) rssItem.classList.remove('testing');
+                        }
+                    });
+                    
+                    await Promise.all(promises);
+                    
+                    // チャンク間で1秒待機（API制限対策）
+                    if (chunks.indexOf(chunk) < chunks.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+                
+                // 結果通知
+                const message = `一括テスト完了: ✅成功 ${successCount}件 / ❌失敗 ${errorCount}件`;
+                const notificationType = successCount > errorCount ? 'success' : errorCount > successCount ? 'error' : 'warning';
+                
+                this.showNotification(message, notificationType, 8000);
+                
+                // 詳細結果をコンソール出力
+                console.log('=== 一括RSSテスト結果 ===');
+                console.table(results);
+                
+                // 失敗したフィードの詳細表示
+                const failedFeeds = results.filter(r => !r.success);
+                if (failedFeeds.length > 0) {
+                    console.warn('失敗したフィード詳細:', failedFeeds);
+                }
+                
+                // UI更新
+                await this.displayRSSList();
             }
             
             async deleteSelectedFeeds() {
@@ -1221,6 +1539,7 @@
                 
                 try {
                     const feeds = await this.dataManager.loadRssFeeds();
+                    const deletedFeeds = feeds.filter(f => this.selectedFeeds.has(f.id));
                     const updatedFeeds = feeds.filter(f => !this.selectedFeeds.has(f.id));
                     
                     await this.dataManager.saveRssFeeds(updatedFeeds);
@@ -1231,7 +1550,7 @@
                     
                     await this.displayRSSList();
                     
-                    this.showNotification('選択したRSSフィードを削除しました', 'success');
+                    this.showNotification(`${deletedFeeds.length}件のRSSフィードを削除しました`, 'success');
                     
                 } catch (error) {
                     console.error('一括削除エラー:', error);
@@ -1240,6 +1559,14 @@
             }
             
             // ユーティリティ関数
+            chunkArray(array, size) {
+                const chunks = [];
+                for (let i = 0; i < array.length; i += size) {
+                    chunks.push(array.slice(i, i + size));
+                }
+                return chunks;
+            }
+            
             formatDate(dateString, short = false) {
                 try {
                     const date = new Date(dateString);
@@ -1339,12 +1666,41 @@
             console.log('=== RSS Manager Debug ===');
             console.log('Manager instance:', typeof rssManager !== 'undefined');
             console.log('Selected feeds:', Array.from(rssManager.selectedFeeds));
+            console.log('Testing feeds:', Array.from(rssManager.testingFeeds));
             console.log('Editing RSS ID:', rssManager.editingRssId);
             
             // RSS一覧再表示テスト
             rssManager.displayRSSList();
             
             console.log('=== RSS Manager Debug Complete ===');
+        };
+        
+        // 完全テスト機能確認用関数
+        window.testRSSManagerFunctions = async function() {
+            console.log('=== RSS Manager Function Test ===');
+            
+            if (typeof rssManager !== 'undefined' && rssManager.rssFetcher) {
+                // テスト用RSSで動作確認
+                const testUrl = 'https://www3.nhk.or.jp/rss/news/cat0.xml';
+                console.log('Testing RSS validation...');
+                
+                try {
+                    const result = await rssManager.rssFetcher.validateRSSFeed(testUrl);
+                    console.log('RSS validation result:', result);
+                    
+                    if (result.valid) {
+                        console.log(`✅ テスト成功: ${result.articleCount}件の記事取得 (${result.service}経由)`);
+                    } else {
+                        console.log(`❌ テスト失敗: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('❌ テスト実行エラー:', error);
+                }
+            } else {
+                console.error('RSS Manager または RSS Fetcher が利用できません');
+            }
+            
+            console.log('=== RSS Manager Function Test Complete ===');
         };
     </script>
 </body>
