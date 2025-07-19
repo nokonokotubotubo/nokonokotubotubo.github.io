@@ -224,6 +224,11 @@
             background: #F57C00;
         }
         
+        .test-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
         .edit-btn {
             background: #607D8B;
             color: white;
@@ -427,6 +432,36 @@
             cursor: pointer;
         }
         
+        /* エラー表示 */
+        .error-display {
+            background: #FFEBEE;
+            color: #C62828;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border: 1px solid #FFCDD2;
+        }
+        
+        .error-display h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .error-display p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .retry-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        
         /* レスポンシブ */
         @media (max-width: 768px) {
             .rss-manager-container {
@@ -548,8 +583,8 @@
                     <span id="selectedCount">0</span>件選択中
                 </div>
                 <div class="bulk-actions-right">
-                    <button class="action-btn test-btn" id="testSelectedBtn">一括テスト</button>
-                    <button class="action-btn delete-btn" id="deleteSelectedBtn">一括削除</button>
+                    <button class="action-btn test-btn" id="testSelectedBtn" disabled>一括テスト</button>
+                    <button class="action-btn delete-btn" id="deleteSelectedBtn" disabled>一括削除</button>
                 </div>
             </div>
             
@@ -601,7 +636,7 @@
     <script src="../scripts/rss-fetcher.js"></script>
     <script src="../scripts/utils.js"></script>
     
-    <!-- RSS管理画面専用スクリプト（URLバリデーション無効化版） -->
+    <!-- RSS管理画面専用スクリプト（完全修正版） -->
     <script>
         class RSSManager {
             constructor() {
@@ -639,106 +674,156 @@
             }
             
             setupEventListeners() {
-                // RSS追加
-                document.getElementById('addRssBtn').addEventListener('click', () => {
-                    this.addRSSFeed();
-                });
-                
-                // URL入力時のバリデーションを無効化
-                document.getElementById('rssUrlInput').addEventListener('input', () => {
-                    // バリデーション処理を無効化
-                    const statusDiv = document.getElementById('validationStatus');
-                    statusDiv.style.display = 'none';
-                });
-                
-                // 全選択チェックボックス
-                document.getElementById('selectAll').addEventListener('change', (e) => {
-                    this.toggleSelectAll(e.target.checked);
-                });
-                
-                // 一括操作
-                document.getElementById('testSelectedBtn').addEventListener('click', () => {
-                    this.testSelectedFeeds();
-                });
-                
-                document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
-                    this.deleteSelectedFeeds();
-                });
-                
-                // モーダル制御
-                document.getElementById('closeEditModal').addEventListener('click', () => {
-                    this.closeEditModal();
-                });
-                
-                document.getElementById('cancelEdit').addEventListener('click', () => {
-                    this.closeEditModal();
-                });
-                
-                document.getElementById('saveEdit').addEventListener('click', () => {
-                    this.saveEditedFeed();
-                });
-                
-                // Enterキーでの追加
-                document.getElementById('rssUrlInput').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.addRSSFeed();
+                try {
+                    // RSS追加
+                    const addBtn = document.getElementById('addRssBtn');
+                    if (addBtn) {
+                        addBtn.addEventListener('click', () => {
+                            this.addRSSFeed();
+                        });
                     }
-                });
-                
-                console.log('RSS Manager イベントリスナー設定完了');
+                    
+                    // URL入力時のバリデーションを無効化
+                    const urlInput = document.getElementById('rssUrlInput');
+                    if (urlInput) {
+                        urlInput.addEventListener('input', () => {
+                            // バリデーション処理を無効化
+                            const statusDiv = document.getElementById('validationStatus');
+                            if (statusDiv) {
+                                statusDiv.style.display = 'none';
+                            }
+                        });
+                    }
+                    
+                    // 全選択チェックボックス
+                    const selectAll = document.getElementById('selectAll');
+                    if (selectAll) {
+                        selectAll.addEventListener('change', (e) => {
+                            this.toggleSelectAll(e.target.checked);
+                        });
+                    }
+                    
+                    // 一括操作
+                    const testSelectedBtn = document.getElementById('testSelectedBtn');
+                    if (testSelectedBtn) {
+                        testSelectedBtn.addEventListener('click', () => {
+                            this.testSelectedFeeds();
+                        });
+                    }
+                    
+                    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+                    if (deleteSelectedBtn) {
+                        deleteSelectedBtn.addEventListener('click', () => {
+                            this.deleteSelectedFeeds();
+                        });
+                    }
+                    
+                    // モーダル制御
+                    const closeEditModal = document.getElementById('closeEditModal');
+                    if (closeEditModal) {
+                        closeEditModal.addEventListener('click', () => {
+                            this.closeEditModal();
+                        });
+                    }
+                    
+                    const cancelEdit = document.getElementById('cancelEdit');
+                    if (cancelEdit) {
+                        cancelEdit.addEventListener('click', () => {
+                            this.closeEditModal();
+                        });
+                    }
+                    
+                    const saveEdit = document.getElementById('saveEdit');
+                    if (saveEdit) {
+                        saveEdit.addEventListener('click', () => {
+                            this.saveEditedFeed();
+                        });
+                    }
+                    
+                    // Enterキーでの追加
+                    if (urlInput) {
+                        urlInput.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                this.addRSSFeed();
+                            }
+                        });
+                    }
+                    
+                    console.log('RSS Manager イベントリスナー設定完了');
+                    
+                } catch (error) {
+                    console.error('イベントリスナー設定エラー:', error);
+                }
             }
             
             displaySuggestedFeeds() {
-                const suggestions = [
-                    {
-                        name: 'NHKニュース',
-                        url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
-                        description: 'NHKの総合ニュース',
-                        category: 'ニュース'
-                    },
-                    {
-                        name: 'ITmedia News',
-                        url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
-                        description: 'IT・テクノロジーニュース',
-                        category: 'テクノロジー'
-                    },
-                    {
-                        name: 'Yahoo!ニュース - トピックス',
-                        url: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
-                        description: 'Yahoo!ニュースの注目トピックス',
-                        category: 'ニュース'
-                    },
-                    {
-                        name: 'The Japan Times',
-                        url: 'https://www.japantimes.co.jp/feed/',
-                        description: '英語ニュース・国際情報',
-                        category: 'ニュース'
+                try {
+                    const suggestions = [
+                        {
+                            name: 'NHKニュース',
+                            url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                            description: 'NHKの総合ニュース',
+                            category: 'ニュース'
+                        },
+                        {
+                            name: 'ITmedia News',
+                            url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
+                            description: 'IT・テクノロジーニュース',
+                            category: 'テクノロジー'
+                        },
+                        {
+                            name: 'Yahoo!ニュース - トピックス',
+                            url: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
+                            description: 'Yahoo!ニュースの注目トピックス',
+                            category: 'ニュース'
+                        },
+                        {
+                            name: 'The Japan Times',
+                            url: 'https://www.japantimes.co.jp/feed/',
+                            description: '英語ニュース・国際情報',
+                            category: 'ニュース'
+                        }
+                    ];
+                    
+                    const grid = document.getElementById('suggestionGrid');
+                    if (grid) {
+                        grid.innerHTML = suggestions.map(suggestion => `
+                            <div class="suggestion-card" onclick="rssManager.addSuggestedFeed('${suggestion.url}', '${suggestion.name}', '${suggestion.category}')">
+                                <div class="suggestion-name">${suggestion.name}</div>
+                                <div class="suggestion-description">${suggestion.description}</div>
+                                <div class="suggestion-category">${suggestion.category}</div>
+                            </div>
+                        `).join('');
                     }
-                ];
-                
-                const grid = document.getElementById('suggestionGrid');
-                grid.innerHTML = suggestions.map(suggestion => `
-                    <div class="suggestion-card" onclick="rssManager.addSuggestedFeed('${suggestion.url}', '${suggestion.name}', '${suggestion.category}')">
-                        <div class="suggestion-name">${suggestion.name}</div>
-                        <div class="suggestion-description">${suggestion.description}</div>
-                        <div class="suggestion-category">${suggestion.category}</div>
-                    </div>
-                `).join('');
+                    
+                } catch (error) {
+                    console.error('おすすめフィード表示エラー:', error);
+                }
             }
             
             async addSuggestedFeed(url, name, category) {
-                document.getElementById('rssUrlInput').value = url;
-                document.getElementById('rssNameInput').value = name;
-                document.getElementById('rssCategoryInput').value = category;
-                
-                await this.addRSSFeed();
+                try {
+                    const urlInput = document.getElementById('rssUrlInput');
+                    const nameInput = document.getElementById('rssNameInput');
+                    const categoryInput = document.getElementById('rssCategoryInput');
+                    
+                    if (urlInput) urlInput.value = url;
+                    if (nameInput) nameInput.value = name;
+                    if (categoryInput) categoryInput.value = category;
+                    
+                    await this.addRSSFeed();
+                } catch (error) {
+                    console.error('おすすめフィード追加エラー:', error);
+                }
             }
             
             // バリデーション処理を無効化
             async validateRSSURL() {
                 // バリデーション処理を無効化
                 const statusDiv = document.getElementById('validationStatus');
-                statusDiv.style.display = 'none';
+                if (statusDiv) {
+                    statusDiv.style.display = 'none';
+                }
                 return;
             }
             
@@ -748,21 +833,25 @@
             }
             
             async addRSSFeed() {
-                const url = document.getElementById('rssUrlInput').value.trim();
-                const name = document.getElementById('rssNameInput').value.trim();
-                const category = document.getElementById('rssCategoryInput').value.trim() || 'その他';
-                
-                if (!url) {
-                    this.showNotification('RSSのURLを入力してください', 'warning');
-                    return;
-                }
-                
-                // URLバリデーション処理を無効化（削除）
-                
                 try {
+                    const urlInput = document.getElementById('rssUrlInput');
+                    const nameInput = document.getElementById('rssNameInput');
+                    const categoryInput = document.getElementById('rssCategoryInput');
+                    
+                    const url = urlInput ? urlInput.value.trim() : '';
+                    const name = nameInput ? nameInput.value.trim() : '';
+                    const category = categoryInput ? categoryInput.value.trim() || 'その他' : 'その他';
+                    
+                    if (!url) {
+                        this.showNotification('RSSのURLを入力してください', 'warning');
+                        return;
+                    }
+                    
                     const addBtn = document.getElementById('addRssBtn');
-                    addBtn.disabled = true;
-                    addBtn.textContent = '追加中...';
+                    if (addBtn) {
+                        addBtn.disabled = true;
+                        addBtn.textContent = '追加中...';
+                    }
                     
                     // 重複チェック
                     const existingFeeds = await this.dataManager.loadRssFeeds();
@@ -771,17 +860,10 @@
                         return;
                     }
                     
-                    // RSS検証も無効化（コメントアウト）
-                    // const validation = await this.rssFetcher.validateRSSFeed(url);
-                    // if (!validation.valid) {
-                    //     this.showNotification(`RSS検証失敗: ${validation.error}`, 'error');
-                    //     return;
-                    // }
-                    
                     // フィード追加（検証なしで直接追加）
                     const newFeed = {
-                        id: Utils.generateHash(url + Date.now()),
-                        name: name || url, // 名前が空の場合はURLを使用
+                        id: this.generateFeedId(url),
+                        name: name || url,
                         url: url,
                         category: category,
                         enabled: true,
@@ -807,30 +889,62 @@
                     this.showNotification('RSSの追加に失敗しました', 'error');
                 } finally {
                     const addBtn = document.getElementById('addRssBtn');
-                    addBtn.disabled = false;
-                    addBtn.textContent = '追加';
+                    if (addBtn) {
+                        addBtn.disabled = false;
+                        addBtn.textContent = '追加';
+                    }
                 }
             }
             
+            generateFeedId(url) {
+                // 簡易ハッシュ生成
+                let hash = 0;
+                const str = url + Date.now();
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return Math.abs(hash).toString();
+            }
+            
             clearAddForm() {
-                document.getElementById('rssUrlInput').value = '';
-                document.getElementById('rssNameInput').value = '';
-                document.getElementById('rssCategoryInput').value = '';
-                document.getElementById('validationStatus').style.display = 'none';
+                try {
+                    const urlInput = document.getElementById('rssUrlInput');
+                    const nameInput = document.getElementById('rssNameInput');
+                    const categoryInput = document.getElementById('rssCategoryInput');
+                    const validationStatus = document.getElementById('validationStatus');
+                    
+                    if (urlInput) urlInput.value = '';
+                    if (nameInput) nameInput.value = '';
+                    if (categoryInput) categoryInput.value = '';
+                    if (validationStatus) validationStatus.style.display = 'none';
+                } catch (error) {
+                    console.error('フォームクリアエラー:', error);
+                }
             }
             
             async displayRSSList() {
                 try {
                     const feeds = await this.dataManager.loadRssFeeds();
                     const container = document.getElementById('rssListContainer');
-                    const emptyState = document.getElementById('emptyState');
                     
-                    if (feeds.length === 0) {
-                        emptyState.style.display = 'block';
+                    // 要素の存在チェック
+                    if (!container) {
+                        console.error('rssListContainer element not found');
                         return;
                     }
                     
-                    emptyState.style.display = 'none';
+                    if (feeds.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <span class="empty-state-icon">📰</span>
+                                <h4>RSSフィードが登録されていません</h4>
+                                <p>上のフォームからRSSフィードを追加してください</p>
+                            </div>
+                        `;
+                        return;
+                    }
                     
                     const feedsHTML = feeds.map(feed => this.createRSSItemHTML(feed)).join('');
                     container.innerHTML = feedsHTML;
@@ -843,58 +957,77 @@
                 } catch (error) {
                     console.error('RSS一覧表示エラー:', error);
                     this.showNotification('RSS一覧の表示に失敗しました', 'error');
+                    
+                    // エラー時のフォールバック表示
+                    const container = document.getElementById('rssListContainer');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="error-display">
+                                <h4>表示エラーが発生しました</h4>
+                                <p>RSS一覧の表示中にエラーが発生しました</p>
+                                <button class="retry-btn" onclick="rssManager.displayRSSList()">再試行</button>
+                                <button class="retry-btn" onclick="location.reload()" style="margin-left: 10px;">再読み込み</button>
+                            </div>
+                        `;
+                    }
                 }
             }
             
             createRSSItemHTML(feed) {
-                const lastFetch = feed.lastFetch 
-                    ? Utils.formatDate(feed.lastFetch, 'RELATIVE')
-                    : '未取得';
-                
-                return `
-                    <div class="rss-item" data-feed-id="${feed.id}">
-                        <div class="rss-toggle ${feed.enabled ? 'active' : ''}" 
-                             onclick="rssManager.toggleFeed('${feed.id}')">
-                        </div>
-                        
-                        <div class="rss-info">
-                            <h4 class="rss-name">${Utils.sanitizeHTML(feed.name)}</h4>
-                            <div class="rss-url">${Utils.truncateText(feed.url, 50)}</div>
-                            <div class="rss-meta">
-                                <span>カテゴリ: ${feed.category}</span>
-                                <span>追加日: ${Utils.formatDate(feed.addedDate, 'SHORT')}</span>
+                try {
+                    const lastFetch = feed.lastFetch 
+                        ? this.formatDate(feed.lastFetch)
+                        : '未取得';
+                    
+                    return `
+                        <div class="rss-item" data-feed-id="${feed.id}">
+                            <div class="rss-toggle ${feed.enabled ? 'active' : ''}" 
+                                 onclick="rssManager.toggleFeed('${feed.id}')">
+                            </div>
+                            
+                            <div class="rss-info">
+                                <h4 class="rss-name">${this.sanitizeHTML(feed.name)}</h4>
+                                <div class="rss-url">${this.truncateText(feed.url, 50)}</div>
+                                <div class="rss-meta">
+                                    <span>カテゴリ: ${feed.category}</span>
+                                    <span>追加日: ${this.formatDate(feed.addedDate, true)}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="rss-stats">
+                                <div class="article-count">${feed.articleCount || 0}</div>
+                                <div class="last-fetch">${lastFetch}</div>
+                            </div>
+                            
+                            <input type="checkbox" class="bulk-checkbox feed-checkbox" 
+                                   data-feed-id="${feed.id}"
+                                   onchange="rssManager.updateSelection('${feed.id}', this.checked)">
+                            
+                            <div class="rss-actions">
+                                <button class="action-btn test-btn" 
+                                        onclick="rssManager.testFeed('${feed.id}')">
+                                    テスト
+                                </button>
+                                <button class="action-btn edit-btn"
+                                        onclick="rssManager.editFeed('${feed.id}')">
+                                    編集
+                                </button>
+                                <button class="action-btn delete-btn"
+                                        onclick="rssManager.deleteFeed('${feed.id}')">
+                                    削除
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="rss-stats">
-                            <div class="article-count">${feed.articleCount}</div>
-                            <div class="last-fetch">${lastFetch}</div>
-                        </div>
-                        
-                        <input type="checkbox" class="bulk-checkbox feed-checkbox" 
-                               data-feed-id="${feed.id}"
-                               onchange="rssManager.updateSelection('${feed.id}', this.checked)">
-                        
-                        <div class="rss-actions">
-                            <button class="action-btn test-btn" 
-                                    onclick="rssManager.testFeed('${feed.id}')">
-                                テスト
-                            </button>
-                            <button class="action-btn edit-btn"
-                                    onclick="rssManager.editFeed('${feed.id}')">
-                                編集
-                            </button>
-                            <button class="action-btn delete-btn"
-                                    onclick="rssManager.deleteFeed('${feed.id}')">
-                                削除
-                            </button>
-                        </div>
-                    </div>
-                `;
+                    `;
+                } catch (error) {
+                    console.error('RSS項目HTML作成エラー:', error);
+                    return `<div class="error-display">項目表示エラー</div>`;
+                }
             }
             
             attachRSSItemListeners(feedId) {
                 // 必要に応じて個別リスナーを追加
+                // 現在はHTMLのonclick属性で処理
             }
             
             async toggleFeed(feedId) {
@@ -906,9 +1039,11 @@
                         feed.enabled = !feed.enabled;
                         await this.dataManager.saveRssFeeds(feeds);
                         
-                        // UI更新
+                        // UI更新（要素存在チェック追加）
                         const toggle = document.querySelector(`[data-feed-id="${feedId}"] .rss-toggle`);
-                        toggle.classList.toggle('active', feed.enabled);
+                        if (toggle) {
+                            toggle.classList.toggle('active', feed.enabled);
+                        }
                         
                         this.showNotification(
                             `${feed.name}を${feed.enabled ? '有効' : '無効'}にしました`,
@@ -929,12 +1064,14 @@
                     if (!feed) return;
                     
                     const testBtn = document.querySelector(`[data-feed-id="${feedId}"] .test-btn`);
-                    testBtn.disabled = true;
-                    testBtn.textContent = 'テスト中...';
+                    if (testBtn) {
+                        testBtn.disabled = true;
+                        testBtn.textContent = 'テスト中...';
+                    }
                     
-                    // RSS検証なしでテスト成功を表示
+                    // テスト処理（バリデーション無効化版）
                     this.showNotification(
-                        `${feed.name}: テストを実行しました（検証機能は無効化されています）`,
+                        `${feed.name}: テストを実行しました（バリデーション無効化のため形式的なテストです）`,
                         'info'
                     );
                     
@@ -957,26 +1094,35 @@
                     
                     this.editingRssId = feedId;
                     
-                    document.getElementById('editName').value = feed.name;
-                    document.getElementById('editUrl').value = feed.url;
-                    document.getElementById('editCategory').value = feed.category;
+                    const editName = document.getElementById('editName');
+                    const editUrl = document.getElementById('editUrl');
+                    const editCategory = document.getElementById('editCategory');
+                    const editModal = document.getElementById('editModal');
                     
-                    document.getElementById('editModal').style.display = 'flex';
+                    if (editName) editName.value = feed.name;
+                    if (editUrl) editUrl.value = feed.url;
+                    if (editCategory) editCategory.value = feed.category;
+                    if (editModal) editModal.style.display = 'flex';
+                }).catch(error => {
+                    console.error('編集モーダル表示エラー:', error);
+                    this.showNotification('編集画面の表示に失敗しました', 'error');
                 });
             }
             
             async saveEditedFeed() {
                 try {
-                    const name = document.getElementById('editName').value.trim();
-                    const url = document.getElementById('editUrl').value.trim();
-                    const category = document.getElementById('editCategory').value.trim();
+                    const editName = document.getElementById('editName');
+                    const editUrl = document.getElementById('editUrl');
+                    const editCategory = document.getElementById('editCategory');
+                    
+                    const name = editName ? editName.value.trim() : '';
+                    const url = editUrl ? editUrl.value.trim() : '';
+                    const category = editCategory ? editCategory.value.trim() : '';
                     
                     if (!name || !url) {
                         this.showNotification('名前とURLは必須です', 'warning');
                         return;
                     }
-                    
-                    // URLバリデーションを無効化（削除）
                     
                     const feeds = await this.dataManager.loadRssFeeds();
                     const feedIndex = feeds.findIndex(f => f.id === this.editingRssId);
@@ -1000,7 +1146,10 @@
             }
             
             closeEditModal() {
-                document.getElementById('editModal').style.display = 'none';
+                const editModal = document.getElementById('editModal');
+                if (editModal) {
+                    editModal.style.display = 'none';
+                }
                 this.editingRssId = null;
             }
             
@@ -1041,18 +1190,24 @@
             }
             
             updateSelectionUI() {
-                document.getElementById('selectedCount').textContent = this.selectedFeeds.size;
+                const selectedCount = document.getElementById('selectedCount');
+                const testSelectedBtn = document.getElementById('testSelectedBtn');
+                const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+                
+                if (selectedCount) {
+                    selectedCount.textContent = this.selectedFeeds.size;
+                }
                 
                 const hasSelection = this.selectedFeeds.size > 0;
-                document.getElementById('testSelectedBtn').disabled = !hasSelection;
-                document.getElementById('deleteSelectedBtn').disabled = !hasSelection;
+                if (testSelectedBtn) testSelectedBtn.disabled = !hasSelection;
+                if (deleteSelectedBtn) deleteSelectedBtn.disabled = !hasSelection;
             }
             
             async testSelectedFeeds() {
                 if (this.selectedFeeds.size === 0) return;
                 
                 this.showNotification(
-                    `選択した${this.selectedFeeds.size}件のテストを実行しました（検証機能は無効化されています）`,
+                    `選択した${this.selectedFeeds.size}件のテストを実行しました（バリデーション無効化版）`,
                     'info'
                 );
             }
@@ -1071,7 +1226,8 @@
                     await this.dataManager.saveRssFeeds(updatedFeeds);
                     
                     this.selectedFeeds.clear();
-                    document.getElementById('selectAll').checked = false;
+                    const selectAll = document.getElementById('selectAll');
+                    if (selectAll) selectAll.checked = false;
                     
                     await this.displayRSSList();
                     
@@ -1081,6 +1237,49 @@
                     console.error('一括削除エラー:', error);
                     this.showNotification('削除に失敗しました', 'error');
                 }
+            }
+            
+            // ユーティリティ関数
+            formatDate(dateString, short = false) {
+                try {
+                    const date = new Date(dateString);
+                    if (isNaN(date.getTime())) return '不明';
+                    
+                    if (short) {
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }
+                    
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        if (diffHours === 0) {
+                            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                            return `${diffMinutes}分前`;
+                        }
+                        return `${diffHours}時間前`;
+                    } else if (diffDays < 7) {
+                        return `${diffDays}日前`;
+                    } else {
+                        return date.toLocaleDateString('ja-JP');
+                    }
+                } catch (error) {
+                    return '不明';
+                }
+            }
+            
+            truncateText(text, maxLength) {
+                if (!text || typeof text !== 'string') return '';
+                return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+            }
+            
+            sanitizeHTML(text) {
+                if (!text) return '';
+                const temp = document.createElement('div');
+                temp.textContent = text;
+                return temp.innerHTML;
             }
             
             showNotification(message, type = 'info', duration = 5000) {
@@ -1113,6 +1312,18 @@
                 await rssManager.initialize();
             } catch (error) {
                 console.error('RSS管理画面初期化失敗:', error);
+                
+                // 初期化失敗時のフォールバック表示
+                const container = document.getElementById('rssListContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error-display">
+                            <h4>初期化エラー</h4>
+                            <p>RSS管理画面の初期化に失敗しました</p>
+                            <button class="retry-btn" onclick="location.reload()">再読み込み</button>
+                        </div>
+                    `;
+                }
             }
         });
         
@@ -1122,6 +1333,19 @@
                 rssManager.closeEditModal();
             }
         });
+        
+        // デバッグ用関数
+        window.debugRSSManager = function() {
+            console.log('=== RSS Manager Debug ===');
+            console.log('Manager instance:', typeof rssManager !== 'undefined');
+            console.log('Selected feeds:', Array.from(rssManager.selectedFeeds));
+            console.log('Editing RSS ID:', rssManager.editingRssId);
+            
+            // RSS一覧再表示テスト
+            rssManager.displayRSSList();
+            
+            console.log('=== RSS Manager Debug Complete ===');
+        };
     </script>
 </body>
 </html>
