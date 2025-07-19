@@ -1,4 +1,4 @@
-// 記事カードコンポーネント（仕様書UI仕様準拠）
+// 記事カードコンポーネント（仕様書UI仕様準拠・Phase B修正版）
 class ArticleCard {
     constructor() {
         // 仕様書記載のカード要素テンプレート
@@ -149,14 +149,34 @@ class ArticleCard {
             dateElement.textContent = this.formatDate(article.publishDate);
         }
         
-        // 記事画像（Phase Bでは基本実装）
+        // 記事画像（修正版: DNSエラー回避）
         const imageElement = card.querySelector('.article-image');
         if (imageElement) {
-            const imageUrl = this.extractImageUrl(article.excerpt) || 
-                           `https://via.placeholder.com/200x120/e0e0e0/666?text=${encodeURIComponent(article.domain)}`;
-            imageElement.dataset.src = imageUrl;
+            const extractedImage = this.extractImageUrl(article.excerpt);
+            
+            // プレースホルダー画像をbase64エンコード版に変更
+            const placeholderImage = extractedImage || this.createPlaceholderImage(article.domain);
+            
+            imageElement.dataset.src = placeholderImage;
             imageElement.alt = article.title;
         }
+    }
+    
+    // 新しいプレースホルダー画像生成関数（DNSエラー回避）
+    createPlaceholderImage(domain) {
+        // SVGベースのプレースホルダー画像
+        const cleanDomain = (domain || 'news').substring(0, 10);
+        const svg = `
+            <svg width="200" height="120" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="120" fill="#e0e0e0"/>
+                <text x="100" y="60" text-anchor="middle" dominant-baseline="middle" 
+                      font-family="Arial, sans-serif" font-size="14" fill="#666">
+                    📰 ${cleanDomain}
+                </text>
+            </svg>
+        `;
+        
+        return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
     }
     
     updateInterestScore(card, score) {
