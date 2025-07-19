@@ -121,14 +121,6 @@ getDefaultRssFeeds() {
             addedDate: new Date().toISOString()
         },
         {
-            id: 'japan_times',
-            name: 'The Japan Times',
-            url: 'https://www.japantimes.co.jp/feed/',
-            category: 'ニュース',
-            enabled: true,
-            addedDate: new Date().toISOString()
-        },
-        {
             id: 'itmedia_news',
             name: 'ITmedia News',
             url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
