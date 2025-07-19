@@ -247,24 +247,7 @@
             border-radius: 4px;
             margin-top: 0.5rem;
             font-size: 0.9rem;
-        }
-        
-        .validation-success {
-            background: #E8F5E8;
-            color: #2E7D32;
-            border: 1px solid #C8E6C9;
-        }
-        
-        .validation-error {
-            background: #FFEBEE;
-            color: #C62828;
-            border: 1px solid #FFCDD2;
-        }
-        
-        .validation-loading {
-            background: #E3F2FD;
-            color: #1565C0;
-            border: 1px solid #BBDEFB;
+            display: none; /* バリデーション無効化により常に非表示 */
         }
         
         .empty-state {
@@ -507,7 +490,7 @@
             
             <div class="rss-input-group">
                 <input 
-                    type="url" 
+                    type="text" 
                     class="rss-url-input" 
                     id="rssUrlInput"
                     placeholder="RSSフィードのURLを入力してください（例: https://example.com/rss.xml）"
@@ -520,7 +503,7 @@
                     type="text" 
                     class="form-input" 
                     id="rssNameInput"
-                    placeholder="フィード名（自動取得されない場合は手動入力）"
+                    placeholder="フィード名（任意）"
                 >
                 <input 
                     type="text" 
@@ -595,7 +578,7 @@
             
             <div class="form-group">
                 <label class="form-label" for="editUrl">URL</label>
-                <input type="url" class="form-input" id="editUrl">
+                <input type="text" class="form-input" id="editUrl">
             </div>
             
             <div class="form-group">
@@ -618,7 +601,7 @@
     <script src="../scripts/rss-fetcher.js"></script>
     <script src="../scripts/utils.js"></script>
     
-    <!-- RSS管理画面専用スクリプト -->
+    <!-- RSS管理画面専用スクリプト（URLバリデーション無効化版） -->
     <script>
         class RSSManager {
             constructor() {
@@ -661,10 +644,12 @@
                     this.addRSSFeed();
                 });
                 
-                // URL入力時の自動検証
-                document.getElementById('rssUrlInput').addEventListener('input', 
-                    Utils.debounce(() => this.validateRSSURL(), 1000)
-                );
+                // URL入力時のバリデーションを無効化
+                document.getElementById('rssUrlInput').addEventListener('input', () => {
+                    // バリデーション処理を無効化
+                    const statusDiv = document.getElementById('validationStatus');
+                    statusDiv.style.display = 'none';
+                });
                 
                 // 全選択チェックボックス
                 document.getElementById('selectAll').addEventListener('change', (e) => {
@@ -749,45 +734,17 @@
                 await this.addRSSFeed();
             }
             
+            // バリデーション処理を無効化
             async validateRSSURL() {
-                const url = document.getElementById('rssUrlInput').value.trim();
+                // バリデーション処理を無効化
                 const statusDiv = document.getElementById('validationStatus');
-                
-                if (!url) {
-                    statusDiv.style.display = 'none';
-                    return;
-                }
-                
-                if (!Utils.isValidURL(url)) {
-                    this.showValidationStatus('無効なURL形式です', 'error');
-                    return;
-                }
-                
-                // RSS検証開始
-                this.showValidationStatus('RSS検証中...', 'loading');
-                
-                try {
-                    const result = await this.rssFetcher.validateRSSFeed(url);
-                    
-                    if (result.valid) {
-                        this.showValidationStatus(
-                            `✓ 有効なRSSです（${result.articleCount}件の記事）`, 
-                            'success'
-                        );
-                    } else {
-                        this.showValidationStatus(`✗ ${result.error}`, 'error');
-                    }
-                    
-                } catch (error) {
-                    this.showValidationStatus('RSS検証でエラーが発生しました', 'error');
-                }
+                statusDiv.style.display = 'none';
+                return;
             }
             
             showValidationStatus(message, type) {
-                const statusDiv = document.getElementById('validationStatus');
-                statusDiv.className = `validation-status validation-${type}`;
-                statusDiv.textContent = message;
-                statusDiv.style.display = 'block';
+                // バリデーション表示を無効化
+                return;
             }
             
             async addRSSFeed() {
@@ -800,10 +757,7 @@
                     return;
                 }
                 
-                if (!Utils.isValidURL(url)) {
-                    this.showNotification('有効なURLを入力してください', 'warning');
-                    return;
-                }
+                // URLバリデーション処理を無効化（削除）
                 
                 try {
                     const addBtn = document.getElementById('addRssBtn');
@@ -817,17 +771,17 @@
                         return;
                     }
                     
-                    // RSS検証
-                    const validation = await this.rssFetcher.validateRSSFeed(url);
-                    if (!validation.valid) {
-                        this.showNotification(`RSS検証失敗: ${validation.error}`, 'error');
-                        return;
-                    }
+                    // RSS検証も無効化（コメントアウト）
+                    // const validation = await this.rssFetcher.validateRSSFeed(url);
+                    // if (!validation.valid) {
+                    //     this.showNotification(`RSS検証失敗: ${validation.error}`, 'error');
+                    //     return;
+                    // }
                     
-                    // フィード追加
+                    // フィード追加（検証なしで直接追加）
                     const newFeed = {
                         id: Utils.generateHash(url + Date.now()),
-                        name: name || validation.sampleTitle || 'Unknown Feed',
+                        name: name || url, // 名前が空の場合はURLを使用
                         url: url,
                         category: category,
                         enabled: true,
@@ -978,19 +932,11 @@
                     testBtn.disabled = true;
                     testBtn.textContent = 'テスト中...';
                     
-                    const result = await this.rssFetcher.validateRSSFeed(feed.url);
-                    
-                    if (result.valid) {
-                        this.showNotification(
-                            `✓ ${feed.name}: ${result.articleCount}件の記事を取得できました`,
-                            'success'
-                        );
-                    } else {
-                        this.showNotification(
-                            `✗ ${feed.name}: ${result.error}`,
-                            'error'
-                        );
-                    }
+                    // RSS検証なしでテスト成功を表示
+                    this.showNotification(
+                        `${feed.name}: テストを実行しました（検証機能は無効化されています）`,
+                        'info'
+                    );
                     
                 } catch (error) {
                     console.error('フィードテストエラー:', error);
@@ -1030,10 +976,7 @@
                         return;
                     }
                     
-                    if (!Utils.isValidURL(url)) {
-                        this.showNotification('有効なURLを入力してください', 'warning');
-                        return;
-                    }
+                    // URLバリデーションを無効化（削除）
                     
                     const feeds = await this.dataManager.loadRssFeeds();
                     const feedIndex = feeds.findIndex(f => f.id === this.editingRssId);
@@ -1108,22 +1051,9 @@
             async testSelectedFeeds() {
                 if (this.selectedFeeds.size === 0) return;
                 
-                const feedIds = Array.from(this.selectedFeeds);
-                let successCount = 0;
-                let errorCount = 0;
-                
-                for (const feedId of feedIds) {
-                    try {
-                        await this.testFeed(feedId);
-                        successCount++;
-                    } catch {
-                        errorCount++;
-                    }
-                }
-                
                 this.showNotification(
-                    `一括テスト完了: 成功 ${successCount}件, 失敗 ${errorCount}件`,
-                    successCount > errorCount ? 'success' : 'warning'
+                    `選択した${this.selectedFeeds.size}件のテストを実行しました（検証機能は無効化されています）`,
+                    'info'
                 );
             }
             
