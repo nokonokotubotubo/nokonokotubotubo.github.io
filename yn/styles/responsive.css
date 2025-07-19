@@ -1,0 +1,159 @@
+/* レスポンシブデザイン（Phase B対応版） */
+
+/* タブレット対応 */
+@media (max-width: 1024px) {
+    .header-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .main-nav {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .articles-container {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0.8rem;
+    }
+    
+    .filter-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-select {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* スマートフォン対応 */
+@media (max-width: 768px) {
+    .app-title {
+        font-size: 1.2rem;
+    }
+    
+    .nav-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .refresh-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .articles-container {
+        grid-template-columns: 1fr;
+        padding: 0.5rem;
+    }
+    
+    .main-content {
+        padding: 0.5rem;
+    }
+    
+    .filter-bar {
+        position: static;
+    }
+    
+    .floating-actions {
+        bottom: 1rem;
+        right: 1rem;
+    }
+    
+    .fab-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+}
+
+/* 小画面スマートフォン対応 */
+@media (max-width: 480px) {
+    .header-container {
+        padding: 0 0.5rem;
+    }
+    
+    .main-nav {
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+    
+    .nav-btn {
+        flex: 1;
+        min-width: calc(50% - 0.15rem);
+    }
+    
+    .filter-container {
+        padding: 0 0.5rem;
+    }
+    
+    .notification-area {
+        left: 0.5rem;
+        right: 0.5rem;
+        top: 0.5rem;
+    }
+    
+    .notification {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* 横画面対応 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .main-header {
+        position: static;
+    }
+    
+    .filter-bar {
+        position: static;
+    }
+    
+    .main-content {
+        padding-top: 1rem;
+    }
+}
+
+/* ダークモード基本対応 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+    
+    .main-header {
+        background: linear-gradient(135deg, #1565C0, #0D47A1);
+    }
+    
+    .filter-bar {
+        background: #1e1e1e;
+        border-bottom: 1px solid #333;
+    }
+    
+    .filter-select {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+    }
+}
+
+/* 印刷対応 */
+@media print {
+    .main-header,
+    .filter-bar,
+    .floating-actions,
+    .notification-area {
+        display: none !important;
+    }
+    
+    .main-content {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .articles-container {
+        grid-template-columns: 1fr !important;
+    }
+}
