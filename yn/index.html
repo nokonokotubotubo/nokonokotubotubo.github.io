@@ -13,11 +13,284 @@
     <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     
-    <!-- スタイルシート -->
+    <!-- スタイルシート（Phase C対応版） -->
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/themes.css">
+    
+    <!-- Phase C拡張スタイル -->
+    <style>
+        /* AI機能表示エリア */
+        .ai-status-bar {
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            color: white;
+            padding: 0.5rem 0;
+            text-align: center;
+            font-size: 0.9rem;
+            position: sticky;
+            top: 80px;
+            z-index: 95;
+        }
+        
+        .ai-status-bar.processing {
+            background: linear-gradient(135deg, #FF9800, #FFB74D);
+        }
+        
+        .ai-status-bar.error {
+            background: linear-gradient(135deg, #f44336, #EF5350);
+        }
+        
+        /* 高度検索バー */
+        .advanced-search {
+            background: white;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 120px;
+            z-index: 85;
+        }
+        
+        .search-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+        }
+        
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 0.8rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .suggestion-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .search-filters {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .filter-chip {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-chip.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        
+        /* AI分析結果表示 */
+        .ai-insights {
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            border-left: 4px solid #2196F3;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .ai-insights h4 {
+            margin: 0 0 0.5rem 0;
+            color: #1976D2;
+            font-size: 1rem;
+        }
+        
+        .insights-content {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .insight-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #1565C0;
+        }
+        
+        /* 記事表示エリア強化 */
+        .articles-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+        
+        .articles-count {
+            font-size: 1.1rem;
+            color: #666;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .view-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .view-btn.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        
+        /* 記事一覧のリスト表示モード */
+        .articles-container.list-view {
+            display: block;
+        }
+        
+        .articles-container.list-view .article-card {
+            display: flex;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .articles-container.list-view .article-thumbnail {
+            flex: 0 0 200px;
+            height: 120px;
+        }
+        
+        .articles-container.list-view .article-info {
+            flex: 1;
+            padding: 1rem;
+        }
+        
+        /* パフォーマンス指標表示 */
+        .performance-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .performance-indicator.show {
+            display: block;
+        }
+        
+        /* 読み込み状態の改善 */
+        .loading-message {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        /* キーワードハイライト強化 */
+        .keyword-highlight {
+            background: linear-gradient(120deg, #FFEB3B, #FFC107);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .matched-keywords .keyword-highlight {
+            background: #4CAF50;
+            color: white;
+            margin-right: 0.3rem;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-input {
+                min-width: unset;
+            }
+            
+            .search-filters {
+                justify-content: center;
+            }
+            
+            .articles-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .ai-insights {
+                margin: 0 1rem 1rem;
+            }
+            
+            .insights-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- ヘッダー（ナビゲーション、更新ボタン） -->
@@ -25,14 +298,41 @@
         <div class="header-container">
             <h1 class="app-title">あなたのニュース</h1>
             <nav class="main-nav">
-                <button class="nav-btn" data-page="index">記事一覧</button>
-                <button class="nav-btn" data-page="rss-manager">RSS管理</button>
-                <button class="nav-btn" data-page="favorites">お気に入り</button>
-                <button class="nav-btn" data-page="settings">設定</button>
+                <button class="nav-btn active" data-page="index">記事一覧</button>
+                <button class="nav-btn" data-page="rss-manager" onclick="location.href='pages/rss-manager.html'">RSS管理</button>
+                <button class="nav-btn" data-page="favorites" onclick="location.href='pages/favorites.html'">お気に入り</button>
+                <button class="nav-btn" data-page="settings" onclick="location.href='pages/settings.html'">設定</button>
             </nav>
             <button class="refresh-btn" id="refreshBtn">🔄 更新</button>
         </div>
     </header>
+
+    <!-- AI状態表示バー -->
+    <div class="ai-status-bar" id="aiStatusBar" style="display: none;">
+        <span id="aiStatusText">AI分析準備中...</span>
+    </div>
+
+    <!-- 高度検索バー -->
+    <section class="advanced-search">
+        <div class="search-container">
+            <div style="position: relative; flex: 1; min-width: 300px;">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput"
+                    placeholder="記事を検索... (例: AI, 技術, ニュース)"
+                >
+                <div class="search-suggestions" id="searchSuggestions"></div>
+            </div>
+            
+            <div class="search-filters">
+                <div class="filter-chip" data-filter="interest">高興味度</div>
+                <div class="filter-chip" data-filter="unread">未読のみ</div>
+                <div class="filter-chip" data-filter="today">今日</div>
+                <div class="filter-chip" data-filter="ai-recommended">AI推奨</div>
+            </div>
+        </div>
+    </section>
 
     <!-- フィルターバー（カテゴリ、既読状態、ソート選択） -->
     <section class="filter-bar">
@@ -46,10 +346,30 @@
                 <option value="read">既読のみ</option>
             </select>
             <select class="filter-select" id="sortFilter">
-                <option value="interest">興味度順</option>
+                <option value="interest">AI興味度順</option>
                 <option value="date">更新日時順</option>
                 <option value="domain">ドメイン順</option>
+                <option value="keyword-match">キーワード一致度順</option>
             </select>
+        </div>
+    </section>
+
+    <!-- AI分析結果表示 -->
+    <section class="ai-insights" id="aiInsights" style="display: none;">
+        <h4>🤖 AI分析結果</h4>
+        <div class="insights-content" id="insightsContent">
+            <!-- 動的に生成 -->
+        </div>
+    </section>
+
+    <!-- 記事一覧ヘッダー -->
+    <section class="articles-header">
+        <div class="articles-count">
+            <span id="articlesCount">記事を読み込み中...</span>
+        </div>
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="grid">📱 カード表示</button>
+            <button class="view-btn" data-view="list">📄 リスト表示</button>
         </div>
     </section>
 
@@ -57,7 +377,8 @@
     <main class="main-content">
         <div class="articles-container" id="articlesContainer">
             <div class="loading-message" id="loadingMessage">
-                記事を読み込み中...
+                <div class="loading-spinner"></div>
+                AI機能付きニュースシステムを初期化中...
             </div>
             <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
                 記事がありません。RSSフィードを追加してください。
@@ -65,26 +386,352 @@
         </div>
     </main>
 
-    <!-- フローティングアクションボタン（RSS追加） -->
+    <!-- フローティングアクションボタン（RSS追加、AI再学習） -->
     <div class="floating-actions">
+        <button class="fab-btn" id="aiRetrainBtn" title="AI再学習" style="bottom: 80px;">
+            🧠
+        </button>
         <button class="fab-btn" id="addRssFab" title="RSS追加">
             ➕
         </button>
     </div>
 
+    <!-- パフォーマンス指標 -->
+    <div class="performance-indicator" id="performanceIndicator">
+        記事表示: <span id="renderTime">-</span>ms | AI処理: <span id="aiProcessTime">-</span>ms
+    </div>
+
     <!-- エラー通知エリア -->
     <div class="notification-area" id="notificationArea"></div>
 
-    <!-- スクリプト読み込み（依存関係順） -->
+    <!-- スクリプト読み込み（依存関係順・Phase C完全版） -->
+    
     <!-- Phase A基盤: データ管理 -->
     <script src="scripts/data-manager.js"></script>
+    
+    <!-- Phase C基盤: ユーティリティ -->
+    <script src="scripts/utils.js"></script>
     
     <!-- Phase B機能: RSS取得・表示・操作 -->
     <script src="scripts/rss-fetcher.js"></script>
     <script src="scripts/article-card.js"></script>
     <script src="scripts/ui-controller.js"></script>
     
+    <!-- Phase C機能: AI処理 -->
+    <script src="scripts/ai-engine.js"></script>
+    
     <!-- アプリケーション統合・初期化（必ず最後） -->
     <script src="scripts/app.js"></script>
+    
+    <!-- Phase C統合スクリプト -->
+    <script>
+        // Phase C機能拡張
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // AI機能統合チェック
+                if (window.yourNewsApp && typeof AIEngine !== 'undefined') {
+                    console.log('Phase C機能統合確認: AI Engine利用可能');
+                    
+                    // AI Engine初期化
+                    window.yourNewsApp.aiEngine = new AIEngine();
+                    await window.yourNewsApp.aiEngine.initialize();
+                    
+                    // AI状態表示更新
+                    const aiStatusBar = document.getElementById('aiStatusBar');
+                    const aiStatusText = document.getElementById('aiStatusText');
+                    
+                    if (aiStatusBar && aiStatusText) {
+                        aiStatusBar.style.display = 'block';
+                        aiStatusText.textContent = '🤖 AI機能準備完了';
+                        aiStatusBar.className = 'ai-status-bar';
+                        
+                        setTimeout(() => {
+                            aiStatusBar.style.display = 'none';
+                        }, 3000);
+                    }
+                    
+                    // AI推奨記事生成
+                    await setupAIFeatures();
+                }
+                
+                // Phase C高度検索機能
+                setupAdvancedSearch();
+                
+                // パフォーマンス指標
+                setupPerformanceMonitoring();
+                
+            } catch (error) {
+                console.error('Phase C機能統合エラー:', error);
+            }
+        });
+        
+        async function setupAIFeatures() {
+            try {
+                if (!window.yourNewsApp.aiEngine) return;
+                
+                // AI再学習ボタン
+                const aiRetrainBtn = document.getElementById('aiRetrainBtn');
+                if (aiRetrainBtn) {
+                    aiRetrainBtn.addEventListener('click', async () => {
+                        try {
+                            aiRetrainBtn.disabled = true;
+                            aiRetrainBtn.textContent = '🔄';
+                            
+                            // AI再学習実行
+                            const articles = await window.yourNewsApp.dataManager.loadArticles();
+                            const keywords = await window.yourNewsApp.dataManager.loadData('yourNews_keywords') || 
+                                           { interestWords: [], ngWords: [] };
+                            
+                            for (const article of articles) {
+                                await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                            }
+                            
+                            await window.yourNewsApp.dataManager.saveArticles(articles);
+                            
+                            // UI更新
+                            if (window.yourNewsApp.uiController) {
+                                await window.yourNewsApp.uiController.loadAndDisplayArticles(true);
+                            }
+                            
+                            window.yourNewsApp.showNotification('AI再学習が完了しました', 'success');
+                            
+                        } catch (error) {
+                            console.error('AI再学習エラー:', error);
+                            window.yourNewsApp.showNotification('AI再学習に失敗しました', 'error');
+                        } finally {
+                            aiRetrainBtn.disabled = false;
+                            aiRetrainBtn.textContent = '🧠';
+                        }
+                    });
+                }
+                
+                // AI分析結果表示
+                updateAIInsights();
+                
+            } catch (error) {
+                console.error('AI機能設定エラー:', error);
+            }
+        }
+        
+        function setupAdvancedSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchSuggestions = document.getElementById('searchSuggestions');
+            
+            if (searchInput) {
+                // リアルタイム検索
+                searchInput.addEventListener('input', Utils.debounce(async (e) => {
+                    const query = e.target.value.trim();
+                    
+                    if (query.length > 1) {
+                        await performAdvancedSearch(query);
+                        showSearchSuggestions(query);
+                    } else {
+                        hideSearchSuggestions();
+                        // 全記事表示に戻す
+                        if (window.yourNewsApp.uiController) {
+                            window.yourNewsApp.uiController.applyFilters();
+                        }
+                    }
+                }, 300));
+                
+                // フォーカス時の処理
+                searchInput.addEventListener('focus', () => {
+                    if (searchInput.value.trim()) {
+                        showSearchSuggestions(searchInput.value.trim());
+                    }
+                });
+                
+                // フォーカス外しで候補非表示
+                document.addEventListener('click', (e) => {
+                    if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+                        hideSearchSuggestions();
+                    }
+                });
+            }
+            
+            // フィルターチップ
+            const filterChips = document.querySelectorAll('.filter-chip');
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('active');
+                    applyFilterChips();
+                });
+            });
+            
+            // 表示切替
+            const viewBtns = document.querySelectorAll('.view-btn');
+            viewBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    viewBtns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    const view = e.target.dataset.view;
+                    const container = document.getElementById('articlesContainer');
+                    if (container) {
+                        container.className = `articles-container ${view}-view`;
+                    }
+                });
+            });
+        }
+        
+        async function performAdvancedSearch(query) {
+            try {
+                if (!window.yourNewsApp.uiController) return;
+                
+                // 高度検索実行
+                const articles = window.yourNewsApp.uiController.getCurrentArticles();
+                const searchResults = articles.filter(article => {
+                    const searchText = (article.title + ' ' + article.excerpt + ' ' + article.domain).toLowerCase();
+                    return searchText.includes(query.toLowerCase());
+                });
+                
+                // 結果表示
+                window.yourNewsApp.uiController.filteredArticles = searchResults;
+                window.yourNewsApp.uiController.renderArticles();
+                
+                // 記事数更新
+                updateArticlesCount(searchResults.length, articles.length);
+                
+            } catch (error) {
+                console.error('高度検索エラー:', error);
+            }
+        }
+        
+        function showSearchSuggestions(query) {
+            // 検索候補表示（実装例）
+            const suggestions = [
+                '最新技術',
+                'AI ニュース',
+                '経済動向',
+                'スポーツ結果'
+            ].filter(s => s.toLowerCase().includes(query.toLowerCase()));
+            
+            const suggestionsContainer = document.getElementById('searchSuggestions');
+            if (suggestionsContainer && suggestions.length > 0) {
+                suggestionsContainer.innerHTML = suggestions.map(s => 
+                    `<div class="suggestion-item" onclick="selectSuggestion('${s}')">${s}</div>`
+                ).join('');
+                suggestionsContainer.style.display = 'block';
+            }
+        }
+        
+        function hideSearchSuggestions() {
+            const suggestionsContainer = document.getElementById('searchSuggestions');
+            if (suggestionsContainer) {
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+        
+        function selectSuggestion(suggestion) {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = suggestion;
+                performAdvancedSearch(suggestion);
+            }
+            hideSearchSuggestions();
+        }
+        
+        function applyFilterChips() {
+            const activeChips = document.querySelectorAll('.filter-chip.active');
+            const filters = Array.from(activeChips).map(chip => chip.dataset.filter);
+            
+            // フィルター適用ロジック（例）
+            console.log('アクティブフィルター:', filters);
+            
+            if (window.yourNewsApp.uiController) {
+                // フィルター適用を実装
+                window.yourNewsApp.uiController.applyAdvancedFilters(filters);
+            }
+        }
+        
+        function updateArticlesCount(filtered, total) {
+            const countElement = document.getElementById('articlesCount');
+            if (countElement) {
+                if (filtered === total) {
+                    countElement.textContent = `${total}件の記事`;
+                } else {
+                    countElement.textContent = `${filtered}件の記事（全${total}件中）`;
+                }
+            }
+        }
+        
+        async function updateAIInsights() {
+            try {
+                if (!window.yourNewsApp.aiEngine) return;
+                
+                const insights = document.getElementById('aiInsights');
+                const insightsContent = document.getElementById('insightsContent');
+                
+                if (insights && insightsContent) {
+                    const stats = window.yourNewsApp.aiEngine.getStats();
+                    
+                    insightsContent.innerHTML = `
+                        <div class="insight-item">
+                            <span>📊</span>
+                            <span>学習済み語彙: ${stats.vocabularySize}語</span>
+                        </div>
+                        <div class="insight-item">
+                            <span>📈</span>
+                            <span>フィードバック履歴: ${stats.feedbackCount}件</span>
+                        </div>
+                        <div class="insight-item">
+                            <span>🎯</span>
+                            <span>AI分析精度: ${Math.round(stats.avgIDF * 100)}%</span>
+                        </div>
+                    `;
+                    
+                    insights.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('AI分析結果更新エラー:', error);
+            }
+        }
+        
+        function setupPerformanceMonitoring() {
+            // パフォーマンス監視
+            let renderStartTime = 0;
+            let aiProcessStartTime = 0;
+            
+            // 記事レンダリング開始
+            window.addEventListener('articlesRenderStart', () => {
+                renderStartTime = performance.now();
+            });
+            
+            // 記事レンダリング完了
+            window.addEventListener('articlesRenderComplete', () => {
+                const renderTime = Math.round(performance.now() - renderStartTime);
+                const renderTimeElement = document.getElementById('renderTime');
+                if (renderTimeElement) {
+                    renderTimeElement.textContent = renderTime;
+                }
+                
+                // 一定時間表示
+                const indicator = document.getElementById('performanceIndicator');
+                if (indicator) {
+                    indicator.classList.add('show');
+                    setTimeout(() => {
+                        indicator.classList.remove('show');
+                    }, 3000);
+                }
+            });
+            
+            // AI処理時間監視
+            window.addEventListener('aiProcessStart', () => {
+                aiProcessStartTime = performance.now();
+            });
+            
+            window.addEventListener('aiProcessComplete', () => {
+                const aiProcessTime = Math.round(performance.now() - aiProcessStartTime);
+                const aiProcessTimeElement = document.getElementById('aiProcessTime');
+                if (aiProcessTimeElement) {
+                    aiProcessTimeElement.textContent = aiProcessTime;
+                }
+            });
+        }
+        
+        // グローバル関数
+        window.selectSuggestion = selectSuggestion;
+    </script>
 </body>
 </html>
