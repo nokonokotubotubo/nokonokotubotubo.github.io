@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="パーソナライズされたRSSニュース閲覧・管理システム">
+    <title>あなたのニュース</title>
+    
+    <!-- PWA設定 -->
+    <meta name="theme-color" content="#2196F3">
+    <link rel="manifest" href="assets/manifest.json">
+    
+    <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    
+    <!-- スタイルシート -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/themes.css">
+</head>
+<body>
+    <!-- ヘッダー（ナビゲーション、更新ボタン） -->
+    <header class="main-header">
+        <div class="header-container">
+            <h1 class="app-title">あなたのニュース</h1>
+            <nav class="main-nav">
+                <button class="nav-btn" data-page="index">記事一覧</button>
+                <button class="nav-btn" data-page="rss-manager">RSS管理</button>
+                <button class="nav-btn" data-page="favorites">お気に入り</button>
+                <button class="nav-btn" data-page="settings">設定</button>
+            </nav>
+            <button class="refresh-btn" id="refreshBtn">🔄 更新</button>
+        </div>
+    </header>
+
+    <!-- フィルターバー（カテゴリ、既読状態、ソート選択） -->
+    <section class="filter-bar">
+        <div class="filter-container">
+            <select class="filter-select" id="categoryFilter">
+                <option value="all">全カテゴリ</option>
+            </select>
+            <select class="filter-select" id="readStatusFilter">
+                <option value="all">全ての記事</option>
+                <option value="unread">未読のみ</option>
+                <option value="read">既読のみ</option>
+            </select>
+            <select class="filter-select" id="sortFilter">
+                <option value="interest">興味度順</option>
+                <option value="date">更新日時順</option>
+                <option value="domain">ドメイン順</option>
+            </select>
+        </div>
+    </section>
+
+    <!-- 記事一覧エリア（仮想スクロール対応） -->
+    <main class="main-content">
+        <div class="articles-container" id="articlesContainer">
+            <div class="loading-message" id="loadingMessage">
+                記事を読み込み中...
+            </div>
+            <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
+                記事がありません。RSSフィードを追加してください。
+            </div>
+        </div>
+    </main>
+
+    <!-- フローティングアクションボタン（RSS追加） -->
+    <div class="floating-actions">
+        <button class="fab-btn" id="addRssFab" title="RSS追加">
+            ➕
+        </button>
+    </div>
+
+    <!-- エラー通知エリア -->
+    <div class="notification-area" id="notificationArea"></div>
+
+    <!-- スクリプト読み込み（依存関係順） -->
+    <!-- Phase A基盤: データ管理 -->
+    <script src="scripts/data-manager.js"></script>
+    
+    <!-- Phase B機能: RSS取得・表示・操作 -->
+    <script src="scripts/rss-fetcher.js"></script>
+    <script src="scripts/article-card.js"></script>
+    <script src="scripts/ui-controller.js"></script>
+    
+    <!-- アプリケーション統合・初期化（必ず最後） -->
+    <script src="scripts/app.js"></script>
+</body>
+</html>
