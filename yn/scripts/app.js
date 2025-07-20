@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（完全修正版）
+// YourNewsApp - メインアプリケーションクラス（プロジェクトルート対応完全版）
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -8,18 +8,18 @@ class YourNewsApp {
         this.articleCard = null;
         this.pwaManager = null;
         this.initialized = false;
+        this.aiDisabled = false;
+        
+        // プロジェクトルートパス設定
+        this.basePath = '/yn';
     }
     
     async initialize() {
         try {
             console.log('YourNewsApp初期化開始');
             
-            // TensorFlow.js初期化確認
-            if (typeof tf !== 'undefined') {
-                console.log('TensorFlow.js初期化完了, バックエンド:', tf.getBackend());
-            } else {
-                console.warn('TensorFlow.js not loaded');
-            }
+            // TensorFlow.js初期化
+            await this.initializeTensorFlow();
             
             // Phase A: 基盤クラス初期化
             this.dataManager = new DataManager();
@@ -30,12 +30,12 @@ class YourNewsApp {
             this.articleCard = new ArticleCard();
             
             // Phase C: AI機能初期化（条件付き）
-            if (typeof AIEngine !== 'undefined') {
+            if (!this.aiDisabled && typeof AIEngine !== 'undefined') {
                 this.aiEngine = new AIEngine();
                 await this.aiEngine.initialize();
             }
             
-            // 【修正】UI Controller初期化時に依存関係を正しく注入
+            // UI Controller初期化時に依存関係を正しく注入
             this.uiController = new UIController(this.dataManager, this.rssFetcher, this.articleCard);
             await this.uiController.initialize();
             
@@ -50,6 +50,78 @@ class YourNewsApp {
         } catch (error) {
             console.error('YourNewsApp初期化エラー:', error);
             this.showNotification('アプリケーションの初期化に失敗しました', 'error');
+            return false;
+        }
+    }
+    
+    async initializeTensorFlow() {
+        if (typeof tf === 'undefined') {
+            console.warn('TensorFlow.js not loaded, AI機能を無効化');
+            this.aiDisabled = true;
+            return false;
+        }
+        
+        try {
+            // TensorFlow.jsバックエンド初期化
+            await tf.ready();
+            
+            // バックエンド確認と設定
+            let backend = tf.getBackend();
+            console.log('初期バックエンド:', backend);
+            
+            // バックエンドが利用できない場合のフォールバック
+            if (!backend || backend === 'undefined') {
+                console.warn('バックエンドが利用できません、手動設定を試行');
+                
+                // 利用可能なバックエンドを確認
+                const availableBackends = ['webgl', 'cpu'];
+                
+                for (const backendName of availableBackends) {
+                    try {
+                        await tf.setBackend(backendName);
+                        await tf.ready();
+                        backend = tf.getBackend();
+                        
+                        if (backend && backend !== 'undefined') {
+                            console.log(`バックエンド設定成功: ${backend}`);
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn(`${backendName}バックエンド設定失敗:`, error);
+                    }
+                }
+            }
+            
+            // 最終確認
+            backend = tf.getBackend();
+            if (!backend || backend === 'undefined') {
+                console.error('全てのバックエンド設定に失敗');
+                throw new Error('TensorFlow.js バックエンドの初期化に失敗しました');
+            }
+            
+            console.log('TensorFlow.js初期化完了, バックエンド:', backend);
+            
+            // 簡単な動作テスト
+            const testTensor = tf.tensor1d([1, 2, 3]);
+            const sum = testTensor.sum();
+            const result = await sum.data();
+            testTensor.dispose();
+            sum.dispose();
+            
+            if (result[0] !== 6) {
+                throw new Error('TensorFlow.js 動作テストに失敗');
+            }
+            
+            console.log('TensorFlow.js 動作テスト成功');
+            return true;
+            
+        } catch (error) {
+            console.error('TensorFlow.js初期化エラー:', error);
+            
+            // AI機能無効化モードで継続
+            console.warn('AI機能を無効化してアプリケーションを継続します');
+            this.aiDisabled = true;
+            
             return false;
         }
     }
@@ -142,7 +214,7 @@ class YourNewsApp {
     
     async performAIRetraining() {
         try {
-            if (!this.aiEngine) {
+            if (!this.aiEngine || this.aiDisabled) {
                 this.showNotification('AI機能が利用できません', 'warning');
                 return;
             }
@@ -239,7 +311,7 @@ class YourNewsApp {
             await this.dataManager.saveArticles(articles);
             
             // AI学習（利用可能な場合）
-            if (this.aiEngine && feedback !== 'ng') {
+            if (this.aiEngine && !this.aiDisabled && feedback !== 'ng') {
                 try {
                     await this.aiEngine.processFeedback(article, feedback);
                 } catch (aiError) {
@@ -312,19 +384,21 @@ class YourNewsApp {
             initialized: this.initialized,
             dataManager: !!this.dataManager,
             rssFetcher: !!this.rssFetcher,
-            aiEngine: !!this.aiEngine,
+            aiEngine: !!this.aiEngine && !this.aiDisabled,
             uiController: !!this.uiController,
-            pwaManager: !!this.pwaManager
+            pwaManager: !!this.pwaManager,
+            aiDisabled: this.aiDisabled
         };
     }
 }
 
-// PWA機能初期化クラス
+// PWA機能初期化クラス（プロジェクトルート対応版）
 class PWAManager {
-    constructor() {
+    constructor(basePath = '/yn') {
         this.deferredPrompt = null;
         this.isOnline = navigator.onLine;
         this.serviceWorker = null;
+        this.basePath = basePath;
     }
     
     async initialize() {
@@ -358,7 +432,12 @@ class PWAManager {
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-                const registration = await navigator.serviceWorker.register('/sw.js');
+                // プロジェクトルートに対応したパス
+                const swPath = `${this.basePath}/sw.js`;
+                const registration = await navigator.serviceWorker.register(swPath, {
+                    scope: this.basePath + '/'
+                });
+                
                 this.serviceWorker = registration;
                 
                 console.log('Service Worker登録成功:', registration.scope);
@@ -462,10 +541,30 @@ class PWAManager {
             right: 20px;
             background: #4CAF50;
             z-index: 1000;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         `;
         
         installBtn.addEventListener('click', () => {
             this.triggerInstall();
+        });
+        
+        installBtn.addEventListener('mouseenter', () => {
+            installBtn.style.transform = 'scale(1.1)';
+        });
+        
+        installBtn.addEventListener('mouseleave', () => {
+            installBtn.style.transform = 'scale(1)';
         });
         
         document.body.appendChild(installBtn);
@@ -524,14 +623,14 @@ class PWAManager {
                 font-size: 0.9rem;
                 z-index: 1001;
                 transition: opacity 0.3s ease;
+                color: white;
             `;
             document.body.appendChild(statusIndicator);
         }
         
-        statusIndicator.className = `network-status ${online ? 'online' : 'offline'}`;
         statusIndicator.style.background = online ? 'rgba(76,175,80,0.9)' : 'rgba(244,67,54,0.9)';
-        statusIndicator.style.color = 'white';
         statusIndicator.textContent = online ? '🌐 オンライン復帰' : '📴 オフライン';
+        statusIndicator.style.opacity = '1';
         
         // 5秒後に非表示
         setTimeout(() => {
@@ -580,6 +679,16 @@ class PWAManager {
         } else {
             console.log('ブラウザモードで動作中');
             document.body.classList.add('pwa-browser');
+        }
+    }
+    
+    showUpdateAvailable() {
+        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+            window.yourNewsApp.showNotification(
+                'アプリの新しいバージョンが利用可能です。ページを再読み込みしてください。',
+                'info',
+                10000
+            );
         }
     }
     
@@ -634,8 +743,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const initSuccess = await window.yourNewsApp.initialize();
         
         if (initSuccess) {
-            // PWA機能初期化
-            window.yourNewsApp.pwaManager = new PWAManager();
+            // PWA機能初期化（プロジェクトルートパス指定）
+            window.yourNewsApp.pwaManager = new PWAManager('/yn');
             await window.yourNewsApp.pwaManager.initialize();
             
             console.log('アプリケーション初期化完了');
@@ -660,9 +769,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 text-align: center;
                 z-index: 10000;
+                max-width: 400px;
+                width: 90%;
             ">
                 <h3 style="color: #f44336; margin: 0 0 1rem 0;">初期化エラー</h3>
                 <p style="margin: 0 0 1rem 0;">アプリケーションの初期化に失敗しました</p>
+                <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #666;">
+                    ${error.message}
+                </p>
                 <button onclick="location.reload()" style="
                     background: #2196F3;
                     color: white;
@@ -675,6 +789,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         document.body.appendChild(errorDiv);
     }
+});
+
+// グローバルエラーハンドリング
+window.addEventListener('error', (event) => {
+    console.error('Global Error:', event.error);
+    if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+        window.yourNewsApp.showNotification('予期しないエラーが発生しました', 'error');
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled Promise Rejection:', event.reason);
+    event.preventDefault();
 });
 
 // グローバルデバッグ関数
@@ -691,6 +818,7 @@ window.debugApp = function() {
     console.log('TensorFlow.js available:', typeof tf !== 'undefined');
     console.log('Local storage available:', typeof Storage !== 'undefined');
     console.log('Service Worker supported:', 'serviceWorker' in navigator);
+    console.log('Project base path:', window.yourNewsApp?.basePath || '/yn');
     
     console.log('=== デバッグ情報完了 ===');
 };
@@ -708,7 +836,7 @@ window.reinitializeApp = async function() {
         const initSuccess = await window.yourNewsApp.initialize();
         
         if (initSuccess) {
-            window.yourNewsApp.pwaManager = new PWAManager();
+            window.yourNewsApp.pwaManager = new PWAManager('/yn');
             await window.yourNewsApp.pwaManager.initialize();
             
             console.log('再初期化完了');
