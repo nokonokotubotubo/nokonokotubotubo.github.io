@@ -1,4 +1,4 @@
-// YourNewsApp - フィードバック機能安定化版
+// YourNewsApp - フィードバック重複防止完全対応版
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -10,10 +10,11 @@ class YourNewsApp {
         this.initialized = false;
         this.aiDisabled = false;
         
-        // フィードバック処理制御（安定化）
+        // フィードバック処理制御（強化版）
         this.feedbackProcessing = false;
         this.feedbackQueue = [];
         this.processingArticles = new Set();
+        this.buttonCooldowns = new Map(); // ボタンクールダウン管理
         
         this.basePath = '/yn';
     }
@@ -209,23 +210,52 @@ class YourNewsApp {
         }
     }
     
-    // 【安定化】フィードバック処理（確実なスコア反映・重複防止）
+    // 【完全修正】フィードバック処理（重複防止強化版）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
                 console.error('Invalid feedback parameters');
-                return;
+                return false;
             }
             
-            // 記事単位での重複防止（安定化）
+            // 【強化1】厳格な重複防止チェック
             if (this.processingArticles.has(articleId)) {
-                console.log(`フィードバック処理中のため無視: ${articleId}`);
-                return;
+                console.log(`❌ フィードバック処理中のため拒否: ${articleId}`);
+                return false;
             }
             
+            // 【強化2】ボタンクールダウンチェック
+            const cooldownKey = `${articleId}_cooldown`;
+            if (this.buttonCooldowns.has(cooldownKey)) {
+                const cooldownEnd = this.buttonCooldowns.get(cooldownKey);
+                if (Date.now() < cooldownEnd) {
+                    console.log(`❌ ボタンクールダウン中のため拒否: ${articleId}`);
+                    return false;
+                }
+            }
+            
+            // 【強化3】ボタン状態の事前確認
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (!card) {
+                console.error('記事カードが見つかりません');
+                return false;
+            }
+            
+            const buttons = card.querySelectorAll('.feedback-btn');
+            const isAnyButtonDisabled = Array.from(buttons).some(btn => btn.disabled);
+            
+            if (isAnyButtonDisabled) {
+                console.log(`❌ ボタン無効化中のため拒否: ${articleId}`);
+                return false;
+            }
+            
+            // 【重要】処理開始マーク（最優先設定）
             this.processingArticles.add(articleId);
             
-            // ボタンを即座に無効化
+            // クールダウン設定（3秒間）
+            this.buttonCooldowns.set(cooldownKey, Date.now() + 3000);
+            
+            // 【即座】全ボタン無効化
             this.disableFeedbackButtons(articleId);
             
             console.log(`🧠 フィードバック処理開始: ${articleId} -> ${feedback}`);
@@ -236,7 +266,7 @@ class YourNewsApp {
             
             if (articleIndex === -1) {
                 console.error('記事が見つかりません:', articleId);
-                return;
+                return false;
             }
             
             const article = articles[articleIndex];
@@ -261,7 +291,7 @@ class YourNewsApp {
                     
                     await this.aiEngine.processFeedback(article, feedback);
                     
-                    // 【重要】新しい興味度スコア再計算
+                    // 新しい興味度スコア再計算
                     const newScore = await this.aiEngine.calculateInterestScore(article);
                     article.interestScore = newScore;
                     
@@ -293,7 +323,7 @@ class YourNewsApp {
                 console.log(`🚫 NG設定: ${article.domain} の記事 ${ngDomainCount}件を非表示`);
             }
             
-            // 【重要】データ保存（変更されたarticle配列を保存）
+            // データ保存
             await this.dataManager.saveArticles(articles);
             
             // UI即座更新
@@ -324,21 +354,28 @@ class YourNewsApp {
             // フィードバック完了通知
             this.showFeedbackComplete(articleId, feedback, article.interestScore);
             
+            return true;
+            
         } catch (error) {
             console.error('フィードバック処理エラー:', error);
             this.showNotification('フィードバックの処理に失敗しました', 'error');
+            return false;
         } finally {
-            // 処理完了フラグをクリア
-            this.processingArticles.delete(articleId);
-            
-            // ボタンを再有効化（遅延）
+            // 【重要】確実なクリーンアップ（3秒後）
             setTimeout(() => {
+                this.processingArticles.delete(articleId);
                 this.enableFeedbackButtons(articleId);
-            }, 2000);
+                
+                // クールダウンクリア
+                const cooldownKey = `${articleId}_cooldown`;
+                this.buttonCooldowns.delete(cooldownKey);
+                
+                console.log(`🔓 フィードバック処理完了: ${articleId}`);
+            }, 3000);
         }
     }
     
-    // ボタン無効化処理
+    // 【強化】ボタン無効化処理
     disableFeedbackButtons(articleId) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (card) {
@@ -347,11 +384,18 @@ class YourNewsApp {
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
+                btn.style.pointerEvents = 'none'; // 完全にクリック無効化
+                btn.setAttribute('data-processing', 'true'); // 処理中マーク
             });
+            
+            // 視覚的フィードバック追加
+            card.style.filter = 'grayscale(0.3)';
+            
+            console.log(`🔒 ボタン無効化完了: ${articleId}`);
         }
     }
     
-    // ボタン再有効化処理
+    // 【強化】ボタン再有効化処理
     enableFeedbackButtons(articleId) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (card) {
@@ -360,7 +404,14 @@ class YourNewsApp {
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
+                btn.style.pointerEvents = 'auto'; // クリック再有効化
+                btn.removeAttribute('data-processing'); // 処理中マーク削除
             });
+            
+            // 視覚的フィードバック削除
+            card.style.filter = '';
+            
+            console.log(`🔓 ボタン再有効化完了: ${articleId}`);
         }
     }
     
@@ -546,7 +597,10 @@ class YourNewsApp {
             aiEngine: !!this.aiEngine && !this.aiDisabled,
             uiController: !!this.uiController,
             pwaManager: !!this.pwaManager,
-            aiDisabled: this.aiDisabled
+            aiDisabled: this.aiDisabled,
+            // デバッグ情報追加
+            processingArticles: this.processingArticles.size,
+            buttonCooldowns: this.buttonCooldowns.size
         };
         
         if (this.aiEngine && !this.aiDisabled) {
@@ -578,6 +632,16 @@ class YourNewsApp {
         } else {
             console.warn('AI機能が無効のため統計情報を表示できません');
         }
+    }
+    
+    // 【新機能】フィードバック状態デバッグ
+    debugFeedbackState() {
+        console.log('=== フィードバック状態デバッグ ===');
+        console.log('処理中記事数:', this.processingArticles.size);
+        console.log('処理中記事:', Array.from(this.processingArticles));
+        console.log('ボタンクールダウン数:', this.buttonCooldowns.size);
+        console.log('クールダウン情報:', Array.from(this.buttonCooldowns.entries()));
+        console.log('============================');
     }
 }
 
@@ -645,6 +709,7 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
+// デバッグ関数群
 window.debugApp = function() {
     console.log('=== アプリケーションデバッグ情報 ===');
     
@@ -654,6 +719,7 @@ window.debugApp = function() {
         
         window.yourNewsApp.debugAIStats();
         window.yourNewsApp.debugFeedbackHistory();
+        window.yourNewsApp.debugFeedbackState(); // 新機能
     } else {
         console.error('YourNewsApp not initialized');
     }
@@ -664,4 +730,26 @@ window.debugApp = function() {
     console.log('Project base path:', window.yourNewsApp?.basePath || '/yn');
     
     console.log('=== デバッグ情報完了 ===');
+};
+
+// 【新機能】フィードバックテスト関数
+window.testFeedback = function(articleId) {
+    if (!window.yourNewsApp) {
+        console.error('YourNewsApp not initialized');
+        return;
+    }
+    
+    console.log('=== フィードバックテスト開始 ===');
+    
+    // 3回連続実行（2回目・3回目は拒否されるべき）
+    window.yourNewsApp.processFeedback(articleId, 1);
+    setTimeout(() => window.yourNewsApp.processFeedback(articleId, 1), 100); // 拒否されるべき
+    setTimeout(() => window.yourNewsApp.processFeedback(articleId, 1), 200); // 拒否されるべき
+    
+    // 状態確認
+    setTimeout(() => {
+        window.yourNewsApp.debugFeedbackState();
+    }, 500);
+    
+    console.log('=== フィードバックテスト完了 ===');
 };
