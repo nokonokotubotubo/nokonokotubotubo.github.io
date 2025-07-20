@@ -3,12 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI機能付きパーソナライズされたRSSニュース閲覧・管理システム">
     <title>あなたのニュース</title>
+    
+    <!-- メタ情報 -->
+    <meta name="description" content="パーソナライズされたRSSニュース閲覧アプリ">
+    <meta name="keywords" content="ニュース,RSS,AI,パーソナライズ">
+    <meta name="author" content="あなたのニュース">
     
     <!-- PWA設定 -->
     <meta name="theme-color" content="#2196F3">
-    <link rel="manifest" href="assets/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="あなたのニュース">
+    
+    <!-- アイコン設定 -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiMyMTk2RjMiLz48dGV4dCB4PSIxNiIgeT0iMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OPC90ZXh0Pjwvc3ZnPg==">
+    
+    <!-- TensorFlow.js CDN（AI機能用） -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     
     <!-- スタイルシート -->
     <link rel="stylesheet" href="styles/main.css">
@@ -16,88 +28,513 @@
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/themes.css">
     
-    <!-- TensorFlow.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <style>
+        /* 通知エリア専用スタイル */
+        #notificationArea {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+            width: auto;
+        }
+        
+        .notification {
+            background: #333;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideInRight 0.3s ease;
+            position: relative;
+            min-width: 300px;
+        }
+        
+        .notification.success {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+        }
+        
+        .notification.error {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+        }
+        
+        .notification.warning {
+            background: linear-gradient(45deg, #FF9800, #FFB74D);
+        }
+        
+        .notification.info {
+            background: linear-gradient(45deg, #2196F3, #42A5F5);
+        }
+        
+        .notification-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-message {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+        
+        .notification-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* フィルターバー改良 */
+        .filters-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-label {
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9em;
+            min-width: 120px;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
+        }
+        
+        /* 統計情報表示 */
+        .stats-container {
+            display: flex;
+            gap: 1rem;
+            margin-left: auto;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #2196F3;
+        }
+        
+        /* 読み込み中表示 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            #notificationArea {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            
+            .notification {
+                min-width: auto;
+            }
+            
+            .filters-container {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            
+            .stats-container {
+                margin-left: 0;
+                justify-content: center;
+                order: -1;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- 固定ヘッダーエリア -->
-    <div class="fixed-header-area">
-        <!-- メインヘッダー -->
-        <header class="main-header">
-            <div class="header-container">
-                <h1 class="app-title">あなたのニュース</h1>
-                <nav class="main-nav">
-                    <button class="nav-btn active" data-page="index">記事一覧</button>
-                    <button class="nav-btn" data-page="rss-manager" onclick="location.href='pages/rss-manager.html'">RSS管理</button>
-                    <button class="nav-btn" data-page="favorites" onclick="location.href='pages/favorites.html'">お気に入り</button>
-                    <button class="nav-btn" data-page="settings" onclick="location.href='pages/settings.html'">設定</button>
-                </nav>
-                <button class="refresh-btn" id="refreshBtn" title="記事を更新">🔄 更新</button>
+    <!-- ヘッダー -->
+    <header class="header">
+        <div class="header-container">
+            <div class="header-left">
+                <h1 class="app-title">📰 あなたのニュース</h1>
+                <span class="app-version">v1.0</span>
             </div>
-        </header>
-
-        <!-- AI状態表示バー -->
-        <div class="ai-status-bar hidden" id="aiStatusBar">
-            <span id="aiStatusText">AI分析準備中...</span>
+            
+            <nav class="header-nav">
+                <a href="index.html" class="nav-link active">📰 記事一覧</a>
+                <a href="pages/rss-manager.html" class="nav-link">📡 RSS管理</a>
+                <a href="pages/favorites.html" class="nav-link">⭐ お気に入り</a>
+                <a href="pages/settings.html" class="nav-link">⚙️ 設定</a>
+            </nav>
+            
+            <div class="header-actions">
+                <button id="refreshBtn" class="action-btn">
+                    🔄 更新
+                </button>
+            </div>
         </div>
-
+    </header>
+    
+    <!-- メインコンテンツ -->
+    <main class="main-content">
         <!-- フィルターバー -->
-        <section class="filter-bar">
-            <div class="filter-container">
-                <select class="filter-select" id="categoryFilter" title="カテゴリで絞り込み">
-                    <option value="all">全カテゴリ</option>
+        <section class="filters-container">
+            <div class="filter-group">
+                <label class="filter-label">カテゴリ</label>
+                <select id="categoryFilter" class="filter-select">
+                    <option value="all">すべて</option>
+                    <option value="ニュース">ニュース</option>
+                    <option value="テクノロジー">テクノロジー</option>
+                    <option value="経済">経済</option>
+                    <option value="スポーツ">スポーツ</option>
+                    <option value="エンタメ">エンタメ</option>
+                    <option value="その他">その他</option>
                 </select>
-                <select class="filter-select" id="readStatusFilter" title="既読状態で絞り込み">
-                    <option value="all">全ての記事</option>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">既読状態</label>
+                <select id="readStatusFilter" class="filter-select">
+                    <option value="all">すべて</option>
                     <option value="unread">未読のみ</option>
                     <option value="read">既読のみ</option>
                 </select>
-                <select class="filter-select" id="sortFilter" title="並び順を選択">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">並び順</label>
+                <select id="sortFilter" class="filter-select">
                     <option value="interest">AI興味度順</option>
                     <option value="date">更新日時順</option>
                     <option value="domain">ドメイン順</option>
                     <option value="keyword-match">キーワード一致度順</option>
                 </select>
             </div>
-        </section>
-    </div>
-
-    <!-- メインコンテンツエリア -->
-    <div class="main-content-wrapper">
-        <!-- 記事一覧エリア -->
-        <main class="main-content">
-            <div class="articles-container" id="articlesContainer">
-                <div class="loading-message" id="loadingMessage">
-                    <div class="loading-spinner"></div>
-                    <div>AI機能付きニュースシステムを初期化中...</div>
-                    <div style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">
-                        TensorFlow.js読み込み・RSS取得・AI分析を実行しています
-                    </div>
+            
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span>表示:</span>
+                    <span class="stat-value" id="filteredCount">0</span>
                 </div>
-                <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
-                    <div style="text-align: center; padding: 3rem; color: #666;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📰</div>
-                        <h3>記事がありません</h3>
-                        <p>RSSフィードを追加して記事を取得してください</p>
-                        <button class="btn btn-primary" onclick="location.href='pages/rss-manager.html'">
-                            RSS管理画面へ
-                        </button>
-                    </div>
+                <div class="stat-item">
+                    <span>総数:</span>
+                    <span class="stat-value" id="totalCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>未読:</span>
+                    <span class="stat-value" id="unreadCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>お気に入り:</span>
+                    <span class="stat-value" id="favoritesCount">0</span>
                 </div>
             </div>
-        </main>
+        </section>
+        
+        <!-- 記事一覧エリア -->
+        <section class="articles-section">
+            <div id="articlesContainer" class="articles-container">
+                <!-- 記事カードがここに動的に生成されます -->
+            </div>
+        </section>
+    </main>
+    
+    <!-- 通知エリア -->
+    <div id="notificationArea" class="notification-area">
+        <!-- 通知がここに動的に表示されます -->
     </div>
-
-    <!-- エラー通知エリア -->
-    <div class="notification-area" id="notificationArea"></div>
-
-    <!-- スクリプト読み込み -->
+    
+    <!-- 読み込み中オーバーレイ -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- フローティングアクションボタン -->
+    <div class="fab-container">
+        <a href="pages/rss-manager.html" class="fab" title="RSS追加">
+            ➕
+        </a>
+    </div>
+    
+    <!-- JavaScript読み込み -->
     <script src="scripts/data-manager.js"></script>
-    <script src="scripts/utils.js"></script>
     <script src="scripts/rss-fetcher.js"></script>
+    <script src="scripts/ai-engine.js"></script>
     <script src="scripts/article-card.js"></script>
     <script src="scripts/ui-controller.js"></script>
-    <script src="scripts/ai-engine.js"></script>
     <script src="scripts/app.js"></script>
+    
+    <script>
+        // 初期データ設定（デモ用RSSフィード）
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 初期RSSフィード設定
+                const defaultRSSFeeds = [
+                    {
+                        id: 'nhk-news',
+                        name: 'NHKニュース',
+                        url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                        category: 'ニュース',
+                        enabled: true,
+                        lastUpdate: null,
+                        addedDate: new Date().toISOString()
+                    }
+                ];
+                
+                // 既存のRSSフィード確認
+                const existingFeeds = JSON.parse(localStorage.getItem('yourNews_rssFeeds') || 'null');
+                
+                if (!existingFeeds) {
+                    console.log('初期RSSフィード設定中...');
+                    const saveData = {
+                        feeds: defaultRSSFeeds,
+                        lastUpdate: new Date().toISOString(),
+                        version: '1.0'
+                    };
+                    localStorage.setItem('yourNews_rssFeeds', JSON.stringify(saveData));
+                    console.log('初期RSSフィード設定完了');
+                }
+                
+                // 初期キーワード設定
+                const existingKeywords = JSON.parse(localStorage.getItem('yourNews_keywords') || 'null');
+                
+                if (!existingKeywords) {
+                    console.log('初期キーワード設定中...');
+                    const defaultKeywords = {
+                        interestWords: [],
+                        ngWords: [],
+                        lastUpdated: new Date().toISOString()
+                    };
+                    localStorage.setItem('yourNews_keywords', JSON.stringify(defaultKeywords));
+                    console.log('初期キーワード設定完了');
+                }
+                
+            } catch (error) {
+                console.error('初期設定エラー:', error);
+            }
+        });
+        
+        // ページ表示時のフィードバック状態復元
+        window.addEventListener('pageshow', () => {
+            // フィードバック処理中のボタンを再有効化
+            document.querySelectorAll('.feedback-btn:disabled').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        });
+        
+        // PWA インストールプロンプト
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // インストール可能通知（1回のみ）
+            const hasShownInstallPrompt = localStorage.getItem('hasShownInstallPrompt');
+            if (!hasShownInstallPrompt) {
+                setTimeout(() => {
+                    if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                        window.yourNewsApp.showNotification(
+                            'このアプリをホーム画面に追加できます。ブラウザのメニューから「ホーム画面に追加」を選択してください。',
+                            'info',
+                            8000
+                        );
+                    }
+                    localStorage.setItem('hasShownInstallPrompt', 'true');
+                }, 5000);
+            }
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            console.log('PWAインストール完了');
+            deferredPrompt = null;
+            
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification(
+                    'アプリがインストールされました！オフラインでも利用できます。',
+                    'success',
+                    5000
+                );
+            }
+        });
+        
+        // エラーハンドリング
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.error);
+            
+            // 重要なエラーのみユーザーに通知
+            if (event.error && event.error.message) {
+                const message = event.error.message;
+                if (message.includes('TensorFlow') || message.includes('AI') || message.includes('RSS')) {
+                    if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                        window.yourNewsApp.showNotification(
+                            'アプリケーションでエラーが発生しました。ページを再読み込みしてください。',
+                            'error'
+                        );
+                    }
+                }
+            }
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled Promise Rejection:', event.reason);
+            event.preventDefault();
+        });
+        
+        // パフォーマンス監視
+        window.addEventListener('load', () => {
+            if ('performance' in window) {
+                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                console.log(`ページ読み込み時間: ${loadTime}ms`);
+                
+                // 5秒以上かかった場合は警告
+                if (loadTime > 5000) {
+                    console.warn('ページ読み込みが遅いです。ネットワーク接続を確認してください。');
+                }
+            }
+        });
+        
+        // ネットワーク状態監視
+        window.addEventListener('online', () => {
+            console.log('オンライン復帰');
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification('ネットワークに接続されました', 'success', 3000);
+            }
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('オフライン検出');
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification('オフラインモードです。保存済み記事のみ表示されます。', 'warning', 5000);
+            }
+        });
+        
+        // デバッグ用グローバル関数
+        window.debugApp = function() {
+            console.log('=== アプリケーションデバッグ情報 ===');
+            
+            if (window.yourNewsApp) {
+                console.log('YourNewsApp初期化済み:', window.yourNewsApp.initialized);
+                console.log('AI機能有効:', !window.yourNewsApp.aiDisabled);
+                console.log('統計情報:', window.yourNewsApp.getStats());
+            }
+            
+            // ローカルストレージ情報
+            console.log('ローカルストレージキー:', Object.keys(localStorage).filter(key => key.startsWith('yourNews_')));
+            
+            // パフォーマンス情報
+            if ('performance' in window && performance.memory) {
+                console.log('メモリ使用量:', {
+                    used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) + 'MB',
+                    total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024) + 'MB',
+                    limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+                });
+            }
+            
+            console.log('=== デバッグ情報完了 ===');
+        };
+        
+        // 開発者ツール検出（オプション）
+        let devtools = {
+            open: false,
+            orientation: null
+        };
+        
+        setInterval(() => {
+            if (window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200) {
+                if (!devtools.open) {
+                    devtools.open = true;
+                    console.log('開発者ツールが開かれました');
+                    console.log('デバッグ関数: window.debugApp() を実行してください');
+                }
+            } else {
+                devtools.open = false;
+            }
+        }, 1000);
+    </script>
 </body>
 </html>
