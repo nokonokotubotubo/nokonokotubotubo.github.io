@@ -1,602 +1,571 @@
-// DataManager - NGドメイン機能削除版・学習済みスコア完全保持版
-
+// DataManager - NGドメイン機能削除・記事状態保持機能強化版
 class DataManager {
     constructor() {
         this.storageAvailable = false;
         this.STORAGE_KEYS = {
             ARTICLES: 'yourNews_articles',
-            RSS_FEEDS: 'yourNews_rssFeeds', 
+            RSS_FEEDS: 'yourNews_rssFeeds',
             USER_PREFERENCES: 'yourNews_userPrefs',
             AI_MODEL: 'yourNews_aiModel',
             FEEDBACK_HISTORY: 'yourNews_feedback',
             KEYWORDS: 'yourNews_keywords'
         };
     }
-
+    
     async initialize() {
         try {
             console.log('DataManager初期化開始');
             
-            // LocalStorage利用可能性チェック
+            // localStorage利用可能性チェック
             this.storageAvailable = this.checkStorageAvailability();
             
             if (!this.storageAvailable) {
-                console.warn('LocalStorageが利用できません - インメモリモードで動作');
-                this.initializeMemoryStorage();
+                throw new Error('localStorage is not available');
             }
-
-            console.log(`DataManager初期化完了 - Storage: ${this.storageAvailable ? 'LocalStorage' : 'Memory'}`);
+            
+            console.log('localStorage利用可能');
+            
+            // データ整合性チェック
+            await this.validateStorageData();
+            
+            console.log('DataManager初期化完了');
             return true;
+            
         } catch (error) {
             console.error('DataManager初期化エラー:', error);
             return false;
         }
     }
-
+    
     checkStorageAvailability() {
         try {
-            const testKey = 'storageTest';
-            localStorage.setItem(testKey, 'test');
-            localStorage.removeItem(testKey);
+            const test = 'test';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
             return true;
-        } catch (error) {
-            console.warn('LocalStorage利用不可:', error.message);
+        } catch (e) {
             return false;
         }
     }
-
-    initializeMemoryStorage() {
-        this.memoryStorage = new Map();
-        console.log('インメモリストレージ初期化完了');
-    }
-
-    // RSSフィード読み込み
-    async loadRssFeeds() {
+    
+    async validateStorageData() {
         try {
-            console.log('RSSフィード読み込み開始');
-            
-            if (this.storageAvailable) {
-                const stored = localStorage.getItem(this.STORAGE_KEYS.RSS_FEEDS);
-                if (stored) {
-                    const feeds = JSON.parse(stored);
-                    console.log(`RSSフィード読み込み完了: ${feeds.length}件`);
-                    return Array.isArray(feeds) ? feeds : [];
+            // 各ストレージキーの整合性チェック
+            Object.values(this.STORAGE_KEYS).forEach(key => {
+                try {
+                    const data = localStorage.getItem(key);
+                    if (data) {
+                        JSON.parse(data);
+                    }
+                } catch (e) {
+                    console.warn(`Invalid data found for key ${key}, clearing...`);
+                    localStorage.removeItem(key);
                 }
-            } else {
-                const feeds = this.memoryStorage.get(this.STORAGE_KEYS.RSS_FEEDS) || [];
-                console.log(`RSSフィード読み込み完了（メモリ）: ${feeds.length}件`);
-                return feeds;
-            }
-
-            // デフォルトフィード設定
-            const defaultFeeds = this.getDefaultRSSFeeds();
-            console.log(`デフォルトRSSフィード使用: ${defaultFeeds.length}件`);
-            return defaultFeeds;
+            });
         } catch (error) {
-            console.error('RSSフィード読み込みエラー:', error);
-            return this.getDefaultRSSFeeds();
+            console.error('Storage validation error:', error);
         }
     }
-
-    // RSSフィード保存
-    async saveRssFeeds(feeds) {
-        try {
-            if (!Array.isArray(feeds)) {
-                throw new Error('フィードデータは配列である必要があります');
-            }
-
-            console.log(`RSSフィード保存開始: ${feeds.length}件`);
-
-            // データ検証
-            const validatedFeeds = feeds.map((feed, index) => {
-                if (!feed.url || !feed.name) {
-                    console.warn(`無効なフィードをスキップ: index ${index}`, feed);
-                    return null;
-                }
-                
-                return {
-                    id: feed.id || `feed_${Date.now()}_${index}`,
-                    name: feed.name,
-                    url: feed.url,
-                    enabled: feed.enabled !== false, // デフォルトtrue
-                    category: feed.category || 'その他',
-                    addedAt: feed.addedAt || new Date().toISOString(),
-                    lastFetched: feed.lastFetched || null,
-                    fetchCount: feed.fetchCount || 0,
-                    errorCount: feed.errorCount || 0,
-                    lastError: feed.lastError || null
-                };
-            }).filter(feed => feed !== null);
-
-            if (this.storageAvailable) {
-                localStorage.setItem(this.STORAGE_KEYS.RSS_FEEDS, JSON.stringify(validatedFeeds));
-            } else {
-                this.memoryStorage.set(this.STORAGE_KEYS.RSS_FEEDS, validatedFeeds);
-            }
-
-            console.log(`RSSフィード保存完了: ${validatedFeeds.length}件（無効: ${feeds.length - validatedFeeds.length}件スキップ）`);
-            return validatedFeeds;
-        } catch (error) {
-            console.error('RSSフィード保存エラー:', error);
-            throw error;
-        }
-    }
-
-    // デフォルトRSSフィード設定
-    getDefaultRSSFeeds() {
-        return [
-            {
-                id: 'default_nhk_news',
-                name: 'NHKニュース',
-                url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
-                enabled: true,
-                category: 'ニュース',
-                addedAt: new Date().toISOString(),
-                lastFetched: null,
-                fetchCount: 0,
-                errorCount: 0,
-                lastError: null
-            },
-            {
-                id: 'default_gigazine',
-                name: 'GIGAZINE',
-                url: 'https://gigazine.net/news/rss_2.0/',
-                enabled: true,
-                category: 'テクノロジー',
-                addedAt: new Date().toISOString(),
-                lastFetched: null,
-                fetchCount: 0,
-                errorCount: 0,
-                lastError: null
-            }
-        ];
-    }
-
-    // 記事データ管理
-    async loadArticles() {
-        try {
-            console.log('記事読み込み開始');
-            
-            if (this.storageAvailable) {
-                const stored = localStorage.getItem(this.STORAGE_KEYS.ARTICLES);
-                if (stored) {
-                    const articles = JSON.parse(stored);
-                    console.log(`記事読み込み完了: ${articles.length}件`);
-                    return Array.isArray(articles) ? articles : [];
-                }
-            } else {
-                const articles = this.memoryStorage.get(this.STORAGE_KEYS.ARTICLES) || [];
-                console.log(`記事読み込み完了（メモリ）: ${articles.length}件`);
-                return articles;
-            }
-
-            console.log('記事データなし');
-            return [];
-        } catch (error) {
-            console.error('記事読み込みエラー:', error);
-            return [];
-        }
-    }
-
+    
+    // 記事保存時のマージ処理（AI計算結果保持対応）
     async saveArticles(newArticles) {
         try {
-            if (!Array.isArray(newArticles)) {
-                throw new Error('記事データは配列である必要があります');
-            }
-
-            console.log(`記事保存処理開始: 新着${newArticles.length}件`);
-
-            // 既存記事読み込み
+            console.log(`記事保存開始: ${newArticles.length}件`);
+            
+            // 既存記事データを読み込み
             const existingArticles = await this.loadArticles();
-            
-            // 記事マージ処理（学習済みスコア保持強化）
-            const mergedArticles = this.mergeArticles(existingArticles, newArticles);
-            
-            // 保存実行
-            if (this.storageAvailable) {
-                localStorage.setItem(this.STORAGE_KEYS.ARTICLES, JSON.stringify(mergedArticles));
-            } else {
-                this.memoryStorage.set(this.STORAGE_KEYS.ARTICLES, mergedArticles);
-            }
-
-            console.log(`記事保存完了: 総計${mergedArticles.length}件`);
-            return mergedArticles;
-        } catch (error) {
-            console.error('記事保存エラー:', error);
-            throw error;
-        }
-    }
-
-    // 記事マージ処理（学習済みスコア完全保持版）
-    mergeArticles(existingArticles, newArticles) {
-        try {
             const existingMap = new Map();
             
-            // 既存記事をMapに格納（高速検索用）
+            // 既存記事をURL基準でマップ化
             existingArticles.forEach(article => {
-                existingMap.set(article.articleId, article);
+                const key = this.generateStableArticleKey(article);
+                existingMap.set(key, article);
             });
-
-            const mergedArticles = [...existingArticles];
-            let addedCount = 0;
-            let updatedCount = 0;
-            let protectedCount = 0; // 学習済みスコア保護数
-
-            // 新記事を処理
-            newArticles.forEach(newArticle => {
-                const existing = existingMap.get(newArticle.articleId);
+            
+            console.log(`既存記事: ${existingArticles.length}件, 新記事: ${newArticles.length}件`);
+            
+            // 新記事と既存記事をマージ
+            const mergedArticles = newArticles.map(newArticle => {
+                const key = this.generateStableArticleKey(newArticle);
+                const existingArticle = existingMap.get(key);
                 
-                if (existing) {
-                    // 既存記事の更新（重要な状態を保持）
-                    if (this.hasImportantState(existing)) {
-                        const merged = this.mergeArticleData(existing, newArticle);
-                        const index = mergedArticles.findIndex(a => a.articleId === newArticle.articleId);
-                        if (index !== -1) {
-                            mergedArticles[index] = merged;
-                            updatedCount++;
-                            
-                            // 学習済みスコア保護の確認
-                            if (existing.feedbackHistory && existing.feedbackHistory.length > 0) {
-                                protectedCount++;
-                            }
-                        }
-                    }
+                if (existingArticle) {
+                    // 既存記事が見つかった場合はマージ
+                    return this.mergeArticleData(existingArticle, newArticle);
                 } else {
-                    // 新規記事追加
-                    mergedArticles.push(newArticle);
-                    existingMap.set(newArticle.articleId, newArticle);
-                    addedCount++;
+                    // 新記事の場合はそのまま
+                    return newArticle;
                 }
             });
-
-            console.log(`記事マージ結果: 追加${addedCount}件, 更新${updatedCount}件, 学習済み保護${protectedCount}件, 総計${mergedArticles.length}件`);
-            return mergedArticles;
+            
+            // 既存記事で新記事にない物も保持（期限内なら）
+            const newArticleKeys = new Set(newArticles.map(a => this.generateStableArticleKey(a)));
+            const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            
+            existingArticles.forEach(existingArticle => {
+                const key = this.generateStableArticleKey(existingArticle);
+                const articleDate = new Date(existingArticle.addedDate || existingArticle.publishDate).getTime();
+                
+                // 新記事にない && 1週間以内 && 重要な状態がある記事は保持
+                if (!newArticleKeys.has(key) && 
+                    articleDate > oneWeekAgo && 
+                    this.hasImportantState(existingArticle)) {
+                    mergedArticles.push(existingArticle);
+                }
+            });
+            
+            // 重複除去とソート
+            const uniqueArticles = this.removeDuplicateArticles(mergedArticles);
+            const sortedArticles = this.sortArticlesByDate(uniqueArticles);
+            
+            // 件数制限
+            const finalArticles = this.enforceArticleLimit(sortedArticles);
+            
+            // 保存実行
+            const saveData = {
+                articles: finalArticles,
+                lastUpdate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            localStorage.setItem(this.STORAGE_KEYS.ARTICLES, JSON.stringify(saveData));
+            
+            console.log(`記事保存完了: ${finalArticles.length}件 (${mergedArticles.length - finalArticles.length}件の重複除去)`);
+            return true;
+            
         } catch (error) {
-            console.error('記事マージエラー:', error);
-            // エラー時は新記事のみ返す
-            return newArticles;
+            console.error('記事保存エラー:', error);
+            return false;
         }
     }
-
-    // 重要な状態を持つ記事かチェック（NGドメイン削除版）
-    hasImportantState(article) {
-        return article.readStatus === 'read' ||
-               article.favorited === true ||
-               (article.feedbackHistory && article.feedbackHistory.length > 0);
+    
+    // 安定した記事キー生成
+    generateStableArticleKey(article) {
+        // URLを主キーとし、タイトルをサブキーとする
+        const url = article.url || '';
+        const title = (article.title || '').substring(0, 50);
+        const domain = article.domain || '';
+        
+        // URLが同じなら同一記事として扱う
+        if (url) {
+            return `${domain}_${this.simpleHash(url)}`;
+        }
+        
+        // URLがない場合はタイトル+ドメインで判定
+        return `${domain}_${this.simpleHash(title)}`;
     }
-
-    // より重要な状態を持つかチェック（NGドメイン削除版）
-    calculateStateImportance(article) {
-        let score = 0;
-        if (article.readStatus === 'read') score += 10;
-        if (article.favorited) score += 20;
-        if (article.feedbackHistory && article.feedbackHistory.length > 0) score += 15;
-        if (article.interestScore && article.interestScore !== 50) score += 5;
-        return score;
-    }
-
-    // 【重要修正】記事データマージ（学習済みスコア完全保持版）
+    
+    // 【修正】記事データマージ（NGドメイン処理削除）
     mergeArticleData(existingArticle, newArticle) {
         try {
-            console.log(`記事マージ: "${newArticle.title.substring(0, 30)}..." (既存スコア: ${existingArticle.interestScore})`);
-
-            // 【重要】学習済みスコアの優先保持ロジック
-            let finalScore = 50; // デフォルト値
-
-            // 既存記事にフィードバック履歴がある場合は、既存スコアを完全保持
-            if (existingArticle.feedbackHistory && existingArticle.feedbackHistory.length > 0) {
-                finalScore = existingArticle.interestScore !== undefined ? existingArticle.interestScore : 50;
-                console.log(`🧠 学習済みスコア完全保持: ${finalScore}点 (フィードバック${existingArticle.feedbackHistory.length}件)`);
-            } 
-            // 新記事に有効なスコアがある場合は使用（AI計算済み）
-            else if (newArticle.interestScore !== undefined && newArticle.interestScore !== 50) {
-                finalScore = newArticle.interestScore;
-                console.log(`🆕 新記事AIスコア採用: ${finalScore}点`);
-            }
-            // 既存記事にスコアがある場合は保持
-            else if (existingArticle.interestScore !== undefined && existingArticle.interestScore !== 50) {
-                finalScore = existingArticle.interestScore;
-                console.log(`📊 既存スコア保持: ${finalScore}点`);
-            }
-
+            console.log(`記事マージ: "${newArticle.title.substring(0, 30)}..." (状態保持: ${existingArticle.readStatus})`);
+            
+            // 新記事のAI計算結果を優先的に保持
             const mergedArticle = {
-                ...newArticle, // 新記事の最新データをベースに
+                // 基本データは新記事を使用
+                ...newArticle,
                 
-                // 【重要】学習・状態データは既存記事から完全保持
-                articleId: existingArticle.articleId || newArticle.articleId,
-                interestScore: finalScore, // 上記で決定したスコア
+                // AI計算結果の優先順位
+                interestScore: newArticle.interestScore !== undefined && newArticle.interestScore !== 50 
+                              ? newArticle.interestScore 
+                              : (existingArticle.interestScore !== undefined 
+                                 ? existingArticle.interestScore 
+                                 : 50),
+                
+                // ユーザー状態は既存記事を保持
                 readStatus: existingArticle.readStatus || 'unread',
                 favorited: existingArticle.favorited || false,
+                // 【修正】NGドメイン処理を削除
+                // ngDomain: existingArticle.ngDomain || false,
+                
+                // フィードバック履歴は既存を保持
                 feedbackHistory: existingArticle.feedbackHistory || [],
+                
+                // 既読日時は既存を保持
                 lastReadAt: existingArticle.lastReadAt,
-                lastFeedbackAt: existingArticle.lastFeedbackAt,
+                
+                // マッチキーワードは新記事を使用
                 matchedKeywords: newArticle.matchedKeywords || existingArticle.matchedKeywords || [],
                 
-                // マージ情報
-                lastMerged: new Date().toISOString(),
-                mergeCount: (existingArticle.mergeCount || 0) + 1,
-                
-                // 【追加】学習済み保護フラグ
-                isLearned: existingArticle.feedbackHistory && existingArticle.feedbackHistory.length > 0
+                // 記事ID（安定性重視）
+                articleId: existingArticle.articleId || newArticle.articleId
             };
-
-            // 【重要】学習済み記事のスコア変更を防ぐ
-            if (mergedArticle.isLearned && mergedArticle.interestScore !== existingArticle.interestScore) {
-                console.warn(`⚠️ 学習済み記事のスコア変更を検出し、既存スコアに戻します: ${mergedArticle.interestScore} → ${existingArticle.interestScore}`);
-                mergedArticle.interestScore = existingArticle.interestScore;
+            
+            // デバッグログ追加
+            if (newArticle.interestScore !== undefined && newArticle.interestScore !== 50) {
+                console.log(`✅ AI計算結果保持: "${newArticle.title.substring(0, 30)}..." = ${newArticle.interestScore}点 → ${mergedArticle.interestScore}点`);
             }
-
-            console.log(`✅ マージ完了: 最終スコア ${finalScore}点 ${mergedArticle.isLearned ? '(学習済み保護)' : '(新規/更新)'}`);
+            
             return mergedArticle;
+            
         } catch (error) {
             console.error('記事マージエラー:', error);
             return newArticle;
         }
     }
-
-    // 個別記事更新
+    
+    // 【修正】重要な状態を持つ記事かチェック（NGドメイン削除）
+    hasImportantState(article) {
+        return article.readStatus === 'read' ||
+               article.favorited === true ||
+               (article.feedbackHistory && article.feedbackHistory.length > 0);
+        // 【修正】NGドメイン条件を削除
+        // || article.ngDomain === true
+    }
+    
+    // 重複記事除去（修正版）
+    removeDuplicateArticles(articles) {
+        const seen = new Set();
+        const unique = [];
+        
+        articles.forEach(article => {
+            const key = this.generateStableArticleKey(article);
+            
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(article);
+            } else {
+                // 既に存在する場合は、より重要な状態を持つ方を採用
+                const existingIndex = unique.findIndex(a => this.generateStableArticleKey(a) === key);
+                if (existingIndex !== -1) {
+                    const existing = unique[existingIndex];
+                    if (this.hasMoreImportantState(article, existing)) {
+                        unique[existingIndex] = article;
+                    }
+                }
+            }
+        });
+        
+        console.log(`🔄 Removed ${articles.length - unique.length} duplicate articles`);
+        return unique;
+    }
+    
+    // より重要な状態を持つかチェック
+    hasMoreImportantState(articleA, articleB) {
+        const scoreA = this.calculateStateImportance(articleA);
+        const scoreB = this.calculateStateImportance(articleB);
+        return scoreA > scoreB;
+    }
+    
+    // 【修正】状態重要度計算（NGドメイン削除）
+    calculateStateImportance(article) {
+        let score = 0;
+        
+        if (article.readStatus === 'read') score += 10;
+        if (article.favorited) score += 20;
+        if (article.feedbackHistory && article.feedbackHistory.length > 0) score += 15;
+        if (article.interestScore && article.interestScore !== 50) score += 5;
+        // 【修正】NGドメインスコアを削除
+        // if (article.ngDomain) score += 5;
+        
+        return score;
+    }
+    
+    // 日付順ソート
+    sortArticlesByDate(articles) {
+        return articles.sort((a, b) => {
+            const dateA = new Date(a.publishDate || a.addedDate);
+            const dateB = new Date(b.publishDate || b.addedDate);
+            return dateB - dateA; // 新しい順
+        });
+    }
+    
+    // 件数制限（改善版）
+    enforceArticleLimit(articles) {
+        const maxArticles = 1000;
+        
+        if (articles.length <= maxArticles) {
+            return articles;
+        }
+        
+        // 重要な記事を優先的に残す
+        const important = articles.filter(a => this.hasImportantState(a));
+        const normal = articles.filter(a => !this.hasImportantState(a));
+        
+        // 重要な記事 + 残り枠で新しい記事
+        const remainingSlots = maxArticles - important.length;
+        const finalArticles = [
+            ...important,
+            ...normal.slice(0, Math.max(0, remainingSlots))
+        ];
+        
+        return this.sortArticlesByDate(finalArticles);
+    }
+    
+    // ハッシュ関数
+    simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 32bit integer
+        }
+        return Math.abs(hash);
+    }
+    
+    // 記事状態更新（既存記事IDでの更新）
     async updateArticle(articleId, updates) {
         try {
-            console.log(`記事更新: ${articleId}`, updates);
-            
             const articles = await this.loadArticles();
             const articleIndex = articles.findIndex(a => a.articleId === articleId);
             
             if (articleIndex === -1) {
-                throw new Error(`記事が見つかりません: ${articleId}`);
+                console.warn(`記事が見つかりません: ${articleId}`);
+                return false;
             }
-
+            
             // 記事更新
             articles[articleIndex] = {
                 ...articles[articleIndex],
                 ...updates,
                 lastUpdated: new Date().toISOString()
             };
-
-            // 保存
-            if (this.storageAvailable) {
-                localStorage.setItem(this.STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
-            } else {
-                this.memoryStorage.set(this.STORAGE_KEYS.ARTICLES, articles);
-            }
-
-            console.log(`記事更新完了: ${articleId}`);
-            return articles[articleIndex];
+            
+            // 保存（マージ処理をスキップして直接保存）
+            const saveData = {
+                articles: articles,
+                lastUpdate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            localStorage.setItem(this.STORAGE_KEYS.ARTICLES, JSON.stringify(saveData));
+            
+            console.log(`記事状態更新: ${articleId}`, updates);
+            return true;
+            
         } catch (error) {
-            console.error('記事更新エラー:', error);
-            throw error;
+            console.error('記事状態更新エラー:', error);
+            return false;
         }
     }
-
-    // 汎用データ管理
-    async loadData(key) {
+    
+    // 記事読み込み
+    async loadArticles() {
         try {
-            if (this.storageAvailable) {
-                const stored = localStorage.getItem(key);
-                return stored ? JSON.parse(stored) : null;
-            } else {
-                return this.memoryStorage.get(key) || null;
+            const data = localStorage.getItem(this.STORAGE_KEYS.ARTICLES);
+            
+            if (!data) {
+                console.log('保存された記事がありません');
+                return [];
             }
+            
+            const parsed = JSON.parse(data);
+            const articles = parsed.articles || [];
+            
+            console.log(`記事読み込み完了: ${articles.length}件`);
+            return articles;
+            
         } catch (error) {
-            console.error(`データ読み込みエラー (${key}):`, error);
-            return null;
+            console.error('記事読み込みエラー:', error);
+            return [];
         }
     }
-
+    
+    // RSSフィード管理
+    async saveRssFeeds(feeds) {
+        try {
+            const saveData = {
+                feeds: feeds,
+                lastUpdate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            localStorage.setItem(this.STORAGE_KEYS.RSS_FEEDS, JSON.stringify(saveData));
+            console.log(`RSSフィード保存完了: ${feeds.length}件`);
+            return true;
+            
+        } catch (error) {
+            console.error('RSSフィード保存エラー:', error);
+            return false;
+        }
+    }
+    
+    async loadRssFeeds() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEYS.RSS_FEEDS);
+            
+            if (!data) {
+                console.log('保存されたRSSフィードがありません');
+                return [];
+            }
+            
+            const parsed = JSON.parse(data);
+            const feeds = parsed.feeds || [];
+            
+            console.log(`RSSフィード読み込み完了: ${feeds.length}件`);
+            return feeds;
+            
+        } catch (error) {
+            console.error('RSSフィード読み込みエラー:', error);
+            return [];
+        }
+    }
+    
+    // ユーザー設定管理
+    async saveUserPreferences(preferences) {
+        try {
+            const saveData = {
+                preferences: preferences,
+                lastUpdate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            localStorage.setItem(this.STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(saveData));
+            console.log('ユーザー設定保存完了');
+            return true;
+            
+        } catch (error) {
+            console.error('ユーザー設定保存エラー:', error);
+            return false;
+        }
+    }
+    
+    async loadUserPreferences() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEYS.USER_PREFERENCES);
+            
+            if (!data) {
+                return {};
+            }
+            
+            const parsed = JSON.parse(data);
+            return parsed.preferences || {};
+            
+        } catch (error) {
+            console.error('ユーザー設定読み込みエラー:', error);
+            return {};
+        }
+    }
+    
+    // 汎用データ管理
     async saveData(key, data) {
         try {
-            if (this.storageAvailable) {
-                localStorage.setItem(key, JSON.stringify(data));
-            } else {
-                this.memoryStorage.set(key, data);
-            }
-            console.log(`データ保存完了: ${key}`);
-            return true;
-        } catch (error) {
-            console.error(`データ保存エラー (${key}):`, error);
-            return false;
-        }
-    }
-
-    // データ削除
-    async removeData(key) {
-        try {
-            if (this.storageAvailable) {
-                localStorage.removeItem(key);
-            } else {
-                this.memoryStorage.delete(key);
-            }
-            console.log(`データ削除完了: ${key}`);
-            return true;
-        } catch (error) {
-            console.error(`データ削除エラー (${key}):`, error);
-            return false;
-        }
-    }
-
-    // ストレージクリア
-    async clearAllData() {
-        try {
-            if (this.storageAvailable) {
-                // YourNews関連のキーのみ削除
-                Object.values(this.STORAGE_KEYS).forEach(key => {
-                    localStorage.removeItem(key);
-                });
-                
-                // その他のYourNewsキー
-                const allKeys = Object.keys(localStorage);
-                allKeys.forEach(key => {
-                    if (key.startsWith('yourNews_')) {
-                        localStorage.removeItem(key);
-                    }
-                });
-            } else {
-                this.memoryStorage.clear();
-            }
-
-            console.log('全データクリア完了');
-            return true;
-        } catch (error) {
-            console.error('データクリアエラー:', error);
-            return false;
-        }
-    }
-
-    // 統計情報取得
-    async getStorageStats() {
-        try {
-            const articles = await this.loadArticles();
-            const learnedArticles = articles.filter(a => a.feedbackHistory && a.feedbackHistory.length > 0);
-            
-            const stats = {
-                storageType: this.storageAvailable ? 'LocalStorage' : 'Memory',
-                articles: articles.length,
-                learnedArticles: learnedArticles.length, // 学習済み記事数
-                rssFeeds: (await this.loadRssFeeds()).length,
-                totalSize: 0,
-                lastUpdate: new Date().toISOString()
+            const saveData = {
+                data: data,
+                timestamp: Date.now(),
+                version: '1.0'
             };
-
-            if (this.storageAvailable) {
-                // ストレージサイズ計算
-                let totalSize = 0;
-                Object.values(this.STORAGE_KEYS).forEach(key => {
-                    const data = localStorage.getItem(key);
-                    if (data) {
-                        totalSize += data.length;
-                    }
-                });
-                stats.totalSize = Math.round(totalSize / 1024); // KB
-            }
-
-            return stats;
+            
+            localStorage.setItem(key, JSON.stringify(saveData));
+            return true;
+            
         } catch (error) {
-            console.error('統計情報取得エラー:', error);
+            console.error(`Data save error for key ${key}:`, error);
+            return false;
+        }
+    }
+    
+    async loadData(key) {
+        try {
+            const data = localStorage.getItem(key);
+            
+            if (!data) {
+                return null;
+            }
+            
+            const parsed = JSON.parse(data);
+            return parsed.data || null;
+            
+        } catch (error) {
+            console.error(`Data load error for key ${key}:`, error);
             return null;
         }
     }
-
+    
+    // データクリーンアップ
+    async cleanOldArticles() {
+        try {
+            const articles = await this.loadArticles();
+            const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            
+            const filteredArticles = articles.filter(article => {
+                const articleDate = new Date(article.addedDate || article.publishDate).getTime();
+                return articleDate > oneWeekAgo || this.hasImportantState(article);
+            });
+            
+            if (filteredArticles.length !== articles.length) {
+                await this.saveArticles(filteredArticles);
+                console.log(`古い記事を削除: ${articles.length - filteredArticles.length}件`);
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('古い記事削除エラー:', error);
+            return false;
+        }
+    }
+    
+    // 全データ削除
+    async clearAllData() {
+        try {
+            Object.values(this.STORAGE_KEYS).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            console.log('全データ削除完了');
+            return true;
+            
+        } catch (error) {
+            console.error('全データ削除エラー:', error);
+            return false;
+        }
+    }
+    
     // データエクスポート
     async exportData() {
         try {
             const exportData = {
-                version: '1.0',
-                exportDate: new Date().toISOString(),
                 articles: await this.loadArticles(),
                 rssFeeds: await this.loadRssFeeds(),
+                userPreferences: await this.loadUserPreferences(),
                 keywords: await this.loadData(this.STORAGE_KEYS.KEYWORDS),
-                userPreferences: await this.loadData(this.STORAGE_KEYS.USER_PREFERENCES)
+                feedback: await this.loadData(this.STORAGE_KEYS.FEEDBACK_HISTORY),
+                exportDate: new Date().toISOString(),
+                version: '1.0'
             };
-
-            console.log('データエクスポート完了');
+            
             return exportData;
+            
         } catch (error) {
             console.error('データエクスポートエラー:', error);
-            throw error;
-        }
-    }
-
-    // データインポート
-    async importData(importData) {
-        try {
-            if (!importData || typeof importData !== 'object') {
-                throw new Error('無効なインポートデータ');
-            }
-
-            console.log('データインポート開始');
-
-            // バックアップ作成
-            const backup = await this.exportData();
-            
-            try {
-                // データインポート実行
-                if (importData.articles) {
-                    await this.saveArticles(importData.articles);
-                }
-                if (importData.rssFeeds) {
-                    await this.saveRssFeeds(importData.rssFeeds);
-                }
-                if (importData.keywords) {
-                    await this.saveData(this.STORAGE_KEYS.KEYWORDS, importData.keywords);
-                }
-                if (importData.userPreferences) {
-                    await this.saveData(this.STORAGE_KEYS.USER_PREFERENCES, importData.userPreferences);
-                }
-
-                console.log('データインポート完了');
-                return true;
-            } catch (importError) {
-                // インポート失敗時はバックアップから復元
-                console.error('インポート失敗、バックアップから復元:', importError);
-                await this.restoreFromBackup(backup);
-                throw importError;
-            }
-        } catch (error) {
-            console.error('データインポートエラー:', error);
-            throw error;
-        }
-    }
-
-    // バックアップから復元
-    async restoreFromBackup(backup) {
-        try {
-            if (backup.articles) {
-                await this.saveArticles(backup.articles);
-            }
-            if (backup.rssFeeds) {
-                await this.saveRssFeeds(backup.rssFeeds);
-            }
-            if (backup.keywords) {
-                await this.saveData(this.STORAGE_KEYS.KEYWORDS, backup.keywords);
-            }
-            if (backup.userPreferences) {
-                await this.saveData(this.STORAGE_KEYS.USER_PREFERENCES, backup.userPreferences);
-            }
-            console.log('バックアップからの復元完了');
-        } catch (error) {
-            console.error('バックアップ復元エラー:', error);
-            throw error;
-        }
-    }
-
-    // 学習済み記事の保護状況確認
-    async getLearningProtectionStats() {
-        try {
-            const articles = await this.loadArticles();
-            const protectedArticles = articles.filter(article => 
-                article.feedbackHistory && article.feedbackHistory.length > 0
-            );
-
-            const stats = {
-                totalArticles: articles.length,
-                protectedArticles: protectedArticles.length,
-                protectionRate: articles.length > 0 ? 
-                    Math.round((protectedArticles.length / articles.length) * 100) : 0,
-                avgFeedbackCount: protectedArticles.length > 0 ?
-                    Math.round(protectedArticles.reduce((sum, a) => sum + a.feedbackHistory.length, 0) / protectedArticles.length) : 0,
-                lastUpdate: new Date().toISOString()
-            };
-
-            return stats;
-        } catch (error) {
-            console.error('学習保護統計取得エラー:', error);
             return null;
         }
     }
-
-    // デバッグ情報取得
-    async getDebugInfo() {
-        const stats = await this.getStorageStats();
-        const learningStats = await this.getLearningProtectionStats();
-        
-        return {
-            initialized: true,
-            storageAvailable: this.storageAvailable,
-            stats: stats,
-            learningProtection: learningStats,
-            storageKeys: this.STORAGE_KEYS,
-            memoryStorageActive: !this.storageAvailable,
-            timestamp: new Date().toISOString()
-        };
+    
+    // データインポート
+    async importData(importData) {
+        try {
+            if (!importData || !importData.version) {
+                throw new Error('無効なインポートデータ');
+            }
+            
+            if (importData.articles) {
+                await this.saveArticles(importData.articles);
+            }
+            
+            if (importData.rssFeeds) {
+                await this.saveRssFeeds(importData.rssFeeds);
+            }
+            
+            if (importData.userPreferences) {
+                await this.saveUserPreferences(importData.userPreferences);
+            }
+            
+            if (importData.keywords) {
+                await this.saveData(this.STORAGE_KEYS.KEYWORDS, importData.keywords);
+            }
+            
+            if (importData.feedback) {
+                await this.saveData(this.STORAGE_KEYS.FEEDBACK_HISTORY, importData.feedback);
+            }
+            
+            console.log('データインポート完了');
+            return true;
+            
+        } catch (error) {
+            console.error('データインポートエラー:', error);
+            return false;
+        }
     }
 }
