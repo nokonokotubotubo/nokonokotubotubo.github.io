@@ -1,4 +1,4 @@
-// YourNewsApp - フィードバック機能完全対応版
+// YourNewsApp - フィードバック機能安定化版
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -10,7 +10,7 @@ class YourNewsApp {
         this.initialized = false;
         this.aiDisabled = false;
         
-        // フィードバック処理制御
+        // フィードバック処理制御（安定化）
         this.feedbackProcessing = false;
         this.feedbackQueue = [];
         this.processingArticles = new Set();
@@ -209,7 +209,7 @@ class YourNewsApp {
         }
     }
     
-    // 【核心機能】フィードバック処理（重複防止・点数反映対応）
+    // 【安定化】フィードバック処理（確実なスコア反映・重複防止）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
@@ -217,7 +217,7 @@ class YourNewsApp {
                 return;
             }
             
-            // 記事単位での重複防止
+            // 記事単位での重複防止（安定化）
             if (this.processingArticles.has(articleId)) {
                 console.log(`フィードバック処理中のため無視: ${articleId}`);
                 return;
@@ -261,7 +261,7 @@ class YourNewsApp {
                     
                     await this.aiEngine.processFeedback(article, feedback);
                     
-                    // 新しい興味度スコア再計算
+                    // 【重要】新しい興味度スコア再計算
                     const newScore = await this.aiEngine.calculateInterestScore(article);
                     article.interestScore = newScore;
                     
@@ -293,7 +293,7 @@ class YourNewsApp {
                 console.log(`🚫 NG設定: ${article.domain} の記事 ${ngDomainCount}件を非表示`);
             }
             
-            // データ保存
+            // 【重要】データ保存（変更されたarticle配列を保存）
             await this.dataManager.saveArticles(articles);
             
             // UI即座更新
