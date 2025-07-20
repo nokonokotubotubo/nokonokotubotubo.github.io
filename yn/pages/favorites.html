@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="お気に入り画面 - あなたのニュース">
+    <meta name="description" content="お気に入り記事管理 - あなたのニュース">
     <title>お気に入り - あなたのニュース</title>
     
     <!-- PWA設定 -->
     <meta name="theme-color" content="#2196F3">
     <link rel="manifest" href="../assets/manifest.json">
-    
-    <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     
     <!-- スタイルシート -->
     <link rel="stylesheet" href="../styles/main.css">
@@ -27,170 +24,185 @@
             padding: 2rem;
         }
         
-        .favorites-header {
-            background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .favorites-title {
-            color: #333;
-            margin: 0 0 1rem 0;
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-        
-        .favorites-stats {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            min-width: 100px;
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2196F3;
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            color: #666;
+        .page-header {
             text-align: center;
-        }
-        
-        .favorites-controls {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #FFC107;
         }
         
-        .controls-row {
+        .page-title {
+            color: #FFC107;
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .page-description {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .favorites-actions {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #fff8e1;
+            border-radius: 8px;
+            border: 1px solid #ffecb3;
             flex-wrap: wrap;
-        }
-        
-        .search-filter-group {
-            display: flex;
             gap: 1rem;
-            flex: 1;
+        }
+        
+        .favorites-count {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f57c00;
+            display: flex;
             align-items: center;
+            gap: 0.5rem;
         }
         
-        .search-box {
-            flex: 1;
-            min-width: 200px;
-            padding: 0.8rem;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        
-        .search-box:focus {
-            outline: none;
-            border-color: #2196F3;
-            box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
-        }
-        
-        .filter-select {
-            padding: 0.8rem;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            background: white;
-            font-size: 1rem;
-            min-width: 150px;
-        }
-        
-        .filter-select:focus {
-            outline: none;
-            border-color: #2196F3;
+        .count-badge {
+            background: #FFC107;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
         }
         
         .bulk-actions {
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            flex-wrap: wrap;
         }
         
-        .bulk-select-all {
-            transform: scale(1.2);
-            margin-right: 0.5rem;
-        }
-        
-        .bulk-btn {
-            padding: 0.8rem 1.2rem;
+        .bulk-select-btn {
+            background: #2196F3;
+            color: white;
             border: none;
-            border-radius: 4px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
         
-        .bulk-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .bulk-select-btn:hover {
+            background: #1976D2;
+            transform: translateY(-1px);
         }
         
-        .bulk-remove-btn {
+        .bulk-select-btn.active {
+            background: #FF9800;
+        }
+        
+        .bulk-delete-btn {
             background: #f44336;
             color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            opacity: 0.6;
+            pointer-events: none;
         }
         
-        .bulk-remove-btn:hover:not(:disabled) {
+        .bulk-delete-btn.enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .bulk-delete-btn:hover {
             background: #d32f2f;
         }
         
-        .bulk-export-btn {
+        .export-btn {
             background: #4CAF50;
             color: white;
-        }
-        
-        .bulk-export-btn:hover:not(:disabled) {
-            background: #388E3C;
-        }
-        
-        .sort-controls {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        
-        .sort-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
         
-        .sort-btn.active {
-            background: #2196F3;
-            color: white;
-            border-color: #2196F3;
+        .export-btn:hover {
+            background: #45a049;
         }
         
-        .sort-btn:hover:not(.active) {
-            background: #f5f5f5;
+        .favorites-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            min-width: 150px;
+        }
+        
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .filter-select {
+            padding: 0.5rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #FFC107;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #FFC107;
+            box-shadow: 0 0 0 3px rgba(255,193,7,0.1);
         }
         
         .favorites-grid {
@@ -202,76 +214,66 @@
         
         .favorite-card {
             background: white;
+            border: 2px solid #e0e0e0;
             border-radius: 8px;
+            padding: 1.5rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden;
             transition: all 0.3s ease;
             position: relative;
+            cursor: pointer;
         }
         
         .favorite-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+            border-color: #FFC107;
         }
         
         .favorite-card.selected {
-            border: 2px solid #2196F3;
-            box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
+            border-color: #2196F3;
+            background: #e3f2fd;
         }
         
         .card-checkbox {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            transform: scale(1.2);
-        }
-        
-        .card-added-date {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 0.3rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            z-index: 10;
-        }
-        
-        .card-thumbnail {
-            height: 180px;
-            background: #f0f0f0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            top: 1rem;
+            right: 1rem;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
             transition: opacity 0.3s ease;
         }
         
-        .card-image.lazy {
-            opacity: 0;
+        .bulk-mode .card-checkbox {
+            opacity: 1;
         }
         
-        .thumbnail-placeholder {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3rem;
-            color: #ccc;
+        .favorite-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
         }
         
-        .card-content {
-            padding: 1.5rem;
+        .favorite-score {
+            background: linear-gradient(45deg, #FFC107, #FFB300);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            white-space: nowrap;
         }
         
-        .card-title {
-            font-size: 1.1rem;
+        .favorite-date {
+            color: #999;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        
+        .favorite-title {
+            font-size: 1.2rem;
             font-weight: 600;
             color: #333;
             margin: 0 0 0.8rem 0;
@@ -280,16 +282,11 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            cursor: pointer;
         }
         
-        .card-title:hover {
-            color: #2196F3;
-        }
-        
-        .card-excerpt {
+        .favorite-excerpt {
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             line-height: 1.5;
             margin: 0 0 1rem 0;
             display: -webkit-box;
@@ -298,99 +295,90 @@
             overflow: hidden;
         }
         
-        .card-meta {
+        .favorite-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
             font-size: 0.85rem;
             color: #999;
-        }
-        
-        .card-domain {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-            font-weight: 500;
-        }
-        
-        .card-publish-date {
-            color: #666;
-        }
-        
-        .card-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 1rem;
-            border-top: 1px solid #eee;
-        }
-        
-        .card-tags {
-            display: flex;
-            gap: 0.5rem;
+            margin-bottom: 1rem;
             flex-wrap: wrap;
+            gap: 0.5rem;
         }
         
-        .tag {
-            background: #f5f5f5;
+        .meta-domain {
+            font-weight: 600;
             color: #666;
-            padding: 0.2rem 0.5rem;
+        }
+        
+        .meta-category {
+            background: #e0e0e0;
+            color: #666;
+            padding: 0.2rem 0.6rem;
             border-radius: 12px;
             font-size: 0.75rem;
         }
         
-        .tag.category {
-            background: #fff3e0;
-            color: #ef6c00;
-        }
-        
-        .tag.interest-score {
-            background: #e8f5e8;
-            color: #2e7d32;
-            font-weight: bold;
-        }
-        
-        .card-buttons {
+        .favorite-keywords {
             display: flex;
-            gap: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-bottom: 1rem;
         }
         
-        .card-btn {
-            padding: 0.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+        .keyword-tag {
+            background: #FFEB3B;
+            color: #333;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .favorite-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
         }
         
         .read-btn {
             background: #2196F3;
             color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
         }
         
         .read-btn:hover {
             background: #1976D2;
+            transform: translateY(-1px);
         }
         
         .remove-btn {
             background: #f44336;
             color: white;
+            border: none;
+            padding: 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .remove-btn:hover {
             background: #d32f2f;
-        }
-        
-        .share-btn {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .share-btn:hover {
-            background: #388E3C;
+            transform: scale(1.1);
         }
         
         .empty-state {
@@ -399,141 +387,233 @@
             color: #666;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 2px dashed #ddd;
         }
         
-        .empty-state-icon {
-            font-size: 6rem;
-            margin-bottom: 2rem;
-            display: block;
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
             opacity: 0.5;
         }
         
-        .empty-state h3 {
+        .empty-title {
             font-size: 1.5rem;
+            font-weight: 600;
             margin: 0 0 1rem 0;
-            color: #999;
+            color: #333;
         }
         
-        .empty-state p {
-            font-size: 1rem;
+        .empty-description {
             margin: 0 0 2rem 0;
             line-height: 1.6;
+            font-size: 1.1rem;
         }
         
-        .goto-main-btn {
-            background: #2196F3;
+        .empty-action {
+            background: #FFC107;
             color: white;
             border: none;
             padding: 1rem 2rem;
-            border-radius: 6px;
-            font-size: 1rem;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
             transition: all 0.3s ease;
         }
         
-        .goto-main-btn:hover {
-            background: #1976D2;
+        .empty-action:hover {
+            background: #FFB300;
             transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255,193,7,0.3);
         }
         
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 2rem;
-            padding: 1rem;
-        }
-        
-        .page-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .page-btn:hover:not(:disabled) {
-            background: #f5f5f5;
-        }
-        
-        .page-btn.active {
-            background: #2196F3;
+        .stats-summary {
+            background: linear-gradient(135deg, #FFC107, #FFB300);
             color: white;
-            border-color: #2196F3;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
         }
         
-        .page-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
         }
         
-        .page-info {
-            color: #666;
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-label {
             font-size: 0.9rem;
-            margin: 0 1rem;
+            opacity: 0.9;
         }
         
-        /* レスポンシブ */
+        /* アニメーション */
+        .favorite-card {
+            animation: slideInUp 0.3s ease;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.3s ease forwards;
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+        }
+        
+        /* レスポンシブ対応 */
         @media (max-width: 768px) {
             .favorites-container {
                 padding: 1rem;
             }
             
-            .controls-row {
+            .favorites-actions {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 1rem;
             }
             
-            .search-filter-group {
+            .bulk-actions {
+                justify-content: space-between;
+            }
+            
+            .favorites-filters {
                 flex-direction: column;
+                gap: 1rem;
             }
             
-            .search-box {
+            .filter-group {
                 min-width: unset;
             }
             
             .favorites-grid {
                 grid-template-columns: 1fr;
-                gap: 1rem;
             }
             
-            .favorites-stats {
-                gap: 1rem;
-                justify-content: space-between;
+            .favorite-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
             }
             
-            .stat-item {
-                min-width: 80px;
-                padding: 0.8rem;
+            .favorite-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.3rem;
             }
             
-            .bulk-actions {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            
-            .sort-controls {
-                flex-wrap: wrap;
-                justify-content: center;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
         
         @media (max-width: 480px) {
-            .card-actions {
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            .bulk-actions {
                 flex-direction: column;
-                align-items: stretch;
-                gap: 1rem;
+                gap: 0.5rem;
             }
             
-            .card-buttons {
-                justify-content: space-between;
+            .bulk-select-btn,
+            .bulk-delete-btn,
+            .export-btn {
+                width: 100%;
             }
             
-            .card-btn {
-                flex: 1;
+            .favorite-actions {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .remove-btn {
+                width: 100%;
+                height: auto;
+                padding: 0.6rem;
+            }
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            .favorites-actions {
+                background: #2e2e2e;
+                border-color: #444;
+            }
+            
+            .favorites-filters {
+                background: #2e2e2e;
+                border-color: #444;
+            }
+            
+            .favorite-card {
+                background: #2e2e2e;
+                border-color: #444;
+                color: #e0e0e0;
+            }
+            
+            .favorite-card:hover {
+                border-color: #FFD54F;
+            }
+            
+            .favorite-title {
+                color: #e0e0e0;
+            }
+            
+            .empty-state {
+                background: #2e2e2e;
+                border-color: #444;
+                color: #b0b0b0;
+            }
+        }
+        
+        /* 印刷スタイル */
+        @media print {
+            .favorites-actions,
+            .favorites-filters,
+            .favorite-actions,
+            .bulk-actions {
+                display: none;
+            }
+            
+            .favorites-grid {
+                display: block;
+            }
+            
+            .favorite-card {
+                break-inside: avoid;
+                margin-bottom: 1rem;
+                border: 1px solid #000;
+                box-shadow: none;
             }
         }
     </style>
@@ -554,100 +634,109 @@
 
     <!-- メインコンテンツ -->
     <main class="favorites-container">
-        <!-- お気に入り統計ヘッダー -->
-        <section class="favorites-header">
-            <h2 class="favorites-title">📖 保存した記事</h2>
-            <div class="favorites-stats" id="favoritesStats">
+        <!-- ページヘッダー -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <span>⭐</span>
+                <span>お気に入り記事</span>
+            </h1>
+            <p class="page-description">
+                保存した記事を管理・検索して、後でじっくり読むことができます
+            </p>
+        </div>
+
+        <!-- 統計サマリー -->
+        <section class="stats-summary" id="statsSummary">
+            <h2 style="margin: 0 0 1rem 0; font-size: 1.3rem;">📊 お気に入り統計</h2>
+            <div class="stats-grid">
                 <div class="stat-item">
-                    <div class="stat-number" id="totalCount">0</div>
-                    <div class="stat-label">保存済み記事</div>
+                    <div class="stat-value" id="totalFavoritesCount">0</div>
+                    <div class="stat-label">保存記事数</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number" id="unreadCount">0</div>
-                    <div class="stat-label">未読記事</div>
+                    <div class="stat-value" id="unreadFavoritesCount">0</div>
+                    <div class="stat-label">未読記事数</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number" id="categoryCount">0</div>
+                    <div class="stat-value" id="categoriesCount">0</div>
                     <div class="stat-label">カテゴリ数</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number" id="thisWeekCount">0</div>
-                    <div class="stat-label">今週保存</div>
+                    <div class="stat-value" id="avgInterestScore">0</div>
+                    <div class="stat-label">平均興味度</div>
                 </div>
             </div>
         </section>
 
-        <!-- 検索・フィルター・操作パネル -->
-        <section class="favorites-controls">
-            <div class="controls-row">
-                <div class="search-filter-group">
-                    <input 
-                        type="text" 
-                        class="search-box" 
-                        id="searchBox"
-                        placeholder="記事タイトルや内容で検索..."
-                    >
-                    <select class="filter-select" id="categoryFilter">
-                        <option value="">全カテゴリ</option>
-                    </select>
-                    <select class="filter-select" id="readStatusFilter">
-                        <option value="">全ての記事</option>
-                        <option value="unread">未読のみ</option>
-                        <option value="read">既読のみ</option>
-                    </select>
-                </div>
-                
-                <div class="bulk-actions">
-                    <input type="checkbox" class="bulk-select-all" id="selectAll">
-                    <button class="bulk-btn bulk-remove-btn" id="bulkRemoveBtn" disabled>
-                        削除
-                    </button>
-                    <button class="bulk-btn bulk-export-btn" id="bulkExportBtn" disabled>
-                        エクスポート
-                    </button>
-                </div>
+        <!-- お気に入り操作エリア -->
+        <section class="favorites-actions">
+            <div class="favorites-count">
+                <span>⭐</span>
+                <span id="displayCount">お気に入り記事を読み込み中...</span>
+                <span class="count-badge" id="countBadge">0</span>
             </div>
             
-            <div class="controls-row">
-                <div class="sort-controls">
-                    <span style="margin-right: 1rem; color: #666;">並び順:</span>
-                    <button class="sort-btn active" data-sort="savedDate">保存日時</button>
-                    <button class="sort-btn" data-sort="publishDate">公開日時</button>
-                    <button class="sort-btn" data-sort="interestScore">興味度</button>
-                    <button class="sort-btn" data-sort="title">タイトル</button>
-                    <button class="sort-btn" data-sort="domain">ドメイン</button>
-                </div>
-                
-                <div class="bulk-actions">
-                    <span id="selectedCount">0</span>件選択中
-                </div>
+            <div class="bulk-actions">
+                <button class="bulk-select-btn" id="bulkSelectBtn">一括選択</button>
+                <button class="bulk-delete-btn" id="bulkDeleteBtn">選択削除</button>
+                <button class="export-btn" id="exportBtn">エクスポート</button>
+            </div>
+        </section>
+
+        <!-- フィルター・検索エリア -->
+        <section class="favorites-filters">
+            <div class="filter-group">
+                <label class="filter-label">カテゴリ</label>
+                <select class="filter-select" id="categoryFilter">
+                    <option value="all">全カテゴリ</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">既読状態</label>
+                <select class="filter-select" id="readStatusFilter">
+                    <option value="all">全ての記事</option>
+                    <option value="unread">未読のみ</option>
+                    <option value="read">既読のみ</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">並び順</label>
+                <select class="filter-select" id="sortFilter">
+                    <option value="date_desc">保存日時（新しい順）</option>
+                    <option value="date_asc">保存日時（古い順）</option>
+                    <option value="interest_desc">興味度（高い順）</option>
+                    <option value="interest_asc">興味度（低い順）</option>
+                    <option value="title">タイトル順</option>
+                </select>
+            </div>
+            
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput"
+                    placeholder="🔍 記事タイトル・内容で検索..."
+                >
             </div>
         </section>
 
         <!-- お気に入り記事一覧 -->
         <section class="favorites-grid" id="favoritesGrid">
-            <!-- 動的に生成される記事カード -->
+            <!-- 空の状態 -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">⭐</div>
+                <h3 class="empty-title">お気に入り記事がありません</h3>
+                <p class="empty-description">
+                    記事一覧画面で⭐ボタンを押してお気に入りに追加してください。<br>
+                    保存した記事はここで管理・検索できます。
+                </p>
+                <button class="empty-action" onclick="location.href='../index.html'">
+                    記事一覧へ戻る
+                </button>
+            </div>
         </section>
-
-        <!-- 空状態表示 -->
-        <section class="empty-state" id="emptyState" style="display: none;">
-            <span class="empty-state-icon">⭐</span>
-            <h3>保存した記事がありません</h3>
-            <p>
-                気になる記事を見つけたら「⭐」ボタンをクリックして保存しましょう。<br>
-                保存した記事はここで後からゆっくり読むことができます。
-            </p>
-            <button class="goto-main-btn" onclick="location.href='../index.html'">
-                記事を探しに行く
-            </button>
-        </section>
-
-        <!-- ページネーション -->
-        <div class="pagination" id="pagination" style="display: none;">
-            <button class="page-btn" id="prevPageBtn">‹ 前へ</button>
-            <span class="page-info" id="pageInfo">1 / 1</span>
-            <button class="page-btn" id="nextPageBtn">次へ ›</button>
-        </div>
     </main>
 
     <!-- エラー通知エリア -->
@@ -656,25 +745,26 @@
     <!-- スクリプト読み込み -->
     <script src="../scripts/data-manager.js"></script>
     <script src="../scripts/utils.js"></script>
-    <script src="../scripts/article-card.js"></script>
     
     <!-- お気に入り画面専用スクリプト -->
     <script>
         class FavoritesManager {
             constructor() {
                 this.dataManager = null;
-                this.articleCard = null;
-                this.currentPage = 1;
-                this.itemsPerPage = 12;
-                this.currentSort = 'savedDate';
+                this.allArticles = [];
+                this.favoriteArticles = [];
+                this.filteredArticles = [];
+                this.selectedArticles = new Set();
+                this.bulkMode = false;
+                this.isInitialized = false;
+                
+                // フィルター状態
                 this.currentFilters = {
-                    search: '',
-                    category: '',
-                    readStatus: ''
+                    category: 'all',
+                    readStatus: 'all',
+                    sort: 'date_desc',
+                    search: ''
                 };
-                this.selectedItems = new Set();
-                this.allFavorites = [];
-                this.filteredFavorites = [];
             }
             
             async initialize() {
@@ -685,210 +775,115 @@
                     this.dataManager = new DataManager();
                     await this.dataManager.initialize();
                     
-                    this.articleCard = new ArticleCard();
+                    // データ読み込み
+                    await this.loadFavoriteArticles();
                     
                     // イベントリスナー設定
                     this.setupEventListeners();
                     
-                    // データ読み込み・表示
-                    await this.loadAndDisplayFavorites();
+                    // UI更新
+                    this.updateFilters();
+                    this.applyFilters();
+                    this.updateStats();
                     
+                    this.isInitialized = true;
                     console.log('Favorites Manager初期化完了');
                     
                 } catch (error) {
                     console.error('Favorites Manager初期化エラー:', error);
-                    this.showNotification('お気に入り画面の初期化に失敗しました', 'error');
+                    this.showNotification('お気に入り管理機能の初期化に失敗しました', 'error');
+                }
+            }
+            
+            async loadFavoriteArticles() {
+                try {
+                    this.allArticles = await this.dataManager.loadArticles();
+                    this.favoriteArticles = this.allArticles.filter(article => article.favorited);
+                    
+                    console.log(`お気に入り記事読み込み完了: ${this.favoriteArticles.length}件`);
+                } catch (error) {
+                    console.error('お気に入り記事読み込みエラー:', error);
+                    this.favoriteArticles = [];
                 }
             }
             
             setupEventListeners() {
-                try {
-                    // 検索ボックス
-                    const searchBox = document.getElementById('searchBox');
-                    if (searchBox) {
-                        searchBox.addEventListener('input', 
-                            this.debounce(() => {
-                                this.currentFilters.search = searchBox.value.trim();
-                                this.applyFilters();
-                            }, 300)
-                        );
-                    }
-                    
-                    // フィルター選択
-                    const categoryFilter = document.getElementById('categoryFilter');
-                    if (categoryFilter) {
-                        categoryFilter.addEventListener('change', (e) => {
-                            this.currentFilters.category = e.target.value;
+                // 検索入力
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', Utils.debounce((e) => {
+                        this.currentFilters.search = e.target.value.trim();
+                        this.applyFilters();
+                    }, 300));
+                }
+                
+                // フィルター変更
+                ['categoryFilter', 'readStatusFilter', 'sortFilter'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', (e) => {
+                            const filterType = id.replace('Filter', '');
+                            this.currentFilters[filterType === 'readStatus' ? 'readStatus' : 
+                                              filterType === 'sort' ? 'sort' : 'category'] = e.target.value;
                             this.applyFilters();
                         });
                     }
-                    
-                    const readStatusFilter = document.getElementById('readStatusFilter');
-                    if (readStatusFilter) {
-                        readStatusFilter.addEventListener('change', (e) => {
-                            this.currentFilters.readStatus = e.target.value;
-                            this.applyFilters();
-                        });
-                    }
-                    
-                    // ソートボタン
-                    const sortButtons = document.querySelectorAll('.sort-btn');
-                    sortButtons.forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            // アクティブ状態更新
-                            sortButtons.forEach(b => b.classList.remove('active'));
-                            e.target.classList.add('active');
-                            
-                            this.currentSort = e.target.dataset.sort;
-                            this.applySorting();
-                        });
-                    });
-                    
-                    // 全選択チェックボックス
-                    const selectAll = document.getElementById('selectAll');
-                    if (selectAll) {
-                        selectAll.addEventListener('change', (e) => {
-                            this.toggleSelectAll(e.target.checked);
-                        });
-                    }
-                    
-                    // 一括操作ボタン
-                    const bulkRemoveBtn = document.getElementById('bulkRemoveBtn');
-                    if (bulkRemoveBtn) {
-                        bulkRemoveBtn.addEventListener('click', () => {
-                            this.bulkRemoveFavorites();
-                        });
-                    }
-                    
-                    const bulkExportBtn = document.getElementById('bulkExportBtn');
-                    if (bulkExportBtn) {
-                        bulkExportBtn.addEventListener('click', () => {
-                            this.bulkExportFavorites();
-                        });
-                    }
-                    
-                    // ページネーション
-                    const prevPageBtn = document.getElementById('prevPageBtn');
-                    if (prevPageBtn) {
-                        prevPageBtn.addEventListener('click', () => {
-                            if (this.currentPage > 1) {
-                                this.currentPage--;
-                                this.renderFavorites();
-                                this.updatePagination();
-                            }
-                        });
-                    }
-                    
-                    const nextPageBtn = document.getElementById('nextPageBtn');
-                    if (nextPageBtn) {
-                        nextPageBtn.addEventListener('click', () => {
-                            const totalPages = Math.ceil(this.filteredFavorites.length / this.itemsPerPage);
-                            if (this.currentPage < totalPages) {
-                                this.currentPage++;
-                                this.renderFavorites();
-                                this.updatePagination();
-                            }
-                        });
-                    }
-                    
-                    console.log('Favorites Manager イベントリスナー設定完了');
-                    
-                } catch (error) {
-                    console.error('イベントリスナー設定エラー:', error);
-                }
-            }
-            
-            async loadAndDisplayFavorites() {
-                try {
-                    // 全記事データ読み込み
-                    const allArticles = await this.dataManager.loadArticles();
-                    
-                    // お気に入り記事のみ抽出
-                    this.allFavorites = allArticles.filter(article => article.favorited);
-                    
-                    // 保存日時を追加（存在しない場合は現在時刻）
-                    this.allFavorites.forEach(article => {
-                        if (!article.savedDate) {
-                            article.savedDate = article.publishDate || new Date().toISOString();
-                        }
-                    });
-                    
-                    // カテゴリフィルター更新
-                    this.updateCategoryFilter();
-                    
-                    // 統計情報更新
-                    this.updateStats();
-                    
-                    // フィルタリング・表示
-                    this.applyFilters();
-                    
-                    console.log(`お気に入り記事読み込み完了: ${this.allFavorites.length}件`);
-                    
-                } catch (error) {
-                    console.error('お気に入り読み込みエラー:', error);
-                    this.showNotification('お気に入り記事の読み込みに失敗しました', 'error');
-                }
-            }
-            
-            updateCategoryFilter() {
-                const categoryFilter = document.getElementById('categoryFilter');
-                if (!categoryFilter) return;
-                
-                // 既存オプションをクリア（最初のオプション以外）
-                while (categoryFilter.children.length > 1) {
-                    categoryFilter.removeChild(categoryFilter.lastChild);
-                }
-                
-                // カテゴリ抽出
-                const categories = [...new Set(
-                    this.allFavorites.map(article => article.category).filter(Boolean)
-                )].sort();
-                
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category;
-                    option.textContent = category;
-                    categoryFilter.appendChild(option);
                 });
+                
+                // 一括操作
+                const bulkSelectBtn = document.getElementById('bulkSelectBtn');
+                if (bulkSelectBtn) {
+                    bulkSelectBtn.addEventListener('click', () => {
+                        this.toggleBulkMode();
+                    });
+                }
+                
+                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.addEventListener('click', () => {
+                        this.bulkDeleteSelected();
+                    });
+                }
+                
+                // エクスポート
+                const exportBtn = document.getElementById('exportBtn');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        this.exportFavorites();
+                    });
+                }
             }
             
-            updateStats() {
-                try {
-                    const now = new Date();
-                    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    
-                    const totalCount = this.allFavorites.length;
-                    const unreadCount = this.allFavorites.filter(article => 
-                        article.readStatus !== 'read').length;
-                    const categoryCount = new Set(
-                        this.allFavorites.map(article => article.category).filter(Boolean)
-                    ).size;
-                    const thisWeekCount = this.allFavorites.filter(article => {
-                        const savedDate = new Date(article.savedDate || article.publishDate);
-                        return savedDate >= oneWeekAgo;
-                    }).length;
-                    
-                    // DOM更新
-                    const updateStat = (id, value) => {
-                        const element = document.getElementById(id);
-                        if (element) {
-                            element.textContent = value;
-                        }
-                    };
-                    
-                    updateStat('totalCount', totalCount);
-                    updateStat('unreadCount', unreadCount);
-                    updateStat('categoryCount', categoryCount);
-                    updateStat('thisWeekCount', thisWeekCount);
-                    
-                } catch (error) {
-                    console.error('統計更新エラー:', error);
+            updateFilters() {
+                // カテゴリフィルター更新
+                const categoryFilter = document.getElementById('categoryFilter');
+                if (categoryFilter) {
+                    const categories = [...new Set(this.favoriteArticles.map(article => article.category))];
+                    categoryFilter.innerHTML = '<option value="all">全カテゴリ</option>' +
+                        categories.map(cat => `<option value="${cat}">${Utils.sanitizeHTML(cat)}</option>`).join('');
                 }
             }
             
             applyFilters() {
                 try {
-                    let filtered = [...this.allFavorites];
+                    let filtered = [...this.favoriteArticles];
+                    
+                    // カテゴリフィルター
+                    if (this.currentFilters.category !== 'all') {
+                        filtered = filtered.filter(article => article.category === this.currentFilters.category);
+                    }
+                    
+                    // 既読状態フィルター
+                    if (this.currentFilters.readStatus !== 'all') {
+                        filtered = filtered.filter(article => {
+                            if (this.currentFilters.readStatus === 'unread') {
+                                return article.readStatus !== 'read';
+                            } else if (this.currentFilters.readStatus === 'read') {
+                                return article.readStatus === 'read';
+                            }
+                            return true;
+                        });
+                    }
                     
                     // 検索フィルター
                     if (this.currentFilters.search) {
@@ -900,323 +895,173 @@
                         );
                     }
                     
-                    // カテゴリフィルター
-                    if (this.currentFilters.category) {
-                        filtered = filtered.filter(article =>
-                            article.category === this.currentFilters.category
-                        );
-                    }
+                    // ソート
+                    this.applySorting(filtered);
                     
-                    // 既読状態フィルター
-                    if (this.currentFilters.readStatus) {
-                        if (this.currentFilters.readStatus === 'unread') {
-                            filtered = filtered.filter(article => 
-                                article.readStatus !== 'read');
-                        } else if (this.currentFilters.readStatus === 'read') {
-                            filtered = filtered.filter(article => 
-                                article.readStatus === 'read');
-                        }
-                    }
-                    
-                    this.filteredFavorites = filtered;
-                    this.currentPage = 1; // フィルター適用時は1ページ目に戻る
-                    
-                    this.applySorting();
+                    this.filteredArticles = filtered;
+                    this.updateUI();
+                    this.updateDisplayCount();
                     
                 } catch (error) {
                     console.error('フィルター適用エラー:', error);
+                    this.filteredArticles = this.favoriteArticles;
+                    this.updateUI();
                 }
             }
             
-            applySorting() {
-                try {
-                    this.filteredFavorites.sort((a, b) => {
-                        switch (this.currentSort) {
-                            case 'savedDate':
-                                return new Date(b.savedDate || b.publishDate) - 
-                                       new Date(a.savedDate || a.publishDate);
-                            
-                            case 'publishDate':
-                                return new Date(b.publishDate) - new Date(a.publishDate);
-                            
-                            case 'interestScore':
-                                return (b.interestScore || 50) - (a.interestScore || 50);
-                            
-                            case 'title':
-                                return a.title.localeCompare(b.title, 'ja');
-                            
-                            case 'domain':
-                                return a.domain.localeCompare(b.domain);
-                            
-                            default:
-                                return 0;
-                        }
-                    });
-                    
-                    this.renderFavorites();
-                    this.updatePagination();
-                    
-                } catch (error) {
-                    console.error('ソート適用エラー:', error);
-                }
+            applySorting(articles) {
+                articles.sort((a, b) => {
+                    switch (this.currentFilters.sort) {
+                        case 'date_desc':
+                            return new Date(b.addedDate || b.publishDate) - new Date(a.addedDate || a.publishDate);
+                        case 'date_asc':
+                            return new Date(a.addedDate || a.publishDate) - new Date(b.addedDate || b.publishDate);
+                        case 'interest_desc':
+                            return (b.interestScore || 50) - (a.interestScore || 50);
+                        case 'interest_asc':
+                            return (a.interestScore || 50) - (b.interestScore || 50);
+                        case 'title':
+                            return a.title.localeCompare(b.title);
+                        default:
+                            return 0;
+                    }
+                });
             }
             
-            renderFavorites() {
+            updateUI() {
                 const grid = document.getElementById('favoritesGrid');
                 const emptyState = document.getElementById('emptyState');
                 
                 if (!grid) return;
                 
-                // 空状態チェック
-                if (this.filteredFavorites.length === 0) {
-                    grid.style.display = 'none';
-                    if (emptyState) emptyState.style.display = 'block';
+                if (this.filteredArticles.length === 0) {
+                    if (emptyState) {
+                        emptyState.style.display = 'block';
+                    }
                     return;
                 }
                 
-                grid.style.display = 'grid';
-                if (emptyState) emptyState.style.display = 'none';
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
                 
-                // ページング計算
-                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-                const endIndex = startIndex + this.itemsPerPage;
-                const pageItems = this.filteredFavorites.slice(startIndex, endIndex);
-                
-                // カード生成
-                grid.innerHTML = pageItems.map(article => this.createFavoriteCardHTML(article)).join('');
+                // お気に入り記事カード生成
+                grid.innerHTML = this.filteredArticles.map(article => this.createFavoriteCardHTML(article)).join('');
                 
                 // イベントリスナー再設定
-                this.attachCardEventListeners();
+                this.attachCardListeners();
+                
+                // 一括選択モード反映
+                if (this.bulkMode) {
+                    document.body.classList.add('bulk-mode');
+                }
             }
             
             createFavoriteCardHTML(article) {
-                try {
-                    const savedDate = this.formatDate(article.savedDate || article.publishDate);
-                    const publishDate = this.formatDate(article.publishDate);
-                    const excerpt = article.excerpt || '内容なし';
-                    const interestScore = article.interestScore || 50;
-                    
-                    // 画像URL生成
-                    const imageUrl = this.extractImageUrl(article.excerpt) || 
-                                   this.createPlaceholderImage(article.domain);
-                    
-                    return `
-                        <div class="favorite-card ${this.selectedItems.has(article.articleId) ? 'selected' : ''}" 
-                             data-article-id="${article.articleId}">
-                            
-                            <input type="checkbox" class="card-checkbox" 
-                                   data-article-id="${article.articleId}"
-                                   ${this.selectedItems.has(article.articleId) ? 'checked' : ''}>
-                            
-                            <div class="card-added-date">${savedDate}</div>
-                            
-                            <div class="card-thumbnail">
-                                <img class="card-image lazy" 
-                                     data-src="${imageUrl}" 
-                                     alt="${article.title}">
-                                <div class="thumbnail-placeholder">📰</div>
-                            </div>
-                            
-                            <div class="card-content">
-                                <h3 class="card-title" onclick="favoritesManager.openArticle('${article.url}', '${article.articleId}')">
-                                    ${this.sanitizeHTML(article.title)}
-                                </h3>
-                                
-                                <p class="card-excerpt">${this.sanitizeHTML(excerpt)}</p>
-                                
-                                <div class="card-meta">
-                                    <span class="card-domain">${article.domain}</span>
-                                    <span class="card-publish-date">${publishDate}</span>
-                                </div>
-                                
-                                <div class="card-actions">
-                                    <div class="card-tags">
-                                        ${article.category ? `<span class="tag category">${article.category}</span>` : ''}
-                                        <span class="tag interest-score">${interestScore}点</span>
-                                        ${article.readStatus === 'read' ? '<span class="tag">既読</span>' : '<span class="tag">未読</span>'}
-                                    </div>
-                                    
-                                    <div class="card-buttons">
-                                        <button class="card-btn read-btn" 
-                                                onclick="favoritesManager.openArticle('${article.url}', '${article.articleId}')"
-                                                title="記事を読む">
-                                            📖
-                                        </button>
-                                        <button class="card-btn share-btn" 
-                                                onclick="favoritesManager.shareArticle('${article.articleId}')"
-                                                title="記事を共有">
-                                            📤
-                                        </button>
-                                        <button class="card-btn remove-btn" 
-                                                onclick="favoritesManager.removeFavorite('${article.articleId}')"
-                                                title="お気に入りから削除">
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                const formattedDate = Utils.formatDate(article.addedDate || article.publishDate, 'relative');
+                const interestScore = article.interestScore || 50;
+                const keywords = article.matchedKeywords || [];
+                const isSelected = this.selectedArticles.has(article.articleId);
+                
+                return `
+                    <div class="favorite-card ${isSelected ? 'selected' : ''}" data-article-id="${article.articleId}">
+                        <input type="checkbox" class="card-checkbox" ${isSelected ? 'checked' : ''}>
+                        
+                        <div class="favorite-header">
+                            <div class="favorite-score">${interestScore}点</div>
+                            <div class="favorite-date">${formattedDate}</div>
                         </div>
-                    `;
-                } catch (error) {
-                    console.error('カードHTML作成エラー:', error);
-                    return '<div class="favorite-card">エラー: カード作成に失敗しました</div>';
-                }
+                        
+                        <h3 class="favorite-title">${Utils.sanitizeHTML(article.title)}</h3>
+                        
+                        <p class="favorite-excerpt">${Utils.sanitizeHTML(article.excerpt || '')}</p>
+                        
+                        <div class="favorite-meta">
+                            <span class="meta-domain">${Utils.sanitizeHTML(article.domain)}</span>
+                            <span class="meta-category">${Utils.sanitizeHTML(article.category || 'その他')}</span>
+                        </div>
+                        
+                        ${keywords.length > 0 ? `
+                        <div class="favorite-keywords">
+                            ${keywords.slice(0, 5).map(keyword => 
+                                `<span class="keyword-tag">${Utils.sanitizeHTML(keyword)}</span>`
+                            ).join('')}
+                            ${keywords.length > 5 ? `<span class="keyword-tag">+${keywords.length - 5}個</span>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        <div class="favorite-actions">
+                            <button class="read-btn" data-action="read">📖 記事を読む</button>
+                            <button class="remove-btn" data-action="remove" title="お気に入りから削除">🗑️</button>
+                        </div>
+                    </div>
+                `;
             }
             
-            attachCardEventListeners() {
-                try {
-                    // チェックボックスイベント
-                    const checkboxes = document.querySelectorAll('.card-checkbox');
-                    checkboxes.forEach(checkbox => {
+            attachCardListeners() {
+                const cards = document.querySelectorAll('.favorite-card');
+                
+                cards.forEach(card => {
+                    const articleId = card.dataset.articleId;
+                    
+                    // カードクリック（一括選択モード時）
+                    card.addEventListener('click', (e) => {
+                        if (this.bulkMode && !e.target.closest('.favorite-actions')) {
+                            this.toggleCardSelection(articleId);
+                        }
+                    });
+                    
+                    // チェックボックス
+                    const checkbox = card.querySelector('.card-checkbox');
+                    if (checkbox) {
                         checkbox.addEventListener('change', (e) => {
                             e.stopPropagation();
-                            const articleId = checkbox.dataset.articleId;
-                            const isChecked = checkbox.checked;
-                            
-                            if (isChecked) {
-                                this.selectedItems.add(articleId);
-                            } else {
-                                this.selectedItems.delete(articleId);
-                            }
-                            
-                            this.updateSelectionUI();
-                            this.updateCardSelection(articleId, isChecked);
+                            this.toggleCardSelection(articleId);
+                        });
+                    }
+                    
+                    // アクションボタン
+                    const actionButtons = card.querySelectorAll('[data-action]');
+                    actionButtons.forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const action = btn.dataset.action;
+                            this.handleCardAction(articleId, action);
                         });
                     });
-                    
-                    // 遅延画像読み込み
-                    const lazyImages = document.querySelectorAll('.card-image.lazy');
-                    lazyImages.forEach(img => {
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.classList.remove('lazy');
-                            img.onload = () => {
-                                const placeholder = img.parentElement.querySelector('.thumbnail-placeholder');
-                                if (placeholder) placeholder.style.display = 'none';
-                            };
-                        }
-                    });
-                    
-                } catch (error) {
-                    console.error('カードイベントリスナー設定エラー:', error);
-                }
-            }
-            
-            updateSelectionUI() {
-                const selectedCount = document.getElementById('selectedCount');
-                const bulkRemoveBtn = document.getElementById('bulkRemoveBtn');
-                const bulkExportBtn = document.getElementById('bulkExportBtn');
-                const selectAllCheckbox = document.getElementById('selectAll');
-                
-                if (selectedCount) {
-                    selectedCount.textContent = this.selectedItems.size;
-                }
-                
-                const hasSelection = this.selectedItems.size > 0;
-                if (bulkRemoveBtn) bulkRemoveBtn.disabled = !hasSelection;
-                if (bulkExportBtn) bulkExportBtn.disabled = !hasSelection;
-                
-                // 全選択チェックボックスの状態更新
-                if (selectAllCheckbox) {
-                    const visibleCards = document.querySelectorAll('.favorite-card');
-                    const visibleCount = visibleCards.length;
-                    const selectedVisibleCount = Array.from(visibleCards)
-                        .filter(card => this.selectedItems.has(card.dataset.articleId)).length;
-                    
-                    selectAllCheckbox.checked = visibleCount > 0 && selectedVisibleCount === visibleCount;
-                    selectAllCheckbox.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleCount;
-                }
-            }
-            
-            updateCardSelection(articleId, isSelected) {
-                const card = document.querySelector(`[data-article-id="${articleId}"]`);
-                if (card) {
-                    if (isSelected) {
-                        card.classList.add('selected');
-                    } else {
-                        card.classList.remove('selected');
-                    }
-                }
-            }
-            
-            toggleSelectAll(checked) {
-                const visibleCards = document.querySelectorAll('.favorite-card');
-                
-                visibleCards.forEach(card => {
-                    const articleId = card.dataset.articleId;
-                    const checkbox = card.querySelector('.card-checkbox');
-                    
-                    if (checked) {
-                        this.selectedItems.add(articleId);
-                        if (checkbox) checkbox.checked = true;
-                        card.classList.add('selected');
-                    } else {
-                        this.selectedItems.delete(articleId);
-                        if (checkbox) checkbox.checked = false;
-                        card.classList.remove('selected');
-                    }
                 });
-                
-                this.updateSelectionUI();
             }
             
-            updatePagination() {
-                const pagination = document.getElementById('pagination');
-                const pageInfo = document.getElementById('pageInfo');
-                const prevBtn = document.getElementById('prevPageBtn');
-                const nextBtn = document.getElementById('nextPageBtn');
-                
-                if (!pagination) return;
-                
-                const totalPages = Math.ceil(this.filteredFavorites.length / this.itemsPerPage);
-                
-                if (totalPages <= 1) {
-                    pagination.style.display = 'none';
-                    return;
-                }
-                
-                pagination.style.display = 'flex';
-                
-                if (pageInfo) {
-                    pageInfo.textContent = `${this.currentPage} / ${totalPages}`;
-                }
-                
-                if (prevBtn) {
-                    prevBtn.disabled = this.currentPage <= 1;
-                }
-                
-                if (nextBtn) {
-                    nextBtn.disabled = this.currentPage >= totalPages;
+            async handleCardAction(articleId, action) {
+                try {
+                    const article = this.favoriteArticles.find(a => a.articleId === articleId);
+                    if (!article) return;
+                    
+                    switch (action) {
+                        case 'read':
+                            await this.openArticle(article);
+                            break;
+                        case 'remove':
+                            await this.removeFavorite(articleId);
+                            break;
+                    }
+                } catch (error) {
+                    console.error('カードアクションエラー:', error);
+                    this.showNotification('操作でエラーが発生しました', 'error');
                 }
             }
             
-            async openArticle(url, articleId) {
+            async openArticle(article) {
                 try {
                     // 既読状態に更新
-                    if (articleId) {
-                        const articles = await this.dataManager.loadArticles();
-                        const articleIndex = articles.findIndex(a => a.articleId === articleId);
-                        
-                        if (articleIndex !== -1) {
-                            articles[articleIndex].readStatus = 'read';
-                            await this.dataManager.saveArticles(articles);
-                            
-                            // ローカルデータも更新
-                            const localArticle = this.allFavorites.find(a => a.articleId === articleId);
-                            if (localArticle) {
-                                localArticle.readStatus = 'read';
-                            }
-                            
-                            // 統計更新
-                            this.updateStats();
-                            
-                            // 表示更新
-                            this.renderFavorites();
-                        }
+                    if (article.readStatus !== 'read') {
+                        await this.dataManager.updateArticle(article.articleId, { readStatus: 'read' });
+                        article.readStatus = 'read';
+                        this.updateStats();
                     }
                     
-                    // 新しいタブで開く
-                    window.open(url, '_blank', 'noopener,noreferrer');
+                    // 新しいタブで記事を開く
+                    window.open(article.url, '_blank', 'noopener,noreferrer');
                     
                 } catch (error) {
                     console.error('記事オープンエラー:', error);
@@ -1224,56 +1069,24 @@
                 }
             }
             
-            async shareArticle(articleId) {
-                try {
-                    const article = this.allFavorites.find(a => a.articleId === articleId);
-                    if (!article) return;
-                    
-                    if (navigator.share) {
-                        // Web Share API利用
-                        await navigator.share({
-                            title: article.title,
-                            text: article.excerpt,
-                            url: article.url
-                        });
-                    } else {
-                        // フォールバック: クリップボードにコピー
-                        const shareText = `${article.title}\n${article.url}`;
-                        await navigator.clipboard.writeText(shareText);
-                        this.showNotification('記事URLをクリップボードにコピーしました', 'success');
-                    }
-                    
-                } catch (error) {
-                    console.error('記事共有エラー:', error);
-                    this.showNotification('記事の共有に失敗しました', 'error');
-                }
-            }
-            
             async removeFavorite(articleId) {
-                if (!confirm('この記事をお気に入りから削除しますか？')) return;
-                
                 try {
-                    // データ更新
-                    const articles = await this.dataManager.loadArticles();
-                    const articleIndex = articles.findIndex(a => a.articleId === articleId);
-                    
-                    if (articleIndex !== -1) {
-                        articles[articleIndex].favorited = false;
-                        await this.dataManager.saveArticles(articles);
-                        
-                        // ローカルデータからも削除
-                        this.allFavorites = this.allFavorites.filter(a => a.articleId !== articleId);
-                        
-                        // 選択状態からも削除
-                        this.selectedItems.delete(articleId);
-                        
-                        // 表示更新
-                        this.updateStats();
-                        this.applyFilters();
-                        this.updateSelectionUI();
-                        
-                        this.showNotification('お気に入りから削除しました', 'success');
+                    if (!confirm('この記事をお気に入りから削除しますか？')) {
+                        return;
                     }
+                    
+                    // データ更新
+                    await this.dataManager.updateArticle(articleId, { favorited: false });
+                    
+                    // ローカルデータ更新
+                    this.favoriteArticles = this.favoriteArticles.filter(a => a.articleId !== articleId);
+                    this.selectedArticles.delete(articleId);
+                    
+                    // UI更新
+                    this.applyFilters();
+                    this.updateStats();
+                    
+                    this.showNotification('お気に入りから削除しました', 'success');
                     
                 } catch (error) {
                     console.error('お気に入り削除エラー:', error);
@@ -1281,84 +1094,118 @@
                 }
             }
             
-            async bulkRemoveFavorites() {
-                if (this.selectedItems.size === 0) return;
+            toggleBulkMode() {
+                this.bulkMode = !this.bulkMode;
+                const bulkSelectBtn = document.getElementById('bulkSelectBtn');
+                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
                 
-                if (!confirm(`選択した${this.selectedItems.size}件の記事をお気に入りから削除しますか？`)) {
-                    return;
+                if (this.bulkMode) {
+                    document.body.classList.add('bulk-mode');
+                    if (bulkSelectBtn) {
+                        bulkSelectBtn.textContent = '選択終了';
+                        bulkSelectBtn.classList.add('active');
+                    }
+                } else {
+                    document.body.classList.remove('bulk-mode');
+                    this.selectedArticles.clear();
+                    if (bulkSelectBtn) {
+                        bulkSelectBtn.textContent = '一括選択';
+                        bulkSelectBtn.classList.remove('active');
+                    }
+                    this.updateUI();
                 }
                 
-                try {
-                    const articles = await this.dataManager.loadArticles();
-                    let removedCount = 0;
-                    
-                    // 選択された記事のお気に入りを解除
-                    articles.forEach(article => {
-                        if (this.selectedItems.has(article.articleId)) {
-                            article.favorited = false;
-                            removedCount++;
-                        }
-                    });
-                    
-                    await this.dataManager.saveArticles(articles);
-                    
-                    // ローカルデータ更新
-                    this.allFavorites = this.allFavorites.filter(a => 
-                        !this.selectedItems.has(a.articleId));
-                    
-                    // 選択状態クリア
-                    this.selectedItems.clear();
-                    
-                    // 表示更新
-                    this.updateStats();
-                    this.applyFilters();
-                    this.updateSelectionUI();
-                    
-                    this.showNotification(`${removedCount}件の記事を削除しました`, 'success');
-                    
-                } catch (error) {
-                    console.error('一括削除エラー:', error);
-                    this.showNotification('削除に失敗しました', 'error');
+                this.updateBulkActions();
+            }
+            
+            toggleCardSelection(articleId) {
+                if (this.selectedArticles.has(articleId)) {
+                    this.selectedArticles.delete(articleId);
+                } else {
+                    this.selectedArticles.add(articleId);
+                }
+                
+                this.updateUI();
+                this.updateBulkActions();
+            }
+            
+            updateBulkActions() {
+                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                if (bulkDeleteBtn) {
+                    if (this.selectedArticles.size > 0) {
+                        bulkDeleteBtn.classList.add('enabled');
+                        bulkDeleteBtn.textContent = `選択削除 (${this.selectedArticles.size})`;
+                    } else {
+                        bulkDeleteBtn.classList.remove('enabled');
+                        bulkDeleteBtn.textContent = '選択削除';
+                    }
                 }
             }
             
-            async bulkExportFavorites() {
-                if (this.selectedItems.size === 0) return;
-                
+            async bulkDeleteSelected() {
                 try {
-                    const selectedArticles = this.allFavorites.filter(article => 
-                        this.selectedItems.has(article.articleId));
+                    if (this.selectedArticles.size === 0) return;
                     
+                    const count = this.selectedArticles.size;
+                    if (!confirm(`選択した${count}件の記事をお気に入りから削除しますか？`)) {
+                        return;
+                    }
+                    
+                    // 一括削除処理
+                    const deletePromises = Array.from(this.selectedArticles).map(articleId =>
+                        this.dataManager.updateArticle(articleId, { favorited: false })
+                    );
+                    
+                    await Promise.all(deletePromises);
+                    
+                    // ローカルデータ更新
+                    this.favoriteArticles = this.favoriteArticles.filter(a => !this.selectedArticles.has(a.articleId));
+                    this.selectedArticles.clear();
+                    
+                    // UI更新
+                    this.applyFilters();
+                    this.updateStats();
+                    this.updateBulkActions();
+                    
+                    this.showNotification(`${count}件の記事をお気に入りから削除しました`, 'success');
+                    
+                } catch (error) {
+                    console.error('一括削除エラー:', error);
+                    this.showNotification('一括削除に失敗しました', 'error');
+                }
+            }
+            
+            async exportFavorites() {
+                try {
                     const exportData = {
                         exportDate: new Date().toISOString(),
-                        count: selectedArticles.length,
-                        articles: selectedArticles.map(article => ({
+                        totalCount: this.favoriteArticles.length,
+                        favorites: this.favoriteArticles.map(article => ({
                             title: article.title,
                             url: article.url,
                             domain: article.domain,
-                            publishDate: article.publishDate,
-                            savedDate: article.savedDate,
                             category: article.category,
-                            excerpt: article.excerpt,
-                            interestScore: article.interestScore
+                            interestScore: article.interestScore,
+                            publishDate: article.publishDate,
+                            addedDate: article.addedDate,
+                            readStatus: article.readStatus,
+                            matchedKeywords: article.matchedKeywords
                         }))
                     };
                     
-                    // JSON形式でダウンロード
-                    const blob = new Blob([JSON.stringify(exportData, null, 2)], 
-                        { type: 'application/json' });
+                    const dataStr = JSON.stringify(exportData, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `favorites-export-${new Date().toISOString().split('T')[0]}.json`;
+                    a.download = `favorites_${new Date().toISOString().split('T')[0]}.json`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    
                     URL.revokeObjectURL(url);
                     
-                    this.showNotification(`${selectedArticles.length}件の記事をエクスポートしました`, 'success');
+                    this.showNotification('お気に入りをエクスポートしました', 'success');
                     
                 } catch (error) {
                     console.error('エクスポートエラー:', error);
@@ -1366,131 +1213,80 @@
                 }
             }
             
-            // ユーティリティ関数
-            formatDate(dateString) {
+            updateStats() {
                 try {
-                    const date = new Date(dateString);
-                    const now = new Date();
-                    const diffMs = now - date;
-                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const total = this.favoriteArticles.length;
+                    const unread = this.favoriteArticles.filter(a => a.readStatus !== 'read').length;
+                    const categories = new Set(this.favoriteArticles.map(a => a.category)).size;
+                    const avgScore = total > 0 ? 
+                        Math.round(this.favoriteArticles.reduce((sum, a) => sum + (a.interestScore || 50), 0) / total) : 0;
                     
-                    if (diffDays === 0) {
-                        return '今日';
-                    } else if (diffDays === 1) {
-                        return '昨日';
-                    } else if (diffDays < 7) {
-                        return `${diffDays}日前`;
-                    } else {
-                        return date.toLocaleDateString('ja-JP');
-                    }
-                } catch (error) {
-                    return '不明';
-                }
-            }
-            
-            extractImageUrl(content) {
-                if (!content) return null;
-                
-                try {
-                    const imgRegex = /<img[^>]+src="([^">]+)"/i;
-                    const match = content.match(imgRegex);
-                    return match ? match[1] : null;
-                } catch (error) {
-                    return null;
-                }
-            }
-            
-            createPlaceholderImage(domain) {
-                const cleanDomain = (domain || 'news').substring(0, 8);
-                const svg = `
-                    <svg width="350" height="180" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="350" height="180" fill="#f0f0f0"/>
-                        <text x="175" y="90" text-anchor="middle" dominant-baseline="middle" 
-                              font-family="Arial, sans-serif" font-size="16" fill="#999">
-                            📰 ${cleanDomain}
-                        </text>
-                    </svg>
-                `;
-                
-                return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-            }
-            
-            sanitizeHTML(text) {
-                if (!text) return '';
-                const temp = document.createElement('div');
-                temp.textContent = text;
-                return temp.innerHTML;
-            }
-            
-            debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
+                    // UI更新
+                    const elements = {
+                        totalFavoritesCount: total,
+                        unreadFavoritesCount: unread,
+                        categoriesCount: categories,
+                        avgInterestScore: avgScore
                     };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
+                    
+                    Object.entries(elements).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.textContent = value;
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('統計更新エラー:', error);
+                }
+            }
+            
+            updateDisplayCount() {
+                const displayElement = document.getElementById('displayCount');
+                const badgeElement = document.getElementById('countBadge');
+                
+                if (displayElement) {
+                    const total = this.favoriteArticles.length;
+                    const filtered = this.filteredArticles.length;
+                    
+                    if (filtered === total) {
+                        displayElement.textContent = `${total}件のお気に入り記事`;
+                    } else {
+                        displayElement.textContent = `${filtered}件のお気に入り記事（全${total}件中）`;
+                    }
+                }
+                
+                if (badgeElement) {
+                    badgeElement.textContent = this.filteredArticles.length;
+                }
             }
             
             showNotification(message, type = 'info', duration = 5000) {
-                const notificationArea = document.getElementById('notificationArea');
-                if (!notificationArea) return;
-                
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.innerHTML = `
-                    ${message}
-                    <button onclick="this.parentElement.remove()" 
-                            style="float: right; background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; margin-left: 10px;">×</button>
-                `;
-                
-                notificationArea.appendChild(notification);
-                
-                setTimeout(() => {
-                    if (notification.parentElement) {
-                        notification.remove();
-                    }
-                }, duration);
+                // グローバル通知関数を利用
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    window.yourNewsApp.showNotification(message, type, duration);
+                } else {
+                    // フォールバック
+                    console.log(`${type.toUpperCase()}: ${message}`);
+                    alert(message);
+                }
             }
         }
         
-        // お気に入り画面初期化
-        const favoritesManager = new FavoritesManager();
+        // 初期化
+        let favoritesManager;
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                favoritesManager = new FavoritesManager();
                 await favoritesManager.initialize();
             } catch (error) {
-                console.error('お気に入り画面初期化失敗:', error);
-                
-                // 初期化失敗時のフォールバック表示
-                const grid = document.getElementById('favoritesGrid');
-                if (grid) {
-                    grid.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #f44336;">
-                            <h3>初期化エラー</h3>
-                            <p>お気に入り画面の初期化に失敗しました</p>
-                            <button onclick="location.reload()" style="background: #f44336; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">再読み込み</button>
-                        </div>
-                    `;
-                }
+                console.error('お気に入り画面初期化エラー:', error);
             }
         });
         
-        // デバッグ用関数
-        window.debugFavoritesManager = function() {
-            console.log('=== Favorites Manager Debug ===');
-            console.log('Manager instance:', typeof favoritesManager !== 'undefined');
-            console.log('All favorites count:', favoritesManager.allFavorites.length);
-            console.log('Filtered favorites count:', favoritesManager.filteredFavorites.length);
-            console.log('Selected items:', Array.from(favoritesManager.selectedItems));
-            console.log('Current filters:', favoritesManager.currentFilters);
-            console.log('Current sort:', favoritesManager.currentSort);
-            console.log('Current page:', favoritesManager.currentPage);
-            console.log('=== Favorites Manager Debug Complete ===');
-        };
+        // グローバル公開（デバッグ用）
+        window.favoritesManager = () => favoritesManager;
     </script>
 </body>
 </html>
