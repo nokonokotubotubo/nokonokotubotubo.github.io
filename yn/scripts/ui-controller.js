@@ -1,59 +1,232 @@
-// UIController - UI操作・表示制御（依存関係修正版）
+// UIController - 記事状態保持機能強化版
 class UIController {
-    constructor(dataManager = null, rssFetcher = null, articleCard = null) {
-        // 【修正】依存関係を外部から注入
+    constructor(dataManager, rssFetcher, articleCard) {
         this.dataManager = dataManager;
         this.rssFetcher = rssFetcher;
         this.articleCard = articleCard;
         
+        // 記事管理
         this.currentArticles = [];
         this.filteredArticles = [];
-        this.currentPage = 1;
-        this.itemsPerPage = 50;
-        this.sortBy = 'interest';
-        this.filterCategory = 'all';
-        this.filterReadStatus = 'all';
-        this.virtualScroll = null;
         
         // フィルター状態
-        this.activeFilters = new Set();
-        this.searchQuery = '';
+        this.filterCategory = 'all';
+        this.filterReadStatus = 'all';
+        this.sortBy = 'interest';
+        
+        // UI状態保持
+        this.lastScrollPosition = 0;
+        this.lastFilterState = null;
+        this.selectedArticleIds = new Set();
+        
+        // 仮想スクロール
+        this.virtualScroll = null;
+        
+        // パフォーマンス設定
+        this.renderDebounceTime = 100;
+        this.renderTimeout = null;
     }
     
     async initialize() {
         try {
             console.log('UIController初期化開始');
             
-            // 【修正】依存関係チェック
-            if (!this.dataManager) {
-                throw new Error('DataManager is required');
-            }
-            
-            // 仮想スクロール初期化
-            this.setupVirtualScroll();
-            
-            // 記事読み込み・表示
+            // 初期記事読み込み
             await this.loadAndDisplayArticles();
             
             // イベントリスナー設定
             this.setupEventListeners();
+            
+            // 仮想スクロール初期化
+            this.initializeVirtualScroll();
             
             console.log('UIController初期化完了');
             return true;
             
         } catch (error) {
             console.error('UIController初期化エラー:', error);
-            throw error;
+            return false;
         }
     }
     
-    setupVirtualScroll() {
+    // 【修正】記事読み込み・表示（状態保持対応）
+    async loadAndDisplayArticles(forceRefresh = false) {
+        try {
+            console.log('記事読み込み開始');
+            
+            // UI状態保持
+            this.preserveUIStates();
+            
+            // RSS取得（強制更新時または記事がない場合）
+            if (forceRefresh || this.currentArticles.length === 0) {
+                if (this.rssFetcher) {
+                    const rssFeeds = await this.dataManager.loadRssFeeds();
+                    
+                    if (rssFeeds.length > 0) {
+                        console.log(`Fetching ${rssFeeds.length} RSS feeds...`);
+                        const newArticles = await this.rssFetcher.fetchAllRSSFeeds(rssFeeds);
+                        
+                        if (newArticles.length > 0) {
+                            // AI興味度計算（利用可能な場合）
+                            if (window.yourNewsApp && window.yourNewsApp.aiEngine && !window.yourNewsApp.aiDisabled) {
+                                await this.calculateInterestScores(newArticles);
+                            }
+                            
+                            // 【重要】マージ機能を使用して保存（状態保持）
+                            await this.dataManager.saveArticles(newArticles);
+                        }
+                    }
+                }
+            }
+            
+            // 保存された記事を読み込み（マージ済み）
+            this.currentArticles = await this.dataManager.loadArticles();
+            
+            // フィルター・ソート適用
+            this.applyFilters();
+            
+            // 記事表示
+            this.renderArticles();
+            
+            // 統計更新
+            this.updateStats();
+            
+            // UI状態復元
+            this.restoreUIStates();
+            
+            console.log(`記事読み込み完了: ${this.currentArticles.length}件`);
+            
+        } catch (error) {
+            console.error('記事読み込みエラー:', error);
+            this.showErrorMessage('記事の読み込みに失敗しました');
+        }
+    }
+    
+    // 【新機能】UI状態保持
+    preserveUIStates() {
+        try {
+            // 現在のスクロール位置を保持
+            this.lastScrollPosition = window.pageYOffset;
+            
+            // 選択中のフィルター状態を保持
+            this.lastFilterState = {
+                category: this.filterCategory,
+                readStatus: this.filterReadStatus,
+                sort: this.sortBy
+            };
+            
+            // 選択された記事IDを保持
+            this.selectedArticleIds = new Set(
+                Array.from(document.querySelectorAll('.article-card.selected')).map(card => card.dataset.articleId)
+            );
+            
+            console.log(`UI状態保持: scroll=${this.lastScrollPosition}, filters=${JSON.stringify(this.lastFilterState)}, selected=${this.selectedArticleIds.size}`);
+            
+        } catch (error) {
+            console.error('UI状態保持エラー:', error);
+        }
+    }
+    
+    // 【新機能】UI状態復元
+    restoreUIStates() {
+        try {
+            // フィルター状態復元
+            if (this.lastFilterState) {
+                this.filterCategory = this.lastFilterState.category;
+                this.filterReadStatus = this.lastFilterState.readStatus;
+                this.sortBy = this.lastFilterState.sort;
+                
+                // UI要素に反映
+                this.updateFilterUI();
+            }
+            
+            // 選択状態復元
+            if (this.selectedArticleIds.size > 0) {
+                setTimeout(() => {
+                    this.selectedArticleIds.forEach(articleId => {
+                        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+                        if (card) {
+                            card.classList.add('selected');
+                        }
+                    });
+                }, 100);
+            }
+            
+            // スクロール位置復元（少し遅延）
+            if (this.lastScrollPosition > 0) {
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: this.lastScrollPosition,
+                        behavior: 'smooth'
+                    });
+                }, 200);
+            }
+            
+            console.log(`UI状態復元完了`);
+            
+        } catch (error) {
+            console.error('UI状態復元エラー:', error);
+        }
+    }
+    
+    // フィルターUI更新
+    updateFilterUI() {
+        try {
+            // カテゴリフィルター
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) {
+                categoryFilter.value = this.filterCategory;
+            }
+            
+            // 既読状態フィルター
+            const readStatusFilter = document.getElementById('readStatusFilter');
+            if (readStatusFilter) {
+                readStatusFilter.value = this.filterReadStatus;
+            }
+            
+            // ソートフィルター
+            const sortFilter = document.getElementById('sortFilter');
+            if (sortFilter) {
+                sortFilter.value = this.sortBy;
+            }
+            
+        } catch (error) {
+            console.error('フィルターUI更新エラー:', error);
+        }
+    }
+    
+    // AI興味度計算
+    async calculateInterestScores(articles) {
+        try {
+            if (!window.yourNewsApp.aiEngine) return;
+            
+            const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                           { interestWords: [], ngWords: [] };
+            
+            for (const article of articles) {
+                try {
+                    const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                    article.interestScore = score;
+                } catch (error) {
+                    console.warn(`AI score calculation failed for article ${article.articleId}:`, error);
+                    article.interestScore = 50; // デフォルトスコア
+                }
+            }
+            
+        } catch (error) {
+            console.error('AI興味度計算エラー:', error);
+        }
+    }
+    
+    // 仮想スクロール初期化
+    initializeVirtualScroll() {
         try {
             const container = document.getElementById('articlesContainer');
             if (!container) return;
             
-            const itemHeight = 280; // 記事カード高さ
-            const visibleItems = Math.ceil(window.innerHeight / itemHeight) + 2;
+            const itemHeight = 280; // 記事カードの推定高さ
+            const containerHeight = window.innerHeight - container.offsetTop;
+            const visibleItems = Math.ceil(containerHeight / itemHeight) + 2;
             
             this.virtualScroll = {
                 container: container,
@@ -70,81 +243,10 @@ class UIController {
         }
     }
     
-    async loadAndDisplayArticles(forceRefresh = false) {
-        try {
-            console.log('記事読み込み開始');
-            
-            // RSS取得（強制更新時または記事がない場合）
-            if (forceRefresh || this.currentArticles.length === 0) {
-                if (this.rssFetcher) {
-                    const rssFeeds = await this.dataManager.loadRssFeeds();
-                    
-                    if (rssFeeds.length > 0) {
-                        console.log(`Fetching ${rssFeeds.length} RSS feeds...`);
-                        const newArticles = await this.rssFetcher.fetchAllRSSFeeds(rssFeeds);
-                        
-                        if (newArticles.length > 0) {
-                            // AI興味度計算（利用可能な場合）
-                            if (window.yourNewsApp && window.yourNewsApp.aiEngine) {
-                                await this.calculateInterestScores(newArticles);
-                            }
-                            
-                            await this.dataManager.saveArticles(newArticles);
-                        }
-                    }
-                }
-            }
-            
-            // 保存された記事を読み込み
-            this.currentArticles = await this.dataManager.loadArticles();
-            
-            // フィルター・ソート適用
-            this.applyFilters();
-            
-            // 記事表示
-            this.renderArticles();
-            
-            // 統計更新
-            this.updateStats();
-            
-            console.log(`記事読み込み完了: ${this.currentArticles.length}件`);
-            
-        } catch (error) {
-            console.error('記事読み込みエラー:', error);
-            this.showErrorMessage('記事の読み込みに失敗しました');
-        }
-    }
-    
-    async calculateInterestScores(articles) {
-        try {
-            const keywords = await this.dataManager.loadData('yourNews_keywords') || 
-                           { interestWords: [], ngWords: [] };
-            
-            for (const article of articles) {
-                if (window.yourNewsApp && window.yourNewsApp.aiEngine) {
-                    const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
-                    article.interestScore = score;
-                }
-            }
-            
-        } catch (error) {
-            console.error('AI興味度計算エラー:', error);
-        }
-    }
-    
+    // フィルター適用
     applyFilters() {
         try {
             let filtered = [...this.currentArticles];
-            
-            // 検索フィルター
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                filtered = filtered.filter(article =>
-                    article.title.toLowerCase().includes(query) ||
-                    article.excerpt.toLowerCase().includes(query) ||
-                    article.domain.toLowerCase().includes(query)
-                );
-            }
             
             // カテゴリフィルター
             if (this.filterCategory !== 'all') {
@@ -163,34 +265,13 @@ class UIController {
                 });
             }
             
-            // 高度フィルター
-            this.activeFilters.forEach(filter => {
-                switch (filter) {
-                    case 'interest':
-                        filtered = filtered.filter(article => article.interestScore >= 70);
-                        break;
-                    case 'unread':
-                        filtered = filtered.filter(article => article.readStatus !== 'read');
-                        break;
-                    case 'today':
-                        const today = new Date().toDateString();
-                        filtered = filtered.filter(article => 
-                            new Date(article.publishDate).toDateString() === today
-                        );
-                        break;
-                    case 'ai-recommended':
-                        filtered = filtered.filter(article => article.interestScore >= 80);
-                        break;
-                }
-            });
-            
-            // NGドメイン除外
+            // NGドメイン記事を除外
             filtered = filtered.filter(article => !article.ngDomain);
             
-            this.filteredArticles = filtered;
-            
             // ソート適用
-            this.applySorting();
+            this.applySorting(filtered);
+            
+            this.filteredArticles = filtered;
             
         } catch (error) {
             console.error('フィルター適用エラー:', error);
@@ -198,208 +279,261 @@ class UIController {
         }
     }
     
-    applySorting() {
-        try {
-            this.filteredArticles.sort((a, b) => {
-                switch (this.sortBy) {
-                    case 'interest':
-                        return (b.interestScore || 50) - (a.interestScore || 50);
-                    
-                    case 'date':
-                        return new Date(b.publishDate) - new Date(a.publishDate);
-                    
-                    case 'domain':
-                        return a.domain.localeCompare(b.domain);
-                    
-                    case 'keyword-match':
-                        const aMatches = a.matchedKeywords ? a.matchedKeywords.length : 0;
-                        const bMatches = b.matchedKeywords ? b.matchedKeywords.length : 0;
-                        return bMatches - aMatches;
-                    
-                    default:
-                        return 0;
-                }
-            });
-            
-        } catch (error) {
-            console.error('ソート適用エラー:', error);
-        }
+    // ソート適用
+    applySorting(articles) {
+        articles.sort((a, b) => {
+            switch (this.sortBy) {
+                case 'interest':
+                    return (b.interestScore || 50) - (a.interestScore || 50);
+                case 'date':
+                    return new Date(b.publishDate || b.addedDate) - new Date(a.publishDate || a.addedDate);
+                case 'domain':
+                    return a.domain.localeCompare(b.domain);
+                case 'keyword-match':
+                    return (b.matchedKeywords?.length || 0) - (a.matchedKeywords?.length || 0);
+                default:
+                    return 0;
+            }
+        });
     }
     
+    // 記事表示（デバウンス対応）
     renderArticles() {
+        clearTimeout(this.renderTimeout);
+        this.renderTimeout = setTimeout(() => {
+            this.doRenderArticles();
+        }, this.renderDebounceTime);
+    }
+    
+    doRenderArticles() {
         try {
             const container = document.getElementById('articlesContainer');
-            const loadingMessage = document.getElementById('loadingMessage');
-            const noArticlesMessage = document.getElementById('noArticlesMessage');
-            
             if (!container) return;
             
-            // レンダリング開始イベント
-            window.dispatchEvent(new CustomEvent('articlesRenderStart'));
-            
-            // 記事がない場合
+            // 記事数チェック
             if (this.filteredArticles.length === 0) {
-                if (loadingMessage) loadingMessage.style.display = 'none';
-                if (noArticlesMessage) noArticlesMessage.style.display = 'block';
-                container.innerHTML = '';
+                this.showEmptyState();
                 return;
             }
             
-            // ローディング非表示
-            if (loadingMessage) loadingMessage.style.display = 'none';
-            if (noArticlesMessage) noArticlesMessage.style.display = 'none';
+            // 既存の表示をクリア
+            container.innerHTML = '';
             
-            // 表示する記事を計算（ページネーション）
-            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-            const endIndex = startIndex + this.itemsPerPage;
-            const articlesToShow = this.filteredArticles.slice(startIndex, endIndex);
+            // 記事カード生成・表示
+            this.filteredArticles.forEach((article, index) => {
+                const cardElement = this.createArticleCard(article, index);
+                container.appendChild(cardElement);
+            });
             
-            // 記事カード生成
-            if (this.articleCard) {
-                const { fragment } = this.articleCard.createMultipleCards(articlesToShow);
-                container.innerHTML = '';
-                container.appendChild(fragment);
-            } else {
-                // フォールバック表示
-                container.innerHTML = articlesToShow.map(article => 
-                    this.createSimpleArticleHTML(article)
-                ).join('');
-            }
+            // イベントリスナー再設定
+            this.attachArticleEventListeners();
             
-            console.log(`${articlesToShow.length}件の記事を表示`);
-            
-            // レンダリング完了イベント
-            window.dispatchEvent(new CustomEvent('articlesRenderComplete'));
+            console.log(`${this.filteredArticles.length}件の記事を表示`);
             
         } catch (error) {
             console.error('記事表示エラー:', error);
-            this.showErrorMessage('記事の表示でエラーが発生しました');
         }
     }
     
-    createSimpleArticleHTML(article) {
-        return `
-            <div class="article-card" data-article-id="${article.articleId}">
-                <div class="article-info">
-                    <h3 class="article-title">${Utils.sanitizeHTML(article.title)}</h3>
-                    <p class="article-excerpt">${Utils.sanitizeHTML(article.excerpt)}</p>
-                    <div class="article-meta">
-                        <span class="domain">${article.domain}</span>
-                        <span class="publish-date">${new Date(article.publishDate).toLocaleDateString()}</span>
-                        <span class="interest-score">${article.interestScore || 50}点</span>
-                    </div>
+    // 記事カード作成
+    createArticleCard(article, index) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'article-card';
+        cardDiv.dataset.articleId = article.articleId;
+        
+        // 既読状態の反映
+        if (article.readStatus === 'read') {
+            cardDiv.classList.add('read');
+        }
+        
+        // NGドメインの反映
+        if (article.ngDomain) {
+            cardDiv.classList.add('ng-domain');
+            cardDiv.style.display = 'none';
+        }
+        
+        const interestScore = article.interestScore || 50;
+        const scoreClass = interestScore >= 70 ? 'score-high' : 
+                          interestScore >= 40 ? 'score-medium' : 'score-low';
+        
+        const keywordsHtml = article.matchedKeywords?.length > 0 ? 
+            `<div class="matched-keywords">
+                ${article.matchedKeywords.slice(0, 3).map(keyword => 
+                    `<span class="keyword-highlight">${keyword}</span>`
+                ).join('')}
+                ${article.matchedKeywords.length > 3 ? 
+                    `<span class="keyword-more">+${article.matchedKeywords.length - 3}個</span>` : ''
+                }
+            </div>` : '';
+        
+        cardDiv.innerHTML = `
+            <div class="card-header">
+                <div class="interest-score ${scoreClass}">${interestScore}点</div>
+                ${keywordsHtml}
+                <div class="card-meta">
+                    <span class="domain">${article.domain}</span>
+                    <span class="publish-date">${this.formatDate(article.publishDate)}</span>
+                    <span class="category">${article.category || 'その他'}</span>
                 </div>
-                <div class="card-actions">
-                    <button onclick="window.open('${article.url}', '_blank')">記事を読む</button>
+            </div>
+            <div class="card-content">
+                <div class="article-info">
+                    <h3 class="article-title" onclick="window.yourNewsApp.openArticle('${article.articleId}')">${article.title}</h3>
+                    <p class="article-excerpt">${article.excerpt}</p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <div class="feedback-buttons">
+                    <button class="feedback-btn interest" data-feedback="1" data-article-id="${article.articleId}">
+                        👍 興味有り
+                    </button>
+                    <button class="feedback-btn disinterest" data-feedback="-1" data-article-id="${article.articleId}">
+                        👎 興味無し
+                    </button>
+                    <button class="feedback-btn ng-domain" data-feedback="ng" data-article-id="${article.articleId}">
+                        🚫 ドメインNG
+                    </button>
+                </div>
+                <div class="card-actions-right">
+                    <button class="favorite-btn ${article.favorited ? 'active' : ''}" data-article-id="${article.articleId}">
+                        ⭐ ${article.favorited ? 'お気に入り済み' : 'お気に入り'}
+                    </button>
+                    <button class="read-toggle-btn" data-read="${article.readStatus === 'read'}" data-article-id="${article.articleId}">
+                        ${article.readStatus === 'read' ? '✅ 既読' : '📖 未読'}
+                    </button>
                 </div>
             </div>
         `;
+        
+        return cardDiv;
     }
     
-    updateStats() {
+    // 記事イベントリスナー設定
+    attachArticleEventListeners() {
         try {
-            const stats = {
-                total: this.currentArticles.length,
-                filtered: this.filteredArticles.length,
-                unread: this.currentArticles.filter(a => a.readStatus !== 'read').length,
-                favorites: this.currentArticles.filter(a => a.favorited).length
-            };
+            // フィードバックボタン
+            document.querySelectorAll('.feedback-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const articleId = btn.dataset.articleId;
+                    const feedback = btn.dataset.feedback;
+                    this.processFeedback(articleId, feedback);
+                });
+            });
             
-            console.log('記事統計:', stats);
+            // お気に入りボタン
+            document.querySelectorAll('.favorite-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const articleId = btn.dataset.articleId;
+                    this.toggleFavorite(articleId);
+                });
+            });
             
-            // UI要素更新
-            const articlesCount = document.getElementById('articlesCount');
-            if (articlesCount) {
-                if (stats.filtered === stats.total) {
-                    articlesCount.textContent = `${stats.total}件の記事`;
-                } else {
-                    articlesCount.textContent = `${stats.filtered}件の記事（全${stats.total}件中）`;
-                }
-            }
-            
-            const unreadBadge = document.getElementById('unreadBadge');
-            if (unreadBadge) {
-                unreadBadge.textContent = stats.unread;
-                unreadBadge.style.display = stats.unread > 0 ? 'inline' : 'none';
-            }
-            
-            return stats;
+            // 既読切替ボタン
+            document.querySelectorAll('.read-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const articleId = btn.dataset.articleId;
+                    this.toggleReadStatus(articleId);
+                });
+            });
             
         } catch (error) {
-            console.error('統計更新エラー:', error);
-            return { total: 0, filtered: 0, unread: 0, favorites: 0 };
+            console.error('イベントリスナー設定エラー:', error);
         }
     }
     
-    setupEventListeners() {
+    // フィードバック処理
+    async processFeedback(articleId, feedback) {
         try {
-            // スクロールイベント（仮想スクロール用）
-            const container = document.getElementById('articlesContainer');
-            if (container) {
-                container.addEventListener('scroll', Utils.throttle(() => {
-                    this.handleScroll();
-                }, 100));
-            }
+            if (!window.yourNewsApp) return;
             
-            // ウィンドウリサイズ
-            window.addEventListener('resize', Utils.debounce(() => {
-                this.setupVirtualScroll();
-                this.renderArticles();
-            }, 250));
+            await window.yourNewsApp.processFeedback(articleId, feedback);
+            
+            // UI即座更新
+            this.updateArticleDisplay(articleId, feedback);
             
         } catch (error) {
-            console.error('UIイベントリスナー設定エラー:', error);
+            console.error('フィードバック処理エラー:', error);
         }
     }
     
-    handleScroll() {
-        // 仮想スクロール処理（必要に応じて実装）
-        // 現在はシンプルなページネーション対応
+    // お気に入り切替
+    async toggleFavorite(articleId) {
+        try {
+            const article = this.currentArticles.find(a => a.articleId === articleId);
+            if (!article) return;
+            
+            article.favorited = !article.favorited;
+            
+            await this.dataManager.updateArticle(articleId, { favorited: article.favorited });
+            
+            // UI更新
+            const btn = document.querySelector(`[data-article-id="${articleId}"].favorite-btn`);
+            if (btn) {
+                btn.classList.toggle('active', article.favorited);
+                btn.textContent = article.favorited ? '⭐ お気に入り済み' : '⭐ お気に入り';
+            }
+            
+            this.updateStats();
+            
+        } catch (error) {
+            console.error('お気に入り切替エラー:', error);
+        }
     }
     
-    // フィルター操作メソッド
-    filterByCategory(category) {
-        this.filterCategory = category;
-        this.applyFilters();
-        this.renderArticles();
+    // 既読状態切替
+    async toggleReadStatus(articleId) {
+        try {
+            const article = this.currentArticles.find(a => a.articleId === articleId);
+            if (!article) return;
+            
+            const newStatus = article.readStatus === 'read' ? 'unread' : 'read';
+            article.readStatus = newStatus;
+            
+            await this.dataManager.updateArticle(articleId, { readStatus: newStatus });
+            
+            // UI更新
+            this.updateArticleDisplay(articleId, { readStatus: newStatus });
+            this.updateStats();
+            
+        } catch (error) {
+            console.error('既読状態切替エラー:', error);
+        }
     }
     
-    filterByReadStatus(status) {
-        this.filterReadStatus = status;
-        this.applyFilters();
-        this.renderArticles();
-    }
-    
-    sortArticles(sortBy) {
-        this.sortBy = sortBy;
-        this.applySorting();
-        this.renderArticles();
-    }
-    
-    applyAdvancedFilters(filters) {
-        this.activeFilters = new Set(filters);
-        this.applyFilters();
-        this.renderArticles();
-    }
-    
-    setSearchQuery(query) {
-        this.searchQuery = query;
-        this.applyFilters();
-        this.renderArticles();
-    }
-    
-    // 記事操作メソッド
+    // 記事表示更新
     updateArticleDisplay(articleId, updates) {
         try {
             const card = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (card && this.articleCard) {
-                this.articleCard.updateCard(articleId, updates);
+            if (!card) return;
+            
+            const article = this.currentArticles.find(a => a.articleId === articleId);
+            if (!article) return;
+            
+            // 既読状態反映
+            if (updates.readStatus !== undefined) {
+                card.classList.toggle('read', updates.readStatus === 'read');
+                
+                const readBtn = card.querySelector('.read-toggle-btn');
+                if (readBtn) {
+                    readBtn.dataset.read = (updates.readStatus === 'read').toString();
+                    readBtn.textContent = updates.readStatus === 'read' ? '✅ 既読' : '📖 未読';
+                }
             }
             
-            // ローカルデータも更新
-            const article = this.currentArticles.find(a => a.articleId === articleId);
-            if (article) {
-                Object.assign(article, updates);
+            // NGドメイン状態反映
+            if (updates.ngDomain !== undefined) {
+                card.classList.toggle('ng-domain', updates.ngDomain);
+                if (updates.ngDomain) {
+                    card.style.display = 'none';
+                }
+            }
+            
+            // フィードバック状態反映
+            if (updates === 'ng' || updates === -1) {
+                card.classList.add('read');
             }
             
         } catch (error) {
@@ -407,74 +541,118 @@ class UIController {
         }
     }
     
-    removeArticleFromDisplay(articleId) {
+    // 統計情報更新
+    updateStats() {
         try {
-            if (this.articleCard) {
-                this.articleCard.removeCard(articleId);
-            }
+            const total = this.currentArticles.length;
+            const filtered = this.filteredArticles.length;
+            const unread = this.currentArticles.filter(a => a.readStatus !== 'read').length;
+            const favorites = this.currentArticles.filter(a => a.favorited).length;
             
-            // 配列からも削除
-            this.currentArticles = this.currentArticles.filter(a => a.articleId !== articleId);
-            this.filteredArticles = this.filteredArticles.filter(a => a.articleId !== articleId);
+            console.log('記事統計:', { total, filtered, unread, favorites });
             
-            this.updateStats();
+            // 統計表示更新（要素が存在する場合）
+            const statsElements = {
+                totalCount: total,
+                filteredCount: filtered,
+                unreadCount: unread,
+                favoritesCount: favorites
+            };
+            
+            Object.entries(statsElements).forEach(([key, value]) => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = value;
+                }
+            });
             
         } catch (error) {
-            console.error('記事削除表示エラー:', error);
+            console.error('統計更新エラー:', error);
         }
     }
     
-    // ユーティリティメソッド
-    getCurrentArticles() {
-        return this.currentArticles;
+    // フィルター変更ハンドラー
+    filterByCategory(category) {
+        this.filterCategory = category;
+        this.applyFilters();
+        this.renderArticles();
+        this.updateStats();
     }
     
-    getFilteredArticles() {
-        return this.filteredArticles;
+    filterByReadStatus(status) {
+        this.filterReadStatus = status;
+        this.applyFilters();
+        this.renderArticles();
+        this.updateStats();
     }
     
-    getUnreadCount() {
-        return this.currentArticles.filter(a => a.readStatus !== 'read').length;
+    sortArticles(sortBy) {
+        this.sortBy = sortBy;
+        this.applyFilters();
+        this.renderArticles();
     }
     
-    getFavoritesCount() {
-        return this.currentArticles.filter(a => a.favorited).length;
-    }
-    
-    showErrorMessage(message, details = '') {
+    // イベントリスナー設定
+    setupEventListeners() {
         try {
-            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-                window.yourNewsApp.showNotification(message, 'error');
-            } else {
-                console.error(message, details);
-            }
+            // ウィンドウリサイズ
+            window.addEventListener('resize', () => {
+                this.initializeVirtualScroll();
+            });
+            
+            // スクロールイベント
+            window.addEventListener('scroll', () => {
+                this.lastScrollPosition = window.pageYOffset;
+            });
+            
         } catch (error) {
-            console.error('エラーメッセージ表示失敗:', error);
+            console.error('イベントリスナー設定エラー:', error);
         }
     }
     
-    // ページネーション
-    goToPage(page) {
-        const totalPages = Math.ceil(this.filteredArticles.length / this.itemsPerPage);
+    // 空状態表示
+    showEmptyState() {
+        const container = document.getElementById('articlesContainer');
+        if (!container) return;
         
-        if (page >= 1 && page <= totalPages) {
-            this.currentPage = page;
-            this.renderArticles();
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📰</div>
+                <h3>記事がありません</h3>
+                <p>RSSフィードを追加するか、フィルターを変更してください。</p>
+                <button class="btn btn-primary" onclick="location.href='pages/rss-manager.html'">
+                    RSS管理画面へ
+                </button>
+            </div>
+        `;
+    }
+    
+    // エラーメッセージ表示
+    showErrorMessage(message) {
+        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+            window.yourNewsApp.showNotification(message, 'error');
+        } else {
+            console.error(message);
         }
     }
     
-    nextPage() {
-        const totalPages = Math.ceil(this.filteredArticles.length / this.itemsPerPage);
-        if (this.currentPage < totalPages) {
-            this.currentPage++;
-            this.renderArticles();
-        }
-    }
-    
-    prevPage() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.renderArticles();
+    // 日付フォーマット
+    formatDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffHours < 1) return '今';
+            if (diffHours < 24) return `${diffHours}時間前`;
+            if (diffDays < 7) return `${diffDays}日前`;
+            
+            return date.toLocaleDateString('ja-JP');
+            
+        } catch (error) {
+            return '不明';
         }
     }
 }
