@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="パーソナライズされたRSSニュース閲覧・管理システム">
+    <meta name="description" content="AI機能付きパーソナライズされたRSSニュース閲覧・管理システム">
     <title>あなたのニュース</title>
     
-    <!-- PWA設定 -->
+    <!-- PWA設定（必須） -->
     <meta name="theme-color" content="#2196F3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="あなたのニュース">
+    <meta name="msapplication-TileColor" content="#2196F3">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- PWA Manifest -->
     <link rel="manifest" href="assets/manifest.json">
+    
+    <!-- Apple PWA アイコン -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMyMTk2RjMiIHJ4PSIzMiIvPjx0ZXh0IHg9Ijk2IiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5NiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OPC90ZXh0Pjwvc3ZnPg==">
+    
+    <!-- ファビコン -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIGZpbGw9IiMyMTk2RjMiIHJ4PSI4Ii8+PHRleHQgeD0iMjQiIHk9IjMwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TjwvdGV4dD48L3N2Zz4=">
     
     <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
@@ -31,6 +45,7 @@
             position: sticky;
             top: 80px;
             z-index: 95;
+            transition: all 0.3s ease;
         }
         
         .ai-status-bar.processing {
@@ -41,6 +56,11 @@
             background: linear-gradient(135deg, #f44336, #EF5350);
         }
         
+        .ai-status-bar.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        
         /* 高度検索バー */
         .advanced-search {
             background: white;
@@ -49,6 +69,7 @@
             position: sticky;
             top: 120px;
             z-index: 85;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .search-container {
@@ -60,20 +81,36 @@
             flex-wrap: wrap;
         }
         
-        .search-input {
+        .search-input-wrapper {
+            position: relative;
             flex: 1;
             min-width: 300px;
-            padding: 0.8rem;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
             border: 2px solid #ddd;
             border-radius: 25px;
             font-size: 1rem;
             transition: all 0.3s ease;
+            background: #f8f9fa;
         }
         
         .search-input:focus {
             outline: none;
             border-color: #2196F3;
             box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+            background: white;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 1.1rem;
         }
         
         .search-suggestions {
@@ -89,22 +126,29 @@
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
         .suggestion-item {
             padding: 0.8rem;
             cursor: pointer;
             border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
         }
         
         .suggestion-item:hover {
             background: #f5f5f5;
         }
         
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
         .search-filters {
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .filter-chip {
@@ -115,6 +159,11 @@
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .filter-chip:hover {
+            background: #e0e0e0;
         }
         
         .filter-chip.active {
@@ -128,14 +177,18 @@
             background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
             border-left: 4px solid #2196F3;
             padding: 1rem;
-            margin-bottom: 1rem;
+            margin: 0 1rem 1rem;
             border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
         }
         
         .ai-insights h4 {
             margin: 0 0 0.5rem 0;
             color: #1976D2;
             font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         
         .insights-content {
@@ -151,6 +204,9 @@
             gap: 0.5rem;
             font-size: 0.9rem;
             color: #1565C0;
+            background: rgba(255,255,255,0.7);
+            padding: 0.3rem 0.6rem;
+            border-radius: 12px;
         }
         
         /* 記事表示エリア強化 */
@@ -160,31 +216,51 @@
             align-items: center;
             margin-bottom: 1rem;
             padding: 0 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1rem;
         }
         
         .articles-count {
             font-size: 1.1rem;
             color: #666;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .count-badge {
+            background: #2196F3;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
         }
         
         .view-toggle {
             display: flex;
             gap: 0.5rem;
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 0.2rem;
         }
         
         .view-btn {
             padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
-            background: white;
+            border: none;
+            background: transparent;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
         
         .view-btn.active {
             background: #2196F3;
             color: white;
-            border-color: #2196F3;
+            box-shadow: 0 2px 4px rgba(33,150,243,0.3);
         }
         
         /* 記事一覧のリスト表示モード */
@@ -197,6 +273,7 @@
             margin-bottom: 1rem;
             border-radius: 8px;
             overflow: hidden;
+            max-height: 150px;
         }
         
         .articles-container.list-view .article-thumbnail {
@@ -207,6 +284,12 @@
         .articles-container.list-view .article-info {
             flex: 1;
             padding: 1rem;
+        }
+        
+        .articles-container.list-view .card-actions {
+            flex: 0 0 auto;
+            padding: 1rem;
+            align-items: center;
         }
         
         /* パフォーマンス指標表示 */
@@ -221,10 +304,17 @@
             font-size: 0.8rem;
             z-index: 1000;
             display: none;
+            transition: all 0.3s ease;
         }
         
         .performance-indicator.show {
             display: block;
+            animation: slideInLeft 0.3s ease;
+        }
+        
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
         /* 読み込み状態の改善 */
@@ -245,18 +335,144 @@
             margin: 0 auto 1rem;
         }
         
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         /* キーワードハイライト強化 */
         .keyword-highlight {
             background: linear-gradient(120deg, #FFEB3B, #FFC107);
             padding: 2px 4px;
             border-radius: 3px;
             font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .matched-keywords .keyword-highlight {
             background: #4CAF50;
             color: white;
             margin-right: 0.3rem;
+        }
+        
+        /* PWA関連スタイル */
+        .pwa-install-prompt {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 300px;
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .pwa-install-prompt.show {
+            transform: translateX(0);
+        }
+        
+        .install-prompt-header {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .install-prompt-body {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .install-prompt-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .install-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .dismiss-btn {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        /* ネットワーク状態表示 */
+        .network-status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 1001;
+            transition: opacity 0.3s ease;
+        }
+        
+        .network-status.online {
+            background: rgba(76,175,80,0.9);
+            color: white;
+        }
+        
+        .network-status.offline {
+            background: rgba(244,67,54,0.9);
+            color: white;
+        }
+        
+        /* フローティングアクションボタン強化 */
+        .floating-actions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 999;
+        }
+        
+        .fab-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: #2196F3;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fab-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        .fab-btn.install-btn {
+            background: #4CAF50;
+        }
+        
+        .fab-btn.ai-retrain-btn {
+            background: #9C27B0;
         }
         
         /* レスポンシブ対応 */
@@ -266,7 +482,7 @@
                 align-items: stretch;
             }
             
-            .search-input {
+            .search-input-wrapper {
                 min-width: unset;
             }
             
@@ -281,13 +497,103 @@
             }
             
             .ai-insights {
-                margin: 0 1rem 1rem;
+                margin: 0 0.5rem 1rem;
+                padding: 0.8rem;
             }
             
             .insights-content {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.5rem;
+            }
+            
+            .advanced-search {
+                position: static;
+            }
+            
+            .ai-status-bar {
+                position: static;
+            }
+            
+            .floating-actions {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .fab-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .search-filters {
+                gap: 0.3rem;
+            }
+            
+            .filter-chip {
+                padding: 0.3rem 0.8rem;
+                font-size: 0.8rem;
+            }
+            
+            .articles-count {
+                font-size: 1rem;
+            }
+            
+            .view-toggle {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            .advanced-search {
+                background: #2E2E2E;
+                border-bottom-color: #444;
+            }
+            
+            .search-input {
+                background: #3A3A3A;
+                border-color: #555;
+                color: #E0E0E0;
+            }
+            
+            .search-input:focus {
+                border-color: #64B5F6;
+                background: #2E2E2E;
+            }
+            
+            .articles-header {
+                background: #2E2E2E;
+                color: #E0E0E0;
+            }
+            
+            .ai-insights {
+                background: linear-gradient(135deg, #1A237E, #283593);
+                border-left-color: #64B5F6;
+            }
+            
+            .insight-item {
+                background: rgba(255,255,255,0.1);
+                color: #BBDEFB;
+            }
+        }
+        
+        /* 印刷スタイル */
+        @media print {
+            .advanced-search,
+            .ai-status-bar,
+            .floating-actions,
+            .performance-indicator,
+            .pwa-install-prompt {
+                display: none;
+            }
+            
+            .articles-header {
+                box-shadow: none;
+                border: 1px solid #000;
             }
         }
     </style>
@@ -303,33 +609,35 @@
                 <button class="nav-btn" data-page="favorites" onclick="location.href='pages/favorites.html'">お気に入り</button>
                 <button class="nav-btn" data-page="settings" onclick="location.href='pages/settings.html'">設定</button>
             </nav>
-            <button class="refresh-btn" id="refreshBtn">🔄 更新</button>
+            <button class="refresh-btn" id="refreshBtn" title="記事を更新">🔄 更新</button>
         </div>
     </header>
 
     <!-- AI状態表示バー -->
-    <div class="ai-status-bar" id="aiStatusBar" style="display: none;">
+    <div class="ai-status-bar hidden" id="aiStatusBar">
         <span id="aiStatusText">AI分析準備中...</span>
     </div>
 
     <!-- 高度検索バー -->
     <section class="advanced-search">
         <div class="search-container">
-            <div style="position: relative; flex: 1; min-width: 300px;">
+            <div class="search-input-wrapper">
+                <div class="search-icon">🔍</div>
                 <input 
                     type="text" 
                     class="search-input" 
                     id="searchInput"
                     placeholder="記事を検索... (例: AI, 技術, ニュース)"
+                    autocomplete="off"
                 >
                 <div class="search-suggestions" id="searchSuggestions"></div>
             </div>
             
             <div class="search-filters">
-                <div class="filter-chip" data-filter="interest">高興味度</div>
-                <div class="filter-chip" data-filter="unread">未読のみ</div>
-                <div class="filter-chip" data-filter="today">今日</div>
-                <div class="filter-chip" data-filter="ai-recommended">AI推奨</div>
+                <div class="filter-chip" data-filter="interest" title="AI興味度の高い記事">高興味度</div>
+                <div class="filter-chip" data-filter="unread" title="未読記事のみ">未読のみ</div>
+                <div class="filter-chip" data-filter="today" title="今日公開の記事">今日</div>
+                <div class="filter-chip" data-filter="ai-recommended" title="AI推奨記事">AI推奨</div>
             </div>
         </div>
     </section>
@@ -337,15 +645,15 @@
     <!-- フィルターバー（カテゴリ、既読状態、ソート選択） -->
     <section class="filter-bar">
         <div class="filter-container">
-            <select class="filter-select" id="categoryFilter">
+            <select class="filter-select" id="categoryFilter" title="カテゴリで絞り込み">
                 <option value="all">全カテゴリ</option>
             </select>
-            <select class="filter-select" id="readStatusFilter">
+            <select class="filter-select" id="readStatusFilter" title="既読状態で絞り込み">
                 <option value="all">全ての記事</option>
                 <option value="unread">未読のみ</option>
                 <option value="read">既読のみ</option>
             </select>
-            <select class="filter-select" id="sortFilter">
+            <select class="filter-select" id="sortFilter" title="並び順を選択">
                 <option value="interest">AI興味度順</option>
                 <option value="date">更新日時順</option>
                 <option value="domain">ドメイン順</option>
@@ -365,11 +673,13 @@
     <!-- 記事一覧ヘッダー -->
     <section class="articles-header">
         <div class="articles-count">
+            <span>📰</span>
             <span id="articlesCount">記事を読み込み中...</span>
+            <span class="count-badge" id="unreadBadge">0</span>
         </div>
         <div class="view-toggle">
-            <button class="view-btn active" data-view="grid">📱 カード表示</button>
-            <button class="view-btn" data-view="list">📄 リスト表示</button>
+            <button class="view-btn active" data-view="grid" title="カード表示">📱 カード</button>
+            <button class="view-btn" data-view="list" title="リスト表示">📄 リスト</button>
         </div>
     </section>
 
@@ -378,27 +688,51 @@
         <div class="articles-container" id="articlesContainer">
             <div class="loading-message" id="loadingMessage">
                 <div class="loading-spinner"></div>
-                AI機能付きニュースシステムを初期化中...
+                <div>AI機能付きニュースシステムを初期化中...</div>
+                <div style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">
+                    TensorFlow.js読み込み・RSS取得・AI分析を実行しています
+                </div>
             </div>
             <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
-                記事がありません。RSSフィードを追加してください。
+                <div style="text-align: center; padding: 3rem; color: #666;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">📰</div>
+                    <h3>記事がありません</h3>
+                    <p>RSSフィードを追加して記事を取得してください</p>
+                    <button class="btn btn-primary" onclick="location.href='pages/rss-manager.html'">
+                        RSS管理画面へ
+                    </button>
+                </div>
             </div>
         </div>
     </main>
 
     <!-- フローティングアクションボタン（RSS追加、AI再学習） -->
     <div class="floating-actions">
-        <button class="fab-btn" id="aiRetrainBtn" title="AI再学習" style="bottom: 80px;">
+        <button class="fab-btn ai-retrain-btn" id="aiRetrainBtn" title="AI再学習を実行">
             🧠
         </button>
-        <button class="fab-btn" id="addRssFab" title="RSS追加">
+        <button class="fab-btn" id="addRssFab" title="RSS追加画面へ" onclick="location.href='pages/rss-manager.html'">
             ➕
         </button>
     </div>
 
+    <!-- PWAインストールプロンプト -->
+    <div class="pwa-install-prompt" id="pwaInstallPrompt">
+        <div class="install-prompt-header">アプリをインストール</div>
+        <div class="install-prompt-body">
+            ホーム画面に追加してオフラインでも利用できます
+        </div>
+        <div class="install-prompt-actions">
+            <button class="dismiss-btn" id="dismissInstallBtn">後で</button>
+            <button class="install-btn" id="installAppBtn">インストール</button>
+        </div>
+    </div>
+
     <!-- パフォーマンス指標 -->
     <div class="performance-indicator" id="performanceIndicator">
-        記事表示: <span id="renderTime">-</span>ms | AI処理: <span id="aiProcessTime">-</span>ms
+        <span>記事表示: <span id="renderTime">-</span>ms</span>
+        <span> | </span>
+        <span>AI処理: <span id="aiProcessTime">-</span>ms</span>
     </div>
 
     <!-- エラー通知エリア -->
@@ -423,8 +757,294 @@
     <!-- アプリケーション統合・初期化（必ず最後） -->
     <script src="scripts/app.js"></script>
     
-    <!-- Phase C統合スクリプト -->
+    <!-- Phase C統合・PWA対応スクリプト -->
     <script>
+        // PWA機能初期化クラス
+        class PWAManager {
+            constructor() {
+                this.deferredPrompt = null;
+                this.isOnline = navigator.onLine;
+                this.serviceWorker = null;
+            }
+            
+            async initialize() {
+                try {
+                    console.log('PWA Manager初期化開始');
+                    
+                    // Service Worker登録
+                    await this.registerServiceWorker();
+                    
+                    // インストールプロンプト準備
+                    this.setupInstallPrompt();
+                    
+                    // オンライン・オフライン監視
+                    this.setupNetworkMonitoring();
+                    
+                    // バックグラウンド同期設定
+                    this.setupBackgroundSync();
+                    
+                    // PWA状態表示
+                    this.updatePWAStatus();
+                    
+                    console.log('PWA Manager初期化完了');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('PWA Manager初期化エラー:', error);
+                    return false;
+                }
+            }
+            
+            async registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/sw.js');
+                        this.serviceWorker = registration;
+                        
+                        console.log('Service Worker登録成功:', registration.scope);
+                        
+                        // 更新チェック
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    this.showUpdateAvailable();
+                                }
+                            });
+                        });
+                        
+                        // メッセージ受信
+                        navigator.serviceWorker.addEventListener('message', event => {
+                            this.handleServiceWorkerMessage(event.data);
+                        });
+                        
+                        return registration;
+                        
+                    } catch (error) {
+                        console.error('Service Worker登録失敗:', error);
+                        throw error;
+                    }
+                } else {
+                    console.warn('Service Worker not supported');
+                    return null;
+                }
+            }
+            
+            setupInstallPrompt() {
+                // PWAインストールプロンプト
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    console.log('PWAインストールプロンプト準備');
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    this.showInstallPrompt();
+                });
+                
+                // インストール完了検出
+                window.addEventListener('appinstalled', () => {
+                    console.log('PWAインストール完了');
+                    this.hideInstallPrompt();
+                    this.deferredPrompt = null;
+                    
+                    if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                        window.yourNewsApp.showNotification(
+                            'アプリがインストールされました！オフラインでも利用できます。',
+                            'success',
+                            5000
+                        );
+                    }
+                });
+            }
+            
+            setupNetworkMonitoring() {
+                // オンライン状態監視
+                window.addEventListener('online', () => {
+                    console.log('オンライン状態検出');
+                    this.isOnline = true;
+                    this.updateNetworkStatus(true);
+                    this.syncWhenOnline();
+                });
+                
+                window.addEventListener('offline', () => {
+                    console.log('オフライン状態検出');
+                    this.isOnline = false;
+                    this.updateNetworkStatus(false);
+                });
+            }
+            
+            setupBackgroundSync() {
+                if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                    // バックグラウンド同期登録
+                    navigator.serviceWorker.ready.then(registration => {
+                        // RSS自動更新同期
+                        const settings = JSON.parse(localStorage.getItem('yourNews_settings') || '{}');
+                        if (settings.rss?.autoRefresh) {
+                            registration.sync.register('background-rss-fetch');
+                            console.log('バックグラウンドRSS同期登録完了');
+                        }
+                        
+                        // AI学習同期
+                        registration.sync.register('background-ai-learning');
+                        console.log('バックグラウンドAI学習同期登録完了');
+                    });
+                }
+            }
+            
+            showInstallPrompt() {
+                const prompt = document.getElementById('pwaInstallPrompt');
+                if (prompt) {
+                    prompt.classList.add('show');
+                    
+                    // インストールボタン
+                    const installBtn = document.getElementById('installAppBtn');
+                    const dismissBtn = document.getElementById('dismissInstallBtn');
+                    
+                    if (installBtn) {
+                        installBtn.onclick = () => this.triggerInstall();
+                    }
+                    
+                    if (dismissBtn) {
+                        dismissBtn.onclick = () => this.hideInstallPrompt();
+                    }
+                    
+                    // 30秒後に自動で非表示
+                    setTimeout(() => {
+                        this.hideInstallPrompt();
+                    }, 30000);
+                }
+            }
+            
+            hideInstallPrompt() {
+                const prompt = document.getElementById('pwaInstallPrompt');
+                if (prompt) {
+                    prompt.classList.remove('show');
+                }
+            }
+            
+            async triggerInstall() {
+                if (!this.deferredPrompt) return false;
+                
+                try {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    
+                    console.log('インストールプロンプト結果:', outcome);
+                    
+                    if (outcome === 'accepted') {
+                        console.log('ユーザーがPWAインストールを承認');
+                    }
+                    
+                    this.deferredPrompt = null;
+                    this.hideInstallPrompt();
+                    
+                    return outcome === 'accepted';
+                    
+                } catch (error) {
+                    console.error('インストールプロンプトエラー:', error);
+                    return false;
+                }
+            }
+            
+            updateNetworkStatus(online) {
+                // ネットワーク状態表示
+                let statusIndicator = document.getElementById('network-status');
+                if (!statusIndicator) {
+                    statusIndicator = document.createElement('div');
+                    statusIndicator.id = 'network-status';
+                    statusIndicator.className = 'network-status';
+                    document.body.appendChild(statusIndicator);
+                }
+                
+                statusIndicator.className = `network-status ${online ? 'online' : 'offline'}`;
+                statusIndicator.textContent = online ? '🌐 オンライン復帰' : '📴 オフライン';
+                
+                // 5秒後に非表示
+                setTimeout(() => {
+                    if (statusIndicator) {
+                        statusIndicator.style.opacity = '0';
+                        setTimeout(() => {
+                            if (statusIndicator.parentElement) {
+                                statusIndicator.remove();
+                            }
+                        }, 300);
+                    }
+                }, 5000);
+            }
+            
+            async syncWhenOnline() {
+                if (!this.isOnline) return;
+                
+                try {
+                    console.log('オンライン復帰時の同期開始');
+                    
+                    // Service Workerに同期指示
+                    if (this.serviceWorker && this.serviceWorker.sync) {
+                        await this.serviceWorker.sync.register('background-rss-fetch');
+                        await this.serviceWorker.sync.register('background-ai-learning');
+                    }
+                    
+                    // RSS強制更新
+                    if (window.yourNewsApp && window.yourNewsApp.uiController) {
+                        window.yourNewsApp.uiController.loadAndDisplayArticles(true);
+                    }
+                    
+                } catch (error) {
+                    console.error('オンライン同期エラー:', error);
+                }
+            }
+            
+            updatePWAStatus() {
+                // PWA状態を表示エリアに反映
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                    window.navigator.standalone ||
+                                    document.referrer.includes('android-app://');
+                
+                if (isStandalone) {
+                    console.log('PWAスタンドアロンモードで動作中');
+                    document.body.classList.add('pwa-standalone');
+                } else {
+                    console.log('ブラウザモードで動作中');
+                    document.body.classList.add('pwa-browser');
+                }
+            }
+            
+            handleServiceWorkerMessage(data) {
+                console.log('Service Workerメッセージ受信:', data);
+                
+                switch (data.type) {
+                    case 'BACKGROUND_RSS_UPDATE':
+                        this.handleBackgroundRSSUpdate(data);
+                        break;
+                        
+                    case 'BACKGROUND_AI_UPDATE':
+                        this.handleBackgroundAIUpdate(data);
+                        break;
+                        
+                    case 'NETWORK_STATUS_CHANGE':
+                        this.updateNetworkStatus(data.online);
+                        break;
+                }
+            }
+            
+            handleBackgroundRSSUpdate(data) {
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    const message = `バックグラウンドでRSSを更新（${data.successCount}/${data.totalCount}件成功）`;
+                    window.yourNewsApp.showNotification(message, 'info', 3000);
+                }
+                
+                // UI更新
+                if (window.yourNewsApp && window.yourNewsApp.uiController) {
+                    window.yourNewsApp.uiController.loadAndDisplayArticles(true);
+                }
+            }
+            
+            handleBackgroundAIUpdate(data) {
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    const message = `AIが${data.processedCount}件のフィードバックを学習しました`;
+                    window.yourNewsApp.showNotification(message, 'success', 2000);
+                }
+            }
+        }
+        
         // Phase C機能拡張
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -441,18 +1061,22 @@
                     const aiStatusText = document.getElementById('aiStatusText');
                     
                     if (aiStatusBar && aiStatusText) {
-                        aiStatusBar.style.display = 'block';
+                        aiStatusBar.classList.remove('hidden');
                         aiStatusText.textContent = '🤖 AI機能準備完了';
                         aiStatusBar.className = 'ai-status-bar';
                         
                         setTimeout(() => {
-                            aiStatusBar.style.display = 'none';
+                            aiStatusBar.classList.add('hidden');
                         }, 3000);
                     }
                     
                     // AI推奨記事生成
                     await setupAIFeatures();
                 }
+                
+                // PWA機能初期化
+                window.yourNewsApp.pwaManager = new PWAManager();
+                await window.yourNewsApp.pwaManager.initialize();
                 
                 // Phase C高度検索機能
                 setupAdvancedSearch();
@@ -598,12 +1222,13 @@
         }
         
         function showSearchSuggestions(query) {
-            // 検索候補表示（実装例）
+            // 検索候補表示
             const suggestions = [
                 '最新技術',
                 'AI ニュース',
                 '経済動向',
-                'スポーツ結果'
+                'スポーツ結果',
+                'エンタメ情報'
             ].filter(s => s.toLowerCase().includes(query.toLowerCase()));
             
             const suggestionsContainer = document.getElementById('searchSuggestions');
@@ -635,23 +1260,30 @@
             const activeChips = document.querySelectorAll('.filter-chip.active');
             const filters = Array.from(activeChips).map(chip => chip.dataset.filter);
             
-            // フィルター適用ロジック（例）
             console.log('アクティブフィルター:', filters);
             
             if (window.yourNewsApp.uiController) {
-                // フィルター適用を実装
                 window.yourNewsApp.uiController.applyAdvancedFilters(filters);
             }
         }
         
         function updateArticlesCount(filtered, total) {
             const countElement = document.getElementById('articlesCount');
+            const unreadBadge = document.getElementById('unreadBadge');
+            
             if (countElement) {
                 if (filtered === total) {
                     countElement.textContent = `${total}件の記事`;
                 } else {
                     countElement.textContent = `${filtered}件の記事（全${total}件中）`;
                 }
+            }
+            
+            // 未読件数バッジ更新
+            if (unreadBadge && window.yourNewsApp.uiController) {
+                const unreadCount = window.yourNewsApp.uiController.getUnreadCount();
+                unreadBadge.textContent = unreadCount;
+                unreadBadge.style.display = unreadCount > 0 ? 'inline' : 'none';
             }
         }
         
@@ -677,6 +1309,10 @@
                         <div class="insight-item">
                             <span>🎯</span>
                             <span>AI分析精度: ${Math.round(stats.avgIDF * 100)}%</span>
+                        </div>
+                        <div class="insight-item">
+                            <span>🔥</span>
+                            <span>推奨記事: ${stats.recommendedCount || 0}件</span>
                         </div>
                     `;
                     
@@ -706,7 +1342,7 @@
                     renderTimeElement.textContent = renderTime;
                 }
                 
-                // 一定時間表示
+                // パフォーマンス指標表示
                 const indicator = document.getElementById('performanceIndicator');
                 if (indicator) {
                     indicator.classList.add('show');
@@ -732,6 +1368,39 @@
         
         // グローバル関数
         window.selectSuggestion = selectSuggestion;
+        
+        // PWAデバッグ関数
+        window.debugPWA = function() {
+            console.log('=== PWA Debug Information ===');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    console.log('Service Worker registrations:', registrations.length);
+                    registrations.forEach((registration, index) => {
+                        console.log(`SW ${index}:`, {
+                            scope: registration.scope,
+                            state: registration.active?.state,
+                            updateFound: !!registration.installing
+                        });
+                    });
+                });
+            }
+            
+            if ('caches' in window) {
+                caches.keys().then(cacheNames => {
+                    console.log('Cache storages:', cacheNames);
+                });
+            }
+            
+            const pwaInfo = {
+                standalone: window.matchMedia('(display-mode: standalone)').matches,
+                online: navigator.onLine,
+                installPrompt: window.yourNewsApp?.pwaManager?.deferredPrompt ? 'Available' : 'Not available'
+            };
+            console.log('PWA状態:', pwaInfo);
+            
+            console.log('=== PWA Debug Complete ===');
+        };
     </script>
 </body>
 </html>
