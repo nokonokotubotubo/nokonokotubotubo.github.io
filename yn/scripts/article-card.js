@@ -1,4 +1,4 @@
-// 記事カードコンポーネント（仕様書UI仕様準拠・未読既読機能修正版）
+// 記事カードコンポーネント（完全修正版）
 class ArticleCard {
     constructor() {
         // 仕様書記載のカード要素テンプレート
@@ -128,7 +128,7 @@ class ArticleCard {
         const titleElement = card.querySelector('.article-title');
         if (titleElement) {
             titleElement.textContent = article.title || '無題';
-            titleElement.onclick = () => this.openArticle(article.url);
+            titleElement.onclick = () => this.openArticle(article.url, article.articleId);
         }
         
         // 抜粋
@@ -265,7 +265,7 @@ class ArticleCard {
             });
         }
         
-        // 【修正2】既読切替ボタン
+        // 既読切替ボタン
         const readBtn = card.querySelector('.read-toggle-btn');
         if (readBtn) {
             readBtn.addEventListener('click', (e) => {
@@ -287,7 +287,7 @@ class ArticleCard {
         });
     }
     
-    // 【修正2】既読状態切替関数（完全修正版）
+    // 既読状態切替関数（完全修正版）
     toggleRead(articleId, buttonElement) {
         try {
             const currentState = buttonElement.dataset.read === 'true';
@@ -316,7 +316,7 @@ class ArticleCard {
                             
                             // 記事一覧の統計更新
                             if (window.yourNewsApp && window.yourNewsApp.uiController) {
-                                window.yourNewsApp.uiController.updateArticleStats();
+                                window.yourNewsApp.uiController.updateStats();
                             }
                             
                         } else {
@@ -357,7 +357,7 @@ class ArticleCard {
         }
     }
     
-    // 【修正2】UI更新専用関数（新規追加）
+    // UI更新専用関数（新規追加）
     updateReadStatusUI(articleId, buttonElement, newState) {
         try {
             const card = buttonElement.closest('.article-card');
@@ -608,7 +608,7 @@ class ArticleCard {
     createMultipleCards(articles) {
         if (!Array.isArray(articles)) {
             console.error('Articles must be an array');
-            return [];
+            return { fragment: document.createDocumentFragment(), cards: [] };
         }
         
         const fragment = document.createDocumentFragment();
