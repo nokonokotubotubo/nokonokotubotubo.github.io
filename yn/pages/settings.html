@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="設定画面 - あなたのニュース">
+    <meta name="description" content="設定管理 - あなたのニュース">
     <title>設定 - あなたのニュース</title>
     
     <!-- PWA設定 -->
     <meta name="theme-color" content="#2196F3">
     <link rel="manifest" href="../assets/manifest.json">
-    
-    <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     
     <!-- スタイルシート -->
     <link rel="stylesheet" href="../styles/main.css">
@@ -22,69 +19,126 @@
     <!-- 設定画面専用スタイル -->
     <style>
         .settings-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 2rem;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #9C27B0;
+        }
+        
+        .page-title {
+            color: #9C27B0;
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .page-description {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .settings-sections {
+            display: grid;
+            gap: 2rem;
         }
         
         .settings-section {
             background: white;
             border-radius: 8px;
             padding: 2rem;
-            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .section-icon {
+            font-size: 1.5rem;
         }
         
         .section-title {
             color: #333;
-            margin: 0 0 1.5rem 0;
+            margin: 0;
             font-size: 1.3rem;
             font-weight: 600;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 0.5rem;
+        }
+        
+        .section-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0.3rem 0 0 0;
+            line-height: 1.4;
+        }
+        
+        .setting-group {
+            display: grid;
+            gap: 1.5rem;
         }
         
         .setting-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 1rem;
+            border: 1px solid #f0f0f0;
+            border-radius: 6px;
+            transition: all 0.3s ease;
         }
         
-        .setting-item:last-child {
-            border-bottom: none;
+        .setting-item:hover {
+            background: #f8f9fa;
+            border-color: #e0e0e0;
         }
         
         .setting-info {
             flex: 1;
+            min-width: 0;
             margin-right: 1rem;
         }
         
         .setting-label {
             font-weight: 600;
             color: #333;
-            margin-bottom: 0.3rem;
+            margin: 0 0 0.3rem 0;
+            font-size: 1rem;
         }
         
-        .setting-description {
-            font-size: 0.9rem;
+        .setting-help {
             color: #666;
+            font-size: 0.85rem;
+            margin: 0;
             line-height: 1.4;
         }
         
         .setting-control {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            flex-shrink: 0;
         }
         
+        /* トグルスイッチ */
         .toggle-switch {
             position: relative;
-            width: 50px;
-            height: 25px;
+            width: 60px;
+            height: 30px;
             background: #ddd;
-            border-radius: 25px;
+            border-radius: 30px;
             cursor: pointer;
             transition: background 0.3s ease;
         }
@@ -96,58 +150,95 @@
         .toggle-switch::after {
             content: '';
             position: absolute;
-            width: 21px;
-            height: 21px;
+            width: 26px;
+            height: 26px;
             background: white;
             border-radius: 50%;
             top: 2px;
             left: 2px;
             transition: transform 0.3s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         
         .toggle-switch.active::after {
-            transform: translateX(25px);
+            transform: translateX(30px);
         }
         
-        .setting-input {
-            padding: 0.5rem;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            min-width: 100px;
-        }
-        
-        .setting-input:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-        
+        /* 選択ボックス */
         .setting-select {
-            padding: 0.5rem;
+            padding: 0.6rem 1rem;
             border: 2px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
             background: white;
             font-size: 0.9rem;
-            min-width: 120px;
+            cursor: pointer;
+            min-width: 150px;
         }
         
+        .setting-select:focus {
+            outline: none;
+            border-color: #9C27B0;
+        }
+        
+        /* 数値入力 */
+        .setting-number {
+            padding: 0.6rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            width: 100px;
+            text-align: center;
+        }
+        
+        .setting-number:focus {
+            outline: none;
+            border-color: #9C27B0;
+        }
+        
+        /* テキスト入力エリア */
+        .keywords-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
+        .keywords-input:focus {
+            outline: none;
+            border-color: #9C27B0;
+        }
+        
+        .keywords-help {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* ボタン */
         .setting-btn {
-            padding: 0.5rem 1rem;
+            padding: 0.7rem 1.5rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
         
         .btn-primary {
-            background: #2196F3;
+            background: #9C27B0;
             color: white;
         }
         
         .btn-primary:hover {
-            background: #1976D2;
+            background: #7B1FA2;
+            transform: translateY(-1px);
         }
         
         .btn-secondary {
@@ -168,236 +259,220 @@
             background: #d32f2f;
         }
         
-        .keyword-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
-        .keyword-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.3rem 0.5rem;
-            margin: 0.2rem 0;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-        
-        .keyword-text {
-            flex: 1;
-            color: #333;
-        }
-        
-        .keyword-remove {
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 0.2rem 0.5rem;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .keyword-input-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        
-        .keyword-input {
-            flex: 1;
-            padding: 0.5rem;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .add-keyword-btn {
+        .btn-success {
             background: #4CAF50;
             color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        /* アクションボタン群 */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        /* データ管理エリア */
+        .data-stats {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .stat-card {
-            background: #f8f9fa;
-            border-radius: 6px;
-            padding: 1rem;
             text-align: center;
         }
         
+        .stat-item {
+            padding: 0.8rem;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
         .stat-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            color: #2196F3;
-            margin-bottom: 0.5rem;
+            color: #9C27B0;
+            margin-bottom: 0.3rem;
         }
         
         .stat-label {
+            font-size: 0.8rem;
             color: #666;
-            font-size: 0.9rem;
         }
         
-        .danger-zone {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-top: 1rem;
-        }
-        
-        .danger-zone .section-title {
-            color: #e53e3e;
-            border-bottom-color: #fed7d7;
-        }
-        
-        .import-export-area {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .file-label {
-            background: #607D8B;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+        /* アップロード・ダウンロードエリア */
+        .file-upload {
+            position: relative;
+            display: inline-block;
             cursor: pointer;
-            font-size: 0.9rem;
+            overflow: hidden;
         }
         
-        .file-label:hover {
-            background: #455A64;
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: -9999px;
         }
         
+        .upload-btn {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background: #2196F3;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            background: #1976D2;
+        }
+        
+        /* テーマプレビュー */
         .theme-preview {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
-            margin-top: 1rem;
         }
         
         .theme-option {
             padding: 1rem;
-            border: 2px solid #ddd;
+            border: 3px solid #e0e0e0;
             border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s ease;
             text-align: center;
-            min-width: 120px;
-            transition: all 0.2s ease;
-        }
-        
-        .theme-option.active {
-            border-color: #2196F3;
-            background: #f0f8ff;
+            background: white;
         }
         
         .theme-option:hover {
-            border-color: #ccc;
+            border-color: #9C27B0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(156,39,176,0.2);
+        }
+        
+        .theme-option.active {
+            border-color: #9C27B0;
+            background: #f3e5f5;
         }
         
         .theme-name {
             font-weight: 600;
             margin-bottom: 0.5rem;
+            color: #333;
         }
         
-        .theme-sample {
-            width: 100%;
-            height: 40px;
-            border-radius: 4px;
+        .theme-colors {
+            display: flex;
+            justify-content: center;
+            gap: 0.3rem;
             margin-bottom: 0.5rem;
         }
         
-        .theme-light .theme-sample {
-            background: linear-gradient(45deg, #fff, #f0f0f0);
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
         
-        .theme-dark .theme-sample {
-            background: linear-gradient(45deg, #333, #555);
+        .theme-description {
+            font-size: 0.8rem;
+            color: #666;
         }
         
-        .theme-sepia .theme-sample {
-            background: linear-gradient(45deg, #f4f1ea, #e8e2d5);
-        }
-        
-        .ai-status {
+        /* 確認ダイアログ */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
         
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ddd;
+        .confirm-dialog.show {
+            opacity: 1;
+            visibility: visible;
         }
         
-        .status-indicator.active {
-            background: #4CAF50;
+        .confirm-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
         }
         
-        .status-indicator.error {
-            background: #f44336;
+        .confirm-dialog.show .confirm-content {
+            transform: scale(1);
         }
         
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #f0f0f0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 0.5rem 0;
+        .confirm-title {
+            color: #f44336;
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
         
-        .progress-fill {
-            height: 100%;
-            background: #2196F3;
-            transition: width 0.3s ease;
+        .confirm-message {
+            margin: 0 0 2rem 0;
+            line-height: 1.5;
+            color: #333;
         }
         
-        /* レスポンシブ */
+        .confirm-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        /* レスポンシブ対応 */
         @media (max-width: 768px) {
             .settings-container {
                 padding: 1rem;
             }
             
+            .settings-section {
+                padding: 1rem;
+            }
+            
             .setting-item {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
                 gap: 1rem;
             }
             
-            .setting-control {
-                width: 100%;
-                justify-content: flex-end;
+            .setting-info {
+                margin-right: 0;
             }
             
-            .import-export-area {
+            .action-buttons {
                 flex-direction: column;
-                align-items: stretch;
             }
             
             .theme-preview {
-                flex-wrap: wrap;
-                justify-content: center;
+                grid-template-columns: 1fr;
             }
             
             .stats-grid {
@@ -406,12 +481,63 @@
         }
         
         @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
+            .page-title {
+                font-size: 1.5rem;
             }
             
-            .theme-preview {
+            .section-header {
                 flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .confirm-content {
+                padding: 1.5rem;
+            }
+            
+            .confirm-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            .settings-section {
+                background: #2e2e2e;
+                border-color: #444;
+                color: #e0e0e0;
+            }
+            
+            .setting-item {
+                border-color: #444;
+            }
+            
+            .setting-item:hover {
+                background: #3a3a3a;
+            }
+            
+            .setting-label {
+                color: #e0e0e0;
+            }
+            
+            .data-stats {
+                background: #1a1a1a;
+            }
+            
+            .stat-item {
+                background: #2e2e2e;
+                border-color: #444;
+            }
+            
+            .theme-option {
+                background: #2e2e2e;
+                border-color: #444;
+            }
+            
+            .theme-option.active {
+                background: #3a3a3a;
+                border-color: #BA68C8;
             }
         }
     </style>
@@ -432,363 +558,286 @@
 
     <!-- メインコンテンツ -->
     <main class="settings-container">
-        <!-- AI・学習設定 -->
-        <section class="settings-section">
-            <h2 class="section-title">🤖 AI・学習設定</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">AI記事推薦機能</div>
-                    <div class="setting-description">記事の興味度を自動で計算し、パーソナライズされた記事推薦を行います</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch active" id="aiEnabled"></div>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">自動学習機能</div>
-                    <div class="setting-description">フィードバックに基づいてAIモデルを自動的に更新します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch active" id="autoLearning"></div>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">学習感度</div>
-                    <div class="setting-description">AIの学習速度を調整します（高感度ほど早く学習しますが、誤学習のリスクも増えます）</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="learningSensitivity">
-                        <option value="low">低感度（慎重）</option>
-                        <option value="medium" selected>中感度（バランス）</option>
-                        <option value="high">高感度（積極的）</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">AIモデル状態</div>
-                    <div class="setting-description">現在のAI学習状況と性能指標</div>
-                </div>
-                <div class="setting-control">
-                    <div class="ai-status">
-                        <div class="status-indicator active" id="aiStatusIndicator"></div>
-                        <span id="aiStatusText">動作中</span>
-                        <button class="setting-btn btn-secondary" id="resetAIBtn">リセット</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stats-grid" id="aiStats">
-                <div class="stat-card">
-                    <div class="stat-value" id="feedbackCount">0</div>
-                    <div class="stat-label">学習済みフィードバック</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="vocabularySize">0</div>
-                    <div class="stat-label">語彙数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="accuracyScore">0%</div>
-                    <div class="stat-label">予測精度</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="lastLearning">未実行</div>
-                    <div class="stat-label">最終学習</div>
-                </div>
-            </div>
-        </section>
+        <!-- ページヘッダー -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <span>⚙️</span>
+                <span>設定</span>
+            </h1>
+            <p class="page-description">
+                アプリの動作設定・AI学習設定・データ管理を行います
+            </p>
+        </div>
 
-        <!-- キーワード設定 -->
-        <section class="settings-section">
-            <h2 class="section-title">🔍 キーワード設定</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">興味のあるキーワード</div>
-                    <div class="setting-description">これらのキーワードを含む記事の興味度が高くなります</div>
-                    <div class="keyword-list" id="interestKeywordsList">
-                        <!-- 動的に生成 -->
-                    </div>
-                    <div class="keyword-input-group">
-                        <input type="text" class="keyword-input" id="interestKeywordInput" 
-                               placeholder="興味のあるキーワードを入力">
-                        <button class="add-keyword-btn" id="addInterestKeywordBtn">追加</button>
+        <!-- 設定セクション -->
+        <div class="settings-sections">
+            <!-- 基本設定 -->
+            <section class="settings-section">
+                <div class="section-header">
+                    <span class="section-icon">📱</span>
+                    <div>
+                        <h2 class="section-title">基本設定</h2>
+                        <p class="section-description">アプリの基本的な動作を設定します</p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">NGキーワード</div>
-                    <div class="setting-description">これらのキーワードを含む記事は自動的に非表示になります</div>
-                    <div class="keyword-list" id="ngKeywordsList">
-                        <!-- 動的に生成 -->
+                
+                <div class="setting-group">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">自動更新</h3>
+                            <p class="setting-help">RSS記事の自動取得機能を有効にします</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="autoRefreshToggle" data-setting="autoRefresh"></div>
+                        </div>
                     </div>
-                    <div class="keyword-input-group">
-                        <input type="text" class="keyword-input" id="ngKeywordInput" 
-                               placeholder="NGキーワードを入力">
-                        <button class="add-keyword-btn" id="addNgKeywordBtn">追加</button>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">更新間隔</h3>
+                            <p class="setting-help">自動更新の間隔（分）</p>
+                        </div>
+                        <div class="setting-control">
+                            <input type="number" class="setting-number" id="refreshInterval" 
+                                   min="5" max="180" step="5" value="30">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">1ページあたりの記事数</h3>
+                            <p class="setting-help">一度に表示する記事の数</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="setting-select" id="articlesPerPage">
+                                <option value="20">20件</option>
+                                <option value="50">50件</option>
+                                <option value="100">100件</option>
+                                <option value="200">200件</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">デフォルトソート</h3>
+                            <p class="setting-help">記事一覧の初期並び順</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="setting-select" id="defaultSort">
+                                <option value="interest">AI興味度順</option>
+                                <option value="date">更新日時順</option>
+                                <option value="domain">ドメイン順</option>
+                                <option value="keyword-match">キーワード一致度順</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">記事画像表示</h3>
+                            <p class="setting-help">記事カードに画像を表示します</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="showImagesToggle" data-setting="showImages"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">キーワードハイライト</div>
-                    <div class="setting-description">一致したキーワードを記事内でハイライト表示します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch active" id="keywordHighlight"></div>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 表示設定 -->
-        <section class="settings-section">
-            <h2 class="section-title">🎨 表示設定</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">テーマ</div>
-                    <div class="setting-description">アプリケーションの外観テーマを選択します</div>
+            <!-- AI・キーワード設定 -->
+            <section class="settings-section">
+                <div class="section-header">
+                    <span class="section-icon">🤖</span>
+                    <div>
+                        <h2 class="section-title">AI・キーワード設定</h2>
+                        <p class="section-description">AI学習とキーワード検出の設定を行います</p>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">気になるワード</h3>
+                            <p class="setting-help">このワードが含まれる記事の興味度がアップします</p>
+                            <textarea class="keywords-input" id="interestKeywords" 
+                                      placeholder="例: AI, 技術, プログラミング, ニュース&#10;（1行に1つずつ入力）"></textarea>
+                            <div class="keywords-help">
+                                ※ 1行に1つのワードを入力。マッチした記事は+20点ボーナス
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">NGワード</h3>
+                            <p class="setting-help">このワードが含まれる記事は自動的に非表示になります</p>
+                            <textarea class="keywords-input" id="ngKeywords" 
+                                      placeholder="例: 事故, 事件, 政治&#10;（1行に1つずつ入力）"></textarea>
+                            <div class="keywords-help">
+                                ※ 1行に1つのワードを入力。マッチした記事は即座に非表示
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="setting-btn btn-primary" id="saveKeywordsBtn">キーワード設定保存</button>
+                        <button class="setting-btn btn-secondary" id="resetAIBtn">AI学習リセット</button>
+                        <button class="setting-btn btn-success" id="retrainAIBtn">AI再学習実行</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- テーマ・外観設定 -->
+            <section class="settings-section">
+                <div class="section-header">
+                    <span class="section-icon">🎨</span>
+                    <div>
+                        <h2 class="section-title">テーマ・外観設定</h2>
+                        <p class="section-description">アプリの見た目を変更できます</p>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
                     <div class="theme-preview">
-                        <div class="theme-option theme-light active" data-theme="light">
-                            <div class="theme-name">ライト</div>
-                            <div class="theme-sample"></div>
+                        <div class="theme-option active" data-theme="light">
+                            <div class="theme-name">ライトテーマ</div>
+                            <div class="theme-colors">
+                                <div class="color-swatch" style="background: #ffffff;"></div>
+                                <div class="color-swatch" style="background: #2196F3;"></div>
+                                <div class="color-swatch" style="background: #4CAF50;"></div>
+                            </div>
+                            <div class="theme-description">明るく見やすいデフォルトテーマ</div>
                         </div>
-                        <div class="theme-option theme-dark" data-theme="dark">
-                            <div class="theme-name">ダーク</div>
-                            <div class="theme-sample"></div>
+                        
+                        <div class="theme-option" data-theme="dark">
+                            <div class="theme-name">ダークテーマ</div>
+                            <div class="theme-colors">
+                                <div class="color-swatch" style="background: #121212;"></div>
+                                <div class="color-swatch" style="background: #64B5F6;"></div>
+                                <div class="color-swatch" style="background: #66BB6A;"></div>
+                            </div>
+                            <div class="theme-description">目に優しい暗めのテーマ</div>
                         </div>
-                        <div class="theme-option theme-sepia" data-theme="sepia">
-                            <div class="theme-name">セピア</div>
-                            <div class="theme-sample"></div>
+                        
+                        <div class="theme-option" data-theme="sepia">
+                            <div class="theme-name">セピアテーマ</div>
+                            <div class="theme-colors">
+                                <div class="color-swatch" style="background: #f4f1ea;"></div>
+                                <div class="color-swatch" style="background: #8b4513;"></div>
+                                <div class="color-swatch" style="background: #6b8e23;"></div>
+                            </div>
+                            <div class="theme-description">読書に集中できる落ち着いたテーマ</div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">記事表示件数</div>
-                    <div class="setting-description">一度に表示する記事の件数</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="articlesPerPage">
-                        <option value="10">10件</option>
-                        <option value="20">20件</option>
-                        <option value="50" selected>50件</option>
-                        <option value="100">100件</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">記事カードサイズ</div>
-                    <div class="setting-description">記事カードの表示サイズ</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="cardSize">
-                        <option value="compact">コンパクト</option>
-                        <option value="normal" selected>標準</option>
-                        <option value="large">大きめ</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">画像の自動読み込み</div>
-                    <div class="setting-description">記事の画像を自動的に読み込みます（データ使用量に注意）</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch active" id="autoLoadImages"></div>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- データ管理設定 -->
-        <section class="settings-section">
-            <h2 class="section-title">💾 データ管理設定</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">自動データクリーンアップ</div>
-                    <div class="setting-description">古い記事データを自動的に削除します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch active" id="autoCleanup"></div>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">データ保持期間</div>
-                    <div class="setting-description">記事データを保持する期間</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="dataRetentionDays">
-                        <option value="3">3日</option>
-                        <option value="7" selected>1週間</option>
-                        <option value="14">2週間</option>
-                        <option value="30">1ヶ月</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">最大記事保存数</div>
-                    <div class="setting-description">保存する記事の最大件数</div>
-                </div>
-                <div class="setting-control">
-                    <input type="number" class="setting-input" id="maxArticles" 
-                           value="1000" min="100" max="5000" step="100">
-                </div>
-            </div>
-            
-            <div class="stats-grid" id="storageStats">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalArticles">0</div>
-                    <div class="stat-label">保存中記事数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="storageUsed">0KB</div>
-                    <div class="stat-label">使用容量</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="lastCleanup">未実行</div>
-                    <div class="stat-label">最終クリーンアップ</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="rssCount">0</div>
-                    <div class="stat-label">RSS登録数</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- RSS更新設定 -->
-        <section class="settings-section">
-            <h2 class="section-title">📡 RSS更新設定</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">自動更新</div>
-                    <div class="setting-description">定期的にRSSフィードを更新します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="toggle-switch" id="autoRefresh"></div>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">更新間隔</div>
-                    <div class="setting-description">RSS更新の実行間隔</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="refreshInterval">
-                        <option value="15">15分</option>
-                        <option value="30" selected>30分</option>
-                        <option value="60">1時間</option>
-                        <option value="180">3時間</option>
-                        <option value="360">6時間</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">更新失敗時の再試行</div>
-                    <div class="setting-description">RSS取得が失敗した場合の再試行回数</div>
-                </div>
-                <div class="setting-control">
-                    <select class="setting-select" id="retryCount">
-                        <option value="1">1回</option>
-                        <option value="2" selected>2回</option>
-                        <option value="3">3回</option>
-                        <option value="5">5回</option>
-                    </select>
-                </div>
-            </div>
-        </section>
-
-        <!-- データインポート・エクスポート -->
-        <section class="settings-section">
-            <h2 class="section-title">📂 データバックアップ</h2>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">設定データのエクスポート</div>
-                    <div class="setting-description">現在の設定、キーワード、学習データを出力します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="import-export-area">
-                        <button class="setting-btn btn-primary" id="exportSettingsBtn">設定をエクスポート</button>
-                        <button class="setting-btn btn-primary" id="exportAllDataBtn">全データをエクスポート</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="setting-item">
-                <div class="setting-info">
-                    <div class="setting-label">データのインポート</div>
-                    <div class="setting-description">バックアップファイルから設定を復元します</div>
-                </div>
-                <div class="setting-control">
-                    <div class="import-export-area">
-                        <label for="importFile" class="file-label">ファイルを選択</label>
-                        <input type="file" id="importFile" class="file-input" accept=".json">
-                        <button class="setting-btn btn-secondary" id="importDataBtn" disabled>インポート実行</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 詳細設定・危険操作 -->
-        <section class="settings-section">
-            <div class="danger-zone">
-                <h2 class="section-title">⚠️ 詳細設定・リセット操作</h2>
-                
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">学習データのクリア</div>
-                        <div class="setting-description">AIの学習データをすべて削除し、初期状態に戻します</div>
-                    </div>
-                    <div class="setting-control">
-                        <button class="setting-btn btn-danger" id="clearLearningDataBtn">学習データクリア</button>
+            <!-- データ管理 -->
+            <section class="settings-section">
+                <div class="section-header">
+                    <span class="section-icon">💾</span>
+                    <div>
+                        <h2 class="section-title">データ管理</h2>
+                        <p class="section-description">保存データの管理・バックアップを行います</p>
                     </div>
                 </div>
                 
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">記事データのクリア</div>
-                        <div class="setting-description">保存されているすべての記事データを削除します</div>
-                    </div>
-                    <div class="setting-control">
-                        <button class="setting-btn btn-danger" id="clearArticleDataBtn">記事データクリア</button>
+                <div class="data-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalArticlesData">0</div>
+                            <div class="stat-label">保存記事数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalRSSData">0</div>
+                            <div class="stat-label">RSS数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="storageUsage">0</div>
+                            <div class="stat-label">使用容量 (KB)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="lastBackup">未実行</div>
+                            <div class="stat-label">最終バックアップ</div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">完全リセット</div>
-                        <div class="setting-description">すべての設定・データを削除し、アプリを初期状態に戻します</div>
-                    </div>
-                    <div class="setting-control">
-                        <button class="setting-btn btn-danger" id="fullResetBtn">完全リセット</button>
+                <div class="setting-group">
+                    <div class="action-buttons">
+                        <button class="setting-btn btn-success" id="exportDataBtn">データエクスポート</button>
+                        <div class="file-upload">
+                            <input type="file" id="importDataFile" accept=".json">
+                            <label for="importDataFile" class="upload-btn">データインポート</label>
+                        </div>
+                        <button class="setting-btn btn-secondary" id="cleanOldDataBtn">古いデータ削除</button>
+                        <button class="setting-btn btn-danger" id="clearAllDataBtn">全データ削除</button>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- アプリ情報 -->
+            <section class="settings-section">
+                <div class="section-header">
+                    <span class="section-icon">ℹ️</span>
+                    <div>
+                        <h2 class="section-title">アプリ情報</h2>
+                        <p class="section-description">バージョン情報とシステム状態</p>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">アプリバージョン</h3>
+                            <p class="setting-help">現在のアプリケーションバージョン</p>
+                        </div>
+                        <div class="setting-control">
+                            <span id="appVersion">1.0.0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">AI学習状況</h3>
+                            <p class="setting-help">学習済み語彙数とフィードバック数</p>
+                        </div>
+                        <div class="setting-control">
+                            <span id="aiLearningStatus">読み込み中...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3 class="setting-label">PWA状態</h3>
+                            <p class="setting-help">オフライン機能とインストール状況</p>
+                        </div>
+                        <div class="setting-control">
+                            <span id="pwaStatus">確認中...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="setting-btn btn-primary" id="checkUpdateBtn">更新確認</button>
+                        <button class="setting-btn btn-secondary" id="resetSettingsBtn">設定リセット</button>
+                    </div>
+                </div>
+            </section>
+        </div>
     </main>
+
+    <!-- 確認ダイアログ -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-content">
+            <h3 class="confirm-title" id="confirmTitle">確認</h3>
+            <p class="confirm-message" id="confirmMessage">この操作を実行しますか？</p>
+            <div class="confirm-actions">
+                <button class="setting-btn btn-danger" id="confirmYes">実行</button>
+                <button class="setting-btn btn-secondary" id="confirmNo">キャンセル</button>
+            </div>
+        </div>
+    </div>
 
     <!-- エラー通知エリア -->
     <div class="notification-area" id="notificationArea"></div>
@@ -796,43 +845,26 @@
     <!-- スクリプト読み込み -->
     <script src="../scripts/data-manager.js"></script>
     <script src="../scripts/utils.js"></script>
-    <script src="../scripts/ai-engine.js"></script>
     
     <!-- 設定画面専用スクリプト -->
     <script>
         class SettingsManager {
             constructor() {
                 this.dataManager = null;
-                this.aiEngine = null;
-                this.defaultSettings = {
-                    ai: {
-                        enabled: true,
-                        autoLearning: true,
-                        learningSensitivity: 'medium'
-                    },
-                    keywords: {
-                        interestWords: ['技術', 'AI', 'ニュース'],
-                        ngWords: ['広告', 'PR', 'スポンサー'],
-                        highlightEnabled: true
-                    },
-                    display: {
-                        theme: 'light',
-                        articlesPerPage: 50,
-                        cardSize: 'normal',
-                        autoLoadImages: true
-                    },
-                    data: {
-                        autoCleanup: true,
-                        retentionDays: 7,
-                        maxArticles: 1000
-                    },
-                    rss: {
-                        autoRefresh: false,
-                        refreshInterval: 30,
-                        retryCount: 2
-                    }
-                };
                 this.currentSettings = {};
+                this.isInitialized = false;
+                
+                // デフォルト設定
+                this.defaultSettings = {
+                    autoRefresh: false,
+                    refreshInterval: 30,
+                    articlesPerPage: 50,
+                    defaultSort: 'interest',
+                    showImages: true,
+                    theme: 'light',
+                    interestKeywords: [],
+                    ngKeywords: []
+                };
             }
             
             async initialize() {
@@ -843,728 +875,729 @@
                     this.dataManager = new DataManager();
                     await this.dataManager.initialize();
                     
-                    if (typeof AIEngine !== 'undefined') {
-                        this.aiEngine = new AIEngine();
-                        await this.aiEngine.initialize();
-                    }
-                    
-                    // 設定読み込み
+                    // 設定データ読み込み
                     await this.loadSettings();
                     
                     // UI初期化
                     this.setupEventListeners();
                     this.updateUI();
-                    this.updateStats();
+                    this.updateDataStats();
+                    this.updateSystemInfo();
                     
+                    this.isInitialized = true;
                     console.log('Settings Manager初期化完了');
                     
                 } catch (error) {
                     console.error('Settings Manager初期化エラー:', error);
-                    this.showNotification('設定画面の初期化に失敗しました', 'error');
+                    this.showNotification('設定管理機能の初期化に失敗しました', 'error');
                 }
             }
             
             async loadSettings() {
                 try {
-                    const savedSettings = Utils.getStorageItem('yourNews_settings');
-                    this.currentSettings = savedSettings ? 
-                        this.mergeSettings(this.defaultSettings, savedSettings) : 
-                        { ...this.defaultSettings };
+                    // ユーザー設定読み込み
+                    const userPrefs = await this.dataManager.loadUserPreferences();
                     
-                    console.log('設定読み込み完了:', this.currentSettings);
+                    // キーワード設定読み込み
+                    const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                                   { interestWords: [], ngWords: [] };
+                    
+                    // 設定統合
+                    this.currentSettings = {
+                        ...this.defaultSettings,
+                        ...userPrefs,
+                        interestKeywords: keywords.interestWords || [],
+                        ngKeywords: keywords.ngWords || []
+                    };
+                    
+                    console.log('設定データ読み込み完了:', this.currentSettings);
+                    
                 } catch (error) {
                     console.error('設定読み込みエラー:', error);
                     this.currentSettings = { ...this.defaultSettings };
                 }
             }
             
-            async saveSettings() {
-                try {
-                    Utils.setStorageItem('yourNews_settings', this.currentSettings);
-                    console.log('設定保存完了');
-                    return true;
-                } catch (error) {
-                    console.error('設定保存エラー:', error);
-                    return false;
-                }
-            }
-            
-            mergeSettings(defaults, saved) {
-                const merged = { ...defaults };
-                
-                Object.keys(saved).forEach(section => {
-                    if (merged[section]) {
-                        merged[section] = { ...merged[section], ...saved[section] };
-                    } else {
-                        merged[section] = saved[section];
-                    }
-                });
-                
-                return merged;
-            }
-            
             setupEventListeners() {
-                try {
-                    // トグルスイッチ
-                    this.setupToggleSwitch('aiEnabled', 'ai.enabled');
-                    this.setupToggleSwitch('autoLearning', 'ai.autoLearning');
-                    this.setupToggleSwitch('keywordHighlight', 'keywords.highlightEnabled');
-                    this.setupToggleSwitch('autoLoadImages', 'display.autoLoadImages');
-                    this.setupToggleSwitch('autoCleanup', 'data.autoCleanup');
-                    this.setupToggleSwitch('autoRefresh', 'rss.autoRefresh');
-                    
-                    // セレクトボックス
-                    this.setupSelect('learningSensitivity', 'ai.learningSensitivity');
-                    this.setupSelect('articlesPerPage', 'display.articlesPerPage');
-                    this.setupSelect('cardSize', 'display.cardSize');
-                    this.setupSelect('dataRetentionDays', 'data.retentionDays');
-                    this.setupSelect('refreshInterval', 'rss.refreshInterval');
-                    this.setupSelect('retryCount', 'rss.retryCount');
-                    
-                    // 入力フィールド
-                    this.setupInput('maxArticles', 'data.maxArticles', 'number');
-                    
-                    // キーワード管理
-                    this.setupKeywordManagement();
-                    
-                    // テーマ選択
-                    this.setupThemeSelection();
-                    
-                    // ボタンイベント
-                    this.setupButtonEvents();
-                    
-                    // ファイルインポート
-                    this.setupFileImport();
-                    
-                    console.log('Settings Manager イベントリスナー設定完了');
-                    
-                } catch (error) {
-                    console.error('イベントリスナー設定エラー:', error);
-                }
-            }
-            
-            setupToggleSwitch(elementId, settingPath) {
-                const element = document.getElementById(elementId);
-                if (!element) return;
-                
-                element.addEventListener('click', () => {
-                    const currentValue = this.getSetting(settingPath);
-                    const newValue = !currentValue;
-                    this.setSetting(settingPath, newValue);
-                    this.updateToggleUI(element, newValue);
-                    this.saveSettings();
-                });
-            }
-            
-            setupSelect(elementId, settingPath) {
-                const element = document.getElementById(elementId);
-                if (!element) return;
-                
-                element.addEventListener('change', (e) => {
-                    let value = e.target.value;
-                    
-                    // 数値の場合は変換
-                    if (!isNaN(value) && value !== '') {
-                        value = parseInt(value);
-                    }
-                    
-                    this.setSetting(settingPath, value);
-                    this.saveSettings();
-                });
-            }
-            
-            setupInput(elementId, settingPath, type = 'text') {
-                const element = document.getElementById(elementId);
-                if (!element) return;
-                
-                element.addEventListener('change', (e) => {
-                    let value = e.target.value;
-                    
-                    if (type === 'number') {
-                        value = parseInt(value) || 0;
-                    }
-                    
-                    this.setSetting(settingPath, value);
-                    this.saveSettings();
-                });
-            }
-            
-            setupKeywordManagement() {
-                // 興味キーワード追加
-                const addInterestBtn = document.getElementById('addInterestKeywordBtn');
-                const interestInput = document.getElementById('interestKeywordInput');
-                
-                if (addInterestBtn && interestInput) {
-                    addInterestBtn.addEventListener('click', () => {
-                        this.addKeyword('interestWords', interestInput.value.trim());
-                        interestInput.value = '';
-                    });
-                    
-                    interestInput.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            this.addKeyword('interestWords', interestInput.value.trim());
-                            interestInput.value = '';
+                // トグルスイッチ
+                document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                    toggle.addEventListener('click', () => {
+                        const setting = toggle.dataset.setting;
+                        if (setting) {
+                            this.toggleSetting(setting, toggle);
                         }
                     });
-                }
-                
-                // NGキーワード追加
-                const addNgBtn = document.getElementById('addNgKeywordBtn');
-                const ngInput = document.getElementById('ngKeywordInput');
-                
-                if (addNgBtn && ngInput) {
-                    addNgBtn.addEventListener('click', () => {
-                        this.addKeyword('ngWords', ngInput.value.trim());
-                        ngInput.value = '';
-                    });
-                    
-                    ngInput.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            this.addKeyword('ngWords', ngInput.value.trim());
-                            ngInput.value = '';
-                        }
-                    });
-                }
-            }
-            
-            setupThemeSelection() {
-                const themeOptions = document.querySelectorAll('.theme-option');
-                
-                themeOptions.forEach(option => {
-                    option.addEventListener('click', () => {
-                        const theme = option.dataset.theme;
-                        
-                        // UI更新
-                        themeOptions.forEach(opt => opt.classList.remove('active'));
-                        option.classList.add('active');
-                        
-                        // 設定保存
-                        this.setSetting('display.theme', theme);
-                        this.saveSettings();
-                        
-                        // テーマ適用
-                        this.applyTheme(theme);
-                    });
                 });
-            }
-            
-            setupButtonEvents() {
-                // AIリセット
+                
+                // 数値・選択入力
+                ['refreshInterval', 'articlesPerPage', 'defaultSort'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', (e) => {
+                            const value = e.target.type === 'number' ? parseInt(e.target.value) : e.target.value;
+                            this.updateSetting(id, value);
+                        });
+                    }
+                });
+                
+                // キーワード保存
+                const saveKeywordsBtn = document.getElementById('saveKeywordsBtn');
+                if (saveKeywordsBtn) {
+                    saveKeywordsBtn.addEventListener('click', () => {
+                        this.saveKeywords();
+                    });
+                }
+                
+                // AI操作ボタン
                 const resetAIBtn = document.getElementById('resetAIBtn');
                 if (resetAIBtn) {
-                    resetAIBtn.addEventListener('click', () => this.resetAIModel());
+                    resetAIBtn.addEventListener('click', () => {
+                        this.confirmAction('AI学習データをリセット', 'AI学習データを完全に削除します。この操作は取り消せません。', () => {
+                            this.resetAILearning();
+                        });
+                    });
                 }
                 
-                // データエクスポート
-                const exportSettingsBtn = document.getElementById('exportSettingsBtn');
-                if (exportSettingsBtn) {
-                    exportSettingsBtn.addEventListener('click', () => this.exportSettings());
+                const retrainAIBtn = document.getElementById('retrainAIBtn');
+                if (retrainAIBtn) {
+                    retrainAIBtn.addEventListener('click', () => {
+                        this.retrainAI();
+                    });
                 }
                 
-                const exportAllDataBtn = document.getElementById('exportAllDataBtn');
-                if (exportAllDataBtn) {
-                    exportAllDataBtn.addEventListener('click', () => this.exportAllData());
-                }
+                // テーマ選択
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const theme = option.dataset.theme;
+                        this.changeTheme(theme);
+                    });
+                });
                 
-                // 危険操作
-                const clearLearningDataBtn = document.getElementById('clearLearningDataBtn');
-                if (clearLearningDataBtn) {
-                    clearLearningDataBtn.addEventListener('click', () => this.clearLearningData());
-                }
+                // データ管理ボタン
+                this.setupDataManagementListeners();
                 
-                const clearArticleDataBtn = document.getElementById('clearArticleDataBtn');
-                if (clearArticleDataBtn) {
-                    clearArticleDataBtn.addEventListener('click', () => this.clearArticleData());
-                }
+                // システム情報ボタン
+                this.setupSystemInfoListeners();
                 
-                const fullResetBtn = document.getElementById('fullResetBtn');
-                if (fullResetBtn) {
-                    fullResetBtn.addEventListener('click', () => this.fullReset());
-                }
+                // 確認ダイアログ
+                this.setupConfirmDialog();
             }
             
-            setupFileImport() {
-                const fileInput = document.getElementById('importFile');
-                const importBtn = document.getElementById('importDataBtn');
+            setupDataManagementListeners() {
+                // データエクスポート
+                const exportBtn = document.getElementById('exportDataBtn');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        this.exportData();
+                    });
+                }
                 
-                if (fileInput) {
-                    fileInput.addEventListener('change', (e) => {
-                        const file = e.target.files[0];
-                        if (importBtn) {
-                            importBtn.disabled = !file;
+                // データインポート
+                const importFile = document.getElementById('importDataFile');
+                if (importFile) {
+                    importFile.addEventListener('change', (e) => {
+                        if (e.target.files.length > 0) {
+                            this.importData(e.target.files[0]);
                         }
                     });
                 }
                 
-                if (importBtn) {
-                    importBtn.addEventListener('click', () => this.importData());
+                // 古いデータ削除
+                const cleanBtn = document.getElementById('cleanOldDataBtn');
+                if (cleanBtn) {
+                    cleanBtn.addEventListener('click', () => {
+                        this.confirmAction('古いデータ削除', '7日以上前の記事データを削除します。', () => {
+                            this.cleanOldData();
+                        });
+                    });
+                }
+                
+                // 全データ削除
+                const clearBtn = document.getElementById('clearAllDataBtn');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        this.confirmAction('全データ削除', 'すべての記事・設定データを削除します。この操作は取り消せません。', () => {
+                            this.clearAllData();
+                        });
+                    });
+                }
+            }
+            
+            setupSystemInfoListeners() {
+                // 更新確認
+                const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+                if (checkUpdateBtn) {
+                    checkUpdateBtn.addEventListener('click', () => {
+                        this.checkForUpdates();
+                    });
+                }
+                
+                // 設定リセット
+                const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+                if (resetSettingsBtn) {
+                    resetSettingsBtn.addEventListener('click', () => {
+                        this.confirmAction('設定リセット', 'すべての設定をデフォルトに戻します。', () => {
+                            this.resetSettings();
+                        });
+                    });
+                }
+            }
+            
+            setupConfirmDialog() {
+                const dialog = document.getElementById('confirmDialog');
+                const yesBtn = document.getElementById('confirmYes');
+                const noBtn = document.getElementById('confirmNo');
+                
+                if (noBtn) {
+                    noBtn.addEventListener('click', () => {
+                        this.hideConfirmDialog();
+                    });
+                }
+                
+                if (dialog) {
+                    dialog.addEventListener('click', (e) => {
+                        if (e.target === dialog) {
+                            this.hideConfirmDialog();
+                        }
+                    });
                 }
             }
             
             updateUI() {
                 try {
                     // トグルスイッチ更新
-                    this.updateToggleUI(document.getElementById('aiEnabled'), this.getSetting('ai.enabled'));
-                    this.updateToggleUI(document.getElementById('autoLearning'), this.getSetting('ai.autoLearning'));
-                    this.updateToggleUI(document.getElementById('keywordHighlight'), this.getSetting('keywords.highlightEnabled'));
-                    this.updateToggleUI(document.getElementById('autoLoadImages'), this.getSetting('display.autoLoadImages'));
-                    this.updateToggleUI(document.getElementById('autoCleanup'), this.getSetting('data.autoCleanup'));
-                    this.updateToggleUI(document.getElementById('autoRefresh'), this.getSetting('rss.autoRefresh'));
+                    document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                        const setting = toggle.dataset.setting;
+                        if (setting && this.currentSettings[setting] !== undefined) {
+                            toggle.classList.toggle('active', this.currentSettings[setting]);
+                        }
+                    });
                     
-                    // セレクトボックス更新
-                    this.updateSelectUI('learningSensitivity', this.getSetting('ai.learningSensitivity'));
-                    this.updateSelectUI('articlesPerPage', this.getSetting('display.articlesPerPage'));
-                    this.updateSelectUI('cardSize', this.getSetting('display.cardSize'));
-                    this.updateSelectUI('dataRetentionDays', this.getSetting('data.retentionDays'));
-                    this.updateSelectUI('refreshInterval', this.getSetting('rss.refreshInterval'));
-                    this.updateSelectUI('retryCount', this.getSetting('rss.retryCount'));
+                    // 入力値更新
+                    const inputMappings = {
+                        refreshInterval: 'refreshInterval',
+                        articlesPerPage: 'articlesPerPage',
+                        defaultSort: 'defaultSort'
+                    };
                     
-                    // 入力フィールド更新
-                    this.updateInputUI('maxArticles', this.getSetting('data.maxArticles'));
+                    Object.entries(inputMappings).forEach(([elementId, settingKey]) => {
+                        const element = document.getElementById(elementId);
+                        if (element && this.currentSettings[settingKey] !== undefined) {
+                            element.value = this.currentSettings[settingKey];
+                        }
+                    });
                     
-                    // キーワード表示更新
-                    this.updateKeywordLists();
+                    // キーワード更新
+                    const interestInput = document.getElementById('interestKeywords');
+                    if (interestInput) {
+                        interestInput.value = this.currentSettings.interestKeywords.join('\n');
+                    }
                     
-                    // テーマ選択更新
-                    this.updateThemeUI();
+                    const ngInput = document.getElementById('ngKeywords');
+                    if (ngInput) {
+                        ngInput.value = this.currentSettings.ngKeywords.join('\n');
+                    }
                     
-                    // AI状態更新
-                    this.updateAIStatus();
+                    // テーマ更新
+                    document.querySelectorAll('.theme-option').forEach(option => {
+                        option.classList.toggle('active', option.dataset.theme === this.currentSettings.theme);
+                    });
+                    
+                    // テーマ適用
+                    this.applyTheme(this.currentSettings.theme);
                     
                 } catch (error) {
                     console.error('UI更新エラー:', error);
                 }
             }
             
-            updateToggleUI(element, value) {
-                if (!element) return;
-                
-                if (value) {
-                    element.classList.add('active');
-                } else {
-                    element.classList.remove('active');
-                }
+            toggleSetting(settingKey, toggleElement) {
+                const newValue = !this.currentSettings[settingKey];
+                this.updateSetting(settingKey, newValue);
+                toggleElement.classList.toggle('active', newValue);
             }
             
-            updateSelectUI(elementId, value) {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.value = value;
-                }
-            }
-            
-            updateInputUI(elementId, value) {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.value = value;
-                }
-            }
-            
-            updateKeywordLists() {
-                this.renderKeywordList('interestKeywordsList', this.getSetting('keywords.interestWords'), 'interestWords');
-                this.renderKeywordList('ngKeywordsList', this.getSetting('keywords.ngWords'), 'ngWords');
-            }
-            
-            renderKeywordList(containerId, keywords, type) {
-                const container = document.getElementById(containerId);
-                if (!container || !Array.isArray(keywords)) return;
-                
-                container.innerHTML = keywords.map(keyword => `
-                    <div class="keyword-item">
-                        <span class="keyword-text">${Utils.sanitizeHTML(keyword)}</span>
-                        <button class="keyword-remove" onclick="settingsManager.removeKeyword('${type}', '${keyword}')">削除</button>
-                    </div>
-                `).join('');
-            }
-            
-            updateThemeUI() {
-                const currentTheme = this.getSetting('display.theme');
-                const themeOptions = document.querySelectorAll('.theme-option');
-                
-                themeOptions.forEach(option => {
-                    if (option.dataset.theme === currentTheme) {
-                        option.classList.add('active');
-                    } else {
-                        option.classList.remove('active');
-                    }
-                });
-            }
-            
-            updateAIStatus() {
-                const statusIndicator = document.getElementById('aiStatusIndicator');
-                const statusText = document.getElementById('aiStatusText');
-                
-                if (this.aiEngine && this.getSetting('ai.enabled')) {
-                    if (statusIndicator) {
-                        statusIndicator.className = 'status-indicator active';
-                    }
-                    if (statusText) {
-                        statusText.textContent = '動作中';
-                    }
-                } else {
-                    if (statusIndicator) {
-                        statusIndicator.className = 'status-indicator';
-                    }
-                    if (statusText) {
-                        statusText.textContent = '無効';
-                    }
-                }
-            }
-            
-            async updateStats() {
+            async updateSetting(settingKey, value) {
                 try {
-                    // AI統計
-                    if (this.aiEngine) {
-                        const aiStats = this.aiEngine.getStats();
-                        this.updateStatValue('feedbackCount', aiStats.feedbackCount || 0);
-                        this.updateStatValue('vocabularySize', aiStats.vocabularySize || 0);
-                        this.updateStatValue('accuracyScore', '推定中');
-                        this.updateStatValue('lastLearning', aiStats.feedbackCount > 0 ? '実行済み' : '未実行');
-                    }
+                    this.currentSettings[settingKey] = value;
                     
-                    // ストレージ統計
-                    const storageStats = this.dataManager.getStorageStats();
-                    this.updateStatValue('totalArticles', storageStats.totalArticles || 0);
-                    this.updateStatValue('storageUsed', this.formatBytes(storageStats.usedBytes || 0));
-                    this.updateStatValue('lastCleanup', storageStats.lastCleanup || '未実行');
-                    this.updateStatValue('rssCount', storageStats.rssCount || 0);
+                    // 設定保存
+                    const settingsToSave = { ...this.currentSettings };
+                    delete settingsToSave.interestKeywords;
+                    delete settingsToSave.ngKeywords;
+                    
+                    await this.dataManager.saveUserPreferences(settingsToSave);
+                    
+                    console.log(`設定更新: ${settingKey} = ${value}`);
                     
                 } catch (error) {
-                    console.error('統計更新エラー:', error);
+                    console.error('設定更新エラー:', error);
+                    this.showNotification('設定の保存に失敗しました', 'error');
                 }
             }
             
-            updateStatValue(elementId, value) {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.textContent = value;
-                }
-            }
-            
-            // 設定値取得・設定
-            getSetting(path) {
-                const keys = path.split('.');
-                let value = this.currentSettings;
-                
-                for (const key of keys) {
-                    if (value && typeof value === 'object' && key in value) {
-                        value = value[key];
-                    } else {
-                        return undefined;
-                    }
-                }
-                
-                return value;
-            }
-            
-            setSetting(path, value) {
-                const keys = path.split('.');
-                let target = this.currentSettings;
-                
-                for (let i = 0; i < keys.length - 1; i++) {
-                    const key = keys[i];
-                    if (!(key in target) || typeof target[key] !== 'object') {
-                        target[key] = {};
-                    }
-                    target = target[key];
-                }
-                
-                target[keys[keys.length - 1]] = value;
-            }
-            
-            // キーワード管理
-            addKeyword(type, keyword) {
-                if (!keyword) return;
-                
-                const keywords = this.getSetting(`keywords.${type}`) || [];
-                
-                if (!keywords.includes(keyword)) {
-                    keywords.push(keyword);
-                    this.setSetting(`keywords.${type}`, keywords);
-                    this.saveSettings();
-                    this.updateKeywordLists();
-                    this.showNotification('キーワードを追加しました', 'success');
-                } else {
-                    this.showNotification('このキーワードは既に登録されています', 'warning');
-                }
-            }
-            
-            removeKeyword(type, keyword) {
-                const keywords = this.getSetting(`keywords.${type}`) || [];
-                const index = keywords.indexOf(keyword);
-                
-                if (index > -1) {
-                    keywords.splice(index, 1);
-                    this.setSetting(`keywords.${type}`, keywords);
-                    this.saveSettings();
-                    this.updateKeywordLists();
-                    this.showNotification('キーワードを削除しました', 'success');
-                }
-            }
-            
-            // テーマ適用
-            applyTheme(theme) {
-                document.documentElement.className = `theme-${theme}`;
-                this.showNotification(`テーマを「${theme}」に変更しました`, 'success');
-            }
-            
-            // AI関連操作
-            async resetAIModel() {
-                if (!confirm('AIの学習データをすべてリセットしますか？この操作は取り消せません。')) {
-                    return;
-                }
-                
+            async saveKeywords() {
                 try {
-                    if (this.aiEngine) {
-                        await this.aiEngine.resetModel();
-                    }
+                    const interestInput = document.getElementById('interestKeywords');
+                    const ngInput = document.getElementById('ngKeywords');
                     
-                    this.updateStats();
-                    this.showNotification('AI学習データをリセットしました', 'success');
+                    const interestWords = interestInput.value
+                        .split('\n')
+                        .map(word => word.trim())
+                        .filter(word => word.length > 0);
                     
-                } catch (error) {
-                    console.error('AIリセットエラー:', error);
-                    this.showNotification('AIリセットに失敗しました', 'error');
-                }
-            }
-            
-            // データエクスポート
-            async exportSettings() {
-                try {
-                    const exportData = {
-                        version: '1.0',
-                        exportDate: new Date().toISOString(),
-                        settings: this.currentSettings,
-                        type: 'settings'
+                    const ngWords = ngInput.value
+                        .split('\n')
+                        .map(word => word.trim())
+                        .filter(word => word.length > 0);
+                    
+                    const keywordsData = {
+                        interestWords: interestWords,
+                        ngWords: ngWords
                     };
                     
-                    this.downloadJSON(exportData, `settings-backup-${new Date().toISOString().split('T')[0]}.json`);
-                    this.showNotification('設定データをエクスポートしました', 'success');
+                    await this.dataManager.saveData('yourNews_keywords', keywordsData);
+                    
+                    this.currentSettings.interestKeywords = interestWords;
+                    this.currentSettings.ngKeywords = ngWords;
+                    
+                    this.showNotification('キーワード設定を保存しました', 'success');
                     
                 } catch (error) {
-                    console.error('設定エクスポートエラー:', error);
-                    this.showNotification('エクスポートに失敗しました', 'error');
+                    console.error('キーワード保存エラー:', error);
+                    this.showNotification('キーワード設定の保存に失敗しました', 'error');
                 }
             }
             
-            async exportAllData() {
+            async resetAILearning() {
+                try {
+                    // AI関連データ削除
+                    localStorage.removeItem('yourNews_feedback');
+                    localStorage.removeItem('yourNews_aiModel');
+                    localStorage.removeItem('yourNews_vocabulary');
+                    localStorage.removeItem('yourNews_idf');
+                    
+                    // AIエンジンリセット
+                    if (window.yourNewsApp && window.yourNewsApp.aiEngine) {
+                        await window.yourNewsApp.aiEngine.resetModel();
+                    }
+                    
+                    this.showNotification('AI学習データをリセットしました', 'success');
+                    this.updateSystemInfo();
+                    
+                } catch (error) {
+                    console.error('AI学習リセットエラー:', error);
+                    this.showNotification('AI学習リセットに失敗しました', 'error');
+                }
+            }
+            
+            async retrainAI() {
+                try {
+                    if (!window.yourNewsApp || !window.yourNewsApp.aiEngine) {
+                        this.showNotification('AI機能が利用できません', 'warning');
+                        return;
+                    }
+                    
+                    const retrainBtn = document.getElementById('retrainAIBtn');
+                    if (retrainBtn) {
+                        retrainBtn.disabled = true;
+                        retrainBtn.textContent = 'AI再学習中...';
+                    }
+                    
+                    // 全記事のAI再計算
+                    const articles = await this.dataManager.loadArticles();
+                    const keywords = {
+                        interestWords: this.currentSettings.interestKeywords,
+                        ngWords: this.currentSettings.ngKeywords
+                    };
+                    
+                    for (const article of articles) {
+                        const newScore = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                        article.interestScore = newScore;
+                    }
+                    
+                    await this.dataManager.saveArticles(articles);
+                    
+                    this.showNotification('AI再学習が完了しました', 'success');
+                    this.updateSystemInfo();
+                    
+                } catch (error) {
+                    console.error('AI再学習エラー:', error);
+                    this.showNotification('AI再学習に失敗しました', 'error');
+                } finally {
+                    const retrainBtn = document.getElementById('retrainAIBtn');
+                    if (retrainBtn) {
+                        retrainBtn.disabled = false;
+                        retrainBtn.textContent = 'AI再学習実行';
+                    }
+                }
+            }
+            
+            changeTheme(theme) {
+                try {
+                    this.updateSetting('theme', theme);
+                    this.applyTheme(theme);
+                    
+                    // UI更新
+                    document.querySelectorAll('.theme-option').forEach(option => {
+                        option.classList.toggle('active', option.dataset.theme === theme);
+                    });
+                    
+                    this.showNotification(`テーマを${theme}に変更しました`, 'success');
+                    
+                } catch (error) {
+                    console.error('テーマ変更エラー:', error);
+                    this.showNotification('テーマの変更に失敗しました', 'error');
+                }
+            }
+            
+            applyTheme(theme) {
+                // ルート要素にテーマ属性を設定
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // body要素にもクラス追加（互換性）
+                document.body.className = document.body.className.replace(/theme-\w+/g, '');
+                document.body.classList.add(`theme-${theme}`);
+            }
+            
+            async updateDataStats() {
                 try {
                     const articles = await this.dataManager.loadArticles();
                     const rssFeeds = await this.dataManager.loadRssFeeds();
                     
-                    const exportData = {
-                        version: '1.0',
-                        exportDate: new Date().toISOString(),
-                        settings: this.currentSettings,
-                        articles: articles,
-                        rssFeeds: rssFeeds,
-                        type: 'full'
+                    // ストレージ使用量計算
+                    let totalSize = 0;
+                    for (let key in localStorage) {
+                        if (key.startsWith('yourNews_')) {
+                            totalSize += localStorage[key].length;
+                        }
+                    }
+                    
+                    const sizeKB = Math.round(totalSize / 1024 * 100) / 100;
+                    
+                    // UI更新
+                    const elements = {
+                        totalArticlesData: articles.length,
+                        totalRSSData: rssFeeds.length,
+                        storageUsage: sizeKB,
+                        lastBackup: this.getLastBackupDate()
                     };
                     
-                    this.downloadJSON(exportData, `full-backup-${new Date().toISOString().split('T')[0]}.json`);
-                    this.showNotification('全データをエクスポートしました', 'success');
+                    Object.entries(elements).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.textContent = value;
+                        }
+                    });
                     
                 } catch (error) {
-                    console.error('全データエクスポートエラー:', error);
-                    this.showNotification('エクスポートに失敗しました', 'error');
+                    console.error('データ統計更新エラー:', error);
                 }
             }
             
-            // データインポート
-            async importData() {
-                const fileInput = document.getElementById('importFile');
-                const file = fileInput.files[0];
-                
-                if (!file) return;
-                
+                        updateSystemInfo() {
                 try {
-                    const text = await file.text();
-                    const data = JSON.parse(text);
-                    
-                    if (!data.version || !data.type) {
-                        throw new Error('無効なバックアップファイルです');
+                    // アプリバージョン
+                    const versionElement = document.getElementById('appVersion');
+                    if (versionElement) {
+                        versionElement.textContent = '1.0.0';
                     }
                     
-                    if (!confirm('データをインポートしますか？現在の設定は上書きされます。')) {
+                    // AI学習状況
+                    const aiStatusElement = document.getElementById('aiLearningStatus');
+                    if (aiStatusElement) {
+                        if (window.yourNewsApp && window.yourNewsApp.aiEngine) {
+                            const stats = window.yourNewsApp.aiEngine.getStats();
+                            aiStatusElement.textContent = `語彙: ${stats.vocabularySize}語, フィードバック: ${stats.feedbackCount}件`;
+                        } else {
+                            aiStatusElement.textContent = '未初期化';
+                        }
+                    }
+                    
+                    // PWA状態
+                    const pwaStatusElement = document.getElementById('pwaStatus');
+                    if (pwaStatusElement) {
+                        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+                        const isOnline = navigator.onLine;
+                        const swSupported = 'serviceWorker' in navigator;
+                        
+                        pwaStatusElement.textContent = 
+                            `${isStandalone ? 'インストール済' : 'ブラウザ版'}, ${isOnline ? 'オンライン' : 'オフライン'}, SW: ${swSupported ? '対応' : '非対応'}`;
+                    }
+                    
+                } catch (error) {
+                    console.error('システム情報更新エラー:', error);
+                }
+            }
+            
+            async exportData() {
+                try {
+                    const exportData = await this.dataManager.exportData();
+                    if (!exportData) {
+                        this.showNotification('エクスポートするデータがありません', 'warning');
                         return;
                     }
                     
-                    // 設定復元
-                    if (data.settings) {
-                        this.currentSettings = this.mergeSettings(this.defaultSettings, data.settings);
-                        await this.saveSettings();
+                    const dataStr = JSON.stringify(exportData, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `your-news-backup_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // 最終バックアップ日時更新
+                    localStorage.setItem('yourNews_lastBackup', new Date().toISOString());
+                    this.updateDataStats();
+                    
+                    this.showNotification('データをエクスポートしました', 'success');
+                    
+                } catch (error) {
+                    console.error('データエクスポートエラー:', error);
+                    this.showNotification('データエクスポートに失敗しました', 'error');
+                }
+            }
+            
+            async importData(file) {
+                try {
+                    if (!file || file.type !== 'application/json') {
+                        this.showNotification('有効なJSONファイルを選択してください', 'warning');
+                        return;
                     }
                     
-                    // 記事データ復元（full backupの場合）
-                    if (data.type === 'full') {
-                        if (data.articles) {
-                            await this.dataManager.saveArticles(data.articles);
-                        }
-                        if (data.rssFeeds) {
-                            await this.dataManager.saveRssFeeds(data.rssFeeds);
-                        }
+                    const text = await file.text();
+                    const importData = JSON.parse(text);
+                    
+                    if (!importData.version || !importData.articles) {
+                        this.showNotification('無効なバックアップファイルです', 'error');
+                        return;
                     }
                     
-                    // UI更新
+                    this.confirmAction('データインポート', 
+                        `${importData.articles.length}件の記事を含むバックアップをインポートします。既存のデータは上書きされます。`, 
+                        async () => {
+                            const success = await this.dataManager.importData(importData);
+                            if (success) {
+                                this.showNotification('データをインポートしました', 'success');
+                                this.updateDataStats();
+                                this.updateSystemInfo();
+                            } else {
+                                this.showNotification('データインポートに失敗しました', 'error');
+                            }
+                        }
+                    );
+                    
+                } catch (error) {
+                    console.error('データインポートエラー:', error);
+                    this.showNotification('ファイルの読み込みに失敗しました', 'error');
+                }
+            }
+            
+            async cleanOldData() {
+                try {
+                    const beforeStats = await this.getDataStats();
+                    
+                    // 古い記事削除
+                    await this.dataManager.cleanOldArticles();
+                    
+                    // キャッシュクリア
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(
+                            cacheNames.map(name => caches.delete(name))
+                        );
+                    }
+                    
+                    const afterStats = await this.getDataStats();
+                    const deletedCount = beforeStats.totalArticles - afterStats.totalArticles;
+                    
+                    this.updateDataStats();
+                    this.showNotification(`${deletedCount}件の古いデータを削除しました`, 'success');
+                    
+                } catch (error) {
+                    console.error('データクリーンアップエラー:', error);
+                    this.showNotification('データクリーンアップに失敗しました', 'error');
+                }
+            }
+            
+            async clearAllData() {
+                try {
+                    // 全データ削除
+                    await this.dataManager.clearAllData();
+                    
+                    // AI関連データ削除
+                    localStorage.removeItem('yourNews_feedback');
+                    localStorage.removeItem('yourNews_aiModel');
+                    localStorage.removeItem('yourNews_vocabulary');
+                    localStorage.removeItem('yourNews_idf');
+                    localStorage.removeItem('yourNews_keywords');
+                    localStorage.removeItem('yourNews_lastBackup');
+                    
+                    // キャッシュクリア
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(
+                            cacheNames.map(name => caches.delete(name))
+                        );
+                    }
+                    
+                    // 設定リセット
+                    this.currentSettings = { ...this.defaultSettings };
+                    await this.dataManager.saveUserPreferences(this.currentSettings);
+                    
                     this.updateUI();
-                    this.updateStats();
+                    this.updateDataStats();
+                    this.updateSystemInfo();
                     
-                    this.showNotification('データをインポートしました', 'success');
-                    
-                    // ファイル選択をリセット
-                    fileInput.value = '';
-                    document.getElementById('importDataBtn').disabled = true;
+                    this.showNotification('すべてのデータを削除しました', 'success');
                     
                 } catch (error) {
-                    console.error('インポートエラー:', error);
-                    this.showNotification('インポートに失敗しました: ' + error.message, 'error');
+                    console.error('全データ削除エラー:', error);
+                    this.showNotification('データ削除に失敗しました', 'error');
                 }
             }
             
-            // 危険操作
-            async clearLearningData() {
-                if (!confirm('AI学習データをすべて削除しますか？この操作は取り消せません。')) {
-                    return;
-                }
-                
+            async resetSettings() {
                 try {
-                    // AI学習データ削除
-                    const keysToRemove = ['yourNews_vocabulary', 'yourNews_idf', 'yourNews_feedback', 'yourNews_aiModel'];
-                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                    this.currentSettings = { ...this.defaultSettings };
+                    await this.dataManager.saveUserPreferences(this.currentSettings);
                     
-                    // AIエンジン再初期化
-                    if (this.aiEngine) {
-                        await this.aiEngine.resetModel();
+                    this.updateUI();
+                    this.showNotification('設定をリセットしました', 'success');
+                    
+                } catch (error) {
+                    console.error('設定リセットエラー:', error);
+                    this.showNotification('設定リセットに失敗しました', 'error');
+                }
+            }
+            
+            async checkForUpdates() {
+                try {
+                    const checkBtn = document.getElementById('checkUpdateBtn');
+                    if (checkBtn) {
+                        checkBtn.disabled = true;
+                        checkBtn.textContent = '確認中...';
                     }
                     
-                    this.updateStats();
-                    this.showNotification('学習データを削除しました', 'success');
+                    // Service Worker更新確認
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (registration) {
+                            await registration.update();
+                            this.showNotification('更新を確認しました', 'info');
+                        } else {
+                            this.showNotification('Service Workerが登録されていません', 'warning');
+                        }
+                    } else {
+                        this.showNotification('更新機能は利用できません', 'warning');
+                    }
                     
                 } catch (error) {
-                    console.error('学習データ削除エラー:', error);
-                    this.showNotification('削除に失敗しました', 'error');
+                    console.error('更新確認エラー:', error);
+                    this.showNotification('更新確認に失敗しました', 'error');
+                } finally {
+                    const checkBtn = document.getElementById('checkUpdateBtn');
+                    if (checkBtn) {
+                        checkBtn.disabled = false;
+                        checkBtn.textContent = '更新確認';
+                    }
                 }
             }
             
-            async clearArticleData() {
-                if (!confirm('保存されているすべての記事データを削除しますか？この操作は取り消せません。')) {
-                    return;
-                }
-                
+            async getDataStats() {
                 try {
-                    await this.dataManager.saveArticles([]);
-                    this.updateStats();
-                    this.showNotification('記事データを削除しました', 'success');
+                    const articles = await this.dataManager.loadArticles();
+                    const rssFeeds = await this.dataManager.loadRssFeeds();
                     
+                    return {
+                        totalArticles: articles.length,
+                        totalRSS: rssFeeds.length
+                    };
                 } catch (error) {
-                    console.error('記事データ削除エラー:', error);
-                    this.showNotification('削除に失敗しました', 'error');
+                    return { totalArticles: 0, totalRSS: 0 };
                 }
             }
             
-            async fullReset() {
-                if (!confirm('すべてのデータと設定を削除し、アプリを初期状態に戻しますか？この操作は取り消せません。')) {
-                    return;
-                }
-                
-                if (!confirm('本当によろしいですか？すべてのデータが失われます。')) {
-                    return;
-                }
-                
+            getLastBackupDate() {
                 try {
-                    // localStorage完全クリア
-                    const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith('yourNews_'));
-                    keysToRemove.forEach(key => localStorage.removeItem(key));
-                    
-                    this.showNotification('完全リセットを実行しました。ページを再読み込みします。', 'success');
-                    
-                    // 3秒後にページリロード
-                    setTimeout(() => {
-                        location.reload();
-                    }, 3000);
-                    
+                    const lastBackup = localStorage.getItem('yourNews_lastBackup');
+                    if (lastBackup) {
+                        return Utils.formatDate(lastBackup, 'relative');
+                    }
+                    return '未実行';
                 } catch (error) {
-                    console.error('完全リセットエラー:', error);
-                    this.showNotification('リセットに失敗しました', 'error');
+                    return '不明';
                 }
             }
             
-            // ユーティリティ関数
-            formatBytes(bytes) {
-                if (bytes === 0) return '0KB';
+            confirmAction(title, message, callback) {
+                const dialog = document.getElementById('confirmDialog');
+                const titleElement = document.getElementById('confirmTitle');
+                const messageElement = document.getElementById('confirmMessage');
+                const yesBtn = document.getElementById('confirmYes');
                 
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i];
+                if (dialog && titleElement && messageElement && yesBtn) {
+                    titleElement.textContent = title;
+                    messageElement.textContent = message;
+                    
+                    // 既存のイベントリスナーを削除
+                    const newYesBtn = yesBtn.cloneNode(true);
+                    yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+                    
+                    // 新しいイベントリスナーを追加
+                    newYesBtn.addEventListener('click', () => {
+                        this.hideConfirmDialog();
+                        callback();
+                    });
+                    
+                    this.showConfirmDialog();
+                }
             }
             
-            downloadJSON(data, filename) {
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                URL.revokeObjectURL(url);
+            showConfirmDialog() {
+                const dialog = document.getElementById('confirmDialog');
+                if (dialog) {
+                    dialog.classList.add('show');
+                }
+            }
+            
+            hideConfirmDialog() {
+                const dialog = document.getElementById('confirmDialog');
+                if (dialog) {
+                    dialog.classList.remove('show');
+                }
             }
             
             showNotification(message, type = 'info', duration = 5000) {
-                const notificationArea = document.getElementById('notificationArea');
-                if (!notificationArea) return;
-                
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.innerHTML = `
-                    ${message}
-                    <button onclick="this.parentElement.remove()" 
-                            style="float: right; background: none; border: none; color: white; cursor: pointer; font-size: 1.2em; margin-left: 10px;">×</button>
-                `;
-                
-                notificationArea.appendChild(notification);
-                
-                setTimeout(() => {
-                    if (notification.parentElement) {
-                        notification.remove();
-                    }
-                }, duration);
+                // グローバル通知関数を利用
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    window.yourNewsApp.showNotification(message, type, duration);
+                } else {
+                    // フォールバック
+                    console.log(`${type.toUpperCase()}: ${message}`);
+                    alert(message);
+                }
             }
         }
         
-        // 設定画面初期化
-        const settingsManager = new SettingsManager();
+        // 初期化
+        let settingsManager;
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                settingsManager = new SettingsManager();
                 await settingsManager.initialize();
             } catch (error) {
-                console.error('設定画面初期化失敗:', error);
-                
-                // 初期化失敗時のフォールバック表示
-                document.body.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: #f44336;">
-                        <h2>設定画面エラー</h2>
-                        <p>設定画面の初期化に失敗しました</p>
-                        <button onclick="location.reload()" style="background: #f44336; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">再読み込み</button>
-                    </div>
-                `;
+                console.error('設定画面初期化エラー:', error);
             }
         });
         
-        // デバッグ用関数
-        window.debugSettingsManager = function() {
-            console.log('=== Settings Manager Debug ===');
-            console.log('Manager instance:', typeof settingsManager !== 'undefined');
-            console.log('Current settings:', settingsManager.currentSettings);
-            console.log('AI Engine available:', !!settingsManager.aiEngine);
-            console.log('Data Manager available:', !!settingsManager.dataManager);
-            console.log('=== Settings Manager Debug Complete ===');
-        };
+        // グローバル公開（デバッグ用）
+        window.settingsManager = () => settingsManager;
     </script>
 </body>
 </html>
