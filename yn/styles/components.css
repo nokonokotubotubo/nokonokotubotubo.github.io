@@ -1,475 +1,462 @@
-/* フィードバック機能対応CSS */
+/* フィードバック機能対応CSS - NGドメイン機能削除版 */
 
 /* 記事カード基本スタイル */
 .article-card {
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    padding: 16px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+border: 1px solid #ddd;
+border-radius: 12px;
+margin-bottom: 16px;
+padding: 16px;
+background: white;
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+transition: all 0.3s ease;
+position: relative;
+overflow: hidden;
 }
 
 .article-card:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
+box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+transform: translateY(-2px);
 }
 
 .article-card.read {
-    opacity: 0.7;
-    background: #f8f9fa;
-}
-
-.article-card.ng-domain {
-    display: none !important;
+opacity: 0.7;
+background: #f8f9fa;
 }
 
 /* カードヘッダー */
 .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    gap: 8px;
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+margin-bottom: 12px;
+flex-wrap: wrap;
+gap: 8px;
 }
 
 /* 興味度スコア表示 */
 .interest-score {
-    background: linear-gradient(45deg, #9E9E9E, #BDBDBD);
-    color: white;
-    border-radius: 16px;
-    padding: 4px 12px;
-    font-size: 0.85em;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    min-width: 50px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+background: linear-gradient(45deg, #9E9E9E, #BDBDBD);
+color: white;
+border-radius: 16px;
+padding: 4px 12px;
+font-size: 0.85em;
+font-weight: bold;
+transition: all 0.3s ease;
+min-width: 50px;
+text-align: center;
+box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .interest-score.score-high {
-    background: linear-gradient(45deg, #4CAF50, #8BC34A) !important;
-    box-shadow: 0 2px 8px rgba(76,175,80,0.4);
+background: linear-gradient(45deg, #4CAF50, #8BC34A) !important;
+box-shadow: 0 2px 8px rgba(76,175,80,0.4);
 }
 
 .interest-score.score-medium {
-    background: linear-gradient(45deg, #FF9800, #FFB74D) !important;
-    box-shadow: 0 2px 8px rgba(255,152,0,0.4);
+background: linear-gradient(45deg, #FF9800, #FFB74D) !important;
+box-shadow: 0 2px 8px rgba(255,152,0,0.4);
 }
 
 .interest-score.score-low {
-    background: linear-gradient(45deg, #9E9E9E, #BDBDBD) !important;
-    box-shadow: 0 2px 8px rgba(158,158,158,0.4);
+background: linear-gradient(45deg, #9E9E9E, #BDBDBD) !important;
+box-shadow: 0 2px 8px rgba(158,158,158,0.4);
 }
 
 /* スコア更新アニメーション */
 @keyframes scoreUpdate {
-    0% { 
-        transform: scale(1);
-        background: #4CAF50;
-    }
-    50% { 
-        transform: scale(1.2);
-        background: #66BB6A;
-    }
-    100% { 
-        transform: scale(1);
-        background: inherit;
-    }
+0% {
+transform: scale(1);
+background: #4CAF50;
+}
+50% {
+transform: scale(1.2);
+background: #66BB6A;
+}
+100% {
+transform: scale(1);
+background: inherit;
+}
 }
 
 .interest-score.updating {
-    animation: scoreUpdate 0.6s ease;
+animation: scoreUpdate 0.6s ease;
 }
 
 /* キーワードハイライト */
 .matched-keywords {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
+display: flex;
+flex-wrap: wrap;
+gap: 4px;
+align-items: center;
 }
 
 .keyword-highlight {
-    background: linear-gradient(45deg, #FFEB3B, #FFF176);
-    color: #333;
-    padding: 2px 6px;
-    border-radius: 8px;
-    font-size: 0.75em;
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    border: 1px solid #FBC02D;
+background: linear-gradient(45deg, #FFEB3B, #FFF176);
+color: #333;
+padding: 2px 6px;
+border-radius: 8px;
+font-size: 0.75em;
+font-weight: 600;
+box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+border: 1px solid #FBC02D;
 }
 
 .keyword-more {
-    background: #E0E0E0;
-    color: #666;
-    padding: 2px 6px;
-    border-radius: 8px;
-    font-size: 0.7em;
+background: #E0E0E0;
+color: #666;
+padding: 2px 6px;
+border-radius: 8px;
+font-size: 0.7em;
 }
 
 /* カードメタ情報 */
 .card-meta {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-    font-size: 0.8em;
-    color: #666;
+display: flex;
+gap: 8px;
+align-items: center;
+flex-wrap: wrap;
+font-size: 0.8em;
+color: #666;
 }
 
 .domain {
-    background: #E3F2FD;
-    color: #1976D2;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 500;
+background: #E3F2FD;
+color: #1976D2;
+padding: 2px 6px;
+border-radius: 4px;
+font-weight: 500;
 }
 
 .publish-date {
-    color: #666;
+color: #666;
 }
 
 .category {
-    background: #F3E5F5;
-    color: #7B1FA2;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 500;
+background: #F3E5F5;
+color: #7B1FA2;
+padding: 2px 6px;
+border-radius: 4px;
+font-weight: 500;
 }
 
 /* カードコンテンツ */
 .card-content {
-    margin-bottom: 16px;
+margin-bottom: 16px;
 }
 
 .article-title {
-    margin: 0 0 8px 0;
-    font-size: 1.1em;
-    line-height: 1.4;
-    color: #333;
-    cursor: pointer;
-    transition: color 0.2s ease;
+margin: 0 0 8px 0;
+font-size: 1.1em;
+line-height: 1.4;
+color: #333;
+cursor: pointer;
+transition: color 0.2s ease;
 }
 
 .article-title:hover {
-    color: #2196F3;
-    text-decoration: underline;
+color: #2196F3;
+text-decoration: underline;
 }
 
 .article-excerpt {
-    margin: 0;
-    color: #666;
-    line-height: 1.5;
-    font-size: 0.9em;
+margin: 0;
+color: #666;
+line-height: 1.5;
+font-size: 0.9em;
 }
 
 /* カードアクション */
 .card-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+flex-wrap: wrap;
 }
 
 .feedback-buttons {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
 }
 
 .card-actions-right {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
 }
 
 /* フィードバックボタン */
 .feedback-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 20px;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+padding: 6px 12px;
+border: none;
+border-radius: 20px;
+font-size: 0.8em;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.3s ease;
+position: relative;
+overflow: hidden;
 }
 
 .feedback-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+transform: translateY(-1px);
+box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .feedback-btn:active {
-    transform: translateY(0);
+transform: translateY(0);
 }
 
 .feedback-btn.interest {
-    background: linear-gradient(45deg, #4CAF50, #66BB6A);
-    color: white;
+background: linear-gradient(45deg, #4CAF50, #66BB6A);
+color: white;
 }
 
 .feedback-btn.interest:hover {
-    background: linear-gradient(45deg, #45a049, #5cb85c);
+background: linear-gradient(45deg, #45a049, #5cb85c);
 }
 
 .feedback-btn.disinterest {
-    background: linear-gradient(45deg, #f44336, #ef5350);
-    color: white;
+background: linear-gradient(45deg, #f44336, #ef5350);
+color: white;
 }
 
 .feedback-btn.disinterest:hover {
-    background: linear-gradient(45deg, #d32f2f, #e53935);
-}
-
-.feedback-btn.ng-domain {
-    background: linear-gradient(45deg, #9E9E9E, #BDBDBD);
-    color: white;
-}
-
-.feedback-btn.ng-domain:hover {
-    background: linear-gradient(45deg, #757575, #9E9E9E);
+background: linear-gradient(45deg, #d32f2f, #e53935);
 }
 
 /* フィードバック処理中のボタンスタイル */
 .feedback-btn:disabled {
-    opacity: 0.5 !important;
-    cursor: not-allowed !important;
-    transform: none !important;
-    box-shadow: none !important;
-    pointer-events: none;
+opacity: 0.5 !important;
+cursor: not-allowed !important;
+transform: none !important;
+box-shadow: none !important;
+pointer-events: none;
 }
 
 .feedback-btn:disabled::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255,255,255,0.3);
-    animation: processingOverlay 1.5s infinite;
+content: '';
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(255,255,255,0.3);
+animation: processingOverlay 1.5s infinite;
 }
 
 @keyframes processingOverlay {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+0%, 100% { opacity: 0; }
+50% { opacity: 1; }
 }
 
 /* お気に入りボタン */
 .favorite-btn {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    background: white;
-    color: #666;
-    font-size: 0.8em;
-    cursor: pointer;
-    transition: all 0.3s ease;
+padding: 6px 12px;
+border: 1px solid #ddd;
+border-radius: 20px;
+background: white;
+color: #666;
+font-size: 0.8em;
+cursor: pointer;
+transition: all 0.3s ease;
 }
 
 .favorite-btn:hover {
-    border-color: #FFD700;
-    color: #FFD700;
-    transform: translateY(-1px);
+border-color: #FFD700;
+color: #FFD700;
+transform: translateY(-1px);
 }
 
 .favorite-btn.active {
-    background: linear-gradient(45deg, #FFD700, #FFC107);
-    border-color: #FFD700;
-    color: white;
+background: linear-gradient(45deg, #FFD700, #FFC107);
+border-color: #FFD700;
+color: white;
 }
 
 /* 既読切替ボタン */
 .read-toggle-btn {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    background: white;
-    color: #666;
-    font-size: 0.8em;
-    cursor: pointer;
-    transition: all 0.3s ease;
+padding: 6px 12px;
+border: 1px solid #ddd;
+border-radius: 20px;
+background: white;
+color: #666;
+font-size: 0.8em;
+cursor: pointer;
+transition: all 0.3s ease;
 }
 
 .read-toggle-btn:hover {
-    border-color: #2196F3;
-    color: #2196F3;
-    transform: translateY(-1px);
+border-color: #2196F3;
+color: #2196F3;
+transform: translateY(-1px);
 }
 
 .read-toggle-btn[data-read="true"] {
-    background: linear-gradient(45deg, #4CAF50, #66BB6A);
-    border-color: #4CAF50;
-    color: white;
+background: linear-gradient(45deg, #4CAF50, #66BB6A);
+border-color: #4CAF50;
+color: white;
 }
 
 /* 空状態表示 */
 .empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: #666;
+text-align: center;
+padding: 4rem 2rem;
+color: #666;
 }
 
 .empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+font-size: 4rem;
+margin-bottom: 1rem;
 }
 
 .empty-state h3 {
-    margin: 0 0 1rem 0;
-    color: #333;
+margin: 0 0 1rem 0;
+color: #333;
 }
 
 .empty-state p {
-    margin: 0 0 2rem 0;
-    font-size: 1.1em;
+margin: 0 0 2rem 0;
+font-size: 1.1em;
 }
 
 .btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-block;
+padding: 0.75rem 1.5rem;
+border: none;
+border-radius: 6px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.3s ease;
+text-decoration: none;
+display: inline-block;
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #2196F3, #42A5F5);
-    color: white;
+background: linear-gradient(45deg, #2196F3, #42A5F5);
+color: white;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(45deg, #1976D2, #2196F3);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(33,150,243,0.3);
+background: linear-gradient(45deg, #1976D2, #2196F3);
+transform: translateY(-1px);
+box-shadow: 0 4px 8px rgba(33,150,243,0.3);
 }
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-    .article-card {
-        margin-bottom: 12px;
-        padding: 12px;
-    }
-    
-    .card-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-    }
-    
-    .feedback-buttons {
-        flex-direction: column;
-        gap: 6px;
-    }
-    
-    .card-actions {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .card-actions-right {
-        justify-content: center;
-    }
-    
-    .interest-score {
-        align-self: flex-start;
-    }
-    
-    .matched-keywords {
-        order: 3;
-    }
-    
-    .card-meta {
-        order: 2;
-        justify-content: center;
-    }
+.article-card {
+margin-bottom: 12px;
+padding: 12px;
+}
+
+.card-header {
+flex-direction: column;
+align-items: stretch;
+gap: 8px;
+}
+
+.feedback-buttons {
+flex-direction: column;
+gap: 6px;
+}
+
+.card-actions {
+flex-direction: column;
+gap: 8px;
+}
+
+.card-actions-right {
+justify-content: center;
+}
+
+.interest-score {
+align-self: flex-start;
+}
+
+.matched-keywords {
+order: 3;
+}
+
+.card-meta {
+order: 2;
+justify-content: center;
+}
 }
 
 @media (max-width: 480px) {
-    .feedback-btn {
-        flex: 1;
-        text-align: center;
-    }
-    
-    .card-actions-right {
-        width: 100%;
-    }
-    
-    .favorite-btn,
-    .read-toggle-btn {
-        flex: 1;
-        text-align: center;
-    }
+.feedback-btn {
+flex: 1;
+text-align: center;
+}
+
+.card-actions-right {
+width: 100%;
+}
+
+.favorite-btn,
+.read-toggle-btn {
+flex: 1;
+text-align: center;
+}
 }
 
 /* ダークモード対応 */
 @media (prefers-color-scheme: dark) {
-    .article-card {
-        background: #2d2d2d;
-        border-color: #404040;
-        color: #e0e0e0;
-    }
-    
-    .article-card.read {
-        background: #1a1a1a;
-    }
-    
-    .article-title {
-        color: #e0e0e0;
-    }
-    
-    .article-title:hover {
-        color: #64B5F6;
-    }
-    
-    .article-excerpt {
-        color: #b0b0b0;
-    }
-    
-    .domain {
-        background: #1565C0;
-        color: #E3F2FD;
-    }
-    
-    .category {
-        background: #4A148C;
-        color: #F3E5F5;
-    }
+.article-card {
+background: #2d2d2d;
+border-color: #404040;
+color: #e0e0e0;
+}
+
+.article-card.read {
+background: #1a1a1a;
+}
+
+.article-title {
+color: #e0e0e0;
+}
+
+.article-title:hover {
+color: #64B5F6;
+}
+
+.article-excerpt {
+color: #b0b0b0;
+}
+
+.domain {
+background: #1565C0;
+color: #E3F2FD;
+}
+
+.category {
+background: #4A148C;
+color: #F3E5F5;
+}
 }
 
 /* フォーカス管理（アクセシビリティ） */
 .feedback-btn:focus,
 .favorite-btn:focus,
 .read-toggle-btn:focus {
-    outline: 2px solid #2196F3;
-    outline-offset: 2px;
+outline: 2px solid #2196F3;
+outline-offset: 2px;
 }
 
 /* 高コントラストモード対応 */
 @media (prefers-contrast: high) {
-    .article-card {
-        border-width: 2px;
-    }
-    
-    .feedback-btn,
-    .favorite-btn,
-    .read-toggle-btn {
-        border-width: 2px;
-    }
-    
-    .interest-score {
-        border: 2px solid;
-    }
+.article-card {
+border-width: 2px;
+}
+
+.feedback-btn,
+.favorite-btn,
+.read-toggle-btn {
+border-width: 2px;
+}
+
+.interest-score {
+border: 2px solid;
+}
 }
