@@ -1,9 +1,11 @@
-// ArticleCard - NGドメイン機能削除版・構文エラー完全修正版
-
+// 記事カードコンポーネント（完全修正版）
 class ArticleCard {
     constructor() {
+        // 仕様書記載のカード要素テンプレート
         this.cardTemplate = null;
         this.initializeTemplate();
+        
+        // 画像遅延読み込みObserver
         this.imageObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -15,367 +17,664 @@ class ArticleCard {
                     }
                 }
             });
-        }, { rootMargin: '50px' });
-        this.touchState = { startX: 0, startY: 0, currentX: 0, currentY: 0, isDragging: false };
+        }, { 
+            rootMargin: '50px'
+        });
+        
+        // スワイプ操作状態管理
+        this.touchState = {
+            startX: 0,
+            startY: 0,
+            currentX: 0,
+            currentY: 0,
+            isDragging: false
+        };
     }
-
-    // テンプレート初期化（重要メソッド・完全定義）
+    
     initializeTemplate() {
-        try {
-            this.cardTemplate = {
-                // 基本テンプレート構造
-                structure: {
-                    header: ['interest-score', 'keywords'],
-                    meta: ['domain', 'date', 'category'],
-                    content: ['title', 'excerpt'],
-                    actions: ['feedback-buttons', 'action-buttons']
-                },
-                // スコア分類
-                scoreClassification: {
-                    high: { threshold: 70, class: 'score-high' },
-                    medium: { threshold: 40, class: 'score-medium' },
-                    low: { threshold: 0, class: 'score-low' }
-                },
-                // デフォルト設定
-                defaults: {
-                    scoreRange: { min: 0, max: 100 },
-                    excerptLength: 200,
-                    titleLength: 100,
-                    keywordLimit: 5
-                }
-            };
-            console.log('ArticleCard template initialized');
-        } catch (error) {
-            console.error('Template initialization error:', error);
-            this.cardTemplate = null;
-        }
-    }
-
-    // 記事カード作成（メインメソッド）
-    createCard(article) {
-        try {
-            if (!article) {
-                console.error('Article data is required');
-                return '';
-            }
-
-            const interestScore = this.validateScore(article.interestScore);
-            const scoreClass = this.getScoreClass(interestScore);
-
-            return `
-                <div class="article-card ${article.readStatus === 'read' ? 'read' : ''}" 
-                     data-article-id="${article.articleId}">
-                    
-                    <div class="card-header">
-                        <div class="interest-score ${scoreClass}">${interestScore}点</div>
-                        ${this.createKeywordHighlights(article.matchedKeywords)}
-                    </div>
-
+        // 仕様書記載のHTML構造テンプレート
+        this.cardTemplate = document.createElement('template');
+        this.cardTemplate.innerHTML = `
+            <div class="article-card" data-article-id="" data-read-status="unread">
+                <div class="card-header">
+                    <span class="interest-score">50点</span>
+                    <div class="matched-keywords"></div>
                     <div class="card-meta">
-                        <span class="domain">${this.sanitizeText(article.domain)}</span>
-                        <span class="publish-date">${this.formatDate(article.publishDate)}</span>
-                        <span class="category">${this.sanitizeText(article.category)}</span>
-                    </div>
-
-                    <div class="card-content">
-                        <h3 class="article-title" onclick="openArticle('${article.articleId}')">
-                            ${this.sanitizeText(article.title)}
-                        </h3>
-                        <p class="article-excerpt">${this.sanitizeText(article.excerpt)}</p>
-                    </div>
-
-                    <div class="card-actions">
-                        ${this.createFeedbackButtons(article)}
-                        <div class="card-actions-right">
-                            ${this.createActionButtons(article)}
-                        </div>
+                        <span class="domain"></span>
+                        <span class="publish-date"></span>
                     </div>
                 </div>
-            `;
-        } catch (error) {
-            console.error('Card creation error:', error);
-            return this.createErrorCard(article, error.message);
-        }
-    }
-
-    // フィードバックボタン生成（NGドメイン削除版）
-    createFeedbackButtons(article) {
-        try {
-            return `
-                <div class="feedback-buttons">
-                    <button class="feedback-btn interest" onclick="processFeedback('${article.articleId}', 1)">
-                        👍 興味あり
-                    </button>
-                    <button class="feedback-btn disinterest" onclick="processFeedback('${article.articleId}', -1)">
-                        👎 興味なし
-                    </button>
+                <div class="card-content">
+                    <div class="article-thumbnail">
+                        <img class="lazy article-image" alt="記事画像" data-src="">
+                        <div class="thumbnail-placeholder">📰</div>
+                    </div>
+                    <div class="article-info">
+                        <h3 class="article-title"></h3>
+                        <p class="article-excerpt"></p>
+                    </div>
                 </div>
-            `;
-        } catch (error) {
-            console.error('Feedback buttons creation error:', error);
-            return '<div class="feedback-buttons"><!-- Error: 按钮生成失败 --></div>';
-        }
-    }
-
-    // アクションボタン生成
-    createActionButtons(article) {
-        try {
-            return `
-                <button class="favorite-btn ${article.favorited ? 'active' : ''}" 
-                        onclick="toggleFavorite('${article.articleId}')">
-                    ⭐ ${article.favorited ? 'お気に入り済み' : 'お気に入り'}
-                </button>
-                <button class="read-toggle-btn" 
-                        data-read="${article.readStatus === 'read'}" 
-                        onclick="toggleReadStatus('${article.articleId}')">
-                    ${article.readStatus === 'read' ? '✅ 既読' : '📖 未読'}
-                </button>
-            `;
-        } catch (error) {
-            console.error('Action buttons creation error:', error);
-            return '<div class="action-buttons"><!-- Error: アクションボタン生成失敗 --></div>';
-        }
-    }
-
-    // キーワードハイライト生成
-    createKeywordHighlights(keywords) {
-        try {
-            if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-                return '';
-            }
-
-            const maxDisplay = this.cardTemplate?.defaults?.keywordLimit || 5;
-            const displayKeywords = keywords.slice(0, maxDisplay);
-            const remainingCount = keywords.length - maxDisplay;
-
-            const keywordHtml = displayKeywords.map(keyword => 
-                `<span class="keyword-highlight">${this.sanitizeText(keyword)}</span>`
-            ).join('');
-
-            const moreHtml = remainingCount > 0 ? 
-                `<span class="keyword-more">+${remainingCount}</span>` : '';
-
-            return `
-                <div class="matched-keywords">
-                    ${keywordHtml}
-                    ${moreHtml}
+                <div class="card-actions">
+                    <div class="feedback-buttons">
+                        <button class="feedback-btn interest" data-feedback="1" title="興味あり">
+                            👍 <span class="btn-text">興味あり</span>
+                        </button>
+                        <button class="feedback-btn disinterest" data-feedback="-1" title="興味なし">
+                            👎 <span class="btn-text">興味なし</span>
+                        </button>
+                        <button class="feedback-btn ng-domain" data-feedback="ng" title="ドメインNG">
+                            🚫 <span class="btn-text">ドメインNG</span>
+                        </button>
+                    </div>
+                    <div class="card-actions-right">
+                        <button class="favorite-btn" data-favorited="false" title="お気に入り">
+                            ⭐ <span class="favorite-text">保存</span>
+                        </button>
+                        <button class="read-toggle-btn" data-read="false" title="既読/未読切替">
+                            📖 <span class="read-text">未読</span>
+                        </button>
+                    </div>
                 </div>
-            `;
-        } catch (error) {
-            console.error('Keyword highlights creation error:', error);
-            return '';
-        }
+                <div class="swipe-indicator"></div>
+            </div>
+        `;
     }
-
-    // スコア検証
-    validateScore(score) {
-        try {
-            if (typeof score !== 'number' || isNaN(score)) {
-                return 50; // デフォルト値
-            }
-
-            const min = this.cardTemplate?.defaults?.scoreRange?.min || 0;
-            const max = this.cardTemplate?.defaults?.scoreRange?.max || 100;
-
-            return Math.min(Math.max(Math.round(score), min), max);
-        } catch (error) {
-            console.error('Score validation error:', error);
-            return 50;
+    
+    // 記事カード作成（仕様書データ構造準拠）
+    createCard(article) {
+        if (!article || !article.articleId) {
+            console.error('Invalid article data:', article);
+            return null;
         }
-    }
-
-    // スコアクラス取得
-    getScoreClass(score) {
+        
         try {
-            if (!this.cardTemplate?.scoreClassification) {
-                // フォールバック分類
-                if (score >= 70) return 'score-high';
-                if (score >= 40) return 'score-medium';
-                return 'score-low';
-            }
-
-            const classification = this.cardTemplate.scoreClassification;
+            // テンプレートクローン
+            const cardElement = this.cardTemplate.content.cloneNode(true);
+            const card = cardElement.querySelector('.article-card');
             
-            if (score >= classification.high.threshold) {
-                return classification.high.class;
-            } else if (score >= classification.medium.threshold) {
-                return classification.medium.class;
-            } else {
-                return classification.low.class;
-            }
+            // データ属性設定
+            card.dataset.articleId = article.articleId;
+            card.dataset.readStatus = article.readStatus || 'unread';
+            card.dataset.domain = article.domain || 'unknown';
+            
+            // 基本情報表示
+            this.populateCardContent(card, article);
+            
+            // 興味度スコア表示
+            this.updateInterestScore(card, article.interestScore || 50);
+            
+            // キーワードハイライト（仕様書準拠）
+            this.displayMatchedKeywords(card, article.matchedKeywords || []);
+            
+            // 状態反映
+            this.updateCardStates(card, article);
+            
+            // イベントリスナー設定
+            this.attachEventListeners(card, article);
+            
+            // 画像遅延読み込み設定
+            this.setupLazyLoading(card);
+            
+            return card;
+            
         } catch (error) {
-            console.error('Score class determination error:', error);
-            return 'score-medium';
+            console.error('Card creation error:', error, article);
+            return this.createErrorCard(article.articleId, error.message);
         }
     }
-
-    // 日付フォーマット
+    
+    populateCardContent(card, article) {
+        // タイトル
+        const titleElement = card.querySelector('.article-title');
+        if (titleElement) {
+            titleElement.textContent = article.title || '無題';
+            titleElement.onclick = () => this.openArticle(article.url, article.articleId);
+        }
+        
+        // 抜粋
+        const excerptElement = card.querySelector('.article-excerpt');
+        if (excerptElement) {
+            excerptElement.textContent = article.excerpt || '内容を読み込み中...';
+        }
+        
+        // ドメイン
+        const domainElement = card.querySelector('.domain');
+        if (domainElement) {
+            domainElement.textContent = article.domain || '';
+        }
+        
+        // 公開日
+        const dateElement = card.querySelector('.publish-date');
+        if (dateElement) {
+            dateElement.textContent = this.formatDate(article.publishDate);
+        }
+        
+        // 記事画像
+        const imageElement = card.querySelector('.article-image');
+        if (imageElement) {
+            const extractedImage = this.extractImageUrl(article.excerpt);
+            const placeholderImage = extractedImage || this.createPlaceholderImage(article.domain);
+            
+            imageElement.dataset.src = placeholderImage;
+            imageElement.alt = article.title;
+        }
+    }
+    
+    createPlaceholderImage(domain) {
+        const cleanDomain = (domain || 'news').substring(0, 10);
+        const svg = `
+            <svg width="200" height="120" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="120" fill="#e0e0e0"/>
+                <text x="100" y="60" text-anchor="middle" dominant-baseline="middle" 
+                      font-family="Arial, sans-serif" font-size="14" fill="#666">
+                    📰 ${cleanDomain}
+                </text>
+            </svg>
+        `;
+        
+        return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    }
+    
+    updateInterestScore(card, score) {
+        const scoreElement = card.querySelector('.interest-score');
+        if (!scoreElement) return;
+        
+        const clampedScore = Math.max(0, Math.min(100, score));
+        scoreElement.textContent = `${clampedScore}点`;
+        
+        // スコア別色分け
+        scoreElement.className = 'interest-score';
+        if (clampedScore >= 80) {
+            scoreElement.classList.add('score-high');
+        } else if (clampedScore >= 60) {
+            scoreElement.classList.add('score-medium');
+        } else {
+            scoreElement.classList.add('score-low');
+        }
+    }
+    
+    displayMatchedKeywords(card, keywords) {
+        const keywordsContainer = card.querySelector('.matched-keywords');
+        if (!keywordsContainer || !keywords.length) return;
+        
+        keywordsContainer.innerHTML = '';
+        
+        keywords.slice(0, 3).forEach(keyword => {
+            const keywordSpan = document.createElement('span');
+            keywordSpan.className = 'keyword-highlight';
+            keywordSpan.textContent = keyword;
+            keywordsContainer.appendChild(keywordSpan);
+        });
+        
+        if (keywords.length > 3) {
+            const moreSpan = document.createElement('span');
+            moreSpan.className = 'keyword-more';
+            moreSpan.textContent = `+${keywords.length - 3}個`;
+            keywordsContainer.appendChild(moreSpan);
+        }
+    }
+    
+    updateCardStates(card, article) {
+        // 既読状態
+        const readBtn = card.querySelector('.read-toggle-btn');
+        if (readBtn) {
+            const isRead = article.readStatus === 'read';
+            readBtn.dataset.read = isRead;
+            readBtn.querySelector('.read-text').textContent = isRead ? '既読' : '未読';
+            
+            if (isRead) {
+                card.classList.add('read');
+            }
+        }
+        
+        // お気に入り状態
+        const favoriteBtn = card.querySelector('.favorite-btn');
+        if (favoriteBtn) {
+            const isFavorited = article.favorited;
+            favoriteBtn.dataset.favorited = isFavorited;
+            favoriteBtn.querySelector('.favorite-text').textContent = isFavorited ? '保存済' : '保存';
+            
+            if (isFavorited) {
+                favoriteBtn.classList.add('active');
+            }
+        }
+    }
+    
+    attachEventListeners(card, article) {
+        const articleId = article.articleId;
+        
+        // フィードバックボタン
+        const feedbackButtons = card.querySelectorAll('.feedback-btn');
+        feedbackButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const feedback = btn.dataset.feedback;
+                this.handleFeedback(articleId, feedback, btn);
+            });
+        });
+        
+        // お気に入りボタン
+        const favoriteBtn = card.querySelector('.favorite-btn');
+        if (favoriteBtn) {
+            favoriteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleFavorite(articleId, favoriteBtn);
+            });
+        }
+        
+        // 既読切替ボタン
+        const readBtn = card.querySelector('.read-toggle-btn');
+        if (readBtn) {
+            readBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleRead(articleId, readBtn);
+            });
+        }
+        
+        // スワイプ操作
+        this.attachSwipeListeners(card, articleId);
+        
+        // カードクリック（記事開く）
+        card.addEventListener('click', (e) => {
+            // ボタンクリック時は無視
+            if (e.target.closest('.card-actions')) return;
+            
+            this.openArticle(article.url, articleId);
+        });
+    }
+    
+    // 既読状態切替関数（完全修正版）
+    toggleRead(articleId, buttonElement) {
+        try {
+            const currentState = buttonElement.dataset.read === 'true';
+            const newState = !currentState;
+            
+            console.log(`Toggling read status: ${articleId}, current: ${currentState}, new: ${newState}`);
+            
+            // データ更新
+            if (window.yourNewsApp && window.yourNewsApp.dataManager) {
+                const newStatus = newState ? 'read' : 'unread';
+                
+                // 非同期更新を実行
+                window.yourNewsApp.dataManager.updateArticle(articleId, { readStatus: newStatus })
+                    .then(success => {
+                        if (success) {
+                            console.log(`Read status updated successfully: ${articleId} -> ${newStatus}`);
+                            
+                            // UI更新
+                            this.updateReadStatusUI(articleId, buttonElement, newState);
+                            
+                            // 成功通知
+                            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                                const message = newState ? '既読にしました' : '未読にしました';
+                                window.yourNewsApp.showNotification(message, 'success', 2000);
+                            }
+                            
+                            // 記事一覧の統計更新
+                            if (window.yourNewsApp && window.yourNewsApp.uiController) {
+                                window.yourNewsApp.uiController.updateStats();
+                            }
+                            
+                        } else {
+                            console.error(`Failed to update read status: ${articleId}`);
+                            
+                            // エラー時は元の状態に戻す
+                            buttonElement.dataset.read = currentState;
+                            
+                            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                                window.yourNewsApp.showNotification('既読状態の更新に失敗しました', 'error');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Read status update error:', error);
+                        
+                        // エラー時は元の状態に戻す
+                        buttonElement.dataset.read = currentState;
+                        
+                        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                            window.yourNewsApp.showNotification('既読状態の更新でエラーが発生しました', 'error');
+                        }
+                    });
+            } else {
+                console.error('DataManager not available');
+                
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    window.yourNewsApp.showNotification('データ管理機能が利用できません', 'error');
+                }
+            }
+            
+        } catch (error) {
+            console.error('既読状態切替エラー:', error);
+            
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification('既読状態の切替でエラーが発生しました', 'error');
+            }
+        }
+    }
+    
+    // UI更新専用関数（新規追加）
+    updateReadStatusUI(articleId, buttonElement, newState) {
+        try {
+            const card = buttonElement.closest('.article-card');
+            
+            // ボタン状態更新
+            buttonElement.dataset.read = newState;
+            const readText = buttonElement.querySelector('.read-text');
+            if (readText) {
+                readText.textContent = newState ? '既読' : '未読';
+            }
+            
+            // カード全体の既読状態クラス更新
+            if (card) {
+                if (newState) {
+                    card.classList.add('read');
+                    card.dataset.readStatus = 'read';
+                } else {
+                    card.classList.remove('read');
+                    card.dataset.readStatus = 'unread';
+                }
+                
+                // 既読変更アニメーション
+                card.classList.add('read-transition');
+                setTimeout(() => {
+                    card.classList.remove('read-transition');
+                }, 500);
+            }
+            
+            // ボタンアイコン更新
+            buttonElement.title = newState ? '未読にする' : '既読にする';
+            
+            console.log(`UI updated for article ${articleId}: read=${newState}`);
+            
+        } catch (error) {
+            console.error('UI update error:', error);
+        }
+    }
+    
+    attachSwipeListeners(card, articleId) {
+        let touchStartTime = 0;
+        
+        card.addEventListener('touchstart', (e) => {
+            this.touchState.startX = e.touches[0].clientX;
+            this.touchState.startY = e.touches[0].clientY;
+            this.touchState.isDragging = false;
+            touchStartTime = Date.now();
+            
+            card.classList.add('touching');
+        });
+        
+        card.addEventListener('touchmove', (e) => {
+            if (!this.touchState.startX || !this.touchState.startY) return;
+            
+            this.touchState.currentX = e.touches[0].clientX;
+            this.touchState.currentY = e.touches[0].clientY;
+            
+            const diffX = this.touchState.startX - this.touchState.currentX;
+            const diffY = this.touchState.startY - this.touchState.currentY;
+            
+            // 水平スワイプ判定
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+                this.touchState.isDragging = true;
+                e.preventDefault();
+                
+                // スワイプ視覚効果
+                const swipeIndicator = card.querySelector('.swipe-indicator');
+                if (swipeIndicator) {
+                    if (diffX > 0) {
+                        swipeIndicator.innerHTML = '👎 興味なし';
+                        swipeIndicator.className = 'swipe-indicator swipe-left';
+                    } else {
+                        swipeIndicator.innerHTML = '👍 興味あり';
+                        swipeIndicator.className = 'swipe-indicator swipe-right';
+                    }
+                    swipeIndicator.style.opacity = Math.min(Math.abs(diffX) / 100, 1);
+                }
+            }
+        });
+        
+        card.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            
+            if (this.touchState.isDragging && touchDuration > 100) {
+                const diffX = this.touchState.startX - this.touchState.currentX;
+                
+                if (Math.abs(diffX) > 80) {
+                    const feedback = diffX > 0 ? -1 : 1;
+                    this.handleFeedback(articleId, feedback.toString());
+                    
+                    card.classList.add('swiped');
+                    setTimeout(() => {
+                        if (card.parentElement) {
+                            card.style.opacity = '0.5';
+                        }
+                    }, 300);
+                }
+            }
+            
+            // 状態リセット
+            card.classList.remove('touching');
+            const swipeIndicator = card.querySelector('.swipe-indicator');
+            if (swipeIndicator) {
+                swipeIndicator.style.opacity = '0';
+                swipeIndicator.className = 'swipe-indicator';
+            }
+            
+            this.touchState = { startX: 0, startY: 0, currentX: 0, currentY: 0, isDragging: false };
+        });
+    }
+    
+    setupLazyLoading(card) {
+        const images = card.querySelectorAll('.lazy');
+        images.forEach(img => {
+            this.imageObserver.observe(img);
+        });
+    }
+    
+    handleFeedback(articleId, feedback, buttonElement) {
+        try {
+            if (window.yourNewsApp && window.yourNewsApp.processFeedback) {
+                window.yourNewsApp.processFeedback(articleId, feedback);
+            }
+            
+            if (buttonElement) {
+                buttonElement.classList.add('feedback-sent');
+                
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = feedback === '1' ? '👍 評価済' : 
+                                        feedback === '-1' ? '👎 評価済' : 
+                                        '🚫 NG設定';
+                
+                setTimeout(() => {
+                    if (buttonElement.parentElement) {
+                        buttonElement.innerHTML = originalText;
+                        buttonElement.classList.remove('feedback-sent');
+                    }
+                }, 2000);
+            }
+            
+            if (feedback === 'ng') {
+                const card = document.querySelector(`[data-article-id="${articleId}"]`);
+                if (card) {
+                    card.style.opacity = '0.3';
+                    card.classList.add('ng-domain');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Feedback処理エラー:', error);
+        }
+    }
+    
+    toggleFavorite(articleId, buttonElement) {
+        try {
+            const currentState = buttonElement.dataset.favorited === 'true';
+            const newState = !currentState;
+            
+            if (window.yourNewsApp && window.yourNewsApp.dataManager) {
+                window.yourNewsApp.dataManager.updateArticle(articleId, { favorited: newState });
+            }
+            
+            buttonElement.dataset.favorited = newState;
+            buttonElement.querySelector('.favorite-text').textContent = newState ? '保存済' : '保存';
+            
+            if (newState) {
+                buttonElement.classList.add('active');
+            } else {
+                buttonElement.classList.remove('active');
+            }
+            
+            const message = newState ? 'お気に入りに追加しました' : 'お気に入りから削除しました';
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification(message, 'success', 2000);
+            }
+            
+        } catch (error) {
+            console.error('お気に入り切替エラー:', error);
+        }
+    }
+    
+    openArticle(url, articleId) {
+        if (!url) return;
+        
+        try {
+            // 既読状態に更新
+            if (articleId && window.yourNewsApp && window.yourNewsApp.dataManager) {
+                window.yourNewsApp.dataManager.updateArticle(articleId, { readStatus: 'read' });
+            }
+            
+            window.open(url, '_blank', 'noopener,noreferrer');
+            
+        } catch (error) {
+            console.error('記事オープンエラー:', error);
+        }
+    }
+    
     formatDate(dateString) {
         try {
-            if (!dateString) return '不明';
-
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return '不明';
-
             const now = new Date();
             const diffMs = now - date;
-            const diffMinutes = Math.floor(diffMs / (1000 * 60));
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-            if (diffMinutes < 1) return '今';
-            if (diffMinutes < 60) return `${diffMinutes}分前`;
-            if (diffHours < 24) return `${diffHours}時間前`;
-            if (diffDays < 7) return `${diffDays}日前`;
             
-            return date.toLocaleDateString('ja-JP', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            if (diffDays === 0) {
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                if (diffHours === 0) {
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    return `${diffMinutes}分前`;
+                }
+                return `${diffHours}時間前`;
+            } else if (diffDays < 7) {
+                return `${diffDays}日前`;
+            } else {
+                return date.toLocaleDateString('ja-JP');
+            }
         } catch (error) {
-            console.error('Date formatting error:', error);
             return '不明';
         }
     }
-
-    // テキストサニタイズ
-    sanitizeText(text) {
+    
+    extractImageUrl(content) {
+        if (!content) return null;
+        
         try {
-            if (!text || typeof text !== 'string') return '';
-
-            // HTMLタグ除去
-            const withoutTags = text.replace(/<[^>]*>/g, '');
-            
-            // HTMLエンティティデコード
-            const textarea = document.createElement('textarea');
-            textarea.innerHTML = withoutTags;
-            const decoded = textarea.value;
-
-            // 空白文字正規化
-            return decoded.replace(/\s+/g, ' ').trim();
+            const imgRegex = /<img[^>]+src="([^">]+)"/i;
+            const match = content.match(imgRegex);
+            return match ? match[1] : null;
         } catch (error) {
-            console.error('Text sanitization error:', error);
-            return String(text || '');
+            return null;
         }
     }
-
-    // エラーカード生成
-    createErrorCard(article, errorMessage) {
-        try {
-            const articleId = article?.articleId || `error_${Date.now()}`;
-            
-            return `
-                <div class="article-card error-card" data-article-id="${articleId}">
-                    <div class="card-header">
-                        <div class="interest-score score-low">0点</div>
-                    </div>
-                    <div class="card-meta">
-                        <span class="domain">エラー</span>
-                        <span class="category">システム</span>
-                    </div>
-                    <div class="card-content">
-                        <h3 class="article-title">記事表示エラー</h3>
-                        <p class="article-excerpt">記事の表示中にエラーが発生しました: ${errorMessage}</p>
-                    </div>
-                    <div class="card-actions">
-                        <div class="error-actions">
-                            <button class="btn-retry" onclick="location.reload()">
-                                🔄 ページ再読み込み
-                            </button>
-                        </div>
-                    </div>
+    
+    createErrorCard(articleId, errorMessage) {
+        const errorCard = document.createElement('div');
+        errorCard.className = 'article-card error-card';
+        errorCard.dataset.articleId = articleId || 'error';
+        errorCard.innerHTML = `
+            <div class="card-content">
+                <div class="article-info">
+                    <h3 class="article-title">記事表示エラー</h3>
+                    <p class="article-excerpt">記事データの表示中にエラーが発生しました: ${errorMessage}</p>
                 </div>
-            `;
-        } catch (error) {
-            console.error('Error card creation failed:', error);
-            return '<div class="article-card error-card">記事表示に失敗しました</div>';
+            </div>
+        `;
+        return errorCard;
+    }
+    
+    createMultipleCards(articles) {
+        if (!Array.isArray(articles)) {
+            console.error('Articles must be an array');
+            return { fragment: document.createDocumentFragment(), cards: [] };
         }
-    }
-
-    // カードレイアウト取得
-    getCardLayout() {
-        return this.cardTemplate?.structure || null;
-    }
-
-    // テンプレート設定更新
-    updateTemplate(newConfig) {
-        try {
-            if (newConfig && typeof newConfig === 'object') {
-                this.cardTemplate = { ...this.cardTemplate, ...newConfig };
-                console.log('Template configuration updated');
-                return true;
+        
+        const fragment = document.createDocumentFragment();
+        const cards = [];
+        
+        articles.forEach(article => {
+            const card = this.createCard(article);
+            if (card) {
+                fragment.appendChild(card);
+                cards.push(card);
             }
-            return false;
-        } catch (error) {
-            console.error('Template update error:', error);
-            return false;
-        }
+        });
+        
+        return { fragment, cards };
     }
-
-    // デバッグ用：テンプレート情報表示
-    debugTemplate() {
-        console.log('ArticleCard Template Debug:', this.cardTemplate);
-        return this.cardTemplate;
-    }
-
-    // タッチイベント処理（モバイル対応）
-    handleTouchStart(event, articleId) {
+    
+    updateCard(articleId, updates) {
+        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (!card) return false;
+        
         try {
-            const touch = event.touches[0];
-            this.touchState = {
-                startX: touch.clientX,
-                startY: touch.clientY,
-                currentX: touch.clientX,
-                currentY: touch.clientY,
-                isDragging: false,
-                articleId: articleId
-            };
-        } catch (error) {
-            console.error('Touch start handling error:', error);
-        }
-    }
-
-    handleTouchMove(event, articleId) {
-        try {
-            if (!this.touchState || this.touchState.articleId !== articleId) return;
-
-            const touch = event.touches[0];
-            this.touchState.currentX = touch.clientX;
-            this.touchState.currentY = touch.clientY;
-
-            const deltaX = Math.abs(this.touchState.currentX - this.touchState.startX);
-            const deltaY = Math.abs(this.touchState.currentY - this.touchState.startY);
-
-            if (deltaX > 10 || deltaY > 10) {
-                this.touchState.isDragging = true;
+            if (updates.interestScore !== undefined) {
+                this.updateInterestScore(card, updates.interestScore);
             }
+            
+            if (updates.matchedKeywords) {
+                this.displayMatchedKeywords(card, updates.matchedKeywords);
+            }
+            
+            if (updates.readStatus) {
+                const readBtn = card.querySelector('.read-toggle-btn');
+                if (readBtn) {
+                    this.updateCardStates(card, { readStatus: updates.readStatus });
+                }
+            }
+            
+            if (updates.favorited !== undefined) {
+                const favoriteBtn = card.querySelector('.favorite-btn');
+                if (favoriteBtn) {
+                    this.updateCardStates(card, { favorited: updates.favorited });
+                }
+            }
+            
+            return true;
+            
         } catch (error) {
-            console.error('Touch move handling error:', error);
-        }
-    }
-
-    handleTouchEnd(event, articleId) {
-        try {
-            if (!this.touchState || this.touchState.articleId !== articleId) return;
-
-            const wasDragging = this.touchState.isDragging;
-            this.touchState = { startX: 0, startY: 0, currentX: 0, currentY: 0, isDragging: false };
-
-            return !wasDragging; // ドラッグしていなければクリックとして処理
-        } catch (error) {
-            console.error('Touch end handling error:', error);
+            console.error('Card update error:', error);
             return false;
         }
     }
-
-    // カード統計情報取得
-    getCardStats() {
-        return {
-            templateInitialized: this.cardTemplate !== null,
-            observerActive: this.imageObserver !== null,
-            touchSupported: 'ontouchstart' in window,
-            lastUpdate: new Date().toISOString()
-        };
+    
+    removeCard(articleId) {
+        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(-20px)';
+            
+            setTimeout(() => {
+                if (card.parentElement) {
+                    card.remove();
+                }
+            }, 300);
+            
+            return true;
+        }
+        return false;
     }
 }
