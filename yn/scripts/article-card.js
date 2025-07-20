@@ -1,4 +1,4 @@
-// 記事カードコンポーネント（仕様書UI仕様準拠・Phase B修正版）
+// 記事カードコンポーネント（仕様書UI仕様準拠・未読既読機能修正版）
 class ArticleCard {
     constructor() {
         // 仕様書記載のカード要素テンプレート
@@ -35,7 +35,7 @@ class ArticleCard {
         // 仕様書記載のHTML構造テンプレート
         this.cardTemplate = document.createElement('template');
         this.cardTemplate.innerHTML = `
-            <div class="article-card" data-article-id="">
+            <div class="article-card" data-article-id="" data-read-status="unread">
                 <div class="card-header">
                     <span class="interest-score">50点</span>
                     <div class="matched-keywords"></div>
@@ -149,12 +149,10 @@ class ArticleCard {
             dateElement.textContent = this.formatDate(article.publishDate);
         }
         
-        // 記事画像（修正版: DNSエラー回避）
+        // 記事画像
         const imageElement = card.querySelector('.article-image');
         if (imageElement) {
             const extractedImage = this.extractImageUrl(article.excerpt);
-            
-            // プレースホルダー画像をbase64エンコード版に変更
             const placeholderImage = extractedImage || this.createPlaceholderImage(article.domain);
             
             imageElement.dataset.src = placeholderImage;
@@ -162,9 +160,7 @@ class ArticleCard {
         }
     }
     
-    // 新しいプレースホルダー画像生成関数（DNSエラー回避）
     createPlaceholderImage(domain) {
-        // SVGベースのプレースホルダー画像
         const cleanDomain = (domain || 'news').substring(0, 10);
         const svg = `
             <svg width="200" height="120" xmlns="http://www.w3.org/2000/svg">
@@ -197,7 +193,6 @@ class ArticleCard {
         }
     }
     
-    // 仕様書記載のキーワードハイライト表示
     displayMatchedKeywords(card, keywords) {
         const keywordsContainer = card.querySelector('.matched-keywords');
         if (!keywordsContainer || !keywords.length) return;
@@ -270,7 +265,7 @@ class ArticleCard {
             });
         }
         
-        // 既読切替ボタン
+        // 【修正2】既読切替ボタン
         const readBtn = card.querySelector('.read-toggle-btn');
         if (readBtn) {
             readBtn.addEventListener('click', (e) => {
@@ -280,7 +275,7 @@ class ArticleCard {
             });
         }
         
-        // スワイプ操作（仕様書記載のモバイル操作）
+        // スワイプ操作
         this.attachSwipeListeners(card, articleId);
         
         // カードクリック（記事開く）
@@ -292,7 +287,115 @@ class ArticleCard {
         });
     }
     
-    // 仕様書記載のスワイプ操作実装
+    // 【修正2】既読状態切替関数（完全修正版）
+    toggleRead(articleId, buttonElement) {
+        try {
+            const currentState = buttonElement.dataset.read === 'true';
+            const newState = !currentState;
+            
+            console.log(`Toggling read status: ${articleId}, current: ${currentState}, new: ${newState}`);
+            
+            // データ更新
+            if (window.yourNewsApp && window.yourNewsApp.dataManager) {
+                const newStatus = newState ? 'read' : 'unread';
+                
+                // 非同期更新を実行
+                window.yourNewsApp.dataManager.updateArticle(articleId, { readStatus: newStatus })
+                    .then(success => {
+                        if (success) {
+                            console.log(`Read status updated successfully: ${articleId} -> ${newStatus}`);
+                            
+                            // UI更新
+                            this.updateReadStatusUI(articleId, buttonElement, newState);
+                            
+                            // 成功通知
+                            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                                const message = newState ? '既読にしました' : '未読にしました';
+                                window.yourNewsApp.showNotification(message, 'success', 2000);
+                            }
+                            
+                            // 記事一覧の統計更新
+                            if (window.yourNewsApp && window.yourNewsApp.uiController) {
+                                window.yourNewsApp.uiController.updateArticleStats();
+                            }
+                            
+                        } else {
+                            console.error(`Failed to update read status: ${articleId}`);
+                            
+                            // エラー時は元の状態に戻す
+                            buttonElement.dataset.read = currentState;
+                            
+                            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                                window.yourNewsApp.showNotification('既読状態の更新に失敗しました', 'error');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Read status update error:', error);
+                        
+                        // エラー時は元の状態に戻す
+                        buttonElement.dataset.read = currentState;
+                        
+                        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                            window.yourNewsApp.showNotification('既読状態の更新でエラーが発生しました', 'error');
+                        }
+                    });
+            } else {
+                console.error('DataManager not available');
+                
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    window.yourNewsApp.showNotification('データ管理機能が利用できません', 'error');
+                }
+            }
+            
+        } catch (error) {
+            console.error('既読状態切替エラー:', error);
+            
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification('既読状態の切替でエラーが発生しました', 'error');
+            }
+        }
+    }
+    
+    // 【修正2】UI更新専用関数（新規追加）
+    updateReadStatusUI(articleId, buttonElement, newState) {
+        try {
+            const card = buttonElement.closest('.article-card');
+            
+            // ボタン状態更新
+            buttonElement.dataset.read = newState;
+            const readText = buttonElement.querySelector('.read-text');
+            if (readText) {
+                readText.textContent = newState ? '既読' : '未読';
+            }
+            
+            // カード全体の既読状態クラス更新
+            if (card) {
+                if (newState) {
+                    card.classList.add('read');
+                    card.dataset.readStatus = 'read';
+                } else {
+                    card.classList.remove('read');
+                    card.dataset.readStatus = 'unread';
+                }
+                
+                // 既読変更アニメーション
+                card.classList.add('read-transition');
+                setTimeout(() => {
+                    card.classList.remove('read-transition');
+                }, 500);
+            }
+            
+            // ボタンアイコン更新
+            buttonElement.title = newState ? '未読にする' : '既読にする';
+            
+            console.log(`UI updated for article ${articleId}: read=${newState}`);
+            
+        } catch (error) {
+            console.error('UI update error:', error);
+        }
+    }
+    
     attachSwipeListeners(card, articleId) {
         let touchStartTime = 0;
         
@@ -340,12 +443,10 @@ class ArticleCard {
             if (this.touchState.isDragging && touchDuration > 100) {
                 const diffX = this.touchState.startX - this.touchState.currentX;
                 
-                // 仕様書記載: 右興味有り/左興味無し
                 if (Math.abs(diffX) > 80) {
                     const feedback = diffX > 0 ? -1 : 1;
                     this.handleFeedback(articleId, feedback.toString());
                     
-                    // スワイプ完了エフェクト
                     card.classList.add('swiped');
                     setTimeout(() => {
                         if (card.parentElement) {
@@ -374,19 +475,15 @@ class ArticleCard {
         });
     }
     
-    // カードアクション処理
     handleFeedback(articleId, feedback, buttonElement) {
         try {
-            // アプリケーションのフィードバック処理を呼び出し
             if (window.yourNewsApp && window.yourNewsApp.processFeedback) {
                 window.yourNewsApp.processFeedback(articleId, feedback);
             }
             
-            // ボタン状態更新
             if (buttonElement) {
                 buttonElement.classList.add('feedback-sent');
                 
-                // ボタンテキスト一時変更
                 const originalText = buttonElement.innerHTML;
                 buttonElement.innerHTML = feedback === '1' ? '👍 評価済' : 
                                         feedback === '-1' ? '👎 評価済' : 
@@ -400,7 +497,6 @@ class ArticleCard {
                 }, 2000);
             }
             
-            // NGドメイン処理
             if (feedback === 'ng') {
                 const card = document.querySelector(`[data-article-id="${articleId}"]`);
                 if (card) {
@@ -419,12 +515,10 @@ class ArticleCard {
             const currentState = buttonElement.dataset.favorited === 'true';
             const newState = !currentState;
             
-            // データ更新
             if (window.yourNewsApp && window.yourNewsApp.dataManager) {
                 window.yourNewsApp.dataManager.updateArticle(articleId, { favorited: newState });
             }
             
-            // UI更新
             buttonElement.dataset.favorited = newState;
             buttonElement.querySelector('.favorite-text').textContent = newState ? '保存済' : '保存';
             
@@ -434,7 +528,6 @@ class ArticleCard {
                 buttonElement.classList.remove('active');
             }
             
-            // 通知
             const message = newState ? 'お気に入りに追加しました' : 'お気に入りから削除しました';
             if (window.yourNewsApp && window.yourNewsApp.showNotification) {
                 window.yourNewsApp.showNotification(message, 'success', 2000);
@@ -442,33 +535,6 @@ class ArticleCard {
             
         } catch (error) {
             console.error('お気に入り切替エラー:', error);
-        }
-    }
-    
-    toggleRead(articleId, buttonElement) {
-        try {
-            const currentState = buttonElement.dataset.read === 'true';
-            const newState = !currentState;
-            
-            // データ更新
-            if (window.yourNewsApp && window.yourNewsApp.dataManager) {
-                const newStatus = newState ? 'read' : 'unread';
-                window.yourNewsApp.dataManager.updateArticle(articleId, { readStatus: newStatus });
-            }
-            
-            // UI更新
-            const card = buttonElement.closest('.article-card');
-            buttonElement.dataset.read = newState;
-            buttonElement.querySelector('.read-text').textContent = newState ? '既読' : '未読';
-            
-            if (newState) {
-                card.classList.add('read');
-            } else {
-                card.classList.remove('read');
-            }
-            
-        } catch (error) {
-            console.error('既読状態切替エラー:', error);
         }
     }
     
@@ -481,7 +547,6 @@ class ArticleCard {
                 window.yourNewsApp.dataManager.updateArticle(articleId, { readStatus: 'read' });
             }
             
-            // 新しいタブで開く
             window.open(url, '_blank', 'noopener,noreferrer');
             
         } catch (error) {
@@ -489,7 +554,6 @@ class ArticleCard {
         }
     }
     
-    // ユーティリティ関数
     formatDate(dateString) {
         try {
             const date = new Date(dateString);
@@ -541,7 +605,6 @@ class ArticleCard {
         return errorCard;
     }
     
-    // 一括カード作成
     createMultipleCards(articles) {
         if (!Array.isArray(articles)) {
             console.error('Articles must be an array');
@@ -562,7 +625,6 @@ class ArticleCard {
         return { fragment, cards };
     }
     
-    // カード更新
     updateCard(articleId, updates) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (!card) return false;
@@ -598,11 +660,9 @@ class ArticleCard {
         }
     }
     
-    // カード削除
     removeCard(articleId) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (card) {
-            // フェードアウトエフェクト
             card.style.transition = 'all 0.3s ease';
             card.style.opacity = '0';
             card.style.transform = 'translateY(-20px)';
@@ -618,40 +678,3 @@ class ArticleCard {
         return false;
     }
 }
-
-// Phase B確認用デバッグ関数
-window.debugArticleCard = function() {
-    console.log('=== Article Card Debug ===');
-    
-    const cardHandler = new ArticleCard();
-    console.log('ArticleCard created:', cardHandler);
-    
-    // テスト記事データ
-    const testArticle = {
-        articleId: 'test_123',
-        title: 'テスト記事タイトル',
-        excerpt: 'これはテスト記事の抜粋です。記事カードの表示テストを行います。',
-        url: 'https://example.com/article1',
-        domain: 'example.com',
-        publishDate: new Date().toISOString(),
-        category: 'テスト',
-        readStatus: 'unread',
-        favorited: false,
-        interestScore: 75,
-        matchedKeywords: ['テスト', 'キーワード']
-    };
-    
-    // カード作成テスト
-    const card = cardHandler.createCard(testArticle);
-    console.log('Test card created:', card);
-    
-    // DOM挿入テスト
-    const articlesContainer = document.getElementById('articlesContainer');
-    if (articlesContainer && card) {
-        articlesContainer.innerHTML = '';
-        articlesContainer.appendChild(card);
-        console.log('Test card inserted to DOM');
-    }
-    
-    console.log('=== Article Card Debug Complete ===');
-};
