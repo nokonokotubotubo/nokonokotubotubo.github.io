@@ -1,4 +1,4 @@
-// AI処理エンジン（TensorFlow.js・仕様書準拠完全実装版）
+// AI処理エンジン（フィードバック・キーワード反映完全対応版）
 class AIEngine {
     constructor() {
         this.model = null;
@@ -6,16 +6,16 @@ class AIEngine {
         this.idfValues = new Map();
         this.documentCount = 0;
         this.feedbackHistory = [];
-        this.initialized = false;
+        this.keywordWeights = new Map();
+        this.domainScores = new Map();
+        this.categoryScores = new Map();
+        this.isInitialized = false;
         
         // 学習パラメータ
-        this.learningRate = 0.01;
-        this.maxVocabularySize = 10000;
-        this.minWordFrequency = 2;
-        
-        // TF-IDF計算用
-        this.documentFrequency = new Map();
-        this.totalDocuments = 0;
+        this.learningRate = 0.1;
+        this.feedbackWeight = 1.0;
+        this.keywordBonusPoints = 20;
+        this.ngWordPenalty = -1;
     }
     
     async initialize() {
@@ -23,441 +23,586 @@ class AIEngine {
             console.log('AIEngine初期化開始');
             
             if (typeof tf === 'undefined') {
-                throw new Error('TensorFlow.js not loaded');
+                console.warn('TensorFlow.js not loaded - using fallback AI');
+                this.useFallbackAI = true;
             }
             
-            // 保存されたモデル・データの読み込み
-            await this.loadSavedModel();
-            await this.loadVocabulary();
+            // 保存されたデータ読み込み
+            await this.loadSavedData();
+            
+            // 基本語彙初期化
+            this.initializeBasicVocabulary();
+            
+            // フィードバック履歴読み込み
             await this.loadFeedbackHistory();
             
-            // 基本語彙の初期化
-            await this.initializeBasicVocabulary();
+            // 学習データから統計更新
+            this.updateLearningStatistics();
             
-            console.log(`AIEngine初期化完了 - 語彙数: ${this.vocabulary.size}`);
-            this.initialized = true;
+            this.isInitialized = true;
+            console.log(`AIEngine初期化完了 - 語彙数: ${this.vocabulary.size}, フィードバック: ${this.feedbackHistory.length}件`);
             
             return true;
             
         } catch (error) {
             console.error('AIEngine初期化エラー:', error);
-            
-            // フォールバック初期化
-            await this.initializeBasicVocabulary();
-            this.initialized = true;
-            
+            this.isInitialized = false;
             return false;
         }
     }
     
-    async loadSavedModel() {
+    async loadSavedData() {
         try {
-            const savedModel = localStorage.getItem('yourNews_aiModel');
-            if (savedModel) {
-                const modelData = JSON.parse(savedModel);
-                // 簡易モデルデータの復元
-                this.documentCount = modelData.documentCount || 0;
-                console.log('保存モデル読み込み完了');
-            }
-        } catch (error) {
-            console.warn('保存モデル読み込み失敗:', error);
-        }
-    }
-    
-    async loadVocabulary() {
-        try {
+            // 語彙データ読み込み
             const savedVocab = localStorage.getItem('yourNews_vocabulary');
             if (savedVocab) {
-                this.vocabulary = new Map(JSON.parse(savedVocab));
+                const vocabArray = JSON.parse(savedVocab);
+                this.vocabulary = new Map(vocabArray);
+                console.log(`保存語彙読み込み: ${this.vocabulary.size}語`);
             }
             
+            // IDF値読み込み
             const savedIdf = localStorage.getItem('yourNews_idf');
             if (savedIdf) {
-                this.idfValues = new Map(JSON.parse(savedIdf));
+                const idfArray = JSON.parse(savedIdf);
+                this.idfValues = new Map(idfArray);
+                console.log(`IDF値読み込み: ${this.idfValues.size}語`);
+            }
+            
+            // ドメイン学習スコア読み込み
+            const savedDomainScores = localStorage.getItem('yourNews_domainScores');
+            if (savedDomainScores) {
+                const domainArray = JSON.parse(savedDomainScores);
+                this.domainScores = new Map(domainArray);
+                console.log(`ドメインスコア読み込み: ${this.domainScores.size}ドメイン`);
+            }
+            
+            // カテゴリ学習スコア読み込み
+            const savedCategoryScores = localStorage.getItem('yourNews_categoryScores');
+            if (savedCategoryScores) {
+                const categoryArray = JSON.parse(savedCategoryScores);
+                this.categoryScores = new Map(categoryArray);
+                console.log(`カテゴリスコア読み込み: ${this.categoryScores.size}カテゴリ`);
             }
             
         } catch (error) {
-            console.warn('語彙読み込み失敗:', error);
+            console.warn('保存データ読み込みエラー:', error);
         }
     }
     
     async loadFeedbackHistory() {
         try {
-            const saved = localStorage.getItem('yourNews_feedback');
-            if (saved) {
-                this.feedbackHistory = JSON.parse(saved);
-            }
-        } catch (error) {
-            console.warn('フィードバック履歴読み込み失敗:', error);
-        }
-    }
-    
-    async initializeBasicVocabulary() {
-        try {
-            // 基本的な日本語・英語語彙を初期化
-            const basicWords = [
-                // 日本語基本語彙
-                'ニュース', '記事', '情報', '発表', '発見', '開発', '技術', '政治', '経済',
-                '社会', '文化', '科学', '研究', '企業', '会社', '政府', '国際', '世界',
-                '日本', '東京', '大阪', '投資', '株価', '市場', '業界', '製品', 'サービス',
-                '発売', '販売', '購入', '利用', '使用', '導入', '採用', '実施', '開始',
+            const feedback = localStorage.getItem('yourNews_feedback');
+            if (feedback) {
+                this.feedbackHistory = JSON.parse(feedback);
+                console.log(`フィードバック履歴読み込み: ${this.feedbackHistory.length}件`);
                 
-                // 英語基本語彙
-                'news', 'article', 'information', 'technology', 'business', 'company',
-                'market', 'product', 'service', 'research', 'development', 'innovation',
-                'industry', 'economy', 'politics', 'science', 'culture', 'society'
-            ];
-            
-            basicWords.forEach((word, index) => {
-                if (!this.vocabulary.has(word)) {
-                    this.vocabulary.set(word, index);
-                    this.idfValues.set(word, 1.0); // 基本IDF値
-                }
-            });
-            
-            console.log(`基本語彙初期化完了: ${basicWords.length}語`);
-            
+                // フィードバックから学習統計を更新
+                this.updateKeywordWeights();
+                this.updateDomainScores();
+                this.updateCategoryScores();
+            }
         } catch (error) {
-            console.error('基本語彙初期化エラー:', error);
+            console.warn('フィードバック履歴読み込みエラー:', error);
+            this.feedbackHistory = [];
         }
     }
     
-    // 仕様書準拠：AI興味度計算メイン関数
-    async calculateInterestScore(article, keywords = { interestWords: [], ngWords: [] }) {
+    initializeBasicVocabulary() {
+        const basicWords = [
+            // ニュース関連基本語彙
+            'ニュース', '速報', '発表', '開始', '終了', '決定', '発売',
+            '政治', '経済', '技術', 'テクノロジー', 'AI', 'IT', 'DX',
+            'スポーツ', 'エンタメ', '芸能', '映画', '音楽', 'ゲーム', 'アニメ',
+            '健康', '医療', '科学', '環境', '教育', '社会', '国際', '文化',
+            '事件', '事故', '災害', '緊急', '警察', '消防', '救急',
+            '企業', '会社', '株式', '投資', '金融', '銀行', '経営',
+            '新商品', 'サービス', '技術革新', '開発', '研究', '実験',
+            // 感情・評価語
+            '重要', '注目', '話題', '人気', '評価', '成功', '失敗',
+            '素晴らしい', '最高', '最悪', '驚き', '感動', '期待',
+            '新しい', '最新', '画期的', '革新', '伝統', '歴史', '未来',
+            // 動作・状態語
+            '上昇', '下落', '増加', '減少', '改善', '悪化', '変化',
+            '開催', '中止', '延期', '変更', '導入', '廃止', '継続',
+            '合格', '不合格', '採用', '解雇', '昇進', '降格', '転職'
+        ];
+        
+        basicWords.forEach((word, index) => {
+            if (!this.vocabulary.has(word)) {
+                this.vocabulary.set(word, this.vocabulary.size);
+                this.idfValues.set(word, 1.0);
+            }
+        });
+        
+        console.log('基本語彙初期化完了:', this.vocabulary.size + '語');
+    }
+    
+    // 【重要】フィードバック処理（即座学習）
+    async processFeedback(article, feedbackValue) {
         try {
-            if (!this.initialized) {
-                console.warn('AI Engine not initialized, using fallback');
-                return this.calculateFallbackScore(article, keywords);
-            }
+            console.log(`🧠 AI学習開始: ${article.articleId} -> ${feedbackValue}`);
             
-            // 1. NGワード判定：含有時→即座非表示
-            if (this.containsNGWords(article.title + ' ' + article.excerpt, keywords.ngWords)) {
-                return -1; // NGマーク
-            }
-            
-            // 2. テキスト前処理・ベクトル化
-            const articleText = this.preprocessText(article.title + ' ' + article.excerpt);
-            const tokens = this.tokenize(articleText);
-            const articleVector = this.calculateTFIDF(tokens);
-            
-            // 3. 過去のフィードバックとの類似度計算
-            let similarityScore = 0;
-            if (this.feedbackHistory.length > 0) {
-                similarityScore = this.calculateAverageSimilarity(articleVector, this.feedbackHistory);
-            }
-            
-            // 4. 気になるワード判定：含有時→+20点ボーナス
-            const keywordMatches = this.checkKeywordMatch(article, keywords.interestWords);
-            const keywordBonus = keywordMatches.length * 20;
-            
-            // 5. 最終スコア算出（0-100点）
-            const baseScore = Math.max(0, similarityScore * 70);
-            const finalScore = Math.min(100, Math.max(0, baseScore + keywordBonus));
-            
-            // 6. マッチワード情報を記事に付与
-            article.matchedKeywords = keywordMatches;
-            
-            return Math.round(finalScore);
-            
-        } catch (error) {
-            console.error('AI calculation error:', error);
-            return this.calculateFallbackScore(article, keywords);
-        }
-    }
-    
-    // NGワード検出
-    containsNGWords(text, ngWords) {
-        if (!Array.isArray(ngWords) || ngWords.length === 0) return false;
-        
-        const normalizedText = text.toLowerCase();
-        return ngWords.some(word => 
-            normalizedText.includes(word.toLowerCase())
-        );
-    }
-    
-    // キーワードマッチング
-    checkKeywordMatch(article, interestWords) {
-        if (!Array.isArray(interestWords) || interestWords.length === 0) return [];
-        
-        const text = (article.title + ' ' + article.excerpt).toLowerCase();
-        const matches = [];
-        
-        interestWords.forEach(word => {
-            if (text.includes(word.toLowerCase())) {
-                matches.push(word);
-            }
-        });
-        
-        return matches;
-    }
-    
-    // テキスト前処理
-    preprocessText(text) {
-        if (!text) return '';
-        
-        // HTMLタグ除去
-        let processed = text.replace(/<[^>]*>/g, ' ');
-        
-        // 特殊文字正規化
-        processed = processed.replace(/[０-９]/g, (char) => 
-            String.fromCharCode(char.charCodeAt(0) - 0xFF10 + 0x30)
-        );
-        
-        // 改行・空白正規化
-        processed = processed.replace(/\s+/g, ' ').trim();
-        
-        return processed;
-    }
-    
-    // トークン化（日本語・英語対応）
-    tokenize(text) {
-        if (!text) return [];
-        
-        // 英単語と日本語を分離
-        const tokens = [];
-        
-        // 英単語抽出
-        const englishWords = text.match(/[a-zA-Z]+/g) || [];
-        englishWords.forEach(word => {
-            if (word.length > 2) {
-                tokens.push(word.toLowerCase());
-            }
-        });
-        
-        // 日本語N-gram（バイグラム）
-        const japaneseText = text.replace(/[a-zA-Z0-9\s]/g, '');
-        for (let i = 0; i < japaneseText.length - 1; i++) {
-            const bigram = japaneseText.substring(i, i + 2);
-            if (bigram.length === 2) {
-                tokens.push(bigram);
-            }
-        }
-        
-        // 単語分割（簡易版）
-        const words = text.split(/[\s\p{P}]+/u);
-        words.forEach(word => {
-            if (word.length > 1 && !/^[0-9]+$/.test(word)) {
-                tokens.push(word.toLowerCase());
-            }
-        });
-        
-        return tokens.filter(token => token.length > 1);
-    }
-    
-    // TF-IDF計算
-    calculateTFIDF(tokens) {
-        if (!tokens || tokens.length === 0) return [];
-        
-        // TF（Term Frequency）計算
-        const tf = new Map();
-        const totalTokens = tokens.length;
-        
-        tokens.forEach(token => {
-            tf.set(token, (tf.get(token) || 0) + 1);
-        });
-        
-        // 語彙に新しい単語を追加
-        tokens.forEach(token => {
-            if (!this.vocabulary.has(token) && this.vocabulary.size < this.maxVocabularySize) {
-                this.vocabulary.set(token, this.vocabulary.size);
-                this.idfValues.set(token, 1.0); // 初期IDF値
-            }
-        });
-        
-        // TF-IDFベクトル作成
-        const tfidfVector = new Array(this.vocabulary.size).fill(0);
-        
-        this.vocabulary.forEach((index, token) => {
-            const tfValue = (tf.get(token) || 0) / totalTokens;
-            const idfValue = this.idfValues.get(token) || 0;
-            tfidfVector[index] = tfValue * idfValue;
-        });
-        
-        return tfidfVector;
-    }
-    
-    // 類似度計算
-    calculateAverageSimilarity(articleVector, feedbackHistory) {
-        try {
-            let totalSimilarity = 0;
-            let weightSum = 0;
-            
-            feedbackHistory.forEach(feedback => {
-                if (feedback.vector && feedback.feedback !== 0) {
-                    const similarity = this.cosineSimilarity(articleVector, feedback.vector);
-                    const weight = feedback.feedback; // 1 or -1
-                    totalSimilarity += similarity * weight;
-                    weightSum += Math.abs(weight);
-                }
-            });
-            
-            return weightSum > 0 ? totalSimilarity / weightSum : 0;
-            
-        } catch (error) {
-            console.error('Similarity calculation error:', error);
-            return 0;
-        }
-    }
-    
-    // コサイン類似度
-    cosineSimilarity(vectorA, vectorB) {
-        try {
-            if (!vectorA || !vectorB || vectorA.length !== vectorB.length) {
-                return 0;
-            }
-            
-            let dotProduct = 0;
-            let normA = 0;
-            let normB = 0;
-            
-            for (let i = 0; i < vectorA.length; i++) {
-                dotProduct += vectorA[i] * vectorB[i];
-                normA += vectorA[i] * vectorA[i];
-                normB += vectorB[i] * vectorB[i];
-            }
-            
-            if (normA === 0 || normB === 0) return 0;
-            
-            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-            
-        } catch (error) {
-            console.error('Cosine similarity error:', error);
-            return 0;
-        }
-    }
-    
-    // フィードバック学習処理
-    async processFeedback(article, feedback) {
-        try {
-            if (!article || feedback === undefined) {
-                console.error('Invalid feedback data');
+            if (!this.isInitialized) {
+                console.warn('AIEngine未初期化のためフィードバック処理をスキップ');
                 return false;
             }
             
-            console.log(`Processing feedback: ${article.articleId} -> ${feedback}`);
-            
-            // フィードバック正規化
-            const normalizedFeedback = this.normalizeFeedback(feedback);
-            if (normalizedFeedback === 0) return false; // NG等はスキップ
-            
-            // 記事ベクトル化
-            const articleText = this.preprocessText(article.title + ' ' + article.excerpt);
-            const tokens = this.tokenize(articleText);
-            const articleVector = this.calculateTFIDF(tokens);
-            
-            // フィードバック履歴に追加
+            // フィードバックデータ作成
             const feedbackData = {
                 articleId: article.articleId,
-                vector: articleVector,
-                feedback: normalizedFeedback,
-                tokens: tokens,
-                timestamp: new Date().toISOString(),
+                title: article.title,
+                excerpt: article.excerpt,
                 domain: article.domain,
-                category: article.category
+                category: article.category,
+                feedback: feedbackValue,
+                timestamp: new Date().toISOString(),
+                keywords: this.extractKeywords(article.title + ' ' + article.excerpt),
+                url: article.url
             };
             
+            // フィードバック履歴に追加
             this.feedbackHistory.push(feedbackData);
             
-            // IDF値更新
-            this.updateIDFValues(tokens, normalizedFeedback);
+            // 語彙とIDF値更新
+            this.updateVocabularyFromArticle(article, feedbackValue);
             
-            // モデル保存
-            await this.saveModel();
+            // 学習統計更新
+            this.updateKeywordWeights();
+            this.updateDomainScores();
+            this.updateCategoryScores();
             
-            console.log(`Feedback processed successfully. History: ${this.feedbackHistory.length} items`);
+            // データ保存
+            await this.saveAIData();
+            
+            console.log(`✅ AI学習完了: フィードバック履歴 ${this.feedbackHistory.length}件`);
+            
             return true;
             
         } catch (error) {
-            console.error('Feedback processing error:', error);
+            console.error('フィードバック処理エラー:', error);
             return false;
         }
     }
     
-    normalizeFeedback(feedback) {
-        if (feedback === 1 || feedback === '1' || feedback === 'interest') return 1;
-        if (feedback === -1 || feedback === '-1' || feedback === 'disinterest') return -1;
-        return 0; // ng等
-    }
-    
-    // IDF値更新
-    updateIDFValues(tokens, feedback) {
+    // 【核心機能】興味度計算（完全実装版）
+    async calculateInterestScore(article, keywords) {
         try {
-            const learningRate = this.learningRate * Math.abs(feedback);
+            if (!this.isInitialized) {
+                console.warn('AIEngine未初期化、デフォルトスコア使用');
+                return 50;
+            }
             
-            tokens.forEach(token => {
-                if (this.idfValues.has(token)) {
-                    const currentIdf = this.idfValues.get(token);
-                    const newIdf = currentIdf + (learningRate * feedback);
-                    this.idfValues.set(token, Math.max(0.1, Math.min(5.0, newIdf)));
-                }
-            });
+            const articleText = article.title + ' ' + article.excerpt;
+            console.log(`🎯 興味度計算開始: "${article.title.substring(0, 30)}..."`);
+            
+            // 【Step 1】NGワード判定（最優先・即座非表示）
+            const ngWords = keywords?.ngWords || [];
+            if (this.containsNGWords(articleText, ngWords)) {
+                console.log(`🚫 NGワード検出により非表示: ${article.title}`);
+                article.matchedKeywords = [];
+                return this.ngWordPenalty; // -1で非表示マーク
+            }
+            
+            // 【Step 2】基本スコア計算（フィードバック履歴ベース）
+            let baseScore = this.calculateSimilarityScore(article);
+            console.log(`📊 基本スコア（類似度）: ${baseScore}点`);
+            
+            // 【Step 3】気になるワードボーナス（重要）
+            const interestWords = keywords?.interestWords || [];
+            const matchedKeywords = this.checkKeywordMatch(articleText, interestWords);
+            const keywordBonus = matchedKeywords.length * this.keywordBonusPoints;
+            console.log(`🔍 キーワードマッチ: ${matchedKeywords.length}個 (+${keywordBonus}点)`);
+            
+            // 【Step 4】ドメイン学習スコア
+            const domainScore = this.calculateDomainScore(article.domain);
+            console.log(`🌐 ドメインスコア: ${domainScore}点`);
+            
+            // 【Step 5】カテゴリ学習スコア
+            const categoryScore = this.calculateCategoryScore(article.category);
+            console.log(`📂 カテゴリスコア: ${categoryScore}点`);
+            
+            // 【Step 6】時間経過減衰
+            const timeDecay = this.calculateTimeDecay(article.publishDate);
+            console.log(`⏰ 時間減衰: ${timeDecay}点`);
+            
+            // 【Step 7】最終スコア計算
+            const rawScore = baseScore + keywordBonus + domainScore + categoryScore + timeDecay;
+            const finalScore = Math.min(100, Math.max(0, Math.round(rawScore)));
+            
+            // マッチしたキーワード情報を記事に追加
+            article.matchedKeywords = matchedKeywords;
+            
+            console.log(`🎯 最終興味度: ${finalScore}点 (基本:${baseScore} + キーワード:${keywordBonus} + ドメイン:${domainScore} + カテゴリ:${categoryScore} + 時間:${timeDecay})`);
+            
+            return finalScore;
             
         } catch (error) {
-            console.error('IDF update error:', error);
+            console.error('興味度計算エラー:', error);
+            return 50; // デフォルトスコア
         }
     }
     
-    // フォールバック興味度計算
-    calculateFallbackScore(article, keywords) {
-        try {
-            let score = 50; // ベーススコア
-            
-            // キーワードマッチング
-            const keywordMatches = this.checkKeywordMatch(article, keywords.interestWords || []);
-            score += keywordMatches.length * 15;
-            
-            // ドメイン評価（簡易）
-            const trustedDomains = ['nhk.or.jp', 'nikkei.com', 'reuters.com', 'bbc.com'];
-            if (trustedDomains.some(domain => article.domain.includes(domain))) {
-                score += 10;
+    // NGワード判定（改善版）
+    containsNGWords(text, ngWords) {
+        if (!ngWords || ngWords.length === 0) return false;
+        
+        const lowerText = text.toLowerCase();
+        for (const ngWord of ngWords) {
+            const lowerNGWord = ngWord.toLowerCase().trim();
+            if (lowerNGWord && lowerText.includes(lowerNGWord)) {
+                console.log(`🚫 NGワード "${ngWord}" が検出されました`);
+                return true;
             }
+        }
+        
+        return false;
+    }
+    
+    // キーワードマッチ検出（改善版）
+    checkKeywordMatch(text, interestWords) {
+        if (!interestWords || interestWords.length === 0) return [];
+        
+        const matchedKeywords = [];
+        const lowerText = text.toLowerCase();
+        
+        interestWords.forEach(keyword => {
+            const lowerKeyword = keyword.toLowerCase().trim();
+            if (lowerKeyword && lowerText.includes(lowerKeyword)) {
+                matchedKeywords.push(keyword);
+                console.log(`✅ 気になるワード "${keyword}" がマッチしました`);
+            }
+        });
+        
+        return matchedKeywords;
+    }
+    
+    // 類似度スコア計算（フィードバック履歴ベース）
+    calculateSimilarityScore(article) {
+        try {
+            if (this.feedbackHistory.length === 0) return 50;
             
-            // 新しさ評価
-            const publishDate = new Date(article.publishDate);
-            const now = new Date();
-            const hoursDiff = (now - publishDate) / (1000 * 60 * 60);
+            const articleTokens = this.tokenize(article.title + ' ' + article.excerpt);
+            let totalScore = 0;
+            let scoreCount = 0;
             
-            if (hoursDiff < 24) score += 5;
-            if (hoursDiff < 6) score += 5;
+            // 最近のフィードバックほど重要視
+            const recentFeedbacks = this.feedbackHistory.slice(-20); // 最新20件
             
-            return Math.min(100, Math.max(0, Math.round(score)));
+            recentFeedbacks.forEach((feedback, index) => {
+                const feedbackTokens = this.tokenize(feedback.title + ' ' + feedback.excerpt);
+                const similarity = this.calculateCosineSimilarity(articleTokens, feedbackTokens);
+                
+                if (similarity > 0.1) { // 最小類似度閾値
+                    const weight = (index + 1) / recentFeedbacks.length; // 新しいほど重い
+                    const feedbackScore = feedback.feedback === 1 ? 80 : 
+                                        feedback.feedback === -1 ? 20 : 50;
+                    
+                    totalScore += similarity * feedbackScore * weight;
+                    scoreCount += similarity * weight;
+                }
+            });
+            
+            const averageScore = scoreCount > 0 ? totalScore / scoreCount : 50;
+            return Math.max(0, Math.min(100, averageScore));
             
         } catch (error) {
-            console.error('Fallback score calculation error:', error);
+            console.warn('類似度計算エラー:', error);
             return 50;
         }
     }
     
-    // モデル保存
-    async saveModel() {
+    // ドメイン学習スコア
+    calculateDomainScore(domain) {
         try {
-            // 語彙保存
-            const vocabArray = Array.from(this.vocabulary.entries());
-            localStorage.setItem('yourNews_vocabulary', JSON.stringify(vocabArray));
+            const domainScore = this.domainScores.get(domain);
+            if (domainScore !== undefined) {
+                return Math.round(domainScore);
+            }
             
-            // IDF値保存
-            const idfArray = Array.from(this.idfValues.entries());
-            localStorage.setItem('yourNews_idf', JSON.stringify(idfArray));
+            // ドメインの初回登場時はフィードバック履歴から計算
+            const domainFeedbacks = this.feedbackHistory.filter(f => f.domain === domain);
+            if (domainFeedbacks.length === 0) return 0;
             
-            // フィードバック履歴保存（最新1000件のみ）
-            const recentHistory = this.feedbackHistory.slice(-1000);
-            localStorage.setItem('yourNews_feedback', JSON.stringify(recentHistory));
+            const positiveCount = domainFeedbacks.filter(f => f.feedback === 1).length;
+            const negativeCount = domainFeedbacks.filter(f => f.feedback === -1).length;
+            const totalCount = positiveCount + negativeCount;
             
-            // モデルメタデータ保存
-            const modelData = {
-                documentCount: this.documentCount,
-                vocabularySize: this.vocabulary.size,
-                lastUpdated: new Date().toISOString(),
-                version: '1.0'
-            };
-            localStorage.setItem('yourNews_aiModel', JSON.stringify(modelData));
+            if (totalCount === 0) return 0;
             
-            return true;
+            const ratio = positiveCount / totalCount;
+            const score = (ratio - 0.5) * 20; // -10〜+10点
+            
+            // キャッシュ
+            this.domainScores.set(domain, score);
+            
+            return Math.round(score);
             
         } catch (error) {
-            console.error('Model save error:', error);
-            return false;
+            return 0;
         }
+    }
+    
+    // カテゴリ学習スコア
+    calculateCategoryScore(category) {
+        try {
+            if (!category || category === 'その他') return 0;
+            
+            const categoryScore = this.categoryScores.get(category);
+            if (categoryScore !== undefined) {
+                return Math.round(categoryScore);
+            }
+            
+            // カテゴリの初回登場時はフィードバック履歴から計算
+            const categoryFeedbacks = this.feedbackHistory.filter(f => f.category === category);
+            if (categoryFeedbacks.length === 0) return 0;
+            
+            const positiveCount = categoryFeedbacks.filter(f => f.feedback === 1).length;
+            const negativeCount = categoryFeedbacks.filter(f => f.feedback === -1).length;
+            const totalCount = positiveCount + negativeCount;
+            
+            if (totalCount === 0) return 0;
+            
+            const ratio = positiveCount / totalCount;
+            const score = (ratio - 0.5) * 15; // -7.5〜+7.5点
+            
+            // キャッシュ
+            this.categoryScores.set(category, score);
+            
+            return Math.round(score);
+            
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // 時間経過による減衰
+    calculateTimeDecay(publishDateString) {
+        try {
+            const publishDate = new Date(publishDateString);
+            const now = new Date();
+            const hoursDiff = (now - publishDate) / (1000 * 60 * 60);
+            
+            // 24時間以内: 0点、48時間以内: -5点、それ以降: -10点
+            if (hoursDiff <= 24) return 0;
+            if (hoursDiff <= 48) return -5;
+            return -10;
+            
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // テキストトークン化（改善版）
+    tokenize(text) {
+        return text.toLowerCase()
+            .replace(/[^\w\sぁ-んァ-ン一-龯]/g, ' ') // 日本語対応
+            .split(/\s+/)
+            .filter(token => token.length > 1)
+            .slice(0, 100); // トークン数制限
+    }
+    
+    // キーワード抽出
+    extractKeywords(text) {
+        const tokens = this.tokenize(text);
+        const keywords = [];
+        
+        tokens.forEach(token => {
+            if (this.vocabulary.has(token)) {
+                keywords.push(token);
+            } else {
+                // 新しい語彙を動的追加
+                this.vocabulary.set(token, this.vocabulary.size);
+                this.idfValues.set(token, 1.0);
+                keywords.push(token);
+            }
+        });
+        
+        return keywords;
+    }
+    
+    // コサイン類似度計算
+    calculateCosineSimilarity(tokens1, tokens2) {
+        try {
+            const set1 = new Set(tokens1);
+            const set2 = new Set(tokens2);
+            const intersection = new Set([...set1].filter(x => set2.has(x)));
+            
+            if (set1.size === 0 || set2.size === 0) return 0;
+            
+            const similarity = intersection.size / Math.sqrt(set1.size * set2.size);
+            return Math.min(1.0, similarity);
+            
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // 語彙更新
+    updateVocabularyFromArticle(article, feedbackValue) {
+        try {
+            const tokens = this.tokenize(article.title + ' ' + article.excerpt);
+            
+            tokens.forEach(token => {
+                if (!this.vocabulary.has(token)) {
+                    this.vocabulary.set(token, this.vocabulary.size);
+                }
+                
+                // IDF値更新（フィードバックに基づく）
+                const currentIdf = this.idfValues.get(token) || 1.0;
+                const adjustment = feedbackValue === 1 ? 
+                    this.learningRate : 
+                    feedbackValue === -1 ? -this.learningRate * 0.5 : 0;
+                    
+                this.idfValues.set(token, Math.max(0.1, Math.min(5.0, currentIdf + adjustment)));
+            });
+            
+        } catch (error) {
+            console.warn('語彙更新エラー:', error);
+        }
+    }
+    
+    // キーワード重み更新
+    updateKeywordWeights() {
+        try {
+            this.keywordWeights.clear();
+            
+            this.feedbackHistory.forEach(feedback => {
+                feedback.keywords?.forEach(keyword => {
+                    const currentWeight = this.keywordWeights.get(keyword) || 0;
+                    const adjustment = feedback.feedback === 1 ? 1 : 
+                                     feedback.feedback === -1 ? -0.5 : 0;
+                    this.keywordWeights.set(keyword, currentWeight + adjustment);
+                });
+            });
+            
+        } catch (error) {
+            console.warn('キーワード重み更新エラー:', error);
+        }
+    }
+    
+    // ドメインスコア更新
+    updateDomainScores() {
+        try {
+            const domainStats = new Map();
+            
+            this.feedbackHistory.forEach(feedback => {
+                const domain = feedback.domain;
+                if (!domainStats.has(domain)) {
+                    domainStats.set(domain, { positive: 0, negative: 0 });
+                }
+                
+                const stats = domainStats.get(domain);
+                if (feedback.feedback === 1) {
+                    stats.positive++;
+                } else if (feedback.feedback === -1) {
+                    stats.negative++;
+                }
+            });
+            
+            domainStats.forEach((stats, domain) => {
+                const total = stats.positive + stats.negative;
+                if (total > 0) {
+                    const ratio = stats.positive / total;
+                    const score = (ratio - 0.5) * 20;
+                    this.domainScores.set(domain, score);
+                }
+            });
+            
+        } catch (error) {
+            console.warn('ドメインスコア更新エラー:', error);
+        }
+    }
+    
+    // カテゴリスコア更新
+    updateCategoryScores() {
+        try {
+            const categoryStats = new Map();
+            
+            this.feedbackHistory.forEach(feedback => {
+                const category = feedback.category;
+                if (!categoryStats.has(category)) {
+                    categoryStats.set(category, { positive: 0, negative: 0 });
+                }
+                
+                const stats = categoryStats.get(category);
+                if (feedback.feedback === 1) {
+                    stats.positive++;
+                } else if (feedback.feedback === -1) {
+                    stats.negative++;
+                }
+            });
+            
+            categoryStats.forEach((stats, category) => {
+                const total = stats.positive + stats.negative;
+                if (total > 0) {
+                    const ratio = stats.positive / total;
+                    const score = (ratio - 0.5) * 15;
+                    this.categoryScores.set(category, score);
+                }
+            });
+            
+        } catch (error) {
+            console.warn('カテゴリスコア更新エラー:', error);
+        }
+    }
+    
+    // 学習統計更新
+    updateLearningStatistics() {
+        try {
+            this.updateKeywordWeights();
+            this.updateDomainScores();
+            this.updateCategoryScores();
+            
+            console.log(`学習統計更新完了: ドメイン ${this.domainScores.size}件, カテゴリ ${this.categoryScores.size}件`);
+            
+        } catch (error) {
+            console.warn('学習統計更新エラー:', error);
+        }
+    }
+    
+    // AI学習データ保存
+    async saveAIData() {
+        try {
+            // 語彙保存
+            localStorage.setItem('yourNews_vocabulary', JSON.stringify([...this.vocabulary]));
+            
+            // IDF値保存
+            localStorage.setItem('yourNews_idf', JSON.stringify([...this.idfValues]));
+            
+            // フィードバック履歴保存（最新1000件のみ）
+            const recentFeedback = this.feedbackHistory.slice(-1000);
+            localStorage.setItem('yourNews_feedback', JSON.stringify(recentFeedback));
+            
+            // ドメインスコア保存
+            localStorage.setItem('yourNews_domainScores', JSON.stringify([...this.domainScores]));
+            
+            // カテゴリスコア保存
+            localStorage.setItem('yourNews_categoryScores', JSON.stringify([...this.categoryScores]));
+            
+            console.log('AI学習データ保存完了');
+            
+        } catch (error) {
+            console.error('AI学習データ保存エラー:', error);
+        }
+    }
+    
+    // 統計情報取得
+    getStats() {
+        const positiveFeedback = this.feedbackHistory.filter(f => f.feedback === 1).length;
+        const negativeFeedback = this.feedbackHistory.filter(f => f.feedback === -1).length;
+        
+        return {
+            vocabularySize: this.vocabulary.size,
+            feedbackCount: this.feedbackHistory.length,
+            keywordWeights: this.keywordWeights.size,
+            domainScores: this.domainScores.size,
+            categoryScores: this.categoryScores.size,
+            isInitialized: this.isInitialized,
+            positiveFeedback: positiveFeedback,
+            negativeFeedback: negativeFeedback,
+            learningRate: this.learningRate
+        };
     }
     
     // モデルリセット
@@ -466,78 +611,51 @@ class AIEngine {
             this.vocabulary.clear();
             this.idfValues.clear();
             this.feedbackHistory = [];
-            this.documentCount = 0;
+            this.keywordWeights.clear();
+            this.domainScores.clear();
+            this.categoryScores.clear();
             
-            // ストレージクリア
-            localStorage.removeItem('yourNews_vocabulary');
-            localStorage.removeItem('yourNews_idf');
-            localStorage.removeItem('yourNews_feedback');
-            localStorage.removeItem('yourNews_aiModel');
+            // ローカルストレージからも削除
+            const keysToRemove = [
+                'yourNews_vocabulary',
+                'yourNews_idf', 
+                'yourNews_feedback',
+                'yourNews_domainScores',
+                'yourNews_categoryScores'
+            ];
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
             
             // 基本語彙再初期化
-            await this.initializeBasicVocabulary();
+            this.initializeBasicVocabulary();
             
-            console.log('AI model reset completed');
-            return true;
+            console.log('AIモデルリセット完了');
             
         } catch (error) {
-            console.error('Model reset error:', error);
-            return false;
+            console.error('AIモデルリセットエラー:', error);
         }
     }
     
-    // 統計情報取得
-    getStats() {
-        return {
-            initialized: this.initialized,
-            vocabularySize: this.vocabulary.size,
-            feedbackCount: this.feedbackHistory.length,
-            documentCount: this.documentCount,
-            avgIDF: this.calculateAverageIDF(),
-            lastActivity: this.feedbackHistory.length > 0 ? 
-                this.feedbackHistory[this.feedbackHistory.length - 1].timestamp : null
-        };
-    }
-    
-    calculateAverageIDF() {
-        if (this.idfValues.size === 0) return 0;
-        
-        let sum = 0;
-        this.idfValues.forEach(value => sum += value);
-        return sum / this.idfValues.size;
-    }
-    
-    // デバッグ・分析機能
-    analyzeArticle(article) {
-        try {
-            const text = this.preprocessText(article.title + ' ' + article.excerpt);
-            const tokens = this.tokenize(text);
-            const vector = this.calculateTFIDF(tokens);
-            
-            return {
-                articleId: article.articleId,
-                tokenCount: tokens.length,
-                uniqueTokens: new Set(tokens).size,
-                vectorLength: vector.length,
-                vectorNorm: Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0)),
-                topTokens: this.getTopTokens(tokens, 10)
-            };
-            
-        } catch (error) {
-            console.error('Article analysis error:', error);
-            return null;
-        }
-    }
-    
-    getTopTokens(tokens, count = 10) {
-        const frequency = new Map();
-        tokens.forEach(token => {
-            frequency.set(token, (frequency.get(token) || 0) + 1);
+    // デバッグ用: フィードバック履歴出力
+    debugFeedbackHistory() {
+        console.log('=== フィードバック履歴 ===');
+        this.feedbackHistory.slice(-10).forEach((feedback, index) => {
+            console.log(`${index + 1}. ${feedback.title} -> ${feedback.feedback} (${feedback.domain})`);
         });
+        console.log('========================');
+    }
+    
+    // デバッグ用: スコア計算詳細
+    debugScoreCalculation(article, keywords) {
+        console.log('=== スコア計算詳細 ===');
+        console.log('記事:', article.title);
+        console.log('NGワード:', keywords?.ngWords || []);
+        console.log('気になるワード:', keywords?.interestWords || []);
         
-        return Array.from(frequency.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, count)
-            .map(([token, freq]) => ({ token, frequency: freq }));
+        const result = this.calculateInterestScore(article, keywords);
+        console.log('最終スコア:', result);
+        console.log('===================');
+        
+        return result;
     }
 }
