@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（フローティングボタン・AI再学習削除版）
+// YourNewsApp - メインアプリケーションクラス（フィードバック完全対応版）
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -12,6 +12,10 @@ class YourNewsApp {
         
         // プロジェクトルートパス設定
         this.basePath = '/yn';
+        
+        // フィードバック処理設定
+        this.feedbackProcessing = false;
+        this.feedbackQueue = [];
     }
     
     async initialize() {
@@ -33,6 +37,9 @@ class YourNewsApp {
             if (!this.aiDisabled && typeof AIEngine !== 'undefined') {
                 this.aiEngine = new AIEngine();
                 await this.aiEngine.initialize();
+                console.log('✅ AI機能初期化完了');
+            } else {
+                console.warn('⚠️ AI機能無効 - フォールバックモード');
             }
             
             // UI Controller初期化時に依存関係を正しく注入
@@ -41,6 +48,9 @@ class YourNewsApp {
             
             // イベントリスナー設定
             this.setupEventListeners();
+            
+            // グローバル関数設定
+            this.setupGlobalFunctions();
             
             this.initialized = true;
             
@@ -173,6 +183,28 @@ class YourNewsApp {
         }
     }
     
+    setupGlobalFunctions() {
+        try {
+            // グローバル関数として公開
+            window.yourNewsApp = this;
+            
+            // 記事開く関数
+            window.openArticle = (articleId) => {
+                this.openArticle(articleId);
+            };
+            
+            // フィードバック処理関数
+            window.processFeedback = (articleId, feedback) => {
+                this.processFeedback(articleId, feedback);
+            };
+            
+            console.log('グローバル関数設定完了');
+            
+        } catch (error) {
+            console.error('グローバル関数設定エラー:', error);
+        }
+    }
+    
     async refreshArticles() {
         try {
             if (!this.uiController) {
@@ -204,6 +236,7 @@ class YourNewsApp {
         }
     }
     
+    // 【核心機能】フィードバック処理（完全実装版）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
@@ -211,7 +244,16 @@ class YourNewsApp {
                 return;
             }
             
-            console.log(`Processing feedback: ${articleId} -> ${feedback}`);
+            // 重複処理防止
+            if (this.feedbackProcessing) {
+                this.feedbackQueue.push({ articleId, feedback });
+                console.log('フィードバック処理中、キューに追加');
+                return;
+            }
+            
+            this.feedbackProcessing = true;
+            
+            console.log(`🧠 フィードバック処理開始: ${articleId} -> ${feedback}`);
             
             // データ更新
             const articles = await this.dataManager.loadArticles();
@@ -219,10 +261,12 @@ class YourNewsApp {
             
             if (articleIndex === -1) {
                 console.error('Article not found:', articleId);
+                this.feedbackProcessing = false;
                 return;
             }
             
             const article = articles[articleIndex];
+            const originalScore = article.interestScore;
             
             // フィードバック履歴追加
             if (!article.feedbackHistory) {
@@ -232,8 +276,32 @@ class YourNewsApp {
             article.feedbackHistory.push({
                 type: feedback === 1 ? 'interest' : feedback === -1 ? 'disinterest' : 'ng_domain',
                 timestamp: new Date().toISOString(),
-                value: feedback
+                value: feedback,
+                originalScore: originalScore
             });
+            
+            // 【重要】AI学習実行（即座学習）
+            if (this.aiEngine && !this.aiDisabled && feedback !== 'ng') {
+                try {
+                    console.log('🧠 AI学習実行中...');
+                    
+                    // AI学習処理
+                    await this.aiEngine.processFeedback(article, feedback);
+                    
+                    // 【重要】新しい興味度スコア再計算
+                    const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                                   { interestWords: [], ngWords: [] };
+                    
+                    const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                    article.interestScore = newScore;
+                    
+                    console.log(`✅ AI学習完了 - スコア変化: ${originalScore}点 → ${newScore}点`);
+                    
+                } catch (aiError) {
+                    console.warn('AI学習エラー:', aiError);
+                    // AI学習失敗時もフィードバック自体は処理継続
+                }
+            }
             
             // 興味なし・NGの場合は自動既読
             if (feedback === -1 || feedback === 'ng') {
@@ -245,49 +313,176 @@ class YourNewsApp {
                 article.ngDomain = true;
                 
                 // 同じドメインの他の記事も非表示
+                let ngDomainCount = 0;
                 articles.forEach(a => {
                     if (a.domain === article.domain) {
                         a.ngDomain = true;
                         a.readStatus = 'read';
+                        ngDomainCount++;
                     }
                 });
+                
+                console.log(`🚫 NG設定: ${article.domain} の記事 ${ngDomainCount}件を非表示`);
             }
             
             // データ保存
             await this.dataManager.saveArticles(articles);
             
-            // 【重要】フィードバック時の即座AI学習（これのみ残す）
-            if (this.aiEngine && !this.aiDisabled && feedback !== 'ng') {
-                try {
-                    await this.aiEngine.processFeedback(article, feedback);
-                    console.log('AI学習完了 - フィードバック反映');
-                } catch (aiError) {
-                    console.warn('AI学習エラー:', aiError);
-                }
-            }
-            
-            // UI更新
+            // 【重要】UI即座更新（新しいスコアを反映）
             if (this.uiController) {
+                // 記事カードの興味度スコア表示を更新
+                this.uiController.updateArticleScore(articleId, article.interestScore);
+                
                 this.uiController.updateArticleDisplay(articleId, {
                     readStatus: article.readStatus,
-                    ngDomain: article.ngDomain
+                    ngDomain: article.ngDomain,
+                    interestScore: article.interestScore
                 });
                 
                 this.uiController.updateStats();
+                
+                // NGドメインの場合は同ドメイン記事も更新
+                if (feedback === 'ng') {
+                    articles.forEach(a => {
+                        if (a.domain === article.domain) {
+                            this.uiController.updateArticleDisplay(a.articleId, {
+                                ngDomain: true,
+                                readStatus: 'read'
+                            });
+                        }
+                    });
+                }
             }
             
             // フィードバック通知
             const messages = {
-                1: '👍 興味ありとして学習しました',
-                '-1': '👎 興味なしとして学習しました',
-                'ng': '🚫 ドメインをNGに設定しました'
+                1: `👍 興味ありとして学習しました (${article.interestScore}点)`,
+                '-1': `👎 興味なしとして学習しました (${article.interestScore}点)`,
+                'ng': `🚫 ${article.domain} をNGドメインに設定しました`
             };
             
-            this.showNotification(messages[feedback] || 'フィードバックを処理しました', 'success', 2000);
+            this.showNotification(messages[feedback] || 'フィードバックを処理しました', 'success', 3000);
+            
+            // AI統計デバッグ出力（開発時）
+            if (this.aiEngine && !this.aiDisabled) {
+                const stats = this.aiEngine.getStats();
+                console.log('AI学習統計:', stats);
+            }
             
         } catch (error) {
             console.error('フィードバック処理エラー:', error);
             this.showNotification('フィードバックの処理に失敗しました', 'error');
+        } finally {
+            this.feedbackProcessing = false;
+            
+            // キューにあるフィードバックを処理
+            if (this.feedbackQueue.length > 0) {
+                const nextFeedback = this.feedbackQueue.shift();
+                setTimeout(() => {
+                    this.processFeedback(nextFeedback.articleId, nextFeedback.feedback);
+                }, 100);
+            }
+        }
+    }
+    
+    // 記事を開く
+    async openArticle(articleId) {
+        try {
+            if (!articleId) return;
+            
+            const articles = await this.dataManager.loadArticles();
+            const article = articles.find(a => a.articleId === articleId);
+            
+            if (!article) {
+                console.error('Article not found:', articleId);
+                return;
+            }
+            
+            // 既読状態に更新
+            if (article.readStatus !== 'read') {
+                await this.dataManager.updateArticle(articleId, { 
+                    readStatus: 'read',
+                    lastReadAt: new Date().toISOString()
+                });
+                
+                // UI更新
+                if (this.uiController) {
+                    this.uiController.updateArticleDisplay(articleId, { 
+                        readStatus: 'read' 
+                    });
+                    this.uiController.updateStats();
+                }
+            }
+            
+            // 新しいタブで記事を開く
+            window.open(article.url, '_blank', 'noopener,noreferrer');
+            
+            console.log(`記事を開きました: ${article.title}`);
+            
+        } catch (error) {
+            console.error('記事オープンエラー:', error);
+            this.showNotification('記事を開けませんでした', 'error');
+        }
+    }
+    
+    // キーワード設定更新後の全記事再評価
+    async recalculateAllArticlesInterest() {
+        try {
+            if (!this.aiEngine || this.aiDisabled) {
+                console.warn('AI機能無効のため再計算をスキップ');
+                return;
+            }
+            
+            this.showNotification('キーワード設定変更により記事を再評価中...', 'info', 2000);
+            
+            const articles = await this.dataManager.loadArticles();
+            const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                           { interestWords: [], ngWords: [] };
+            
+            console.log(`🔄 全記事興味度再計算開始: ${articles.length}件`);
+            
+            let updatedCount = 0;
+            for (const article of articles) {
+                try {
+                    const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                    
+                    // スコアが変更された場合のみ更新
+                    if (Math.abs(newScore - (article.interestScore || 50)) > 1) {
+                        article.interestScore = newScore;
+                        
+                        // NGワード判定
+                        if (newScore === -1) {
+                            article.ngDomain = true;
+                            article.readStatus = 'read';
+                        }
+                        
+                        updatedCount++;
+                    }
+                    
+                } catch (error) {
+                    console.warn(`記事 ${article.articleId} の再計算エラー:`, error);
+                }
+            }
+            
+            // 更新されたデータを保存
+            if (updatedCount > 0) {
+                await this.dataManager.saveArticles(articles);
+                
+                // UI再描画
+                if (this.uiController) {
+                    await this.uiController.loadAndDisplayArticles(false);
+                }
+                
+                this.showNotification(`${updatedCount}件の記事スコアを更新しました`, 'success');
+            } else {
+                this.showNotification('記事スコアに変更はありませんでした', 'info');
+            }
+            
+            console.log(`✅ 全記事再計算完了: ${updatedCount}件更新`);
+            
+        } catch (error) {
+            console.error('全記事再計算エラー:', error);
+            this.showNotification('記事の再評価に失敗しました', 'error');
         }
     }
     
@@ -327,7 +522,7 @@ class YourNewsApp {
     }
     
     getStats() {
-        return {
+        const baseStats = {
             initialized: this.initialized,
             dataManager: !!this.dataManager,
             rssFetcher: !!this.rssFetcher,
@@ -336,10 +531,43 @@ class YourNewsApp {
             pwaManager: !!this.pwaManager,
             aiDisabled: this.aiDisabled
         };
+        
+        // AI統計情報追加
+        if (this.aiEngine && !this.aiDisabled) {
+            baseStats.aiStats = this.aiEngine.getStats();
+        }
+        
+        return baseStats;
+    }
+    
+    // デバッグ用: フィードバック履歴表示
+    debugFeedbackHistory() {
+        if (this.aiEngine && !this.aiDisabled) {
+            this.aiEngine.debugFeedbackHistory();
+        } else {
+            console.warn('AI機能が無効のためデバッグ情報を表示できません');
+        }
+    }
+    
+    // デバッグ用: AI統計表示
+    debugAIStats() {
+        if (this.aiEngine && !this.aiDisabled) {
+            const stats = this.aiEngine.getStats();
+            console.log('=== AI統計情報 ===');
+            console.log('語彙数:', stats.vocabularySize);
+            console.log('フィードバック数:', stats.feedbackCount);
+            console.log('ポジティブフィードバック:', stats.positiveFeedback);
+            console.log('ネガティブフィードバック:', stats.negativeFeedback);
+            console.log('ドメイン学習数:', stats.domainScores);
+            console.log('カテゴリ学習数:', stats.categoryScores);
+            console.log('================');
+        } else {
+            console.warn('AI機能が無効のため統計情報を表示できません');
+        }
     }
 }
 
-// PWA機能初期化クラス（変更なし）
+// PWA機能初期化クラス（変更なし - 前回版を継承）
 class PWAManager {
     constructor(basePath = '/yn') {
         this.deferredPrompt = null;
@@ -484,11 +712,6 @@ class PWAManager {
     
     hideInstallPrompt() {
         // 特に処理なし（通知は自動で消える）
-    }
-    
-    async triggerInstall() {
-        // フローティングボタンが削除されたため、この関数は使用されない
-        return false;
     }
     
     updateNetworkStatus(online) {
@@ -679,6 +902,12 @@ window.debugApp = function() {
     if (window.yourNewsApp) {
         console.log('YourNewsApp stats:', window.yourNewsApp.getStats());
         console.log('Version:', window.yourNewsApp.getVersion());
+        
+        // AI統計情報
+        window.yourNewsApp.debugAIStats();
+        
+        // フィードバック履歴
+        window.yourNewsApp.debugFeedbackHistory();
     } else {
         console.error('YourNewsApp not initialized');
     }
