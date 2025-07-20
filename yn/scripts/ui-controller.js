@@ -1,4 +1,4 @@
-// UIController - 記事状態保持機能強化版
+// UIController - フィードバック機能完全対応版
 class UIController {
     constructor(dataManager, rssFetcher, articleCard) {
         this.dataManager = dataManager;
@@ -25,6 +25,9 @@ class UIController {
         // パフォーマンス設定
         this.renderDebounceTime = 100;
         this.renderTimeout = null;
+        
+        // フィードバック処理状態
+        this.processingFeedback = new Set();
     }
     
     async initialize() {
@@ -49,7 +52,7 @@ class UIController {
         }
     }
     
-    // 【修正】記事読み込み・表示（状態保持対応）
+    // 記事読み込み・表示（状態保持対応）
     async loadAndDisplayArticles(forceRefresh = false) {
         try {
             console.log('記事読み込み開始');
@@ -72,7 +75,7 @@ class UIController {
                                 await this.calculateInterestScores(newArticles);
                             }
                             
-                            // 【重要】マージ機能を使用して保存（状態保持）
+                            // マージ機能を使用して保存（状態保持）
                             await this.dataManager.saveArticles(newArticles);
                         }
                     }
@@ -102,7 +105,7 @@ class UIController {
         }
     }
     
-    // 【新機能】UI状態保持
+    // UI状態保持
     preserveUIStates() {
         try {
             // 現在のスクロール位置を保持
@@ -127,7 +130,7 @@ class UIController {
         }
     }
     
-    // 【新機能】UI状態復元
+    // UI状態復元
     restoreUIStates() {
         try {
             // フィルター状態復元
@@ -195,23 +198,124 @@ class UIController {
         }
     }
     
+    // 【重要】記事スコア更新（即座反映）
+    updateArticleScore(articleId, newScore) {
+        try {
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (!card) {
+                console.warn(`記事カードが見つかりません: ${articleId}`);
+                return;
+            }
+            
+            const scoreElement = card.querySelector('.interest-score');
+            if (scoreElement) {
+                // スコア表示更新
+                scoreElement.textContent = `${newScore}点`;
+                
+                // スコア色分け更新
+                scoreElement.className = 'interest-score';
+                if (newScore >= 70) {
+                    scoreElement.classList.add('score-high');
+                } else if (newScore >= 40) {
+                    scoreElement.classList.add('score-medium');
+                } else if (newScore >= 0) {
+                    scoreElement.classList.add('score-low');
+                }
+                
+                // アニメーション効果
+                scoreElement.style.transform = 'scale(1.2)';
+                scoreElement.style.background = '#4CAF50';
+                scoreElement.style.transition = 'all 0.3s ease';
+                
+                setTimeout(() => {
+                    scoreElement.style.transform = 'scale(1)';
+                    scoreElement.style.background = '';
+                }, 500);
+            }
+            
+            // 記事のローカルデータも更新
+            const article = this.currentArticles.find(a => a.articleId === articleId);
+            if (article) {
+                article.interestScore = newScore;
+            }
+            
+            console.log(`📊 スコア表示更新: ${articleId} -> ${newScore}点`);
+            
+        } catch (error) {
+            console.error('スコア表示更新エラー:', error);
+        }
+    }
+    
+    // 記事表示更新
+    updateArticleDisplay(articleId, updates) {
+        try {
+            const card = document.querySelector(`[data-article-id="${articleId}"]`);
+            if (!card) return;
+            
+            const article = this.currentArticles.find(a => a.articleId === articleId);
+            if (!article) return;
+            
+            // 既読状態反映
+            if (updates.readStatus !== undefined) {
+                card.classList.toggle('read', updates.readStatus === 'read');
+                
+                const readBtn = card.querySelector('.read-toggle-btn');
+                if (readBtn) {
+                    readBtn.dataset.read = (updates.readStatus === 'read').toString();
+                    readBtn.textContent = updates.readStatus === 'read' ? '✅ 既読' : '📖 未読';
+                }
+            }
+            
+            // NGドメイン状態反映
+            if (updates.ngDomain !== undefined) {
+                card.classList.toggle('ng-domain', updates.ngDomain);
+                if (updates.ngDomain) {
+                    card.style.display = 'none';
+                }
+            }
+            
+            // 興味度スコア反映
+            if (updates.interestScore !== undefined) {
+                this.updateArticleScore(articleId, updates.interestScore);
+            }
+            
+        } catch (error) {
+            console.error('記事表示更新エラー:', error);
+        }
+    }
+    
     // AI興味度計算
     async calculateInterestScores(articles) {
         try {
-            if (!window.yourNewsApp.aiEngine) return;
+            if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
+                console.log('AI機能無効、デフォルトスコア使用');
+                return;
+            }
             
             const keywords = await this.dataManager.loadData('yourNews_keywords') || 
                            { interestWords: [], ngWords: [] };
+            
+            console.log(`🧠 AI興味度計算開始: ${articles.length}件`);
             
             for (const article of articles) {
                 try {
                     const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
                     article.interestScore = score;
+                    
+                    // NGワード判定
+                    if (score === -1) {
+                        article.ngDomain = true;
+                        article.readStatus = 'read';
+                        console.log(`🚫 NG記事検出: ${article.title}`);
+                    }
+                    
                 } catch (error) {
                     console.warn(`AI score calculation failed for article ${article.articleId}:`, error);
                     article.interestScore = 50; // デフォルトスコア
                 }
             }
+            
+            console.log('✅ AI興味度計算完了');
             
         } catch (error) {
             console.error('AI興味度計算エラー:', error);
@@ -224,7 +328,7 @@ class UIController {
             const container = document.getElementById('articlesContainer');
             if (!container) return;
             
-            const itemHeight = 280; // 記事カードの推定高さ
+            const itemHeight = 280;
             const containerHeight = window.innerHeight - container.offsetTop;
             const visibleItems = Math.ceil(containerHeight / itemHeight) + 2;
             
@@ -335,7 +439,7 @@ class UIController {
         }
     }
     
-    // 記事カード作成
+    // 記事カード作成（フィードバック機能強化版）
     createArticleCard(article, index) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'article-card';
@@ -384,13 +488,22 @@ class UIController {
             </div>
             <div class="card-actions">
                 <div class="feedback-buttons">
-                    <button class="feedback-btn interest" data-feedback="1" data-article-id="${article.articleId}">
+                    <button class="feedback-btn interest" 
+                            data-feedback="1" 
+                            data-article-id="${article.articleId}"
+                            onclick="window.yourNewsApp.processFeedback('${article.articleId}', 1)">
                         👍 興味有り
                     </button>
-                    <button class="feedback-btn disinterest" data-feedback="-1" data-article-id="${article.articleId}">
+                    <button class="feedback-btn disinterest" 
+                            data-feedback="-1" 
+                            data-article-id="${article.articleId}"
+                            onclick="window.yourNewsApp.processFeedback('${article.articleId}', -1)">
                         👎 興味無し
                     </button>
-                    <button class="feedback-btn ng-domain" data-feedback="ng" data-article-id="${article.articleId}">
+                    <button class="feedback-btn ng-domain" 
+                            data-feedback="ng" 
+                            data-article-id="${article.articleId}"
+                            onclick="window.yourNewsApp.processFeedback('${article.articleId}', 'ng')">
                         🚫 ドメインNG
                     </button>
                 </div>
@@ -411,16 +524,6 @@ class UIController {
     // 記事イベントリスナー設定
     attachArticleEventListeners() {
         try {
-            // フィードバックボタン
-            document.querySelectorAll('.feedback-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const articleId = btn.dataset.articleId;
-                    const feedback = btn.dataset.feedback;
-                    this.processFeedback(articleId, feedback);
-                });
-            });
-            
             // お気に入りボタン
             document.querySelectorAll('.favorite-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -441,21 +544,6 @@ class UIController {
             
         } catch (error) {
             console.error('イベントリスナー設定エラー:', error);
-        }
-    }
-    
-    // フィードバック処理
-    async processFeedback(articleId, feedback) {
-        try {
-            if (!window.yourNewsApp) return;
-            
-            await window.yourNewsApp.processFeedback(articleId, feedback);
-            
-            // UI即座更新
-            this.updateArticleDisplay(articleId, feedback);
-            
-        } catch (error) {
-            console.error('フィードバック処理エラー:', error);
         }
     }
     
@@ -500,44 +588,6 @@ class UIController {
             
         } catch (error) {
             console.error('既読状態切替エラー:', error);
-        }
-    }
-    
-    // 記事表示更新
-    updateArticleDisplay(articleId, updates) {
-        try {
-            const card = document.querySelector(`[data-article-id="${articleId}"]`);
-            if (!card) return;
-            
-            const article = this.currentArticles.find(a => a.articleId === articleId);
-            if (!article) return;
-            
-            // 既読状態反映
-            if (updates.readStatus !== undefined) {
-                card.classList.toggle('read', updates.readStatus === 'read');
-                
-                const readBtn = card.querySelector('.read-toggle-btn');
-                if (readBtn) {
-                    readBtn.dataset.read = (updates.readStatus === 'read').toString();
-                    readBtn.textContent = updates.readStatus === 'read' ? '✅ 既読' : '📖 未読';
-                }
-            }
-            
-            // NGドメイン状態反映
-            if (updates.ngDomain !== undefined) {
-                card.classList.toggle('ng-domain', updates.ngDomain);
-                if (updates.ngDomain) {
-                    card.style.display = 'none';
-                }
-            }
-            
-            // フィードバック状態反映
-            if (updates === 'ng' || updates === -1) {
-                card.classList.add('read');
-            }
-            
-        } catch (error) {
-            console.error('記事表示更新エラー:', error);
         }
     }
     
@@ -609,87 +659,6 @@ class UIController {
             console.error('イベントリスナー設定エラー:', error);
         }
     }
-
-　　// UIController に以下のメソッドを追加
-
-// 【新機能】記事スコア更新
-updateArticleScore(articleId, newScore) {
-    try {
-        const card = document.querySelector(`[data-article-id="${articleId}"]`);
-        if (!card) return;
-        
-        const scoreElement = card.querySelector('.interest-score');
-        if (scoreElement) {
-            // スコア表示更新
-            scoreElement.textContent = `${newScore}点`;
-            
-            // スコア色分け更新
-            scoreElement.className = 'interest-score';
-            if (newScore >= 70) {
-                scoreElement.classList.add('score-high');
-            } else if (newScore >= 40) {
-                scoreElement.classList.add('score-medium');
-            } else {
-                scoreElement.classList.add('score-low');
-            }
-            
-            // アニメーション効果
-            scoreElement.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                scoreElement.style.transform = 'scale(1)';
-            }, 300);
-        }
-        
-        // 記事のローカルデータも更新
-        const article = this.currentArticles.find(a => a.articleId === articleId);
-        if (article) {
-            article.interestScore = newScore;
-        }
-        
-        console.log(`📊 スコア表示更新: ${articleId} -> ${newScore}点`);
-        
-    } catch (error) {
-        console.error('スコア表示更新エラー:', error);
-    }
-}
-
-// AI興味度計算（修正版）
-async calculateInterestScores(articles) {
-    try {
-        if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
-            console.log('AI機能無効、デフォルトスコア使用');
-            return;
-        }
-        
-        const keywords = await this.dataManager.loadData('yourNews_keywords') || 
-                       { interestWords: [], ngWords: [] };
-        
-        console.log(`🧠 AI興味度計算開始: ${articles.length}件`);
-        
-        for (const article of articles) {
-            try {
-                const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
-                article.interestScore = score;
-                
-                // NGワード判定
-                if (score === -1) {
-                    article.ngDomain = true;
-                    article.readStatus = 'read';
-                    console.log(`🚫 NG記事検出: ${article.title}`);
-                }
-                
-            } catch (error) {
-                console.warn(`AI score calculation failed for article ${article.articleId}:`, error);
-                article.interestScore = 50; // デフォルトスコア
-            }
-        }
-        
-        console.log('✅ AI興味度計算完了');
-        
-    } catch (error) {
-        console.error('AI興味度計算エラー:', error);
-    }
-}
     
     // 空状態表示
     showEmptyState() {
