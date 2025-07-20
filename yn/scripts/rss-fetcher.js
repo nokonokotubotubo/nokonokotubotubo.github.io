@@ -1,7 +1,7 @@
-// RSS取得エンジン（完全修正版 - 全ての問題対応済み）
+// RSS取得エンジン（記事ID安定化対応版）
 class RSSFetcher {
     constructor() {
-        // 【修正】AllOriginsを最優先に、成功実績のあるサービス順に配置
+        // プロキシサービス設定（成功実績順）
         this.proxyServices = [
             {
                 name: 'AllOrigins-Primary',
@@ -58,33 +58,6 @@ class RSSFetcher {
                 }
             },
             {
-                name: 'CodeTabs-Proxy',
-                endpoint: 'https://api.codetabs.com/v1/proxy',
-                params: (url) => `?quest=${encodeURIComponent(url)}`,
-                parser: (data) => {
-                    try {
-                        if (typeof data === 'string' && data.length > 0) {
-                            const xml = new DOMParser().parseFromString(data, 'text/xml');
-                            const result = this.parseRSSXML(xml);
-                            if (result && result.length > 0) {
-                                console.log(`📰 CodeTabs-Proxy: ${result.length} items parsed successfully`);
-                                return result;
-                            }
-                        }
-                        return null;
-                    } catch (e) {
-                        console.warn('CodeTabs-Proxy parse error:', e);
-                        return null;
-                    }
-                },
-                timeout: 8000,
-                maxRetries: 1,
-                priority: 3,
-                headers: {
-                    'Accept': 'text/xml, application/xml'
-                }
-            },
-            {
                 name: 'RSS2JSON-Free',
                 endpoint: 'https://api.rss2json.com/v1/api.json',
                 params: (url) => `?rss_url=${encodeURIComponent(url)}&count=20`,
@@ -102,33 +75,7 @@ class RSSFetcher {
                 },
                 timeout: 6000,
                 maxRetries: 1,
-                priority: 4,
-                headers: {
-                    'Accept': 'application/json'
-                }
-            },
-            {
-                name: 'JSONP-YQL',
-                endpoint: 'https://query.yahooapis.com/v1/public/yql',
-                params: (url) => `?q=select%20*%20from%20xml%20where%20url%3D%22${encodeURIComponent(url)}%22&format=json`,
-                parser: (data) => {
-                    try {
-                        if (data && data.query && data.query.results) {
-                            const result = this.parseYQLResults(data.query.results);
-                            if (result && result.length > 0) {
-                                console.log(`📰 JSONP-YQL: ${result.length} items parsed successfully`);
-                                return result;
-                            }
-                        }
-                        return null;
-                    } catch (e) {
-                        console.warn('JSONP-YQL parse error:', e);
-                        return null;
-                    }
-                },
-                timeout: 5000,
-                maxRetries: 1,
-                priority: 5,
+                priority: 3,
                 headers: {
                     'Accept': 'application/json'
                 }
@@ -136,14 +83,13 @@ class RSSFetcher {
         ];
         
         this.cache = new Map();
-        this.rateLimitDelay = 1500; // 【修正】レート制限強化
+        this.rateLimitDelay = 1500;
         this.lastRequestTime = 0;
         
         // サービス成功率トラッキング
         this.serviceStats = new Map();
         this.initializeServiceStats();
         
-        // 【新機能】実行時ログ詳細化
         this.debugMode = true;
     }
     
@@ -160,18 +106,16 @@ class RSSFetcher {
         });
     }
     
-    // 【修正】RSS取得メイン関数（エラーハンドリング強化）
+    // RSS取得メイン関数
     async fetchRSSWithFallback(rssUrl) {
         const errors = [];
         const startTime = Date.now();
         
         await this.enforceRateLimit();
         
-        // 固定優先順序（成功実績重視）
         const orderedServices = [...this.proxyServices].sort((a, b) => a.priority - b.priority);
         
         this.log(`🚀 RSS取得開始: ${rssUrl}`);
-        this.log(`📋 サービス試行順序: ${orderedServices.map(s => s.name).join(' → ')}`);
         
         for (let i = 0; i < orderedServices.length; i++) {
             const service = orderedServices[i];
@@ -188,9 +132,7 @@ class RSSFetcher {
                     const timeoutId = setTimeout(() => controller.abort(), service.timeout);
                     
                     const fetchUrl = service.endpoint + service.params(rssUrl);
-                    this.log(`📡 Request URL: ${fetchUrl}`);
                     
-                    // 【修正】最小限のヘッダー設定（CORS問題回避）
                     const response = await fetch(fetchUrl, { 
                         signal: controller.signal,
                         method: 'GET',
@@ -207,23 +149,18 @@ class RSSFetcher {
                     }
                     
                     const responseTime = Date.now() - attemptStartTime;
-                    this.log(`⏱️ Response time: ${responseTime}ms`);
-                    
                     let data;
-                    const contentType = response.headers.get('content-type') || '';
                     
+                    const contentType = response.headers.get('content-type') || '';
                     if (contentType.includes('application/json')) {
                         data = await response.json();
-                        this.log(`📋 Received JSON data`);
                     } else {
                         data = await response.text();
-                        this.log(`📋 Received text data (${data.length} chars)`);
                     }
                     
                     const articles = service.parser(data);
                     
                     if (articles && articles.length > 0) {
-                        // 成功統計更新
                         serviceStats.successes++;
                         serviceStats.lastSuccess = new Date().toISOString();
                         serviceStats.avgResponseTime = 
@@ -236,7 +173,6 @@ class RSSFetcher {
                             this.normalizeArticleData(article, rssUrl)
                         );
                         
-                        // キャッシュ保存
                         this.cache.set(rssUrl, {
                             articles: normalizedArticles,
                             timestamp: Date.now(),
@@ -278,7 +214,7 @@ class RSSFetcher {
             }
         }
         
-        // 【修正】キャッシュフォールバック強化
+        // キャッシュフォールバック
         const cachedData = this.cache.get(rssUrl);
         if (cachedData && Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000) {
             this.log(`📦 Using cached data (${cachedData.articles.length} articles from ${cachedData.service})`);
@@ -292,24 +228,80 @@ class RSSFetcher {
             };
         }
         
-        // 完全失敗
         this.log(`💥 ALL SERVICES FAILED for ${rssUrl}`);
         return {
             success: false,
             articles: [],
             errors: errors,
             totalTime: Date.now() - startTime,
-            fallbackMessage: `全てのRSSサービスが利用できません (${errors.length}個のサービスで失敗)。ネットワーク接続とURLを確認してください。`,
+            fallbackMessage: `全てのRSSサービスが利用できません (${errors.length}個のサービスで失敗)。`,
             serviceStats: this.getServiceStatsReport()
         };
     }
     
-    // 【修正】RSS XML解析（堅牢性向上）
+    // 【修正】記事データ正規化（安定ID生成対応）
+    normalizeArticleData(rawArticle, sourceUrl) {
+        try {
+            const domain = this.extractDomain(rawArticle.link || rawArticle.url || sourceUrl);
+            const publishDate = this.parseDate(rawArticle.pubDate || rawArticle.published || rawArticle.date);
+            
+            // 【重要】安定した記事ID生成（URLベース）
+            const articleId = this.generateStableArticleId(rawArticle, sourceUrl);
+            
+            return {
+                articleId: articleId,
+                title: this.sanitizeText(rawArticle.title || '無題'),
+                excerpt: this.sanitizeText(rawArticle.description || rawArticle.content || rawArticle.summary || ''),
+                url: rawArticle.link || rawArticle.url || '',
+                domain: domain,
+                publishDate: publishDate,
+                category: this.inferCategory(rawArticle, sourceUrl),
+                readStatus: 'unread', // デフォルト値（マージ時に既存値で上書きされる）
+                favorited: false,     // デフォルト値
+                interestScore: 50,    // デフォルト値
+                matchedKeywords: [],
+                feedbackHistory: [],
+                addedDate: new Date().toISOString(),
+                sourceUrl: sourceUrl
+            };
+            
+        } catch (error) {
+            console.error('Article normalization error:', error, rawArticle);
+            return this.createErrorArticle(rawArticle, sourceUrl, error.message);
+        }
+    }
+    
+    // 【新機能】安定した記事ID生成
+    generateStableArticleId(rawArticle, sourceUrl) {
+        try {
+            const url = rawArticle.link || rawArticle.url || '';
+            const title = rawArticle.title || '';
+            const domain = this.extractDomain(sourceUrl);
+            
+            // URLが存在する場合はURL基準
+            if (url) {
+                const urlHash = this.simpleHash(url);
+                return `${domain}_url_${urlHash}`;
+            }
+            
+            // URLがない場合はタイトル+ドメイン+日付基準
+            const titleHash = this.simpleHash(title);
+            const dateStr = rawArticle.pubDate || rawArticle.published || rawArticle.date || '';
+            const dateHash = this.simpleHash(dateStr);
+            
+            return `${domain}_title_${titleHash}_${dateHash}`;
+            
+        } catch (error) {
+            // エラー時はランダムID
+            return `article_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+    }
+    
+    // RSS XML解析
     parseRSSXML(xmlDoc) {
         try {
             const articles = [];
             
-            // XML構文エラーチェック
             if (!xmlDoc || xmlDoc.querySelector('parsererror')) {
                 this.log(`⚠️ XML parse error detected`);
                 return null;
@@ -350,12 +342,8 @@ class RSSFetcher {
                                 this.getXMLText(item, 'updated')
                     };
                     
-                    // 必須フィールドチェック
                     if (article.title && article.link) {
                         articles.push(article);
-                        this.log(`📄 Item ${index + 1}: "${article.title.substring(0, 50)}..."`);
-                    } else {
-                        this.log(`⚠️ Item ${index + 1} missing required fields: title=${!!article.title}, link=${!!article.link}`);
                     }
                     
                 } catch (error) {
@@ -372,36 +360,6 @@ class RSSFetcher {
         }
     }
     
-    // 【新機能】YQL結果パーサー
-    parseYQLResults(results) {
-        try {
-            const articles = [];
-            
-            if (results.rss && results.rss.channel && results.rss.channel.item) {
-                const items = Array.isArray(results.rss.channel.item) 
-                    ? results.rss.channel.item 
-                    : [results.rss.channel.item];
-                
-                items.forEach(item => {
-                    if (item.title && item.link) {
-                        articles.push({
-                            title: item.title,
-                            description: item.description || '',
-                            link: item.link,
-                            pubDate: item.pubDate || ''
-                        });
-                    }
-                });
-            }
-            
-            return articles;
-        } catch (error) {
-            this.log(`❌ YQL parse error: ${error.message}`);
-            return null;
-        }
-    }
-    
-    // XML要素テキスト取得
     getXMLText(element, tagName) {
         try {
             const node = element.querySelector(tagName);
@@ -411,7 +369,7 @@ class RSSFetcher {
         }
     }
     
-    // 【修正】複数RSS一括取得（成功率重視）
+    // 複数RSS一括取得
     async fetchAllRSSFeeds(rssFeeds) {
         try {
             this.log(`🔄 Starting bulk RSS fetch for ${rssFeeds.length} feeds`);
@@ -419,15 +377,12 @@ class RSSFetcher {
             const allArticles = [];
             const results = [];
             
-            // 有効なフィードのみ処理
             const enabledFeeds = rssFeeds.filter(feed => feed.enabled);
-            this.log(`📊 Processing ${enabledFeeds.length} enabled feeds (${rssFeeds.length - enabledFeeds.length} disabled)`);
+            this.log(`📊 Processing ${enabledFeeds.length} enabled feeds`);
             
-            // 順次処理（安定性重視）
             for (const feed of enabledFeeds) {
                 try {
                     this.log(`\n📡 === Fetching: "${feed.name}" ===`);
-                    this.log(`🔗 URL: ${feed.url}`);
                     
                     const result = await this.fetchRSSWithFallback(feed.url);
                     
@@ -443,7 +398,6 @@ class RSSFetcher {
                     });
                     
                     if (result.success) {
-                        // フィード固有カテゴリ適用
                         result.articles.forEach(article => {
                             if (feed.category) {
                                 article.category = feed.category;
@@ -471,29 +425,18 @@ class RSSFetcher {
                     });
                 }
                 
-                // レート制限
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
-            // 重複除去
             const uniqueArticles = this.removeDuplicateArticles(allArticles);
             
-            // 結果サマリー
             const successCount = results.filter(r => r.success).length;
             const cacheCount = results.filter(r => r.fromCache).length;
             
             this.log(`\n📊 === BULK FETCH SUMMARY ===`);
             this.log(`✅ Success: ${successCount}/${enabledFeeds.length} feeds`);
             this.log(`📦 From cache: ${cacheCount} feeds`);
-            this.log(`📄 Total articles: ${uniqueArticles.length} (${allArticles.length - uniqueArticles.length} duplicates removed)`);
-            
-            // 詳細結果
-            results.forEach(result => {
-                const status = result.success ? '✅' : '❌';
-                const cache = result.fromCache ? ' (cached)' : '';
-                const service = result.service ? ` [${result.service}]` : '';
-                this.log(`${status} ${result.feedName}: ${result.articleCount} articles${cache}${service}`);
-            });
+            this.log(`📄 Total articles: ${uniqueArticles.length}`);
             
             return uniqueArticles;
             
@@ -503,13 +446,11 @@ class RSSFetcher {
         }
     }
     
-    // 重複記事除去
     removeDuplicateArticles(articles) {
         const seen = new Set();
         const unique = [];
         
         articles.forEach(article => {
-            // URLとタイトルで重複判定
             const key = `${article.url}_${article.title.substring(0, 50)}`;
             
             if (!seen.has(key)) {
@@ -525,85 +466,6 @@ class RSSFetcher {
         return unique;
     }
     
-    // 記事データ正規化
-    normalizeArticleData(rawArticle, sourceUrl) {
-        try {
-            const domain = this.extractDomain(rawArticle.link || rawArticle.url || sourceUrl);
-            const publishDate = this.parseDate(rawArticle.pubDate || rawArticle.published || rawArticle.date);
-            const articleId = this.generateArticleId(rawArticle, sourceUrl, publishDate);
-            
-            return {
-                articleId: articleId,
-                title: this.sanitizeText(rawArticle.title || '無題'),
-                excerpt: this.sanitizeText(rawArticle.description || rawArticle.content || rawArticle.summary || ''),
-                url: rawArticle.link || rawArticle.url || '',
-                domain: domain,
-                publishDate: publishDate,
-                category: this.inferCategory(rawArticle, sourceUrl),
-                readStatus: 'unread',
-                favorited: false,
-                interestScore: 50,
-                matchedKeywords: [],
-                feedbackHistory: [],
-                addedDate: new Date().toISOString(),
-                sourceUrl: sourceUrl
-            };
-            
-        } catch (error) {
-            this.log(`❌ Article normalization error: ${error.message}`);
-            return this.createErrorArticle(rawArticle, sourceUrl, error.message);
-        }
-    }
-    
-    // 【修正】RSS取得テスト（詳細ログ付き）
-    async testRSSFeed(url) {
-        try {
-            this.log(`🧪 === RSS FEED TEST ===`);
-            this.log(`🔗 Testing URL: ${url}`);
-            
-            const result = await this.fetchRSSWithFallback(url);
-            
-            const testResult = {
-                success: result.success,
-                url: url,
-                articleCount: result.articles.length,
-                service: result.service,
-                responseTime: result.responseTime,
-                totalTime: result.totalTime,
-                sampleArticle: result.articles[0] || null,
-                errors: result.errors || [],
-                serviceStats: result.serviceStats,
-                fromCache: result.fromCache || false,
-                message: result.success ? 
-                    `✅ 取得成功: ${result.articles.length}件の記事 (${result.service}, ${result.totalTime}ms)` :
-                    `❌ 取得失敗: ${result.fallbackMessage}`
-            };
-            
-            this.log(`🧪 Test result: ${testResult.message}`);
-            
-            if (testResult.sampleArticle) {
-                this.log(`📄 Sample article: "${testResult.sampleArticle.title}"`);
-            }
-            
-            return testResult;
-            
-        } catch (error) {
-            this.log(`💥 RSS test error: ${error.message}`);
-            return {
-                success: false,
-                url: url,
-                articleCount: 0,
-                service: 'none',
-                responseTime: 0,
-                totalTime: 0,
-                sampleArticle: null,
-                errors: [{ error: error.message }],
-                serviceStats: this.getServiceStatsReport(),
-                message: `💥 テストエラー: ${error.message}`
-            };
-        }
-    }
-    
     // ユーティリティ関数群
     async enforceRateLimit() {
         const now = Date.now();
@@ -611,24 +473,10 @@ class RSSFetcher {
         
         if (timeSinceLastRequest < this.rateLimitDelay) {
             const waitTime = this.rateLimitDelay - timeSinceLastRequest;
-            this.log(`⏳ Rate limiting: waiting ${waitTime}ms`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
         }
         
         this.lastRequestTime = Date.now();
-    }
-    
-    generateArticleId(article, sourceUrl, publishDate) {
-        try {
-            const domain = this.extractDomain(sourceUrl);
-            const timestamp = new Date(publishDate).getTime();
-            const titleHash = this.simpleHash(article.title || 'untitled');
-            
-            return `${domain}_${titleHash}_${timestamp}`;
-            
-        } catch (error) {
-            return `article_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
     }
     
     simpleHash(str) {
@@ -676,11 +524,7 @@ class RSSFetcher {
     inferCategory(article, sourceUrl) {
         try {
             const domain = this.extractDomain(sourceUrl);
-            const title = (article.title || '').toLowerCase();
-            const description = (article.description || '').toLowerCase();
-            const content = title + ' ' + description;
             
-            // ドメイン別カテゴリ推定
             const domainCategories = {
                 'nhk.or.jp': 'ニュース',
                 'nikkei.com': '経済',
@@ -701,26 +545,9 @@ class RSSFetcher {
                 }
             }
             
-            // キーワード別カテゴリ推定
-            const keywordCategories = {
-                'テクノロジー': ['ai', 'iot', '技術', 'アプリ', 'システム', 'プログラミング', 'デジタル'],
-                '経済': ['経済', '株価', '投資', '企業', '業績', '売上', '市場'],
-                'スポーツ': ['野球', 'サッカー', '選手', '試合', 'オリンピック', 'スポーツ'],
-                'エンタメ': ['映画', '音楽', 'アニメ', '芸能', 'ゲーム', 'エンタメ'],
-                '政治': ['政治', '政府', '選挙', '国会', '法案', '大臣'],
-                '科学': ['研究', '実験', '発見', '論文', '学会', '科学']
-            };
-            
-            for (const [category, keywords] of Object.entries(keywordCategories)) {
-                if (keywords.some(keyword => content.includes(keyword))) {
-                    return category;
-                }
-            }
-            
             return 'その他';
             
         } catch (error) {
-            this.log(`⚠️ Category inference error: ${error.message}`);
             return 'その他';
         }
     }
@@ -745,7 +572,6 @@ class RSSFetcher {
         };
     }
     
-    // サービス統計レポート
     getServiceStatsReport() {
         const report = {};
         this.serviceStats.forEach((stats, serviceName) => {
@@ -762,57 +588,58 @@ class RSSFetcher {
         return report;
     }
     
-    // 【新機能】ログ出力（デバッグモード対応）
     log(message) {
         if (this.debugMode) {
             console.log(`[RSSFetcher] ${message}`);
         }
     }
     
-    // キャッシュ管理
     clearCache() {
         this.cache.clear();
         this.log('📦 RSS cache cleared');
     }
     
-    getCacheStats() {
-        const stats = {
-            cacheSize: this.cache.size,
-            cacheEntries: []
-        };
-        
-        this.cache.forEach((value, key) => {
-            stats.cacheEntries.push({
-                url: key,
-                articleCount: value.articles.length,
-                timestamp: value.timestamp,
-                age: Date.now() - value.timestamp,
-                service: value.service
-            });
-        });
-        
-        return stats;
-    }
-    
-    // 【新機能】デバッグモード切替
     setDebugMode(enabled) {
         this.debugMode = enabled;
         this.log(`Debug mode ${enabled ? 'enabled' : 'disabled'}`);
     }
     
-    // 【新機能】統計情報取得
-    getOverallStats() {
-        const stats = this.getServiceStatsReport();
-        const totalAttempts = Object.values(stats).reduce((sum, s) => sum + s.attempts, 0);
-        const totalSuccesses = Object.values(stats).reduce((sum, s) => sum + s.successes, 0);
-        const overallSuccessRate = totalAttempts > 0 ? Math.round((totalSuccesses / totalAttempts) * 100) : 0;
-        
-        return {
-            overallSuccessRate: overallSuccessRate,
-            totalAttempts: totalAttempts,
-            totalSuccesses: totalSuccesses,
-            serviceStats: stats,
-            cacheStats: this.getCacheStats()
-        };
+    async testRSSFeed(url) {
+        try {
+            this.log(`🧪 Testing RSS feed: ${url}`);
+            
+            const result = await this.fetchRSSWithFallback(url);
+            
+            return {
+                success: result.success,
+                url: url,
+                articleCount: result.articles.length,
+                service: result.service,
+                responseTime: result.responseTime,
+                totalTime: result.totalTime,
+                sampleArticle: result.articles[0] || null,
+                errors: result.errors || [],
+                serviceStats: result.serviceStats,
+                fromCache: result.fromCache || false,
+                message: result.success ? 
+                    `✅ 取得成功: ${result.articles.length}件の記事 (${result.service}, ${result.totalTime}ms)` :
+                    `❌ 取得失敗: ${result.fallbackMessage}`
+            };
+            
+        } catch (error) {
+            this.log(`💥 RSS test error: ${error.message}`);
+            return {
+                success: false,
+                url: url,
+                articleCount: 0,
+                service: 'none',
+                responseTime: 0,
+                totalTime: 0,
+                sampleArticle: null,
+                errors: [{ error: error.message }],
+                serviceStats: this.getServiceStatsReport(),
+                message: `💥 テストエラー: ${error.message}`
+            };
+        }
     }
 }
