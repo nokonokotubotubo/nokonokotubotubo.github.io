@@ -189,42 +189,6 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-/* フローティングアクションボタン */
-.floating-actions {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    z-index: 999;
-}
-
-.fab-btn {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    border: none;
-    background: #2196F3;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fab-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-.fab-btn.ai-retrain-btn {
-    background: #9C27B0;
-}
-
 /* 通知エリア */
 .notification-area {
     position: fixed;
@@ -387,7 +351,6 @@ input:focus {
 @media print {
     .main-header,
     .filter-bar,
-    .floating-actions,
     .notification-area {
         display: none;
     }
