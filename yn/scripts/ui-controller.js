@@ -1,4 +1,4 @@
-// UIController - AI計算結果確実反映版
+// UIController - AI興味度ソート問題完全解決版
 class UIController {
     constructor(dataManager, rssFetcher, articleCard) {
         this.dataManager = dataManager;
@@ -375,14 +375,18 @@ class UIController {
         }
     }
     
-    // フィルター適用
+    // 【修正1】フィルター適用（ソート問題対応版）
     applyFilters() {
         try {
+            console.log(`🔍 フィルター処理開始: 対象 ${this.currentArticles.length}件`);
+            
+            // 【重要】currentArticlesの新しいコピーを作成
             let filtered = [...this.currentArticles];
             
             // カテゴリフィルター
             if (this.filterCategory !== 'all') {
                 filtered = filtered.filter(article => article.category === this.filterCategory);
+                console.log(`📂 カテゴリフィルター後: ${filtered.length}件`);
             }
             
             // 既読状態フィルター
@@ -395,38 +399,91 @@ class UIController {
                     }
                     return true;
                 });
+                console.log(`📖 既読フィルター後: ${filtered.length}件`);
             }
             
             // NGドメイン記事を除外
             filtered = filtered.filter(article => !article.ngDomain);
+            console.log(`🚫 NGドメイン除外後: ${filtered.length}件`);
             
-            // ソート適用
+            // 【重要】ソート適用（確実な実行）
+            console.log('🔄 ソート処理実行前...');
             this.applySorting(filtered);
+            console.log('✅ ソート処理完了');
             
+            // 結果を設定
             this.filteredArticles = filtered;
+            
+            console.log(`✅ フィルター処理完了: ${this.filteredArticles.length}件`);
             
         } catch (error) {
             console.error('フィルター適用エラー:', error);
-            this.filteredArticles = this.currentArticles;
+            // エラー時は元の配列をそのまま使用
+            this.filteredArticles = [...this.currentArticles];
         }
     }
     
-    // ソート適用
+    // 【修正2】ソート適用（確実なインプレース・ソート版）
     applySorting(articles) {
-        articles.sort((a, b) => {
-            switch (this.sortBy) {
-                case 'interest':
-                    return (b.interestScore || 50) - (a.interestScore || 50);
-                case 'date':
-                    return new Date(b.publishDate || b.addedDate) - new Date(a.publishDate || a.addedDate);
-                case 'domain':
-                    return a.domain.localeCompare(b.domain);
-                case 'keyword-match':
-                    return (b.matchedKeywords?.length || 0) - (a.matchedKeywords?.length || 0);
-                default:
-                    return 0;
+        try {
+            console.log(`📊 ソート処理開始: ${this.sortBy} (対象: ${articles.length}件)`);
+            
+            // 【重要】確実なインプレース・ソート
+            articles.sort((a, b) => {
+                switch (this.sortBy) {
+                    case 'interest':
+                        // AI興味度順（高い順）- 型安全な比較
+                        const scoreA = (typeof a.interestScore === 'number') ? a.interestScore : 50;
+                        const scoreB = (typeof b.interestScore === 'number') ? b.interestScore : 50;
+                        
+                        // デバッグログ（最初の5件のみ）
+                        if (articles.indexOf(a) < 5 || articles.indexOf(b) < 5) {
+                            console.log(`🔄 ソート比較: ${scoreA}点 vs ${scoreB}点 = ${scoreB - scoreA}`);
+                        }
+                        
+                        return scoreB - scoreA; // 降順（高いスコアが上）
+                        
+                    case 'date':
+                        // 更新日時順（新しい順）
+                        const dateA = new Date(a.publishDate || a.addedDate);
+                        const dateB = new Date(b.publishDate || b.addedDate);
+                        return dateB - dateA;
+                        
+                    case 'domain':
+                        // ドメイン順（アルファベット順）
+                        return a.domain.localeCompare(b.domain);
+                        
+                    case 'keyword-match':
+                        // キーワード一致度順（多い順）
+                        const matchA = a.matchedKeywords?.length || 0;
+                        const matchB = b.matchedKeywords?.length || 0;
+                        return matchB - matchA;
+                        
+                    default:
+                        return 0;
+                }
+            });
+            
+            // 【追加】ソート結果の検証ログ
+            if (this.sortBy === 'interest') {
+                console.log('✅ ソート結果検証:');
+                articles.slice(0, 5).forEach((article, index) => {
+                    console.log(`${index + 1}位: ${article.interestScore}点 - "${article.title.substring(0, 30)}..."`);
+                });
             }
-        });
+            
+            console.log(`✅ ソート完了 (${this.sortBy}): ${articles.length}件`);
+            
+        } catch (error) {
+            console.error('ソート処理エラー:', error);
+            // エラー時はデフォルトソートを試行
+            try {
+                articles.sort((a, b) => (b.interestScore || 50) - (a.interestScore || 50));
+                console.warn('デフォルトソートで復旧しました');
+            } catch (fallbackError) {
+                console.error('デフォルトソートも失敗:', fallbackError);
+            }
+        }
     }
     
     // 記事表示（デバウンス対応）
@@ -446,6 +503,15 @@ class UIController {
             if (this.filteredArticles.length === 0) {
                 this.showEmptyState();
                 return;
+            }
+            
+            // 【追加】ソート結果の確認
+            if (this.sortBy === 'interest') {
+                console.log('=== AI興味度ソート結果確認 ===');
+                this.filteredArticles.slice(0, 5).forEach((article, index) => {
+                    console.log(`${index + 1}位: "${article.title.substring(0, 30)}..." = ${article.interestScore}点`);
+                });
+                console.log('============================');
             }
             
             // 既存の表示をクリア
@@ -667,10 +733,42 @@ class UIController {
         this.updateStats();
     }
     
+    // 【修正】ソート変更ハンドラー（強化版）
     sortArticles(sortBy) {
-        this.sortBy = sortBy;
-        this.applyFilters();
-        this.renderArticles();
+        try {
+            console.log(`🔄 ソート変更: ${this.sortBy} → ${sortBy}`);
+            
+            this.sortBy = sortBy;
+            
+            // フィルター・ソート再適用
+            this.applyFilters();
+            
+            // 強制再描画
+            this.renderArticles();
+            
+            // ソート完了通知
+            if (sortBy === 'interest') {
+                const scoreRange = this.getScoreRange();
+                const message = `AI興味度順でソート完了 (${scoreRange.min}点〜${scoreRange.max}点)`;
+                if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                    window.yourNewsApp.showNotification(message, 'success', 3000);
+                }
+            }
+            
+            console.log(`✅ ソート変更完了: ${sortBy}`);
+            
+        } catch (error) {
+            console.error('ソート変更エラー:', error);
+        }
+    }
+    
+    // スコア範囲取得
+    getScoreRange() {
+        const scores = this.filteredArticles.map(a => a.interestScore || 50);
+        return {
+            min: Math.min(...scores),
+            max: Math.max(...scores)
+        };
     }
     
     // イベントリスナー設定
