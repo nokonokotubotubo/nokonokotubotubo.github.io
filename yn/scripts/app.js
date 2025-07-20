@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（構文エラー修正版）
+// YourNewsApp - メインアプリケーションクラス（完全修正版）
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -35,14 +35,13 @@ class YourNewsApp {
                 await this.aiEngine.initialize();
             }
             
-            // UI Controller初期化
-            this.uiController = new UIController();
+            // 【修正】UI Controller初期化時に依存関係を正しく注入
+            this.uiController = new UIController(this.dataManager, this.rssFetcher, this.articleCard);
             await this.uiController.initialize();
             
             // イベントリスナー設定
             this.setupEventListeners();
             
-            // PWA機能は後で個別に初期化
             this.initialized = true;
             
             console.log('YourNewsApp初期化完了');
@@ -95,6 +94,14 @@ class YourNewsApp {
                 });
             }
             
+            // AI再学習ボタン
+            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
+            if (aiRetrainBtn) {
+                aiRetrainBtn.addEventListener('click', async () => {
+                    await this.performAIRetraining();
+                });
+            }
+            
             console.log('イベントリスナー設定完了');
             
         } catch (error) {
@@ -129,6 +136,52 @@ class YourNewsApp {
             if (refreshBtn) {
                 refreshBtn.disabled = false;
                 refreshBtn.textContent = '🔄 更新';
+            }
+        }
+    }
+    
+    async performAIRetraining() {
+        try {
+            if (!this.aiEngine) {
+                this.showNotification('AI機能が利用できません', 'warning');
+                return;
+            }
+            
+            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
+            if (aiRetrainBtn) {
+                aiRetrainBtn.disabled = true;
+                aiRetrainBtn.textContent = '🔄';
+            }
+            
+            this.showNotification('AI再学習を実行中...', 'info', 2000);
+            
+            // 全記事のAI再計算
+            const articles = await this.dataManager.loadArticles();
+            const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                           { interestWords: [], ngWords: [] };
+            
+            for (const article of articles) {
+                const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                article.interestScore = newScore;
+            }
+            
+            await this.dataManager.saveArticles(articles);
+            
+            // UI更新
+            if (this.uiController) {
+                await this.uiController.loadAndDisplayArticles(true);
+            }
+            
+            this.showNotification('AI再学習が完了しました', 'success');
+            
+        } catch (error) {
+            console.error('AI再学習エラー:', error);
+            this.showNotification('AI再学習に失敗しました', 'error');
+        } finally {
+            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
+            if (aiRetrainBtn) {
+                aiRetrainBtn.disabled = false;
+                aiRetrainBtn.textContent = '🧠';
             }
         }
     }
@@ -266,7 +319,7 @@ class YourNewsApp {
     }
 }
 
-// PWA機能初期化クラス（分離版）
+// PWA機能初期化クラス
 class PWAManager {
     constructor() {
         this.deferredPrompt = null;
@@ -397,33 +450,36 @@ class PWAManager {
     }
     
     showInstallPrompt() {
-        const prompt = document.getElementById('pwaInstallPrompt');
-        if (prompt) {
-            prompt.classList.add('show');
-            
-            // インストールボタン
-            const installBtn = document.getElementById('installAppBtn');
-            const dismissBtn = document.getElementById('dismissInstallBtn');
-            
-            if (installBtn) {
-                installBtn.onclick = () => this.triggerInstall();
-            }
-            
-            if (dismissBtn) {
-                dismissBtn.onclick = () => this.hideInstallPrompt();
-            }
-            
-            // 30秒後に自動で非表示
-            setTimeout(() => {
-                this.hideInstallPrompt();
-            }, 30000);
-        }
+        // PWAインストールボタンを表示
+        const installBtn = document.createElement('button');
+        installBtn.id = 'pwa-install-btn';
+        installBtn.className = 'fab-btn install-btn';
+        installBtn.innerHTML = '📱';
+        installBtn.title = 'アプリをインストール';
+        installBtn.style.cssText = `
+            position: fixed;
+            bottom: 160px;
+            right: 20px;
+            background: #4CAF50;
+            z-index: 1000;
+        `;
+        
+        installBtn.addEventListener('click', () => {
+            this.triggerInstall();
+        });
+        
+        document.body.appendChild(installBtn);
+        
+        // 30秒後に自動で非表示
+        setTimeout(() => {
+            this.hideInstallPrompt();
+        }, 30000);
     }
     
     hideInstallPrompt() {
-        const prompt = document.getElementById('pwaInstallPrompt');
-        if (prompt) {
-            prompt.classList.remove('show');
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.remove();
         }
     }
     
@@ -458,10 +514,23 @@ class PWAManager {
             statusIndicator = document.createElement('div');
             statusIndicator.id = 'network-status';
             statusIndicator.className = 'network-status';
+            statusIndicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                z-index: 1001;
+                transition: opacity 0.3s ease;
+            `;
             document.body.appendChild(statusIndicator);
         }
         
         statusIndicator.className = `network-status ${online ? 'online' : 'offline'}`;
+        statusIndicator.style.background = online ? 'rgba(76,175,80,0.9)' : 'rgba(244,67,54,0.9)';
+        statusIndicator.style.color = 'white';
         statusIndicator.textContent = online ? '🌐 オンライン復帰' : '📴 オフライン';
         
         // 5秒後に非表示
@@ -552,6 +621,9 @@ class PWAManager {
     }
 }
 
+// PWAManagerクラスをグローバルに公開
+window.PWAManager = PWAManager;
+
 // アプリケーション初期化処理
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -562,7 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const initSuccess = await window.yourNewsApp.initialize();
         
         if (initSuccess) {
-            // PWA機能初期化（成功時のみ）
+            // PWA機能初期化
             window.yourNewsApp.pwaManager = new PWAManager();
             await window.yourNewsApp.pwaManager.initialize();
             
