@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（フィードバック完全対応版）
+// YourNewsApp - メインアプリケーションクラス（キーワード・AI再学習完全対応版）
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -236,7 +236,7 @@ class YourNewsApp {
         }
     }
     
-    // 【核心機能】フィードバック処理（完全実装版）
+    // フィードバック処理（完全実装版）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
@@ -280,7 +280,7 @@ class YourNewsApp {
                 originalScore: originalScore
             });
             
-            // 【重要】AI学習実行（即座学習）
+            // AI学習実行（即座学習）
             if (this.aiEngine && !this.aiDisabled && feedback !== 'ng') {
                 try {
                     console.log('🧠 AI学習実行中...');
@@ -288,11 +288,8 @@ class YourNewsApp {
                     // AI学習処理
                     await this.aiEngine.processFeedback(article, feedback);
                     
-                    // 【重要】新しい興味度スコア再計算
-                    const keywords = await this.dataManager.loadData('yourNews_keywords') || 
-                                   { interestWords: [], ngWords: [] };
-                    
-                    const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                    // 新しい興味度スコア再計算
+                    const newScore = await this.aiEngine.calculateInterestScore(article);
                     article.interestScore = newScore;
                     
                     console.log(`✅ AI学習完了 - スコア変化: ${originalScore}点 → ${newScore}点`);
@@ -328,7 +325,7 @@ class YourNewsApp {
             // データ保存
             await this.dataManager.saveArticles(articles);
             
-            // 【重要】UI即座更新（新しいスコアを反映）
+            // UI即座更新（新しいスコアを反映）
             if (this.uiController) {
                 // 記事カードの興味度スコア表示を更新
                 this.uiController.updateArticleScore(articleId, article.interestScore);
@@ -425,7 +422,7 @@ class YourNewsApp {
         }
     }
     
-    // キーワード設定更新後の全記事再評価
+    // キーワード設定更新後の全記事再評価（完全実装版）
     async recalculateAllArticlesInterest() {
         try {
             if (!this.aiEngine || this.aiDisabled) {
@@ -433,29 +430,37 @@ class YourNewsApp {
                 return;
             }
             
-            this.showNotification('キーワード設定変更により記事を再評価中...', 'info', 2000);
+            this.showNotification('キーワード設定変更により全記事を再評価中...', 'info', 2000);
             
             const articles = await this.dataManager.loadArticles();
+            console.log(`🔄 全記事興味度再計算開始: ${articles.length}件`);
+            
+            // AIエンジンのキーワード設定を更新
             const keywords = await this.dataManager.loadData('yourNews_keywords') || 
                            { interestWords: [], ngWords: [] };
             
-            console.log(`🔄 全記事興味度再計算開始: ${articles.length}件`);
+            await this.aiEngine.updateKeywordSettings(keywords);
             
             let updatedCount = 0;
+            let ngArticleCount = 0;
+            
             for (const article of articles) {
                 try {
-                    const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                    const oldScore = article.interestScore || 50;
+                    const newScore = await this.aiEngine.calculateInterestScore(article);
                     
-                    // スコアが変更された場合のみ更新
-                    if (Math.abs(newScore - (article.interestScore || 50)) > 1) {
-                        article.interestScore = newScore;
-                        
-                        // NGワード判定
-                        if (newScore === -1) {
-                            article.ngDomain = true;
-                            article.readStatus = 'read';
-                        }
-                        
+                    // スコア更新
+                    article.interestScore = newScore;
+                    
+                    // NGワード判定
+                    if (newScore === -1) {
+                        article.ngDomain = true;
+                        article.readStatus = 'read';
+                        ngArticleCount++;
+                    }
+                    
+                    // 変更があった場合のみカウント
+                    if (Math.abs(newScore - oldScore) > 1 || newScore === -1) {
                         updatedCount++;
                     }
                     
@@ -473,16 +478,51 @@ class YourNewsApp {
                     await this.uiController.loadAndDisplayArticles(false);
                 }
                 
-                this.showNotification(`${updatedCount}件の記事スコアを更新しました`, 'success');
+                let message = `${updatedCount}件の記事スコアを更新しました`;
+                if (ngArticleCount > 0) {
+                    message += `（${ngArticleCount}件をNG記事として非表示）`;
+                }
+                
+                this.showNotification(message, 'success');
             } else {
                 this.showNotification('記事スコアに変更はありませんでした', 'info');
             }
             
-            console.log(`✅ 全記事再計算完了: ${updatedCount}件更新`);
+            console.log(`✅ 全記事再計算完了: ${updatedCount}件更新, ${ngArticleCount}件NG化`);
             
         } catch (error) {
             console.error('全記事再計算エラー:', error);
             this.showNotification('記事の再評価に失敗しました', 'error');
+        }
+    }
+    
+    // AI再学習実行（設定画面用）
+    async executeAIRetraining() {
+        try {
+            if (!this.aiEngine || this.aiDisabled) {
+                this.showNotification('AI機能が利用できません', 'warning');
+                return false;
+            }
+            
+            this.showNotification('AI再学習を実行中...', 'info', 2000);
+            
+            // 全記事の興味度再計算
+            await this.recalculateAllArticlesInterest();
+            
+            // 学習統計更新
+            this.aiEngine.updateLearningStatistics();
+            
+            // AI学習データ保存
+            await this.aiEngine.saveAIData();
+            
+            this.showNotification('AI再学習が完了しました', 'success');
+            
+            return true;
+            
+        } catch (error) {
+            console.error('AI再学習エラー:', error);
+            this.showNotification('AI再学習に失敗しました', 'error');
+            return false;
         }
     }
     
@@ -567,7 +607,7 @@ class YourNewsApp {
     }
 }
 
-// PWA機能初期化クラス（変更なし - 前回版を継承）
+// PWA機能初期化クラス（変更なし）
 class PWAManager {
     constructor(basePath = '/yn') {
         this.deferredPrompt = null;
