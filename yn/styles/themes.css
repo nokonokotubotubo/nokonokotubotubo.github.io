@@ -1,11 +1,524 @@
-/* themes.css - Phase C で詳細実装予定 */
+/* テーマシステム（ライト・ダーク・セピア対応） */
 
-/* 基本テーマ変数（Phase Bでは最小限） */
+/* CSS変数定義 */
 :root {
-    --primary-color: #2196F3;
-    --secondary-color: #f5f5f5;
-    --text-color: #333333;
+    /* ライトテーマ（デフォルト） */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-card: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
     --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --accent-color: #2196F3;
+    --accent-hover: #1976D2;
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --error-color: #f44336;
+    --info-color: #2196F3;
+    
+    /* AI関連色 */
+    --ai-primary: #9C27B0;
+    --ai-secondary: #E1BEE7;
+    --ai-text: #4A148C;
+    
+    /* 興味度スコア色 */
+    --score-high: linear-gradient(45deg, #4CAF50, #66BB6A);
+    --score-medium: linear-gradient(45deg, #FF9800, #FFB74D);
+    --score-low: linear-gradient(45deg, #9E9E9E, #BDBDBD);
+    
+    /* キーワードハイライト */
+    --keyword-bg: #FFEB3B;
+    --keyword-text: #333333;
+    
+    /* 既読状態 */
+    --read-bg: #f9f9f9;
+    --read-text: #666666;
+    --read-border: #4CAF50;
 }
 
-/* Phase Cで詳細なテーマ機能を実装します */
+/* ダークテーマ */
+[data-theme="dark"],
+.theme-dark {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-card: #2e2e2e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #757575;
+    --border-color: #444444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --accent-color: #64B5F6;
+    --accent-hover: #42A5F5;
+    --success-color: #66BB6A;
+    --warning-color: #FFB74D;
+    --error-color: #EF5350;
+    --info-color: #64B5F6;
+    
+    /* AI関連色（ダーク調整） */
+    --ai-primary: #BA68C8;
+    --ai-secondary: #4A148C;
+    --ai-text: #E1BEE7;
+    
+    /* 興味度スコア色（ダーク調整） */
+    --score-high: linear-gradient(45deg, #66BB6A, #4CAF50);
+    --score-medium: linear-gradient(45deg, #FFB74D, #FF9800);
+    --score-low: linear-gradient(45deg, #BDBDBD, #9E9E9E);
+    
+    /* キーワードハイライト（ダーク調整） */
+    --keyword-bg: #FFC107;
+    --keyword-text: #000000;
+    
+    /* 既読状態（ダーク調整） */
+    --read-bg: #3a3a3a;
+    --read-text: #999999;
+    --read-border: #66BB6A;
+}
+
+/* セピアテーマ */
+[data-theme="sepia"],
+.theme-sepia {
+    --bg-primary: #f4f1ea;
+    --bg-secondary: #e8e2d5;
+    --bg-card: #faf7f0;
+    --text-primary: #5d4e37;
+    --text-secondary: #8b7355;
+    --text-muted: #a0896c;
+    --border-color: #d2b48c;
+    --shadow-color: rgba(139, 115, 85, 0.2);
+    --accent-color: #8b4513;
+    --accent-hover: #a0522d;
+    --success-color: #6b8e23;
+    --warning-color: #d2691e;
+    --error-color: #b22222;
+    --info-color: #4682b4;
+    
+    /* AI関連色（セピア調整） */
+    --ai-primary: #8b4513;
+    --ai-secondary: #deb887;
+    --ai-text: #654321;
+    
+    /* 興味度スコア色（セピア調整） */
+    --score-high: linear-gradient(45deg, #6b8e23, #9acd32);
+    --score-medium: linear-gradient(45deg, #d2691e, #ff8c00);
+    --score-low: linear-gradient(45deg, #a0896c, #8b7355);
+    
+    /* キーワードハイライト（セピア調整） */
+    --keyword-bg: #f0e68c;
+    --keyword-text: #654321;
+    
+    /* 既読状態（セピア調整） */
+    --read-bg: #f5f5dc;
+    --read-text: #a0896c;
+    --read-border: #6b8e23;
+}
+
+/* 基本スタイル適用 */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ヘッダー */
+.main-header {
+    background: var(--accent-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.nav-btn.active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* フィルターバー */
+.filter-bar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-select {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.filter-select:focus {
+    border-color: var(--accent-color);
+}
+
+/* 記事カード */
+.article-card {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.article-card:hover {
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.article-title {
+    color: var(--text-primary);
+}
+
+.article-title:hover {
+    color: var(--accent-color);
+}
+
+.article-excerpt {
+    color: var(--text-secondary);
+}
+
+.card-meta {
+    color: var(--text-muted);
+}
+
+/* 既読状態 */
+.article-card.read {
+    background: var(--read-bg);
+    border-left-color: var(--read-border);
+}
+
+.article-card.read .article-title {
+    color: var(--read-text);
+}
+
+.article-card.read .article-excerpt {
+    color: var(--text-muted);
+}
+
+/* 興味度スコア */
+.interest-score.score-high {
+    background: var(--score-high);
+}
+
+.interest-score.score-medium {
+    background: var(--score-medium);
+}
+
+.interest-score.score-low {
+    background: var(--score-low);
+}
+
+/* キーワードハイライト */
+.keyword-highlight {
+    background: var(--keyword-bg);
+    color: var(--keyword-text);
+}
+
+/* ボタン */
+.btn-primary {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn-success {
+    background: var(--success-color);
+}
+
+.btn-danger {
+    background: var(--error-color);
+}
+
+.btn-secondary {
+    background: var(--text-secondary);
+}
+
+/* フィードバックボタン */
+.feedback-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.feedback-btn:hover {
+    background: var(--border-color);
+}
+
+.feedback-btn.interest:hover {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.feedback-btn.disinterest:hover {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
+/* お気に入りボタン */
+.favorite-btn {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+.favorite-btn.active {
+    background: var(--warning-color);
+    color: white;
+}
+
+/* 既読切替ボタン */
+.read-toggle-btn[data-read="false"] {
+    background: var(--accent-color);
+}
+
+.read-toggle-btn[data-read="true"] {
+    background: var(--success-color);
+}
+
+/* AI状態バー */
+.ai-status-bar {
+    background: var(--ai-primary);
+}
+
+.ai-status-bar.processing {
+    background: var(--warning-color);
+}
+
+.ai-status-bar.error {
+    background: var(--error-color);
+}
+
+/* 通知 */
+.notification {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.notification.success {
+    background: var(--success-color);
+    color: white;
+}
+
+.notification.error {
+    background: var(--error-color);
+    color: white;
+}
+
+.notification.warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.notification.info {
+    background: var(--info-color);
+    color: white;
+}
+
+/* フローティングボタン */
+.fab-btn {
+    background: var(--accent-color);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.fab-btn.ai-retrain-btn {
+    background: var(--ai-primary);
+}
+
+/* フォーム要素 */
+.form-input {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.form-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* モーダル */
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* ローディング */
+.loading-spinner {
+    border-color: var(--border-color);
+    border-top-color: var(--accent-color);
+}
+
+/* プログレスバー */
+.progress-bar {
+    background: var(--bg-secondary);
+}
+
+.progress-bar-fill {
+    background: var(--accent-color);
+}
+
+/* アラート */
+.alert-info {
+    background: rgba(33, 150, 243, 0.1);
+    border-color: var(--info-color);
+    color: var(--info-color);
+}
+
+.alert-success {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.alert-warning {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.alert-danger {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
+/* システム設定対応 */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --bg-primary: #121212;
+        --bg-secondary: #1e1e1e;
+        --bg-card: #2e2e2e;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --text-muted: #757575;
+        --border-color: #444444;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --accent-color: #64B5F6;
+        --accent-hover: #42A5F5;
+    }
+}
+
+/* 高コントラストモード */
+@media (prefers-contrast: high) {
+    :root {
+        --border-color: #000000;
+        --text-primary: #000000;
+        --text-secondary: #333333;
+    }
+    
+    [data-theme="dark"] {
+        --border-color: #ffffff;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+    }
+    
+    .article-card {
+        border-width: 2px;
+    }
+    
+    .feedback-btn,
+    .favorite-btn,
+    .read-toggle-btn {
+        border-width: 2px;
+        font-weight: bold;
+    }
+}
+
+/* 印刷時の色調整 */
+@media print {
+    :root {
+        --bg-primary: white;
+        --bg-card: white;
+        --text-primary: black;
+        --text-secondary: #333333;
+        --border-color: black;
+        --shadow-color: transparent;
+    }
+    
+    .article-card {
+        border: 1px solid black !important;
+        background: white !important;
+        color: black !important;
+    }
+    
+    .article-title {
+        color: black !important;
+        text-decoration: none !important;
+    }
+}
+
+/* テーマ切替アニメーション */
+.theme-transition,
+.theme-transition *,
+.theme-transition *:before,
+.theme-transition *:after {
+    transition: all 0.3s ease !important;
+    transition-delay: 0 !important;
+}
+
+/* テーマ選択UI */
+.theme-selector {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.theme-option {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.theme-option:hover {
+    border-color: var(--accent-color);
+}
+
+.theme-option.active {
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+    color: white;
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.theme-light .theme-preview {
+    background: linear-gradient(45deg, #ffffff, #f5f5f5);
+}
+
+.theme-dark .theme-preview {
+    background: linear-gradient(45deg, #121212, #2e2e2e);
+}
+
+.theme-sepia .theme-preview {
+    background: linear-gradient(45deg, #f4f1ea, #e8e2d5);
+}
