@@ -1,10 +1,14 @@
-// UIController - AI興味度ソート問題完全解決版・学習済みスコア保護強化版
+// UIController - AI興味度ソート問題完全解決版・AIエンジンアクセス修正版
 
 class UIController {
     constructor(dataManager, rssFetcher, articleCard) {
         this.dataManager = dataManager;
         this.rssFetcher = rssFetcher;
         this.articleCard = articleCard;
+
+        // 【修正】AIエンジンへの直接参照を保持
+        this.aiEngine = null;
+        this.aiDisabled = false;
 
         // 記事管理
         this.currentArticles = [];
@@ -29,6 +33,13 @@ class UIController {
 
         // フィードバック処理状態
         this.processingFeedback = new Set();
+    }
+
+    // 【追加】AIエンジン設定メソッド
+    setAIEngine(aiEngine, aiDisabled = false) {
+        this.aiEngine = aiEngine;
+        this.aiDisabled = aiDisabled;
+        console.log(`UIController: AIEngine参照設定完了 - AI有効: ${!aiDisabled}`);
     }
 
     async initialize() {
@@ -68,10 +79,10 @@ class UIController {
                         console.log(`Fetching ${rssFeeds.length} RSS feeds...`);
                         const newArticles = await this.rssFetcher.fetchAllRSSFeeds(rssFeeds);
                         if (newArticles.length > 0) {
-                            // 【重要】AI興味度計算（学習済みスコア保護強化版）
-                            console.log('🧠 AI興味度計算開始（学習済みスコア保護付き）');
+                            // 【重要】AI興味度計算（AIエンジン参照修正版）
+                            console.log('🧠 AI興味度計算開始（AIエンジン参照修正版）');
                             await this.calculateInterestScores(newArticles);
-                            console.log('✅ AI興味度計算完了（学習済みスコア保護済み）');
+                            console.log('✅ AI興味度計算完了（AIエンジン参照修正版）');
 
                             // マージ機能を使用して保存（状態保持）
                             await this.dataManager.saveArticles(newArticles);
@@ -275,10 +286,11 @@ class UIController {
         }
     }
 
-    // 【重要修正】AI興味度計算（学習済みスコア完全保護版）
+    // 【緊急修正】AI興味度計算（AIエンジン参照修正版）
     async calculateInterestScores(articles) {
         try {
-            if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
+            // 【修正】AIエンジンへの正しいアクセス - this.aiEngineを使用
+            if (!this.aiEngine || this.aiDisabled) {
                 console.log('AI機能無効、既存スコア保持');
                 // AI無効時も既存スコアを保持
                 articles.forEach(article => {
@@ -309,8 +321,8 @@ class UIController {
                         continue; // スコア再計算を完全にスキップ
                     }
 
-                    // 新記事のみAI計算実行
-                    const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                    // 【修正】this.aiEngineを使用してAI計算実行
+                    const score = await this.aiEngine.calculateInterestScore(article, keywords);
                     
                     // 【重要】計算結果を確実に記事データに保存
                     article.interestScore = score;
