@@ -1,4 +1,4 @@
-// DataManager - 記事状態保持機能強化版
+// DataManager - 記事状態保持機能強化版（AI計算結果保持対応）
 class DataManager {
     constructor() {
         this.storageAvailable = false;
@@ -67,7 +67,7 @@ class DataManager {
         }
     }
     
-    // 【新機能】記事保存時のマージ処理
+    // 【修正】記事保存時のマージ処理（AI計算結果保持対応）
     async saveArticles(newArticles) {
         try {
             console.log(`記事保存開始: ${newArticles.length}件`);
@@ -139,7 +139,7 @@ class DataManager {
         }
     }
     
-    // 【新機能】安定した記事キー生成
+    // 安定した記事キー生成
     generateStableArticleKey(article) {
         // URLを主キーとし、タイトルをサブキーとする
         const url = article.url || '';
@@ -155,33 +155,55 @@ class DataManager {
         return `${domain}_${this.simpleHash(title)}`;
     }
     
-    // 【新機能】記事データマージ
+    // 【修正】記事データマージ（AI計算結果保持版）
     mergeArticleData(existingArticle, newArticle) {
-        // 既存の状態を保持しつつ、新しい情報で更新
-        const merged = {
-            ...newArticle, // 新記事の基本情報
+        try {
+            console.log(`記事マージ: "${newArticle.title.substring(0, 30)}..." (状態保持: ${existingArticle.readStatus})`);
             
-            // 【重要】既存の状態情報を保持
-            articleId: existingArticle.articleId, // 既存IDを維持
-            readStatus: existingArticle.readStatus || 'unread',
-            favorited: existingArticle.favorited || false,
-            interestScore: existingArticle.interestScore || newArticle.interestScore || 50,
-            matchedKeywords: existingArticle.matchedKeywords || [],
-            feedbackHistory: existingArticle.feedbackHistory || [],
-            ngDomain: existingArticle.ngDomain || false,
+            // 【重要】新記事のAI計算結果を優先的に保持
+            const mergedArticle = {
+                // 基本データは新記事を使用
+                ...newArticle,
+                
+                // 【修正】AI計算結果の優先順位
+                // 1. 新記事にAI計算結果がある場合：新記事のスコアを使用
+                // 2. 新記事にない場合：既存記事のスコアを保持
+                // 3. どちらにもない場合：デフォルト50点
+                interestScore: newArticle.interestScore !== undefined && newArticle.interestScore !== 50 
+                              ? newArticle.interestScore 
+                              : (existingArticle.interestScore !== undefined 
+                                 ? existingArticle.interestScore 
+                                 : 50),
+                
+                // ユーザー状態は既存記事を保持
+                readStatus: existingArticle.readStatus || 'unread',
+                favorited: existingArticle.favorited || false,
+                ngDomain: existingArticle.ngDomain || false,
+                
+                // フィードバック履歴は既存を保持
+                feedbackHistory: existingArticle.feedbackHistory || [],
+                
+                // 既読日時は既存を保持
+                lastReadAt: existingArticle.lastReadAt,
+                
+                // マッチキーワードは新記事を使用
+                matchedKeywords: newArticle.matchedKeywords || existingArticle.matchedKeywords || [],
+                
+                // 記事ID（安定性重視）
+                articleId: existingArticle.articleId || newArticle.articleId
+            };
             
-            // メタデータ更新
-            addedDate: existingArticle.addedDate || newArticle.addedDate,
-            lastUpdated: new Date().toISOString(),
+            // デバッグログ追加
+            if (newArticle.interestScore !== undefined && newArticle.interestScore !== 50) {
+                console.log(`✅ AI計算結果保持: "${newArticle.title.substring(0, 30)}..." = ${newArticle.interestScore}点 → ${mergedArticle.interestScore}点`);
+            }
             
-            // 新しい情報で更新される項目
-            title: newArticle.title || existingArticle.title,
-            excerpt: newArticle.excerpt || existingArticle.excerpt,
-            publishDate: newArticle.publishDate || existingArticle.publishDate
-        };
-        
-        console.log(`記事マージ: "${merged.title.substring(0, 30)}..." (状態保持: ${existingArticle.readStatus})`);
-        return merged;
+            return mergedArticle;
+            
+        } catch (error) {
+            console.error('記事マージエラー:', error);
+            return newArticle;
+        }
     }
     
     // 重要な状態を持つ記事かチェック
@@ -192,32 +214,32 @@ class DataManager {
                article.ngDomain === true;
     }
     
-// 重複記事除去（エラー修正版）
-removeDuplicateArticles(articles) {
-    const seen = new Set();
-    const unique = [];
-    
-    articles.forEach(article => {
-        const key = this.generateStableArticleKey(article);
+    // 重複記事除去（修正版）
+    removeDuplicateArticles(articles) {
+        const seen = new Set();
+        const unique = [];
         
-        if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(article);
-        } else {
-            // 既に存在する場合は、より重要な状態を持つ方を採用
-            const existingIndex = unique.findIndex(a => this.generateStableArticleKey(a) === key);
-            if (existingIndex !== -1) {
-                const existing = unique[existingIndex];
-                if (this.hasMoreImportantState(article, existing)) {
-                    unique[existingIndex] = article;
+        articles.forEach(article => {
+            const key = this.generateStableArticleKey(article);
+            
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(article);
+            } else {
+                // 既に存在する場合は、より重要な状態を持つ方を採用
+                const existingIndex = unique.findIndex(a => this.generateStableArticleKey(a) === key);
+                if (existingIndex !== -1) {
+                    const existing = unique[existingIndex];
+                    if (this.hasMoreImportantState(article, existing)) {
+                        unique[existingIndex] = article;
+                    }
                 }
             }
-        }
-    });
-    
-    console.log(`🔄 Removed ${articles.length - unique.length} duplicate articles`);
-    return unique;
-}
+        });
+        
+        console.log(`🔄 Removed ${articles.length - unique.length} duplicate articles`);
+        return unique;
+    }
     
     // より重要な状態を持つかチェック
     hasMoreImportantState(articleA, articleB) {
@@ -280,7 +302,7 @@ removeDuplicateArticles(articles) {
         return Math.abs(hash);
     }
     
-    // 【新機能】記事状態更新（既存記事IDでの更新）
+    // 記事状態更新（既存記事IDでの更新）
     async updateArticle(articleId, updates) {
         try {
             const articles = await this.loadArticles();
