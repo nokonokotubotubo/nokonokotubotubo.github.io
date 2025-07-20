@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（プロジェクトルート対応完全版）
+// YourNewsApp - メインアプリケーションクラス（フローティングボタン・AI再学習削除版）
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -166,14 +166,6 @@ class YourNewsApp {
                 });
             }
             
-            // AI再学習ボタン
-            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
-            if (aiRetrainBtn) {
-                aiRetrainBtn.addEventListener('click', async () => {
-                    await this.performAIRetraining();
-                });
-            }
-            
             console.log('イベントリスナー設定完了');
             
         } catch (error) {
@@ -208,52 +200,6 @@ class YourNewsApp {
             if (refreshBtn) {
                 refreshBtn.disabled = false;
                 refreshBtn.textContent = '🔄 更新';
-            }
-        }
-    }
-    
-    async performAIRetraining() {
-        try {
-            if (!this.aiEngine || this.aiDisabled) {
-                this.showNotification('AI機能が利用できません', 'warning');
-                return;
-            }
-            
-            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
-            if (aiRetrainBtn) {
-                aiRetrainBtn.disabled = true;
-                aiRetrainBtn.textContent = '🔄';
-            }
-            
-            this.showNotification('AI再学習を実行中...', 'info', 2000);
-            
-            // 全記事のAI再計算
-            const articles = await this.dataManager.loadArticles();
-            const keywords = await this.dataManager.loadData('yourNews_keywords') || 
-                           { interestWords: [], ngWords: [] };
-            
-            for (const article of articles) {
-                const newScore = await this.aiEngine.calculateInterestScore(article, keywords);
-                article.interestScore = newScore;
-            }
-            
-            await this.dataManager.saveArticles(articles);
-            
-            // UI更新
-            if (this.uiController) {
-                await this.uiController.loadAndDisplayArticles(true);
-            }
-            
-            this.showNotification('AI再学習が完了しました', 'success');
-            
-        } catch (error) {
-            console.error('AI再学習エラー:', error);
-            this.showNotification('AI再学習に失敗しました', 'error');
-        } finally {
-            const aiRetrainBtn = document.getElementById('aiRetrainBtn');
-            if (aiRetrainBtn) {
-                aiRetrainBtn.disabled = false;
-                aiRetrainBtn.textContent = '🧠';
             }
         }
     }
@@ -310,10 +256,11 @@ class YourNewsApp {
             // データ保存
             await this.dataManager.saveArticles(articles);
             
-            // AI学習（利用可能な場合）
+            // 【重要】フィードバック時の即座AI学習（これのみ残す）
             if (this.aiEngine && !this.aiDisabled && feedback !== 'ng') {
                 try {
                     await this.aiEngine.processFeedback(article, feedback);
+                    console.log('AI学習完了 - フィードバック反映');
                 } catch (aiError) {
                     console.warn('AI学習エラー:', aiError);
                 }
@@ -392,7 +339,7 @@ class YourNewsApp {
     }
 }
 
-// PWA機能初期化クラス（プロジェクトルート対応版）
+// PWA機能初期化クラス（変更なし）
 class PWAManager {
     constructor(basePath = '/yn') {
         this.deferredPrompt = null;
@@ -520,90 +467,28 @@ class PWAManager {
                     registration.sync.register('background-rss-fetch');
                     console.log('バックグラウンドRSS同期登録完了');
                 }
-                
-                // AI学習同期
-                registration.sync.register('background-ai-learning');
-                console.log('バックグラウンドAI学習同期登録完了');
             });
         }
     }
     
     showInstallPrompt() {
-        // PWAインストールボタンを表示
-        const installBtn = document.createElement('button');
-        installBtn.id = 'pwa-install-btn';
-        installBtn.className = 'fab-btn install-btn';
-        installBtn.innerHTML = '📱';
-        installBtn.title = 'アプリをインストール';
-        installBtn.style.cssText = `
-            position: fixed;
-            bottom: 160px;
-            right: 20px;
-            background: #4CAF50;
-            z-index: 1000;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
-        
-        installBtn.addEventListener('click', () => {
-            this.triggerInstall();
-        });
-        
-        installBtn.addEventListener('mouseenter', () => {
-            installBtn.style.transform = 'scale(1.1)';
-        });
-        
-        installBtn.addEventListener('mouseleave', () => {
-            installBtn.style.transform = 'scale(1)';
-        });
-        
-        document.body.appendChild(installBtn);
-        
-        // 30秒後に自動で非表示
-        setTimeout(() => {
-            this.hideInstallPrompt();
-        }, 30000);
+        // インストール通知のみ表示（ボタンなし）
+        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+            window.yourNewsApp.showNotification(
+                'このアプリをホーム画面に追加できます。ブラウザのメニューから「ホーム画面に追加」を選択してください。',
+                'info',
+                8000
+            );
+        }
     }
     
     hideInstallPrompt() {
-        const installBtn = document.getElementById('pwa-install-btn');
-        if (installBtn) {
-            installBtn.remove();
-        }
+        // 特に処理なし（通知は自動で消える）
     }
     
     async triggerInstall() {
-        if (!this.deferredPrompt) return false;
-        
-        try {
-            this.deferredPrompt.prompt();
-            const { outcome } = await this.deferredPrompt.userChoice;
-            
-            console.log('インストールプロンプト結果:', outcome);
-            
-            if (outcome === 'accepted') {
-                console.log('ユーザーがPWAインストールを承認');
-            }
-            
-            this.deferredPrompt = null;
-            this.hideInstallPrompt();
-            
-            return outcome === 'accepted';
-            
-        } catch (error) {
-            console.error('インストールプロンプトエラー:', error);
-            return false;
-        }
+        // フローティングボタンが削除されたため、この関数は使用されない
+        return false;
     }
     
     updateNetworkStatus(online) {
@@ -621,7 +506,7 @@ class PWAManager {
                 padding: 0.5rem 1rem;
                 border-radius: 20px;
                 font-size: 0.9rem;
-                z-index: 1001;
+                z-index: 1101;
                 transition: opacity 0.3s ease;
                 color: white;
             `;
@@ -650,12 +535,6 @@ class PWAManager {
         
         try {
             console.log('オンライン復帰時の同期開始');
-            
-            // Service Workerに同期指示
-            if (this.serviceWorker && this.serviceWorker.sync) {
-                await this.serviceWorker.sync.register('background-rss-fetch');
-                await this.serviceWorker.sync.register('background-ai-learning');
-            }
             
             // RSS強制更新
             if (window.yourNewsApp && window.yourNewsApp.uiController) {
@@ -700,10 +579,6 @@ class PWAManager {
                 this.handleBackgroundRSSUpdate(data);
                 break;
                 
-            case 'BACKGROUND_AI_UPDATE':
-                this.handleBackgroundAIUpdate(data);
-                break;
-                
             case 'NETWORK_STATUS_CHANGE':
                 this.updateNetworkStatus(data.online);
                 break;
@@ -719,13 +594,6 @@ class PWAManager {
         // UI更新
         if (window.yourNewsApp && window.yourNewsApp.uiController) {
             window.yourNewsApp.uiController.loadAndDisplayArticles(true);
-        }
-    }
-    
-    handleBackgroundAIUpdate(data) {
-        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-            const message = `AIが${data.processedCount}件のフィードバックを学習しました`;
-            window.yourNewsApp.showNotification(message, 'success', 2000);
         }
     }
 }
