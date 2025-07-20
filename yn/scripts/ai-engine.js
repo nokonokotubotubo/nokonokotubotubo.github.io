@@ -1,4 +1,4 @@
-// AI処理エンジン（フィードバック・キーワード反映完全対応版）
+// AI処理エンジン（キーワード設定連携完全対応版）
 class AIEngine {
     constructor() {
         this.model = null;
@@ -10,6 +10,12 @@ class AIEngine {
         this.domainScores = new Map();
         this.categoryScores = new Map();
         this.isInitialized = false;
+        
+        // キーワード設定（統合管理）
+        this.currentKeywords = {
+            interestWords: [],
+            ngWords: []
+        };
         
         // 学習パラメータ
         this.learningRate = 0.1;
@@ -30,6 +36,9 @@ class AIEngine {
             // 保存されたデータ読み込み
             await this.loadSavedData();
             
+            // キーワード設定読み込み
+            await this.loadKeywordSettings();
+            
             // 基本語彙初期化
             this.initializeBasicVocabulary();
             
@@ -40,7 +49,7 @@ class AIEngine {
             this.updateLearningStatistics();
             
             this.isInitialized = true;
-            console.log(`AIEngine初期化完了 - 語彙数: ${this.vocabulary.size}, フィードバック: ${this.feedbackHistory.length}件`);
+            console.log(`AIEngine初期化完了 - 語彙数: ${this.vocabulary.size}, フィードバック: ${this.feedbackHistory.length}件, キーワード: ${this.currentKeywords.interestWords.length + this.currentKeywords.ngWords.length}語`);
             
             return true;
             
@@ -48,6 +57,63 @@ class AIEngine {
             console.error('AIEngine初期化エラー:', error);
             this.isInitialized = false;
             return false;
+        }
+    }
+    
+    // キーワード設定読み込み
+    async loadKeywordSettings() {
+        try {
+            const savedKeywords = localStorage.getItem('yourNews_keywords');
+            if (savedKeywords) {
+                const keywordsData = JSON.parse(savedKeywords);
+                this.currentKeywords = {
+                    interestWords: keywordsData.interestWords || [],
+                    ngWords: keywordsData.ngWords || []
+                };
+                console.log(`キーワード設定読み込み: 気になるワード ${this.currentKeywords.interestWords.length}語, NGワード ${this.currentKeywords.ngWords.length}語`);
+            } else {
+                console.log('キーワード設定なし、デフォルト値使用');
+            }
+        } catch (error) {
+            console.warn('キーワード設定読み込みエラー:', error);
+            this.currentKeywords = { interestWords: [], ngWords: [] };
+        }
+    }
+    
+    // キーワード設定更新
+    async updateKeywordSettings(newKeywords) {
+        try {
+            this.currentKeywords = {
+                interestWords: newKeywords.interestWords || [],
+                ngWords: newKeywords.ngWords || []
+            };
+            
+            // localStorage同期保存
+            await this.saveKeywordSettings();
+            
+            console.log(`✅ キーワード設定更新: 気になるワード ${this.currentKeywords.interestWords.length}語, NGワード ${this.currentKeywords.ngWords.length}語`);
+            
+            return true;
+        } catch (error) {
+            console.error('キーワード設定更新エラー:', error);
+            return false;
+        }
+    }
+    
+    // キーワード設定保存
+    async saveKeywordSettings() {
+        try {
+            const keywordsData = {
+                interestWords: this.currentKeywords.interestWords,
+                ngWords: this.currentKeywords.ngWords,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            localStorage.setItem('yourNews_keywords', JSON.stringify(keywordsData));
+            console.log('キーワード設定保存完了');
+            
+        } catch (error) {
+            console.error('キーワード設定保存エラー:', error);
         }
     }
     
@@ -138,7 +204,7 @@ class AIEngine {
         console.log('基本語彙初期化完了:', this.vocabulary.size + '語');
     }
     
-    // 【重要】フィードバック処理（即座学習）
+    // フィードバック処理（即座学習）
     async processFeedback(article, feedbackValue) {
         try {
             console.log(`🧠 AI学習開始: ${article.articleId} -> ${feedbackValue}`);
@@ -158,7 +224,10 @@ class AIEngine {
                 feedback: feedbackValue,
                 timestamp: new Date().toISOString(),
                 keywords: this.extractKeywords(article.title + ' ' + article.excerpt),
-                url: article.url
+                url: article.url,
+                // 現在のキーワード設定も記録
+                currentInterestWords: [...this.currentKeywords.interestWords],
+                currentNGWords: [...this.currentKeywords.ngWords]
             };
             
             // フィードバック履歴に追加
@@ -185,48 +254,51 @@ class AIEngine {
         }
     }
     
-    // 【核心機能】興味度計算（完全実装版）
-    async calculateInterestScore(article, keywords) {
+    // 興味度計算（現在のキーワード設定を使用）
+    async calculateInterestScore(article, externalKeywords = null) {
         try {
             if (!this.isInitialized) {
                 console.warn('AIEngine未初期化、デフォルトスコア使用');
                 return 50;
             }
             
+            // キーワード設定を決定（外部指定 or 内部設定）
+            const keywords = externalKeywords || this.currentKeywords;
+            
             const articleText = article.title + ' ' + article.excerpt;
             console.log(`🎯 興味度計算開始: "${article.title.substring(0, 30)}..."`);
             
-            // 【Step 1】NGワード判定（最優先・即座非表示）
-            const ngWords = keywords?.ngWords || [];
+            // Step 1: NGワード判定（最優先・即座非表示）
+            const ngWords = keywords.ngWords || [];
             if (this.containsNGWords(articleText, ngWords)) {
                 console.log(`🚫 NGワード検出により非表示: ${article.title}`);
                 article.matchedKeywords = [];
                 return this.ngWordPenalty; // -1で非表示マーク
             }
             
-            // 【Step 2】基本スコア計算（フィードバック履歴ベース）
+            // Step 2: 基本スコア計算（フィードバック履歴ベース）
             let baseScore = this.calculateSimilarityScore(article);
             console.log(`📊 基本スコア（類似度）: ${baseScore}点`);
             
-            // 【Step 3】気になるワードボーナス（重要）
-            const interestWords = keywords?.interestWords || [];
+            // Step 3: 気になるワードボーナス（重要）
+            const interestWords = keywords.interestWords || [];
             const matchedKeywords = this.checkKeywordMatch(articleText, interestWords);
             const keywordBonus = matchedKeywords.length * this.keywordBonusPoints;
             console.log(`🔍 キーワードマッチ: ${matchedKeywords.length}個 (+${keywordBonus}点)`);
             
-            // 【Step 4】ドメイン学習スコア
+            // Step 4: ドメイン学習スコア
             const domainScore = this.calculateDomainScore(article.domain);
             console.log(`🌐 ドメインスコア: ${domainScore}点`);
             
-            // 【Step 5】カテゴリ学習スコア
+            // Step 5: カテゴリ学習スコア
             const categoryScore = this.calculateCategoryScore(article.category);
             console.log(`📂 カテゴリスコア: ${categoryScore}点`);
             
-            // 【Step 6】時間経過減衰
+            // Step 6: 時間経過減衰
             const timeDecay = this.calculateTimeDecay(article.publishDate);
             console.log(`⏰ 時間減衰: ${timeDecay}点`);
             
-            // 【Step 7】最終スコア計算
+            // Step 7: 最終スコア計算
             const rawScore = baseScore + keywordBonus + domainScore + categoryScore + timeDecay;
             const finalScore = Math.min(100, Math.max(0, Math.round(rawScore)));
             
@@ -243,7 +315,7 @@ class AIEngine {
         }
     }
     
-    // NGワード判定（改善版）
+    // NGワード判定
     containsNGWords(text, ngWords) {
         if (!ngWords || ngWords.length === 0) return false;
         
@@ -259,7 +331,7 @@ class AIEngine {
         return false;
     }
     
-    // キーワードマッチ検出（改善版）
+    // キーワードマッチ検出
     checkKeywordMatch(text, interestWords) {
         if (!interestWords || interestWords.length === 0) return [];
         
@@ -393,7 +465,7 @@ class AIEngine {
         }
     }
     
-    // テキストトークン化（改善版）
+    // テキストトークン化
     tokenize(text) {
         return text.toLowerCase()
             .replace(/[^\w\sぁ-んァ-ン一-龯]/g, ' ') // 日本語対応
@@ -580,6 +652,9 @@ class AIEngine {
             // カテゴリスコア保存
             localStorage.setItem('yourNews_categoryScores', JSON.stringify([...this.categoryScores]));
             
+            // キーワード設定も保存
+            await this.saveKeywordSettings();
+            
             console.log('AI学習データ保存完了');
             
         } catch (error) {
@@ -601,13 +676,16 @@ class AIEngine {
             isInitialized: this.isInitialized,
             positiveFeedback: positiveFeedback,
             negativeFeedback: negativeFeedback,
-            learningRate: this.learningRate
+            learningRate: this.learningRate,
+            currentKeywords: this.currentKeywords
         };
     }
     
-    // モデルリセット
+    // モデルリセット（キーワード設定含む完全リセット）
     async resetModel() {
         try {
+            console.log('🔄 AIモデル完全リセット開始');
+            
             this.vocabulary.clear();
             this.idfValues.clear();
             this.feedbackHistory = [];
@@ -615,24 +693,37 @@ class AIEngine {
             this.domainScores.clear();
             this.categoryScores.clear();
             
-            // ローカルストレージからも削除
+            // キーワード設定もリセット
+            this.currentKeywords = {
+                interestWords: [],
+                ngWords: []
+            };
+            
+            // ローカルストレージからも完全削除
             const keysToRemove = [
                 'yourNews_vocabulary',
                 'yourNews_idf', 
                 'yourNews_feedback',
                 'yourNews_domainScores',
-                'yourNews_categoryScores'
+                'yourNews_categoryScores',
+                'yourNews_keywords' // キーワード設定も削除
             ];
             
-            keysToRemove.forEach(key => localStorage.removeItem(key));
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                console.log(`削除: ${key}`);
+            });
             
             // 基本語彙再初期化
             this.initializeBasicVocabulary();
             
-            console.log('AIモデルリセット完了');
+            console.log('✅ AIモデル完全リセット完了（キーワード設定含む）');
+            
+            return true;
             
         } catch (error) {
             console.error('AIモデルリセットエラー:', error);
+            return false;
         }
     }
     
@@ -645,12 +736,20 @@ class AIEngine {
         console.log('========================');
     }
     
+    // デバッグ用: キーワード設定表示
+    debugKeywordSettings() {
+        console.log('=== 現在のキーワード設定 ===');
+        console.log('気になるワード:', this.currentKeywords.interestWords);
+        console.log('NGワード:', this.currentKeywords.ngWords);
+        console.log('=========================');
+    }
+    
     // デバッグ用: スコア計算詳細
     debugScoreCalculation(article, keywords) {
         console.log('=== スコア計算詳細 ===');
         console.log('記事:', article.title);
-        console.log('NGワード:', keywords?.ngWords || []);
-        console.log('気になるワード:', keywords?.interestWords || []);
+        console.log('NGワード:', keywords?.ngWords || this.currentKeywords.ngWords);
+        console.log('気になるワード:', keywords?.interestWords || this.currentKeywords.interestWords);
         
         const result = this.calculateInterestScore(article, keywords);
         console.log('最終スコア:', result);
