@@ -92,7 +92,7 @@ class DataManager {
         }
     }
     
-    // 【修正1】個別記事更新関数（未読既読機能対応）
+    // 【修正】個別記事更新関数（未読既読機能対応）
     async updateArticle(articleId, updates) {
         try {
             if (!articleId || !updates || typeof updates !== 'object') {
@@ -131,7 +131,7 @@ class DataManager {
         }
     }
     
-    // 【修正1】一括記事更新関数
+    // 【修正】一括記事更新関数
     async updateMultipleArticles(updates) {
         try {
             if (!Array.isArray(updates) || updates.length === 0) {
@@ -246,7 +246,7 @@ class DataManager {
             theme: 'light',
             articlesPerPage: 50,
             showImages: true,
-            autoRefresh: true,
+            autoRefresh: false,
             refreshInterval: 30,
             sortBy: 'interest',
             filterUnread: false
