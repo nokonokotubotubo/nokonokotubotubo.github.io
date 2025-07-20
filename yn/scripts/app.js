@@ -1,4 +1,4 @@
-// YourNewsApp - メインアプリケーションクラス（キーワード・AI再学習完全対応版）
+// YourNewsApp - フィードバック機能完全対応版
 class YourNewsApp {
     constructor() {
         this.dataManager = null;
@@ -10,30 +10,26 @@ class YourNewsApp {
         this.initialized = false;
         this.aiDisabled = false;
         
-        // プロジェクトルートパス設定
-        this.basePath = '/yn';
-        
-        // フィードバック処理設定
+        // フィードバック処理制御
         this.feedbackProcessing = false;
         this.feedbackQueue = [];
+        this.processingArticles = new Set();
+        
+        this.basePath = '/yn';
     }
     
     async initialize() {
         try {
             console.log('YourNewsApp初期化開始');
             
-            // TensorFlow.js初期化
             await this.initializeTensorFlow();
             
-            // Phase A: 基盤クラス初期化
             this.dataManager = new DataManager();
             await this.dataManager.initialize();
             
-            // Phase B: RSS・UI機能初期化
             this.rssFetcher = new RSSFetcher();
             this.articleCard = new ArticleCard();
             
-            // Phase C: AI機能初期化（条件付き）
             if (!this.aiDisabled && typeof AIEngine !== 'undefined') {
                 this.aiEngine = new AIEngine();
                 await this.aiEngine.initialize();
@@ -42,19 +38,15 @@ class YourNewsApp {
                 console.warn('⚠️ AI機能無効 - フォールバックモード');
             }
             
-            // UI Controller初期化時に依存関係を正しく注入
             this.uiController = new UIController(this.dataManager, this.rssFetcher, this.articleCard);
             await this.uiController.initialize();
             
-            // イベントリスナー設定
             this.setupEventListeners();
-            
-            // グローバル関数設定
             this.setupGlobalFunctions();
             
             this.initialized = true;
-            
             console.log('YourNewsApp初期化完了');
+            
             return true;
             
         } catch (error) {
@@ -72,18 +64,12 @@ class YourNewsApp {
         }
         
         try {
-            // TensorFlow.jsバックエンド初期化
             await tf.ready();
             
-            // バックエンド確認と設定
             let backend = tf.getBackend();
             console.log('初期バックエンド:', backend);
             
-            // バックエンドが利用できない場合のフォールバック
             if (!backend || backend === 'undefined') {
-                console.warn('バックエンドが利用できません、手動設定を試行');
-                
-                // 利用可能なバックエンドを確認
                 const availableBackends = ['webgl', 'cpu'];
                 
                 for (const backendName of availableBackends) {
@@ -102,16 +88,13 @@ class YourNewsApp {
                 }
             }
             
-            // 最終確認
             backend = tf.getBackend();
             if (!backend || backend === 'undefined') {
-                console.error('全てのバックエンド設定に失敗');
                 throw new Error('TensorFlow.js バックエンドの初期化に失敗しました');
             }
             
             console.log('TensorFlow.js初期化完了, バックエンド:', backend);
             
-            // 簡単な動作テスト
             const testTensor = tf.tensor1d([1, 2, 3]);
             const sum = testTensor.sum();
             const result = await sum.data();
@@ -127,18 +110,14 @@ class YourNewsApp {
             
         } catch (error) {
             console.error('TensorFlow.js初期化エラー:', error);
-            
-            // AI機能無効化モードで継続
             console.warn('AI機能を無効化してアプリケーションを継続します');
             this.aiDisabled = true;
-            
             return false;
         }
     }
     
     setupEventListeners() {
         try {
-            // 更新ボタン
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', () => {
@@ -146,7 +125,6 @@ class YourNewsApp {
                 });
             }
             
-            // カテゴリフィルター
             const categoryFilter = document.getElementById('categoryFilter');
             if (categoryFilter) {
                 categoryFilter.addEventListener('change', (e) => {
@@ -156,7 +134,6 @@ class YourNewsApp {
                 });
             }
             
-            // 既読フィルター
             const readStatusFilter = document.getElementById('readStatusFilter');
             if (readStatusFilter) {
                 readStatusFilter.addEventListener('change', (e) => {
@@ -166,7 +143,6 @@ class YourNewsApp {
                 });
             }
             
-            // ソートフィルター
             const sortFilter = document.getElementById('sortFilter');
             if (sortFilter) {
                 sortFilter.addEventListener('change', (e) => {
@@ -185,15 +161,12 @@ class YourNewsApp {
     
     setupGlobalFunctions() {
         try {
-            // グローバル関数として公開
             window.yourNewsApp = this;
             
-            // 記事開く関数
             window.openArticle = (articleId) => {
                 this.openArticle(articleId);
             };
             
-            // フィードバック処理関数
             window.processFeedback = (articleId, feedback) => {
                 this.processFeedback(articleId, feedback);
             };
@@ -236,7 +209,7 @@ class YourNewsApp {
         }
     }
     
-    // フィードバック処理（完全実装版）
+    // 【核心機能】フィードバック処理（重複防止・点数反映対応）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
@@ -244,29 +217,30 @@ class YourNewsApp {
                 return;
             }
             
-            // 重複処理防止
-            if (this.feedbackProcessing) {
-                this.feedbackQueue.push({ articleId, feedback });
-                console.log('フィードバック処理中、キューに追加');
+            // 記事単位での重複防止
+            if (this.processingArticles.has(articleId)) {
+                console.log(`フィードバック処理中のため無視: ${articleId}`);
                 return;
             }
             
-            this.feedbackProcessing = true;
+            this.processingArticles.add(articleId);
+            
+            // ボタンを即座に無効化
+            this.disableFeedbackButtons(articleId);
             
             console.log(`🧠 フィードバック処理開始: ${articleId} -> ${feedback}`);
             
-            // データ更新
+            // データ取得
             const articles = await this.dataManager.loadArticles();
             const articleIndex = articles.findIndex(a => a.articleId === articleId);
             
             if (articleIndex === -1) {
-                console.error('Article not found:', articleId);
-                this.feedbackProcessing = false;
+                console.error('記事が見つかりません:', articleId);
                 return;
             }
             
             const article = articles[articleIndex];
-            const originalScore = article.interestScore;
+            const originalScore = article.interestScore || 50;
             
             // フィードバック履歴追加
             if (!article.feedbackHistory) {
@@ -285,7 +259,6 @@ class YourNewsApp {
                 try {
                     console.log('🧠 AI学習実行中...');
                     
-                    // AI学習処理
                     await this.aiEngine.processFeedback(article, feedback);
                     
                     // 新しい興味度スコア再計算
@@ -296,16 +269,14 @@ class YourNewsApp {
                     
                 } catch (aiError) {
                     console.warn('AI学習エラー:', aiError);
-                    // AI学習失敗時もフィードバック自体は処理継続
                 }
             }
             
-            // 興味なし・NGの場合は自動既読
+            // 状態更新
             if (feedback === -1 || feedback === 'ng') {
                 article.readStatus = 'read';
             }
             
-            // NGドメインの場合は特別処理
             if (feedback === 'ng') {
                 article.ngDomain = true;
                 
@@ -325,9 +296,8 @@ class YourNewsApp {
             // データ保存
             await this.dataManager.saveArticles(articles);
             
-            // UI即座更新（新しいスコアを反映）
+            // UI即座更新
             if (this.uiController) {
-                // 記事カードの興味度スコア表示を更新
                 this.uiController.updateArticleScore(articleId, article.interestScore);
                 
                 this.uiController.updateArticleDisplay(articleId, {
@@ -351,38 +321,60 @@ class YourNewsApp {
                 }
             }
             
-            // フィードバック通知
-            const messages = {
-                1: `👍 興味ありとして学習しました (${article.interestScore}点)`,
-                '-1': `👎 興味なしとして学習しました (${article.interestScore}点)`,
-                'ng': `🚫 ${article.domain} をNGドメインに設定しました`
-            };
-            
-            this.showNotification(messages[feedback] || 'フィードバックを処理しました', 'success', 3000);
-            
-            // AI統計デバッグ出力（開発時）
-            if (this.aiEngine && !this.aiDisabled) {
-                const stats = this.aiEngine.getStats();
-                console.log('AI学習統計:', stats);
-            }
+            // フィードバック完了通知
+            this.showFeedbackComplete(articleId, feedback, article.interestScore);
             
         } catch (error) {
             console.error('フィードバック処理エラー:', error);
             this.showNotification('フィードバックの処理に失敗しました', 'error');
         } finally {
-            this.feedbackProcessing = false;
+            // 処理完了フラグをクリア
+            this.processingArticles.delete(articleId);
             
-            // キューにあるフィードバックを処理
-            if (this.feedbackQueue.length > 0) {
-                const nextFeedback = this.feedbackQueue.shift();
-                setTimeout(() => {
-                    this.processFeedback(nextFeedback.articleId, nextFeedback.feedback);
-                }, 100);
-            }
+            // ボタンを再有効化（遅延）
+            setTimeout(() => {
+                this.enableFeedbackButtons(articleId);
+            }, 2000);
         }
     }
     
-    // 記事を開く
+    // ボタン無効化処理
+    disableFeedbackButtons(articleId) {
+        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (card) {
+            const buttons = card.querySelectorAll('.feedback-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
+    }
+    
+    // ボタン再有効化処理
+    enableFeedbackButtons(articleId) {
+        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (card) {
+            const buttons = card.querySelectorAll('.feedback-btn');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        }
+    }
+    
+    // フィードバック完了通知
+    showFeedbackComplete(articleId, feedback, score) {
+        const messages = {
+            1: `👍 興味ありとして学習しました (${score}点)`,
+            '-1': `👎 興味なしとして学習しました (${score}点)`,
+            'ng': '🚫 ドメインをNGに設定しました'
+        };
+        
+        this.showNotification(messages[feedback] || 'フィードバックを処理しました', 'success', 3000);
+    }
+    
     async openArticle(articleId) {
         try {
             if (!articleId) return;
@@ -391,18 +383,16 @@ class YourNewsApp {
             const article = articles.find(a => a.articleId === articleId);
             
             if (!article) {
-                console.error('Article not found:', articleId);
+                console.error('記事が見つかりません:', articleId);
                 return;
             }
             
-            // 既読状態に更新
             if (article.readStatus !== 'read') {
                 await this.dataManager.updateArticle(articleId, { 
                     readStatus: 'read',
                     lastReadAt: new Date().toISOString()
                 });
                 
-                // UI更新
                 if (this.uiController) {
                     this.uiController.updateArticleDisplay(articleId, { 
                         readStatus: 'read' 
@@ -411,7 +401,6 @@ class YourNewsApp {
                 }
             }
             
-            // 新しいタブで記事を開く
             window.open(article.url, '_blank', 'noopener,noreferrer');
             
             console.log(`記事を開きました: ${article.title}`);
@@ -422,7 +411,6 @@ class YourNewsApp {
         }
     }
     
-    // キーワード設定更新後の全記事再評価（完全実装版）
     async recalculateAllArticlesInterest() {
         try {
             if (!this.aiEngine || this.aiDisabled) {
@@ -435,7 +423,6 @@ class YourNewsApp {
             const articles = await this.dataManager.loadArticles();
             console.log(`🔄 全記事興味度再計算開始: ${articles.length}件`);
             
-            // AIエンジンのキーワード設定を更新
             const keywords = await this.dataManager.loadData('yourNews_keywords') || 
                            { interestWords: [], ngWords: [] };
             
@@ -449,17 +436,14 @@ class YourNewsApp {
                     const oldScore = article.interestScore || 50;
                     const newScore = await this.aiEngine.calculateInterestScore(article);
                     
-                    // スコア更新
                     article.interestScore = newScore;
                     
-                    // NGワード判定
                     if (newScore === -1) {
                         article.ngDomain = true;
                         article.readStatus = 'read';
                         ngArticleCount++;
                     }
                     
-                    // 変更があった場合のみカウント
                     if (Math.abs(newScore - oldScore) > 1 || newScore === -1) {
                         updatedCount++;
                     }
@@ -469,11 +453,9 @@ class YourNewsApp {
                 }
             }
             
-            // 更新されたデータを保存
             if (updatedCount > 0) {
                 await this.dataManager.saveArticles(articles);
                 
-                // UI再描画
                 if (this.uiController) {
                     await this.uiController.loadAndDisplayArticles(false);
                 }
@@ -496,7 +478,6 @@ class YourNewsApp {
         }
     }
     
-    // AI再学習実行（設定画面用）
     async executeAIRetraining() {
         try {
             if (!this.aiEngine || this.aiDisabled) {
@@ -506,13 +487,10 @@ class YourNewsApp {
             
             this.showNotification('AI再学習を実行中...', 'info', 2000);
             
-            // 全記事の興味度再計算
             await this.recalculateAllArticlesInterest();
             
-            // 学習統計更新
             this.aiEngine.updateLearningStatistics();
             
-            // AI学習データ保存
             await this.aiEngine.saveAIData();
             
             this.showNotification('AI再学習が完了しました', 'success');
@@ -545,7 +523,6 @@ class YourNewsApp {
             
             notificationArea.appendChild(notification);
             
-            // 自動削除
             setTimeout(() => {
                 if (notification.parentElement) {
                     notification.remove();
@@ -572,7 +549,6 @@ class YourNewsApp {
             aiDisabled: this.aiDisabled
         };
         
-        // AI統計情報追加
         if (this.aiEngine && !this.aiDisabled) {
             baseStats.aiStats = this.aiEngine.getStats();
         }
@@ -580,7 +556,6 @@ class YourNewsApp {
         return baseStats;
     }
     
-    // デバッグ用: フィードバック履歴表示
     debugFeedbackHistory() {
         if (this.aiEngine && !this.aiDisabled) {
             this.aiEngine.debugFeedbackHistory();
@@ -589,7 +564,6 @@ class YourNewsApp {
         }
     }
     
-    // デバッグ用: AI統計表示
     debugAIStats() {
         if (this.aiEngine && !this.aiDisabled) {
             const stats = this.aiEngine.getStats();
@@ -607,277 +581,15 @@ class YourNewsApp {
     }
 }
 
-// PWA機能初期化クラス（変更なし）
-class PWAManager {
-    constructor(basePath = '/yn') {
-        this.deferredPrompt = null;
-        this.isOnline = navigator.onLine;
-        this.serviceWorker = null;
-        this.basePath = basePath;
-    }
-    
-    async initialize() {
-        try {
-            console.log('PWA Manager初期化開始');
-            
-            // Service Worker登録
-            await this.registerServiceWorker();
-            
-            // インストールプロンプト準備
-            this.setupInstallPrompt();
-            
-            // オンライン・オフライン監視
-            this.setupNetworkMonitoring();
-            
-            // バックグラウンド同期設定
-            this.setupBackgroundSync();
-            
-            // PWA状態表示
-            this.updatePWAStatus();
-            
-            console.log('PWA Manager初期化完了');
-            return true;
-            
-        } catch (error) {
-            console.error('PWA Manager初期化エラー:', error);
-            return false;
-        }
-    }
-    
-    async registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            try {
-                // プロジェクトルートに対応したパス
-                const swPath = `${this.basePath}/sw.js`;
-                const registration = await navigator.serviceWorker.register(swPath, {
-                    scope: this.basePath + '/'
-                });
-                
-                this.serviceWorker = registration;
-                
-                console.log('Service Worker登録成功:', registration.scope);
-                
-                // 更新チェック
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            this.showUpdateAvailable();
-                        }
-                    });
-                });
-                
-                // メッセージ受信
-                navigator.serviceWorker.addEventListener('message', event => {
-                    this.handleServiceWorkerMessage(event.data);
-                });
-                
-                return registration;
-                
-            } catch (error) {
-                console.error('Service Worker登録失敗:', error);
-                throw error;
-            }
-        } else {
-            console.warn('Service Worker not supported');
-            return null;
-        }
-    }
-    
-    setupInstallPrompt() {
-        // PWAインストールプロンプト
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('PWAインストールプロンプト準備');
-            e.preventDefault();
-            this.deferredPrompt = e;
-            this.showInstallPrompt();
-        });
-        
-        // インストール完了検出
-        window.addEventListener('appinstalled', () => {
-            console.log('PWAインストール完了');
-            this.hideInstallPrompt();
-            this.deferredPrompt = null;
-            
-            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-                window.yourNewsApp.showNotification(
-                    'アプリがインストールされました！オフラインでも利用できます。',
-                    'success',
-                    5000
-                );
-            }
-        });
-    }
-    
-    setupNetworkMonitoring() {
-        // オンライン状態監視
-        window.addEventListener('online', () => {
-            console.log('オンライン状態検出');
-            this.isOnline = true;
-            this.updateNetworkStatus(true);
-            this.syncWhenOnline();
-        });
-        
-        window.addEventListener('offline', () => {
-            console.log('オフライン状態検出');
-            this.isOnline = false;
-            this.updateNetworkStatus(false);
-        });
-    }
-    
-    setupBackgroundSync() {
-        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-            // バックグラウンド同期登録
-            navigator.serviceWorker.ready.then(registration => {
-                // RSS自動更新同期
-                const settings = JSON.parse(localStorage.getItem('yourNews_settings') || '{}');
-                if (settings.rss && settings.rss.autoRefresh) {
-                    registration.sync.register('background-rss-fetch');
-                    console.log('バックグラウンドRSS同期登録完了');
-                }
-            });
-        }
-    }
-    
-    showInstallPrompt() {
-        // インストール通知のみ表示（ボタンなし）
-        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-            window.yourNewsApp.showNotification(
-                'このアプリをホーム画面に追加できます。ブラウザのメニューから「ホーム画面に追加」を選択してください。',
-                'info',
-                8000
-            );
-        }
-    }
-    
-    hideInstallPrompt() {
-        // 特に処理なし（通知は自動で消える）
-    }
-    
-    updateNetworkStatus(online) {
-        // ネットワーク状態表示
-        let statusIndicator = document.getElementById('network-status');
-        if (!statusIndicator) {
-            statusIndicator = document.createElement('div');
-            statusIndicator.id = 'network-status';
-            statusIndicator.className = 'network-status';
-            statusIndicator.style.cssText = `
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                padding: 0.5rem 1rem;
-                border-radius: 20px;
-                font-size: 0.9rem;
-                z-index: 1101;
-                transition: opacity 0.3s ease;
-                color: white;
-            `;
-            document.body.appendChild(statusIndicator);
-        }
-        
-        statusIndicator.style.background = online ? 'rgba(76,175,80,0.9)' : 'rgba(244,67,54,0.9)';
-        statusIndicator.textContent = online ? '🌐 オンライン復帰' : '📴 オフライン';
-        statusIndicator.style.opacity = '1';
-        
-        // 5秒後に非表示
-        setTimeout(() => {
-            if (statusIndicator) {
-                statusIndicator.style.opacity = '0';
-                setTimeout(() => {
-                    if (statusIndicator.parentElement) {
-                        statusIndicator.remove();
-                    }
-                }, 300);
-            }
-        }, 5000);
-    }
-    
-    async syncWhenOnline() {
-        if (!this.isOnline) return;
-        
-        try {
-            console.log('オンライン復帰時の同期開始');
-            
-            // RSS強制更新
-            if (window.yourNewsApp && window.yourNewsApp.uiController) {
-                window.yourNewsApp.uiController.loadAndDisplayArticles(true);
-            }
-            
-        } catch (error) {
-            console.error('オンライン同期エラー:', error);
-        }
-    }
-    
-    updatePWAStatus() {
-        // PWA状態を表示エリアに反映
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                            window.navigator.standalone ||
-                            document.referrer.includes('android-app://');
-        
-        if (isStandalone) {
-            console.log('PWAスタンドアロンモードで動作中');
-            document.body.classList.add('pwa-standalone');
-        } else {
-            console.log('ブラウザモードで動作中');
-            document.body.classList.add('pwa-browser');
-        }
-    }
-    
-    showUpdateAvailable() {
-        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-            window.yourNewsApp.showNotification(
-                'アプリの新しいバージョンが利用可能です。ページを再読み込みしてください。',
-                'info',
-                10000
-            );
-        }
-    }
-    
-    handleServiceWorkerMessage(data) {
-        console.log('Service Workerメッセージ受信:', data);
-        
-        switch (data.type) {
-            case 'BACKGROUND_RSS_UPDATE':
-                this.handleBackgroundRSSUpdate(data);
-                break;
-                
-            case 'NETWORK_STATUS_CHANGE':
-                this.updateNetworkStatus(data.online);
-                break;
-        }
-    }
-    
-    handleBackgroundRSSUpdate(data) {
-        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
-            const message = `バックグラウンドでRSSを更新（${data.successCount}/${data.totalCount}件成功）`;
-            window.yourNewsApp.showNotification(message, 'info', 3000);
-        }
-        
-        // UI更新
-        if (window.yourNewsApp && window.yourNewsApp.uiController) {
-            window.yourNewsApp.uiController.loadAndDisplayArticles(true);
-        }
-    }
-}
-
-// PWAManagerクラスをグローバルに公開
-window.PWAManager = PWAManager;
-
 // アプリケーション初期化処理
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('DOM読み込み完了');
         
-        // メインアプリケーション初期化
         window.yourNewsApp = new YourNewsApp();
         const initSuccess = await window.yourNewsApp.initialize();
         
         if (initSuccess) {
-            // PWA機能初期化（プロジェクトルートパス指定）
-            window.yourNewsApp.pwaManager = new PWAManager('/yn');
-            await window.yourNewsApp.pwaManager.initialize();
-            
             console.log('アプリケーション初期化完了');
         } else {
             console.error('アプリケーション初期化失敗');
@@ -886,7 +598,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('初期化処理エラー:', error);
         
-        // エラー時のフォールバック表示
         const errorDiv = document.createElement('div');
         errorDiv.innerHTML = `
             <div style="
@@ -922,7 +633,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// グローバルエラーハンドリング
 window.addEventListener('error', (event) => {
     console.error('Global Error:', event.error);
     if (window.yourNewsApp && window.yourNewsApp.showNotification) {
@@ -935,7 +645,6 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
-// グローバルデバッグ関数
 window.debugApp = function() {
     console.log('=== アプリケーションデバッグ情報 ===');
     
@@ -943,10 +652,7 @@ window.debugApp = function() {
         console.log('YourNewsApp stats:', window.yourNewsApp.getStats());
         console.log('Version:', window.yourNewsApp.getVersion());
         
-        // AI統計情報
         window.yourNewsApp.debugAIStats();
-        
-        // フィードバック履歴
         window.yourNewsApp.debugFeedbackHistory();
     } else {
         console.error('YourNewsApp not initialized');
@@ -958,33 +664,4 @@ window.debugApp = function() {
     console.log('Project base path:', window.yourNewsApp?.basePath || '/yn');
     
     console.log('=== デバッグ情報完了 ===');
-};
-
-// エラー復旧用関数
-window.reinitializeApp = async function() {
-    try {
-        console.log('アプリケーション再初期化開始');
-        
-        if (window.yourNewsApp) {
-            window.yourNewsApp = null;
-        }
-        
-        window.yourNewsApp = new YourNewsApp();
-        const initSuccess = await window.yourNewsApp.initialize();
-        
-        if (initSuccess) {
-            window.yourNewsApp.pwaManager = new PWAManager('/yn');
-            await window.yourNewsApp.pwaManager.initialize();
-            
-            console.log('再初期化完了');
-            return true;
-        } else {
-            console.error('再初期化失敗');
-            return false;
-        }
-        
-    } catch (error) {
-        console.error('再初期化エラー:', error);
-        return false;
-    }
 };
