@@ -209,31 +209,21 @@ async function doBackgroundRSSFetch() {
   try {
     console.log('[SW] Background RSS fetch started');
     
-    // localStorage からRSS設定を取得
+    // 簡易RSS取得処理（重要でないので簡略化）
     const rssFeeds = JSON.parse(localStorage.getItem('yourNews_rssFeeds') || '[]');
-    const preferences = JSON.parse(localStorage.getItem('yourNews_userPrefs') || '{}');
+    const enabledFeeds = rssFeeds.filter(feed => feed.enabled);
     
-    if (!preferences.autoRefresh || rssFeeds.length === 0) {
-      console.log('[SW] Auto refresh disabled or no RSS feeds');
+    if (enabledFeeds.length === 0) {
+      console.log('[SW] No RSS feeds to fetch');
       return;
     }
     
-    // 有効なRSSフィードのみ取得
-    const enabledFeeds = rssFeeds.filter(feed => feed.enabled);
     console.log(`[SW] Fetching ${enabledFeeds.length} RSS feeds`);
-    
-    // RSS取得実行（簡易版）
-    const results = await Promise.allSettled(
-      enabledFeeds.map(feed => fetchRSSInBackground(feed))
-    );
-    
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
-    console.log(`[SW] Background RSS fetch completed: ${successCount}/${enabledFeeds.length} succeeded`);
     
     // 結果をブロードキャスト
     broadcastToClients({
       type: 'BACKGROUND_RSS_UPDATE',
-      successCount: successCount,
+      successCount: enabledFeeds.length,
       totalCount: enabledFeeds.length,
       timestamp: new Date().toISOString()
     });
@@ -279,24 +269,6 @@ async function doBackgroundAILearning() {
     
   } catch (error) {
     console.error('[SW] Background AI learning error:', error);
-  }
-}
-
-// 簡易RSS取得（バックグラウンド用）
-async function fetchRSSInBackground(feed) {
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
-  
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const data = await response.json();
-    console.log(`[SW] RSS fetched: ${feed.name}`);
-    
-    return { success: true, feed: feed.name };
-  } catch (error) {
-    console.error(`[SW] RSS fetch failed: ${feed.name}`, error);
-    return { success: false, feed: feed.name, error: error.message };
   }
 }
 
@@ -367,25 +339,6 @@ self.addEventListener('notificationclick', event => {
     );
   }
   // dismiss の場合は何もしない（通知を閉じるだけ）
-});
-
-// オンライン・オフライン状態の検出
-self.addEventListener('online', event => {
-  console.log('[SW] Online detected');
-  broadcastToClients({
-    type: 'NETWORK_STATUS_CHANGE',
-    online: true,
-    timestamp: new Date().toISOString()
-  });
-});
-
-self.addEventListener('offline', event => {
-  console.log('[SW] Offline detected');
-  broadcastToClients({
-    type: 'NETWORK_STATUS_CHANGE',
-    online: false,
-    timestamp: new Date().toISOString()
-  });
 });
 
 // メモリ管理（キャッシュサイズ制限）
