@@ -397,6 +397,348 @@ class YourNewsApp {
     }
 }
 
+// PWA機能初期化（app.jsに追加）
+class PWAManager {
+    constructor() {
+        this.deferredPrompt = null;
+        this.isOnline = navigator.onLine;
+        this.serviceWorker = null;
+    }
+    
+    async initialize() {
+        try {
+            console.log('PWA Manager初期化開始');
+            
+            // Service Worker登録
+            await this.registerServiceWorker();
+            
+            // インストールプロンプト準備
+            this.setupInstallPrompt();
+            
+            // オンライン・オフライン監視
+            this.setupNetworkMonitoring();
+            
+            // バックグラウンド同期設定
+            this.setupBackgroundSync();
+            
+            // PWA状態表示
+            this.updatePWAStatus();
+            
+            console.log('PWA Manager初期化完了');
+            return true;
+            
+        } catch (error) {
+            console.error('PWA Manager初期化エラー:', error);
+            return false;
+        }
+    }
+    
+    async registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                this.serviceWorker = registration;
+                
+                console.log('Service Worker登録成功:', registration.scope);
+                
+                // 更新チェック
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.showUpdateAvailable();
+                        }
+                    });
+                });
+                
+                // メッセージ受信
+                navigator.serviceWorker.addEventListener('message', event => {
+                    this.handleServiceWorkerMessage(event.data);
+                });
+                
+                return registration;
+                
+            } catch (error) {
+                console.error('Service Worker登録失敗:', error);
+                throw error;
+            }
+        } else {
+            console.warn('Service Worker not supported');
+            return null;
+        }
+    }
+    
+    setupInstallPrompt() {
+        // PWAインストールプロンプト
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('PWAインストールプロンプト準備');
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.showInstallButton();
+        });
+        
+        // インストール完了検出
+        window.addEventListener('appinstalled', () => {
+            console.log('PWAインストール完了');
+            this.hideInstallButton();
+            this.deferredPrompt = null;
+            
+            if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+                window.yourNewsApp.showNotification(
+                    'アプリがインストールされました！オフラインでも利用できます。',
+                    'success',
+                    5000
+                );
+            }
+        });
+    }
+    
+    setupNetworkMonitoring() {
+        // オンライン状態監視
+        window.addEventListener('online', () => {
+            console.log('オンライン状態検出');
+            this.isOnline = true;
+            this.updateNetworkStatus(true);
+            this.syncWhenOnline();
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('オフライン状態検出');
+            this.isOnline = false;
+            this.updateNetworkStatus(false);
+        });
+    }
+    
+    setupBackgroundSync() {
+        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+            // バックグラウンド同期登録
+            navigator.serviceWorker.ready.then(registration => {
+                // RSS自動更新同期
+                const autoRefresh = JSON.parse(localStorage.getItem('yourNews_userPrefs') || '{}').autoRefresh;
+                if (autoRefresh) {
+                    registration.sync.register('background-rss-fetch');
+                    console.log('バックグラウンドRSS同期登録完了');
+                }
+                
+                // AI学習同期
+                registration.sync.register('background-ai-learning');
+                console.log('バックグラウンドAI学習同期登録完了');
+            });
+        }
+    }
+    
+    handleServiceWorkerMessage(data) {
+        console.log('Service Workerメッセージ受信:', data);
+        
+        switch (data.type) {
+            case 'BACKGROUND_RSS_UPDATE':
+                this.handleBackgroundRSSUpdate(data);
+                break;
+                
+            case 'BACKGROUND_AI_UPDATE':
+                this.handleBackgroundAIUpdate(data);
+                break;
+                
+            case 'NETWORK_STATUS_CHANGE':
+                this.updateNetworkStatus(data.online);
+                break;
+                
+            default:
+                console.log('Unknown message type:', data.type);
+        }
+    }
+    
+    handleBackgroundRSSUpdate(data) {
+        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+            const message = `バックグラウンドでRSSを更新しました（${data.successCount}/${data.totalCount}件成功）`;
+            window.yourNewsApp.showNotification(message, 'info', 3000);
+        }
+        
+        // UI更新が必要な場合
+        if (window.yourNewsApp && window.yourNewsApp.uiController) {
+            window.yourNewsApp.uiController.loadAndDisplayArticles(true);
+        }
+    }
+    
+    handleBackgroundAIUpdate(data) {
+        if (window.yourNewsApp && window.yourNewsApp.showNotification) {
+            const message = `AIが${data.processedCount}件のフィードバックを学習しました`;
+            window.yourNewsApp.showNotification(message, 'success', 2000);
+        }
+    }
+    
+    async showInstallPrompt() {
+        if (!this.deferredPrompt) {
+            console.log('インストールプロンプトが利用できません');
+            return false;
+        }
+        
+        try {
+            this.deferredPrompt.prompt();
+            const { outcome } = await this.deferredPrompt.userChoice;
+            
+            console.log('インストールプロンプト結果:', outcome);
+            
+            if (outcome === 'accepted') {
+                console.log('ユーザーがPWAインストールを承認');
+            } else {
+                console.log('ユーザーがPWAインストールを拒否');
+            }
+            
+            this.deferredPrompt = null;
+            return outcome === 'accepted';
+            
+        } catch (error) {
+            console.error('インストールプロンプトエラー:', error);
+            return false;
+        }
+    }
+    
+    showInstallButton() {
+        // インストールボタンを表示
+        const installBtn = document.createElement('button');
+        installBtn.id = 'pwa-install-btn';
+        installBtn.className = 'fab-btn install-btn';
+        installBtn.innerHTML = '📱';
+        installBtn.title = 'アプリをインストール';
+        installBtn.style.cssText = `
+            position: fixed;
+            bottom: 160px;
+            right: 20px;
+            background: #4CAF50;
+            z-index: 1000;
+        `;
+        
+        installBtn.addEventListener('click', () => {
+            this.showInstallPrompt();
+        });
+        
+        document.body.appendChild(installBtn);
+        
+        // 10秒後に自動で非表示（邪魔にならないように）
+        setTimeout(() => {
+            installBtn.style.opacity = '0.7';
+        }, 10000);
+    }
+    
+    hideInstallButton() {
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.remove();
+        }
+    }
+    
+    updateNetworkStatus(online) {
+        // ネットワーク状態表示を更新
+        const statusIndicator = document.getElementById('network-status') || 
+                               this.createNetworkStatusIndicator();
+        
+        statusIndicator.className = `network-status ${online ? 'online' : 'offline'}`;
+        statusIndicator.textContent = online ? '🌐 オンライン' : '📴 オフライン';
+        
+        // 一定時間後に非表示
+        setTimeout(() => {
+            statusIndicator.style.opacity = '0';
+            setTimeout(() => {
+                if (statusIndicator.parentElement) {
+                    statusIndicator.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    createNetworkStatusIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'network-status';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 1001;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+    
+    async syncWhenOnline() {
+        if (!this.isOnline) return;
+        
+        try {
+            // オンライン復帰時の同期処理
+            console.log('オンライン復帰時の同期開始');
+            
+            // Service Workerに同期指示
+            if (this.serviceWorker && this.serviceWorker.sync) {
+                await this.serviceWorker.sync.register('background-rss-fetch');
+                await this.serviceWorker.sync.register('background-ai-learning');
+            }
+            
+            // RSS強制更新
+            if (window.yourNewsApp && window.yourNewsApp.uiController) {
+                window.yourNewsApp.uiController.loadAndDisplayArticles(true);
+            }
+            
+        } catch (error) {
+            console.error('オンライン同期エラー:', error);
+        }
+    }
+    
+    updatePWAStatus() {
+        // PWA状態を表示エリアに反映
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                            window.navigator.standalone ||
+                            document.referrer.includes('android-app://');
+        
+        if (isStandalone) {
+            console.log('PWAスタンドアロンモードで動作中');
+            document.body.classList.add('pwa-standalone');
+        } else {
+            console.log('ブラウザモードで動作中');
+            document.body.classList.add('pwa-browser');
+        }
+    }
+    
+    // PWA情報取得
+    getPWAInfo() {
+        return {
+            isInstalled: window.matchMedia('(display-mode: standalone)').matches,
+            isOnline: this.isOnline,
+            serviceWorkerActive: !!this.serviceWorker?.active,
+            installPromptAvailable: !!this.deferredPrompt,
+            backgroundSyncSupported: 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype
+        };
+    }
+}
+
+// PWA Manager インスタンス化（app.js内のYourNewsApp初期化時に追加）
+// YourNewsAppクラス内に以下を追加
+async initialize() {
+    try {
+        console.log('YourNewsApp初期化開始');
+        
+        // 既存の初期化処理...
+        
+        // PWA機能初期化を追加
+        this.pwaManager = new PWAManager();
+        await this.pwaManager.initialize();
+        
+        console.log('YourNewsApp初期化完了');
+        return true;
+        
+    } catch (error) {
+        console.error('YourNewsApp初期化エラー:', error);
+        return false;
+    }
+}
+
 // アプリケーション開始
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM読み込み完了');
