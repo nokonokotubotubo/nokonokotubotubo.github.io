@@ -609,6 +609,87 @@ class UIController {
             console.error('イベントリスナー設定エラー:', error);
         }
     }
+
+　　// UIController に以下のメソッドを追加
+
+// 【新機能】記事スコア更新
+updateArticleScore(articleId, newScore) {
+    try {
+        const card = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (!card) return;
+        
+        const scoreElement = card.querySelector('.interest-score');
+        if (scoreElement) {
+            // スコア表示更新
+            scoreElement.textContent = `${newScore}点`;
+            
+            // スコア色分け更新
+            scoreElement.className = 'interest-score';
+            if (newScore >= 70) {
+                scoreElement.classList.add('score-high');
+            } else if (newScore >= 40) {
+                scoreElement.classList.add('score-medium');
+            } else {
+                scoreElement.classList.add('score-low');
+            }
+            
+            // アニメーション効果
+            scoreElement.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                scoreElement.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        // 記事のローカルデータも更新
+        const article = this.currentArticles.find(a => a.articleId === articleId);
+        if (article) {
+            article.interestScore = newScore;
+        }
+        
+        console.log(`📊 スコア表示更新: ${articleId} -> ${newScore}点`);
+        
+    } catch (error) {
+        console.error('スコア表示更新エラー:', error);
+    }
+}
+
+// AI興味度計算（修正版）
+async calculateInterestScores(articles) {
+    try {
+        if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
+            console.log('AI機能無効、デフォルトスコア使用');
+            return;
+        }
+        
+        const keywords = await this.dataManager.loadData('yourNews_keywords') || 
+                       { interestWords: [], ngWords: [] };
+        
+        console.log(`🧠 AI興味度計算開始: ${articles.length}件`);
+        
+        for (const article of articles) {
+            try {
+                const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                article.interestScore = score;
+                
+                // NGワード判定
+                if (score === -1) {
+                    article.ngDomain = true;
+                    article.readStatus = 'read';
+                    console.log(`🚫 NG記事検出: ${article.title}`);
+                }
+                
+            } catch (error) {
+                console.warn(`AI score calculation failed for article ${article.articleId}:`, error);
+                article.interestScore = 50; // デフォルトスコア
+            }
+        }
+        
+        console.log('✅ AI興味度計算完了');
+        
+    } catch (error) {
+        console.error('AI興味度計算エラー:', error);
+    }
+}
     
     // 空状態表示
     showEmptyState() {
