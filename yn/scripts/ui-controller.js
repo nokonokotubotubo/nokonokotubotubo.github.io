@@ -1,4 +1,4 @@
-// UIController - AI興味度ソート問題完全解決版
+// UIController - AI興味度ソート問題完全解決版・学習済みスコア保護強化版
 
 class UIController {
     constructor(dataManager, rssFetcher, articleCard) {
@@ -68,10 +68,10 @@ class UIController {
                         console.log(`Fetching ${rssFeeds.length} RSS feeds...`);
                         const newArticles = await this.rssFetcher.fetchAllRSSFeeds(rssFeeds);
                         if (newArticles.length > 0) {
-                            // 【重要】AI興味度計算（確実な記事データ反映）
-                            console.log('🧠 AI興味度計算開始（記事データ更新前）');
+                            // 【重要】AI興味度計算（学習済みスコア保護強化版）
+                            console.log('🧠 AI興味度計算開始（学習済みスコア保護付き）');
                             await this.calculateInterestScores(newArticles);
-                            console.log('✅ AI興味度計算完了（記事データ更新済み）');
+                            console.log('✅ AI興味度計算完了（学習済みスコア保護済み）');
 
                             // マージ機能を使用して保存（状態保持）
                             await this.dataManager.saveArticles(newArticles);
@@ -86,7 +86,9 @@ class UIController {
             // 【追加】読み込み後のスコア検証
             console.log('📊 読み込み記事スコア検証:');
             this.currentArticles.slice(0, 3).forEach((article, index) => {
-                console.log(`記事${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点`);
+                const feedbackCount = article.feedbackHistory ? article.feedbackHistory.length : 0;
+                const status = feedbackCount > 0 ? '学習済み' : '新規';
+                console.log(`記事${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点 (${status})`);
             });
 
             // フィルター・ソート適用
@@ -198,7 +200,7 @@ class UIController {
         }
     }
 
-    // 【重要】記事スコア更新（即座反映）
+    // 記事スコア更新（即座反映）
     updateArticleScore(articleId, newScore) {
         try {
             const card = document.querySelector(`[data-article-id="${articleId}"]`);
@@ -273,12 +275,12 @@ class UIController {
         }
     }
 
-    // 【修正】AI興味度計算（記事データ確実反映版）
+    // 【重要修正】AI興味度計算（学習済みスコア完全保護版）
     async calculateInterestScores(articles) {
         try {
             if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
-                console.log('AI機能無効、デフォルトスコア使用');
-                // デフォルトスコアを明示的に設定
+                console.log('AI機能無効、既存スコア保持');
+                // AI無効時も既存スコアを保持
                 articles.forEach(article => {
                     if (article.interestScore === undefined) {
                         article.interestScore = 50;
@@ -290,13 +292,30 @@ class UIController {
             const keywords = await this.dataManager.loadData('yourNews_keywords') || { interestWords: [], ngWords: [] };
 
             console.log(`🧠 AI興味度計算開始: ${articles.length}件`);
+            
+            let newArticleCount = 0;
+            let protectedCount = 0;
+            
             for (const article of articles) {
                 try {
+                    // 【重要】学習済み記事のスコア完全保護
+                    if (article.feedbackHistory && article.feedbackHistory.length > 0) {
+                        // フィードバック履歴がある記事は既存スコアを完全保持
+                        if (article.interestScore === undefined) {
+                            article.interestScore = 50;
+                        }
+                        protectedCount++;
+                        console.log(`🛡️ 学習済みスコア完全保護: "${article.title.substring(0, 30)}..." = ${article.interestScore}点 (フィードバック${article.feedbackHistory.length}件)`);
+                        continue; // スコア再計算を完全にスキップ
+                    }
+
+                    // 新記事のみAI計算実行
                     const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
                     
                     // 【重要】計算結果を確実に記事データに保存
                     article.interestScore = score;
-                    console.log(`📊 記事スコア設定: "${article.title.substring(0, 30)}..." = ${score}点`);
+                    newArticleCount++;
+                    console.log(`🆕 新記事スコア計算: "${article.title.substring(0, 30)}..." = ${score}点`);
 
                     // NGワード判定
                     if (score === -1) {
@@ -305,21 +324,34 @@ class UIController {
                     }
                 } catch (error) {
                     console.warn(`AI score calculation failed for article ${article.articleId}:`, error);
-                    article.interestScore = 50; // デフォルトスコア
+                    if (article.interestScore === undefined) {
+                        article.interestScore = 50; // デフォルトスコア
+                    }
                 }
             }
 
-            console.log('✅ AI興味度計算完了 - 記事データ更新済み');
+            console.log(`✅ AI興味度計算完了 - 新記事計算: ${newArticleCount}件, 学習済み保護: ${protectedCount}件`);
 
-            // 【追加】計算結果検証
-            console.log('🔍 計算結果検証:');
-            articles.slice(0, 3).forEach((article, index) => {
-                console.log(`検証${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点`);
+            // 【追加】スコア保護結果の詳細検証
+            console.log('🔍 学習済みスコア保護結果検証:');
+            const protectedArticles = articles.filter(a => a.feedbackHistory && a.feedbackHistory.length > 0);
+            protectedArticles.slice(0, 3).forEach((article, index) => {
+                const feedbackCount = article.feedbackHistory.length;
+                console.log(`保護${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点 (フィードバック${feedbackCount}件)`);
             });
+
+            // 【追加】新記事計算結果の検証
+            if (newArticleCount > 0) {
+                console.log('🔍 新記事AI計算結果検証:');
+                const newArticles = articles.filter(a => !a.feedbackHistory || a.feedbackHistory.length === 0);
+                newArticles.slice(0, 3).forEach((article, index) => {
+                    console.log(`新規${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点 (AI計算済み)`);
+                });
+            }
 
         } catch (error) {
             console.error('AI興味度計算エラー:', error);
-            // エラー時はデフォルトスコアを設定
+            // エラー時もスコア保持
             articles.forEach(article => {
                 if (article.interestScore === undefined) {
                     article.interestScore = 50;
@@ -352,12 +384,12 @@ class UIController {
         }
     }
 
-    // 【緊急修正】フィルター適用（ソート問題完全解決版）
+    // フィルター適用（ソート問題完全解決版）
     applyFilters() {
         try {
             console.log(`🔍 フィルター処理開始: 対象 ${this.currentArticles.length}件`);
 
-            // 【重要】currentArticlesの新しいコピーを作成
+            // currentArticlesの新しいコピーを作成
             let filtered = [...this.currentArticles];
             console.log(`📋 配列コピー完了: ${filtered.length}件`);
 
@@ -384,7 +416,7 @@ class UIController {
             filtered = filtered.filter(article => article.interestScore !== -1);
             console.log(`🚫 NGワード記事除外後: ${filtered.length}件`);
 
-            // 【重要】ソート適用（強制実行・詳細ログ付き）
+            // ソート適用（強制実行・詳細ログ付き）
             console.log('🔄 ソート処理実行前...');
             console.log(`現在のソート設定: ${this.sortBy}`);
 
@@ -415,19 +447,19 @@ class UIController {
         }
     }
 
-    // 【緊急修正】ソート適用（強制デバッグ・確実実行版）
+    // ソート適用（強制デバッグ・確実実行版）
     applySorting(articles) {
         console.log('🚨 applySorting メソッド開始 - 強制ログ出力');
         try {
             console.log(`📊 ソート処理開始: ${this.sortBy} (対象: ${articles.length}件)`);
 
-            // 【追加】ソート前の状態確認
+            // ソート前の状態確認
             console.log('=== ソート前の最初の5件 ===');
             articles.slice(0, 5).forEach((article, index) => {
                 console.log(`ソート前${index + 1}: ${article.interestScore}点 - "${article.title.substring(0, 30)}..."`);
             });
 
-            // 【重要】確実なインプレース・ソート
+            // 確実なインプレース・ソート
             if (this.sortBy === 'interest') {
                 console.log('🔄 AI興味度順ソート実行中...');
                 articles.sort((a, b) => {
@@ -461,7 +493,7 @@ class UIController {
                 });
             }
 
-            // 【追加】ソート後の状態確認
+            // ソート後の状態確認
             console.log('=== ソート後の最初の5件 ===');
             articles.slice(0, 5).forEach((article, index) => {
                 console.log(`ソート後${index + 1}: ${article.interestScore}点 - "${article.title.substring(0, 30)}..."`);
@@ -502,7 +534,7 @@ class UIController {
                 return;
             }
 
-            // 【追加】ソート結果の確認
+            // ソート結果の確認
             if (this.sortBy === 'interest') {
                 console.log('=== AI興味度ソート結果確認 ===');
                 this.filteredArticles.slice(0, 5).forEach((article, index) => {
@@ -529,7 +561,7 @@ class UIController {
         }
     }
 
-    // 【修正】記事カード作成（スコア表示確実反映版）
+    // 記事カード作成（スコア表示確実反映版）
     createArticleCard(article, index) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'article-card';
@@ -540,7 +572,7 @@ class UIController {
             cardDiv.classList.add('read');
         }
 
-        // 【修正】興味度スコアの確実な取得
+        // 興味度スコアの確実な取得
         const interestScore = article.interestScore !== undefined ? article.interestScore : 50;
         console.log(`🎯 カード生成時スコア: "${article.title.substring(0, 30)}..." = ${interestScore}点 (データ値: ${article.interestScore})`);
 
