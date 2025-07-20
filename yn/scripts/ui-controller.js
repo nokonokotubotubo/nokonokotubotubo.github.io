@@ -1,4 +1,4 @@
-// UIController - フィードバック機能完全対応版
+// UIController - AI計算結果確実反映版
 class UIController {
     constructor(dataManager, rssFetcher, articleCard) {
         this.dataManager = dataManager;
@@ -70,10 +70,10 @@ class UIController {
                         const newArticles = await this.rssFetcher.fetchAllRSSFeeds(rssFeeds);
                         
                         if (newArticles.length > 0) {
-                            // AI興味度計算（利用可能な場合）
-                            if (window.yourNewsApp && window.yourNewsApp.aiEngine && !window.yourNewsApp.aiDisabled) {
-                                await this.calculateInterestScores(newArticles);
-                            }
+                            // 【重要】AI興味度計算（確実な記事データ反映）
+                            console.log('🧠 AI興味度計算開始（記事データ更新前）');
+                            await this.calculateInterestScores(newArticles);
+                            console.log('✅ AI興味度計算完了（記事データ更新済み）');
                             
                             // マージ機能を使用して保存（状態保持）
                             await this.dataManager.saveArticles(newArticles);
@@ -84,6 +84,12 @@ class UIController {
             
             // 保存された記事を読み込み（マージ済み）
             this.currentArticles = await this.dataManager.loadArticles();
+            
+            // 【追加】読み込み後のスコア検証
+            console.log('📊 読み込み記事スコア検証:');
+            this.currentArticles.slice(0, 3).forEach((article, index) => {
+                console.log(`記事${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点`);
+            });
             
             // フィルター・ソート適用
             this.applyFilters();
@@ -284,11 +290,17 @@ class UIController {
         }
     }
     
-    // AI興味度計算
+    // 【修正】AI興味度計算（記事データ確実反映版）
     async calculateInterestScores(articles) {
         try {
             if (!window.yourNewsApp.aiEngine || window.yourNewsApp.aiDisabled) {
                 console.log('AI機能無効、デフォルトスコア使用');
+                // デフォルトスコアを明示的に設定
+                articles.forEach(article => {
+                    if (article.interestScore === undefined) {
+                        article.interestScore = 50;
+                    }
+                });
                 return;
             }
             
@@ -300,7 +312,11 @@ class UIController {
             for (const article of articles) {
                 try {
                     const score = await window.yourNewsApp.aiEngine.calculateInterestScore(article, keywords);
+                    
+                    // 【重要】計算結果を確実に記事データに保存
                     article.interestScore = score;
+                    
+                    console.log(`📊 記事スコア設定: "${article.title.substring(0, 30)}..." = ${score}点`);
                     
                     // NGワード判定
                     if (score === -1) {
@@ -315,10 +331,22 @@ class UIController {
                 }
             }
             
-            console.log('✅ AI興味度計算完了');
+            console.log('✅ AI興味度計算完了 - 記事データ更新済み');
+            
+            // 【追加】計算結果検証
+            console.log('🔍 計算結果検証:');
+            articles.slice(0, 3).forEach((article, index) => {
+                console.log(`検証${index + 1}: "${article.title.substring(0, 30)}..." = ${article.interestScore}点`);
+            });
             
         } catch (error) {
             console.error('AI興味度計算エラー:', error);
+            // エラー時はデフォルトスコアを設定
+            articles.forEach(article => {
+                if (article.interestScore === undefined) {
+                    article.interestScore = 50;
+                }
+            });
         }
     }
     
@@ -439,7 +467,7 @@ class UIController {
         }
     }
     
-    // 記事カード作成（フィードバック機能強化版）
+    // 【修正】記事カード作成（スコア表示確実反映版）
     createArticleCard(article, index) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'article-card';
@@ -456,7 +484,10 @@ class UIController {
             cardDiv.style.display = 'none';
         }
         
-        const interestScore = article.interestScore || 50;
+        // 【修正】興味度スコアの確実な取得
+        const interestScore = article.interestScore !== undefined ? article.interestScore : 50;
+        console.log(`🎯 カード生成時スコア: "${article.title.substring(0, 30)}..." = ${interestScore}点 (データ値: ${article.interestScore})`);
+        
         const scoreClass = interestScore >= 70 ? 'score-high' : 
                           interestScore >= 40 ? 'score-medium' : 'score-low';
         
