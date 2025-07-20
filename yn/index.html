@@ -6,110 +6,98 @@
     <meta name="description" content="AI機能付きパーソナライズされたRSSニュース閲覧・管理システム">
     <title>あなたのニュース</title>
     
-    <!-- PWA設定（必須） -->
+    <!-- PWA設定 -->
     <meta name="theme-color" content="#2196F3">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="あなたのニュース">
-    <meta name="msapplication-TileColor" content="#2196F3">
-    <meta name="msapplication-tap-highlight" content="no">
-    
-    <!-- PWA Manifest -->
     <link rel="manifest" href="assets/manifest.json">
-    
-    <!-- Apple PWA アイコン -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMyMTk2RjMiIHJ4PSIzMiIvPjx0ZXh0IHg9Ijk2IiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5NiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OPC90ZXh0Pjwvc3ZnPg==">
-    
-    <!-- ファビコン -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIGZpbGw9IiMyMTk2RjMiIHJ4PSI4Ii8+PHRleHQgeD0iMjQiIHk9IjMwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TjwvdGV4dD48L3N2Zz4=">
-    
-    <!-- TensorFlow.js CDN（仕様書指定v4.10.0） -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     
     <!-- スタイルシート -->
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/themes.css">
+    
+    <!-- TensorFlow.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
 </head>
 <body>
-    <!-- ヘッダー（ナビゲーション、更新ボタン） -->
-    <header class="main-header">
-        <div class="header-container">
-            <h1 class="app-title">あなたのニュース</h1>
-            <nav class="main-nav">
-                <button class="nav-btn active" data-page="index">記事一覧</button>
-                <button class="nav-btn" data-page="rss-manager" onclick="location.href='pages/rss-manager.html'">RSS管理</button>
-                <button class="nav-btn" data-page="favorites" onclick="location.href='pages/favorites.html'">お気に入り</button>
-                <button class="nav-btn" data-page="settings" onclick="location.href='pages/settings.html'">設定</button>
-            </nav>
-            <button class="refresh-btn" id="refreshBtn" title="記事を更新">🔄 更新</button>
-        </div>
-    </header>
+    <!-- 固定ヘッダーエリア -->
+    <div class="fixed-header-area">
+        <!-- メインヘッダー -->
+        <header class="main-header">
+            <div class="header-container">
+                <h1 class="app-title">あなたのニュース</h1>
+                <nav class="main-nav">
+                    <button class="nav-btn active" data-page="index">記事一覧</button>
+                    <button class="nav-btn" data-page="rss-manager" onclick="location.href='pages/rss-manager.html'">RSS管理</button>
+                    <button class="nav-btn" data-page="favorites" onclick="location.href='pages/favorites.html'">お気に入り</button>
+                    <button class="nav-btn" data-page="settings" onclick="location.href='pages/settings.html'">設定</button>
+                </nav>
+                <button class="refresh-btn" id="refreshBtn" title="記事を更新">🔄 更新</button>
+            </div>
+        </header>
 
-    <!-- AI状態表示バー -->
-    <div class="ai-status-bar hidden" id="aiStatusBar">
-        <span id="aiStatusText">AI分析準備中...</span>
+        <!-- AI状態表示バー -->
+        <div class="ai-status-bar hidden" id="aiStatusBar">
+            <span id="aiStatusText">AI分析準備中...</span>
+        </div>
+
+        <!-- フィルターバー -->
+        <section class="filter-bar">
+            <div class="filter-container">
+                <select class="filter-select" id="categoryFilter" title="カテゴリで絞り込み">
+                    <option value="all">全カテゴリ</option>
+                </select>
+                <select class="filter-select" id="readStatusFilter" title="既読状態で絞り込み">
+                    <option value="all">全ての記事</option>
+                    <option value="unread">未読のみ</option>
+                    <option value="read">既読のみ</option>
+                </select>
+                <select class="filter-select" id="sortFilter" title="並び順を選択">
+                    <option value="interest">AI興味度順</option>
+                    <option value="date">更新日時順</option>
+                    <option value="domain">ドメイン順</option>
+                    <option value="keyword-match">キーワード一致度順</option>
+                </select>
+            </div>
+        </section>
     </div>
 
-    <!-- フィルターバー（カテゴリ、既読状態、ソート選択） -->
-    <section class="filter-bar">
-        <div class="filter-container">
-            <select class="filter-select" id="categoryFilter" title="カテゴリで絞り込み">
-                <option value="all">全カテゴリ</option>
-            </select>
-            <select class="filter-select" id="readStatusFilter" title="既読状態で絞り込み">
-                <option value="all">全ての記事</option>
-                <option value="unread">未読のみ</option>
-                <option value="read">既読のみ</option>
-            </select>
-            <select class="filter-select" id="sortFilter" title="並び順を選択">
-                <option value="interest">AI興味度順</option>
-                <option value="date">更新日時順</option>
-                <option value="domain">ドメイン順</option>
-                <option value="keyword-match">キーワード一致度順</option>
-            </select>
-        </div>
-    </section>
-
-    <!-- 記事一覧エリア（仮想スクロール対応） -->
-    <main class="main-content">
-        <div class="articles-container" id="articlesContainer">
-            <div class="loading-message" id="loadingMessage">
-                <div class="loading-spinner"></div>
-                <div>AI機能付きニュースシステムを初期化中...</div>
-                <div style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">
-                    TensorFlow.js読み込み・RSS取得・AI分析を実行しています
+    <!-- メインコンテンツエリア -->
+    <div class="main-content-wrapper">
+        <!-- 記事一覧エリア -->
+        <main class="main-content">
+            <div class="articles-container" id="articlesContainer">
+                <div class="loading-message" id="loadingMessage">
+                    <div class="loading-spinner"></div>
+                    <div>AI機能付きニュースシステムを初期化中...</div>
+                    <div style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">
+                        TensorFlow.js読み込み・RSS取得・AI分析を実行しています
+                    </div>
+                </div>
+                <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
+                    <div style="text-align: center; padding: 3rem; color: #666;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📰</div>
+                        <h3>記事がありません</h3>
+                        <p>RSSフィードを追加して記事を取得してください</p>
+                        <button class="btn btn-primary" onclick="location.href='pages/rss-manager.html'">
+                            RSS管理画面へ
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="no-articles-message" id="noArticlesMessage" style="display: none;">
-                <div style="text-align: center; padding: 3rem; color: #666;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">📰</div>
-                    <h3>記事がありません</h3>
-                    <p>RSSフィードを追加して記事を取得してください</p>
-                    <button class="btn btn-primary" onclick="location.href='pages/rss-manager.html'">
-                        RSS管理画面へ
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- フローティングアクションボタン -->
     <div class="floating-actions">
-        <button class="fab-btn ai-retrain-btn" id="aiRetrainBtn" title="AI再学習を実行">
-            🧠
-        </button>
-        <button class="fab-btn" id="addRssFab" title="RSS追加画面へ" onclick="location.href='pages/rss-manager.html'">
-            ➕
-        </button>
+        <button class="fab-btn ai-retrain-btn" id="aiRetrainBtn" title="AI再学習を実行">🧠</button>
+        <button class="fab-btn" id="addRssFab" title="RSS追加画面へ" onclick="location.href='pages/rss-manager.html'">➕</button>
     </div>
 
     <!-- エラー通知エリア -->
     <div class="notification-area" id="notificationArea"></div>
 
-    <!-- スクリプト読み込み（依存関係順） -->
+    <!-- スクリプト読み込み -->
     <script src="scripts/data-manager.js"></script>
     <script src="scripts/utils.js"></script>
     <script src="scripts/rss-fetcher.js"></script>
