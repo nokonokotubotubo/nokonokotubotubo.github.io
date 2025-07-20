@@ -1,4 +1,4 @@
-// DataManager - NGドメイン機能削除版・メソッド未定義エラー完全修正版
+// DataManager - NGドメイン機能削除版・学習済みスコア完全保持版
 
 class DataManager {
     constructor() {
@@ -50,7 +50,7 @@ class DataManager {
         console.log('インメモリストレージ初期化完了');
     }
 
-    // 【修正】RSSフィード読み込み（必須メソッド追加）
+    // RSSフィード読み込み
     async loadRssFeeds() {
         try {
             console.log('RSSフィード読み込み開始');
@@ -78,7 +78,7 @@ class DataManager {
         }
     }
 
-    // 【修正】RSSフィード保存（必須メソッド追加）
+    // RSSフィード保存
     async saveRssFeeds(feeds) {
         try {
             if (!Array.isArray(feeds)) {
@@ -189,7 +189,7 @@ class DataManager {
             // 既存記事読み込み
             const existingArticles = await this.loadArticles();
             
-            // 記事マージ処理
+            // 記事マージ処理（学習済みスコア保持強化）
             const mergedArticles = this.mergeArticles(existingArticles, newArticles);
             
             // 保存実行
@@ -207,7 +207,7 @@ class DataManager {
         }
     }
 
-    // 記事マージ処理（NGドメイン削除版）
+    // 記事マージ処理（学習済みスコア完全保持版）
     mergeArticles(existingArticles, newArticles) {
         try {
             const existingMap = new Map();
@@ -220,6 +220,7 @@ class DataManager {
             const mergedArticles = [...existingArticles];
             let addedCount = 0;
             let updatedCount = 0;
+            let protectedCount = 0; // 学習済みスコア保護数
 
             // 新記事を処理
             newArticles.forEach(newArticle => {
@@ -233,6 +234,11 @@ class DataManager {
                         if (index !== -1) {
                             mergedArticles[index] = merged;
                             updatedCount++;
+                            
+                            // 学習済みスコア保護の確認
+                            if (existing.feedbackHistory && existing.feedbackHistory.length > 0) {
+                                protectedCount++;
+                            }
                         }
                     }
                 } else {
@@ -243,7 +249,7 @@ class DataManager {
                 }
             });
 
-            console.log(`記事マージ結果: 追加${addedCount}件, 更新${updatedCount}件, 総計${mergedArticles.length}件`);
+            console.log(`記事マージ結果: 追加${addedCount}件, 更新${updatedCount}件, 学習済み保護${protectedCount}件, 総計${mergedArticles.length}件`);
             return mergedArticles;
         } catch (error) {
             console.error('記事マージエラー:', error);
@@ -269,26 +275,58 @@ class DataManager {
         return score;
     }
 
-    // 記事データマージ（NGドメイン削除版）
+    // 【重要修正】記事データマージ（学習済みスコア完全保持版）
     mergeArticleData(existingArticle, newArticle) {
         try {
-            console.log(`記事マージ: "${newArticle.title.substring(0, 30)}..." (状態保持: ${existingArticle.readStatus})`);
+            console.log(`記事マージ: "${newArticle.title.substring(0, 30)}..." (既存スコア: ${existingArticle.interestScore})`);
+
+            // 【重要】学習済みスコアの優先保持ロジック
+            let finalScore = 50; // デフォルト値
+
+            // 既存記事にフィードバック履歴がある場合は、既存スコアを完全保持
+            if (existingArticle.feedbackHistory && existingArticle.feedbackHistory.length > 0) {
+                finalScore = existingArticle.interestScore !== undefined ? existingArticle.interestScore : 50;
+                console.log(`🧠 学習済みスコア完全保持: ${finalScore}点 (フィードバック${existingArticle.feedbackHistory.length}件)`);
+            } 
+            // 新記事に有効なスコアがある場合は使用（AI計算済み）
+            else if (newArticle.interestScore !== undefined && newArticle.interestScore !== 50) {
+                finalScore = newArticle.interestScore;
+                console.log(`🆕 新記事AIスコア採用: ${finalScore}点`);
+            }
+            // 既存記事にスコアがある場合は保持
+            else if (existingArticle.interestScore !== undefined && existingArticle.interestScore !== 50) {
+                finalScore = existingArticle.interestScore;
+                console.log(`📊 既存スコア保持: ${finalScore}点`);
+            }
 
             const mergedArticle = {
-                ...newArticle,
-                interestScore: newArticle.interestScore !== undefined && newArticle.interestScore !== 50
-                    ? newArticle.interestScore
-                    : (existingArticle.interestScore !== undefined
-                        ? existingArticle.interestScore
-                        : 50),
+                ...newArticle, // 新記事の最新データをベースに
+                
+                // 【重要】学習・状態データは既存記事から完全保持
+                articleId: existingArticle.articleId || newArticle.articleId,
+                interestScore: finalScore, // 上記で決定したスコア
                 readStatus: existingArticle.readStatus || 'unread',
                 favorited: existingArticle.favorited || false,
                 feedbackHistory: existingArticle.feedbackHistory || [],
                 lastReadAt: existingArticle.lastReadAt,
+                lastFeedbackAt: existingArticle.lastFeedbackAt,
                 matchedKeywords: newArticle.matchedKeywords || existingArticle.matchedKeywords || [],
-                articleId: existingArticle.articleId || newArticle.articleId
+                
+                // マージ情報
+                lastMerged: new Date().toISOString(),
+                mergeCount: (existingArticle.mergeCount || 0) + 1,
+                
+                // 【追加】学習済み保護フラグ
+                isLearned: existingArticle.feedbackHistory && existingArticle.feedbackHistory.length > 0
             };
 
+            // 【重要】学習済み記事のスコア変更を防ぐ
+            if (mergedArticle.isLearned && mergedArticle.interestScore !== existingArticle.interestScore) {
+                console.warn(`⚠️ 学習済み記事のスコア変更を検出し、既存スコアに戻します: ${mergedArticle.interestScore} → ${existingArticle.interestScore}`);
+                mergedArticle.interestScore = existingArticle.interestScore;
+            }
+
+            console.log(`✅ マージ完了: 最終スコア ${finalScore}点 ${mergedArticle.isLearned ? '(学習済み保護)' : '(新規/更新)'}`);
             return mergedArticle;
         } catch (error) {
             console.error('記事マージエラー:', error);
@@ -407,9 +445,13 @@ class DataManager {
     // 統計情報取得
     async getStorageStats() {
         try {
+            const articles = await this.loadArticles();
+            const learnedArticles = articles.filter(a => a.feedbackHistory && a.feedbackHistory.length > 0);
+            
             const stats = {
                 storageType: this.storageAvailable ? 'LocalStorage' : 'Memory',
-                articles: (await this.loadArticles()).length,
+                articles: articles.length,
+                learnedArticles: learnedArticles.length, // 学習済み記事数
                 rssFeeds: (await this.loadRssFeeds()).length,
                 totalSize: 0,
                 lastUpdate: new Date().toISOString()
@@ -517,13 +559,41 @@ class DataManager {
         }
     }
 
+    // 学習済み記事の保護状況確認
+    async getLearningProtectionStats() {
+        try {
+            const articles = await this.loadArticles();
+            const protectedArticles = articles.filter(article => 
+                article.feedbackHistory && article.feedbackHistory.length > 0
+            );
+
+            const stats = {
+                totalArticles: articles.length,
+                protectedArticles: protectedArticles.length,
+                protectionRate: articles.length > 0 ? 
+                    Math.round((protectedArticles.length / articles.length) * 100) : 0,
+                avgFeedbackCount: protectedArticles.length > 0 ?
+                    Math.round(protectedArticles.reduce((sum, a) => sum + a.feedbackHistory.length, 0) / protectedArticles.length) : 0,
+                lastUpdate: new Date().toISOString()
+            };
+
+            return stats;
+        } catch (error) {
+            console.error('学習保護統計取得エラー:', error);
+            return null;
+        }
+    }
+
     // デバッグ情報取得
     async getDebugInfo() {
         const stats = await this.getStorageStats();
+        const learningStats = await this.getLearningProtectionStats();
+        
         return {
             initialized: true,
             storageAvailable: this.storageAvailable,
             stats: stats,
+            learningProtection: learningStats,
             storageKeys: this.STORAGE_KEYS,
             memoryStorageActive: !this.storageAvailable,
             timestamp: new Date().toISOString()
