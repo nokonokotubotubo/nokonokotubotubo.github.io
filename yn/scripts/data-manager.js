@@ -192,33 +192,32 @@ class DataManager {
                article.ngDomain === true;
     }
     
-    // 重複記事除去（改善版）
-    removeDuplicateArticles(articles) {
-        const seen = new Map();
-        const unique = [];
+// 重複記事除去（エラー修正版）
+removeDuplicateArticles(articles) {
+    const seen = new Set();
+    const unique = [];
+    
+    articles.forEach(article => {
+        const key = this.generateStableArticleKey(article);
         
-        articles.forEach(article => {
-            const key = this.generateStableArticleKey(article);
-            
-            if (!seen.has(key)) {
-                seen.add(key, article);
-                unique.push(article);
-            } else {
-                // 既に存在する場合は、より多くの状態情報を持つ方を採用
-                const existing = seen.get(key);
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(article);
+        } else {
+            // 既に存在する場合は、より重要な状態を持つ方を採用
+            const existingIndex = unique.findIndex(a => this.generateStableArticleKey(a) === key);
+            if (existingIndex !== -1) {
+                const existing = unique[existingIndex];
                 if (this.hasMoreImportantState(article, existing)) {
-                    // 既存を置き換え
-                    const index = unique.findIndex(a => this.generateStableArticleKey(a) === key);
-                    if (index !== -1) {
-                        unique[index] = article;
-                        seen.set(key, article);
-                    }
+                    unique[existingIndex] = article;
                 }
             }
-        });
-        
-        return unique;
-    }
+        }
+    });
+    
+    console.log(`🔄 Removed ${articles.length - unique.length} duplicate articles`);
+    return unique;
+}
     
     // より重要な状態を持つかチェック
     hasMoreImportantState(articleA, articleB) {
