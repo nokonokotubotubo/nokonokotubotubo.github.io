@@ -1,4 +1,4 @@
-// YourNewsApp - フィードバック重複防止完全対応版
+// YourNewsApp - フィードバック重複防止完全対応版・AI興味度永続化機能復元版
 
 class YourNewsApp {
     constructor() {
@@ -27,7 +27,7 @@ class YourNewsApp {
         try {
             console.log('YourNewsApp初期化開始');
 
-            // 【追加】フィードバック状態復元
+            // フィードバック状態復元
             this.restoreFeedbackState();
 
             await this.initializeTensorFlow();
@@ -52,7 +52,7 @@ class YourNewsApp {
             this.setupEventListeners();
             this.setupGlobalFunctions();
 
-            // 【追加】定期クリーンアップ開始
+            // 定期クリーンアップ開始
             this.startFeedbackStateCleanup();
 
             this.initialized = true;
@@ -65,7 +65,7 @@ class YourNewsApp {
         }
     }
 
-    // 【新機能】フィードバック状態復元
+    // フィードバック状態復元
     restoreFeedbackState() {
         try {
             const stored = localStorage.getItem(this.FEEDBACK_STATE_KEY);
@@ -102,7 +102,7 @@ class YourNewsApp {
         }
     }
 
-    // 【新機能】フィードバック状態保存
+    // フィードバック状態保存
     saveFeedbackState() {
         try {
             const now = Date.now();
@@ -131,7 +131,7 @@ class YourNewsApp {
         }
     }
 
-    // 【新機能】定期クリーンアップ
+    // 定期クリーンアップ
     startFeedbackStateCleanup() {
         // 30秒ごとにクリーンアップ実行
         setInterval(() => {
@@ -142,7 +142,7 @@ class YourNewsApp {
         this.cleanupFeedbackState();
     }
 
-    // 【新機能】期限切れ状態のクリーンアップ
+    // 期限切れ状態のクリーンアップ
     cleanupFeedbackState() {
         try {
             const now = Date.now();
@@ -338,7 +338,7 @@ class YourNewsApp {
         }
     }
 
-    // 【完全修正】フィードバック処理（状態永続化対応・NGドメイン削除）
+    // 【完全修正】フィードバック処理（AI興味度永続化機能復元版）
     async processFeedback(articleId, feedback) {
         try {
             if (!articleId || feedback === undefined) {
@@ -346,13 +346,13 @@ class YourNewsApp {
                 return false;
             }
 
-            // 【強化1】厳格な重複防止チェック
+            // 厳格な重複防止チェック
             if (this.processingArticles.has(articleId)) {
                 console.log(`❌ フィードバック処理中のため拒否: ${articleId}`);
                 return false;
             }
 
-            // 【強化2】ボタンクールダウンチェック
+            // ボタンクールダウンチェック
             const cooldownKey = `${articleId}_cooldown`;
             if (this.buttonCooldowns.has(cooldownKey)) {
                 const cooldownEnd = this.buttonCooldowns.get(cooldownKey);
@@ -362,7 +362,7 @@ class YourNewsApp {
                 }
             }
 
-            // 【強化3】ボタン状態の事前確認
+            // ボタン状態の事前確認
             const card = document.querySelector(`[data-article-id="${articleId}"]`);
             if (!card) {
                 console.error('記事カードが見つかりません');
@@ -382,10 +382,10 @@ class YourNewsApp {
             // クールダウン設定（3秒間）
             this.buttonCooldowns.set(cooldownKey, Date.now() + 3000);
 
-            // 【追加】状態を永続化
+            // 状態を永続化
             this.saveFeedbackState();
 
-            // 【即座】全ボタン無効化
+            // 即座全ボタン無効化
             this.disableFeedbackButtons(articleId);
 
             console.log(`🧠 フィードバック処理開始: ${articleId} -> ${feedback}`);
@@ -414,19 +414,24 @@ class YourNewsApp {
                 originalScore: originalScore
             });
 
-            // AI学習実行（即座学習）
+            // 【重要】AI学習実行と新スコア計算
+            let newScore = originalScore;
             if (this.aiEngine && !this.aiDisabled) {
                 try {
                     console.log('🧠 AI学習実行中...');
                     await this.aiEngine.processFeedback(article, feedback);
 
                     // 新しい興味度スコア再計算
-                    const newScore = await this.aiEngine.calculateInterestScore(article);
+                    const keywords = await this.dataManager.loadData('yourNews_keywords') || { interestWords: [], ngWords: [] };
+                    newScore = await this.aiEngine.calculateInterestScore(article, keywords);
+                    
+                    // 【重要】記事データに新スコアを確実に保存
                     article.interestScore = newScore;
-
+                    
                     console.log(`✅ AI学習完了 - スコア変化: ${originalScore}点 → ${newScore}点`);
                 } catch (aiError) {
                     console.warn('AI学習エラー:', aiError);
+                    // AI学習失敗時もフィードバック履歴は保持
                 }
             }
 
@@ -435,21 +440,40 @@ class YourNewsApp {
                 article.readStatus = 'read';
             }
 
-            // データ保存
-            await this.dataManager.saveArticles(articles);
+            // 【重要】記事データ更新（配列内の該当記事を更新）
+            articles[articleIndex] = {
+                ...article,
+                interestScore: newScore, // 新スコアを確実に設定
+                lastFeedbackAt: new Date().toISOString() // 最終フィードバック時刻を記録
+            };
+
+            // 【重要】データ保存（確実な永続化）
+            console.log(`💾 記事データ保存開始: スコア ${originalScore}→${newScore}`);
+            const savedArticles = await this.dataManager.saveArticles(articles);
+            console.log(`✅ 記事データ保存完了: ${savedArticles.length}件`);
+
+            // 【重要】AI学習データ保存（学習結果の永続化）
+            if (this.aiEngine && !this.aiDisabled) {
+                try {
+                    await this.aiEngine.saveAIData();
+                    console.log('✅ AI学習データ保存完了');
+                } catch (saveError) {
+                    console.warn('AI学習データ保存エラー:', saveError);
+                }
+            }
 
             // UI即座更新
             if (this.uiController) {
-                this.uiController.updateArticleScore(articleId, article.interestScore);
+                this.uiController.updateArticleScore(articleId, newScore);
                 this.uiController.updateArticleDisplay(articleId, {
                     readStatus: article.readStatus,
-                    interestScore: article.interestScore
+                    interestScore: newScore
                 });
                 this.uiController.updateStats();
             }
 
             // フィードバック完了通知
-            this.showFeedbackComplete(articleId, feedback, article.interestScore);
+            this.showFeedbackComplete(articleId, feedback, newScore);
 
             return true;
 
@@ -458,7 +482,7 @@ class YourNewsApp {
             this.showNotification('フィードバックの処理に失敗しました', 'error');
             return false;
         } finally {
-            // 【重要】確実なクリーンアップ（3秒後）
+            // 確実なクリーンアップ（3秒後）
             setTimeout(() => {
                 this.processingArticles.delete(articleId);
                 this.enableFeedbackButtons(articleId);
@@ -467,7 +491,7 @@ class YourNewsApp {
                 const cooldownKey = `${articleId}_cooldown`;
                 this.buttonCooldowns.delete(cooldownKey);
 
-                // 【追加】状態を永続化
+                // 状態を永続化
                 this.saveFeedbackState();
 
                 console.log(`🔓 フィードバック処理完了: ${articleId}`);
@@ -475,7 +499,7 @@ class YourNewsApp {
         }
     }
 
-    // 【強化】ボタン無効化処理
+    // ボタン無効化処理
     disableFeedbackButtons(articleId) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (card) {
@@ -494,7 +518,7 @@ class YourNewsApp {
         }
     }
 
-    // 【強化】ボタン再有効化処理
+    // ボタン再有効化処理
     enableFeedbackButtons(articleId) {
         const card = document.querySelector(`[data-article-id="${articleId}"]`);
         if (card) {
