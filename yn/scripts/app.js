@@ -1,4 +1,4 @@
-// YourNewsApp - フィードバック重複防止完全対応版・AI興味度永続化機能復元版
+// YourNewsApp - フィードバック重複防止完全対応版・初期化順序修正版
 
 class YourNewsApp {
     constructor() {
@@ -46,7 +46,12 @@ class YourNewsApp {
                 console.warn('⚠️ AI機能無効 - フォールバックモード');
             }
 
+            // 【修正】UIController初期化とAIエンジン参照設定
             this.uiController = new UIController(this.dataManager, this.rssFetcher, this.articleCard);
+            
+            // 【重要】AIエンジン参照を設定
+            this.uiController.setAIEngine(this.aiEngine, this.aiDisabled);
+
             await this.uiController.initialize();
 
             this.setupEventListeners();
