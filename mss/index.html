@@ -16,9 +16,17 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(registration => console.log('SW registered:', registration))
-            .catch(error => console.log('SW registration failed:', error));
+          // サブディレクトリ対応：スコープを明示的に指定
+          navigator.serviceWorker.register('./sw.js', {
+            scope: '/mss/'
+          })
+            .then(registration => {
+              console.log('SW registered:', registration);
+              console.log('SW scope:', registration.scope);
+            })
+            .catch(error => {
+              console.log('SW registration failed:', error);
+            });
         });
       }
     </script>
