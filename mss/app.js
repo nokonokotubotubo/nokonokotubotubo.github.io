@@ -1133,38 +1133,44 @@
         setState({ showModal: null });
     }
 
-    // ★ 修正済み：重複フィードバック防止・低評価時の自動既読化
-    function handleStarClick(event) {
-        if (event.target.classList.contains('star')) {
-            const rating = parseInt(event.target.dataset.rating);
-            const articleId = event.target.dataset.articleId;
-            
-            const articlesHook = DataHooks.useArticles();
-            const aiHook = DataHooks.useAILearning();
-            const article = state.articles.find(a => a.id === articleId);
-            
-            if (article) {
-                // 1. 同じ記事にフィードバックを何度も出来ないようにする
-                if (article.userRating > 0) {
-                    console.log(`[Rating] Article "${article.title}" already rated (${article.userRating} stars). Feedback blocked.`);
-                    return;
-                }
-                
-                // 評価を更新
-                const updateData = { userRating: rating };
-                
-                // 2. 評価の星が1か2の場合、既読になるようにする
-                if (rating === 1 || rating === 2) {
-                    updateData.readStatus = 'read';
-                    console.log(`[Rating] Low rating (${rating} stars) - marking article as read`);
-                }
-                
-                articlesHook.updateArticle(articleId, updateData);
-                aiHook.updateLearningData(article, rating);
-                console.log(`[Rating] Article "${article.title}" rated ${rating} stars`);
-            }
-        }
+   function handleStarClick(event) {
+  if (event.target.classList.contains('star')) {
+    const rating = parseInt(event.target.dataset.rating);
+    const articleId = event.target.dataset.articleId;
+    
+    const articlesHook = DataHooks.useArticles();
+    const aiHook = DataHooks.useAILearning();
+    const article = state.articles.find(a => a.id === articleId);
+    
+    if (article) {
+      // 同じ評価の重複クリックのみ防止（評価変更は許可）
+      if (article.userRating === rating) {
+        console.log(`[Rating] Article "${article.title}" already has ${rating} stars. No change needed.`);
+        return;
+      }
+      
+      // 評価を更新
+      const updateData = { userRating: rating };
+      
+      // 評価の星が1か2の場合、既読になるようにする
+      if (rating === 1 || rating === 2) {
+        updateData.readStatus = 'read';
+        console.log(`[Rating] Low rating (${rating} stars) - marking article as read`);
+      }
+      
+      articlesHook.updateArticle(articleId, updateData);
+      aiHook.updateLearningData(article, rating);
+      
+      // 評価変更の場合はログメッセージを変更
+      if (article.userRating > 0) {
+        console.log(`[Rating] Article "${article.title}" rating changed from ${article.userRating} to ${rating} stars`);
+      } else {
+        console.log(`[Rating] Article "${article.title}" rated ${rating} stars`);
+      }
     }
+  }
+}
+
 
     function handleReadStatusToggle(articleId) {
         const articlesHook = DataHooks.useArticles();
