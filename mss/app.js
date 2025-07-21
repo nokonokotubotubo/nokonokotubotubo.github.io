@@ -1,9 +1,9 @@
-// Minews PWA - UI改善版
+// Minews PWA - パフォーマンス問題修正完全版
 (function() {
     'use strict';
 
     // ===========================================
-    // データ型定義・定数（改良版）
+    // データ型定義・定数
     // ===========================================
 
     const STORAGE_KEYS = {
@@ -63,6 +63,50 @@
             interestWords: ['AI', 'React', 'JavaScript', 'PWA', '機械学習'],
             ngWords: [],
             lastUpdated: new Date().toISOString()
+        }
+    };
+
+    // ===========================================
+    // データキャッシュシステム（新規追加）
+    // ===========================================
+
+    const DataHooksCache = {
+        articles: null,
+        rssFeeds: null,
+        aiLearning: null,
+        wordFilters: null,
+        lastUpdate: {
+            articles: null,
+            rssFeeds: null,
+            aiLearning: null,
+            wordFilters: null
+        },
+        
+        // キャッシュクリア
+        clear: function(key) {
+            if (key) {
+                this[key] = null;
+                this.lastUpdate[key] = null;
+                console.log(`[Cache] Cleared cache for: ${key}`);
+            } else {
+                // 全キャッシュクリア
+                this.articles = null;
+                this.rssFeeds = null;
+                this.aiLearning = null;
+                this.wordFilters = null;
+                this.lastUpdate = { articles: null, rssFeeds: null, aiLearning: null, wordFilters: null };
+                console.log('[Cache] Cleared all cache');
+            }
+        },
+
+        // キャッシュ統計
+        getStats: function() {
+            return {
+                articles: this.articles ? 'cached' : 'not cached',
+                rssFeeds: this.rssFeeds ? 'cached' : 'not cached',
+                aiLearning: this.aiLearning ? 'cached' : 'not cached',
+                wordFilters: this.wordFilters ? 'cached' : 'not cached'
+            };
         }
     };
 
@@ -619,18 +663,25 @@
     };
 
     // ===========================================
-    // データ操作フック（継承）
+    // データ操作フック（パフォーマンス最適化版）
     // ===========================================
 
     const DataHooks = {
         useArticles: function() {
-            const articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
+            const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.articles || DataHooksCache.lastUpdate.articles !== timestamp) {
+                DataHooksCache.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
+                DataHooksCache.lastUpdate.articles = timestamp;
+                console.log('[Cache] Articles cache updated');
+            }
             
             return {
-                articles: articles,
+                articles: DataHooksCache.articles,
                 
                 addArticle: function(newArticle) {
-                    const updatedArticles = [...articles];
+                    const updatedArticles = [...DataHooksCache.articles];
                     
                     const exists = updatedArticles.find(article => 
                         article.id === newArticle.id || 
@@ -656,31 +707,47 @@
                     
                     updatedArticles.unshift(newArticle);
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     return true;
                 },
                 
                 updateArticle: function(articleId, updates) {
-                    const updatedArticles = articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         article.id === articleId ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
                 
                 removeArticle: function(articleId) {
-                    const updatedArticles = articles.filter(article => article.id !== articleId);
+                    const updatedArticles = DataHooksCache.articles.filter(article => article.id !== articleId);
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
                 
                 bulkUpdateArticles: function(articleIds, updates) {
-                    const updatedArticles = articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         articleIds.includes(article.id) ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 }
@@ -688,10 +755,17 @@
         },
 
         useRSSManager: function() {
-            const rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
+            const stored = localStorage.getItem(STORAGE_KEYS.RSS_FEEDS);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.rssFeeds || DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
+                DataHooksCache.rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
+                DataHooksCache.lastUpdate.rssFeeds = timestamp;
+                console.log('[Cache] RSS feeds cache updated');
+            }
             
             return {
-                rssFeeds: rssFeeds,
+                rssFeeds: DataHooksCache.rssFeeds,
                 
                 addRSSFeed: function(url, title) {
                     const newFeed = {
@@ -702,23 +776,38 @@
                         isActive: true
                     };
                     
-                    const updatedFeeds = [...rssFeeds, newFeed];
+                    const updatedFeeds = [...DataHooksCache.rssFeeds, newFeed];
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Added feed:', title);
                     return newFeed;
                 },
                 
                 removeRSSFeed: function(feedId) {
-                    const updatedFeeds = rssFeeds.filter(feed => feed.id !== feedId);
+                    const updatedFeeds = DataHooksCache.rssFeeds.filter(feed => feed.id !== feedId);
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Removed feed:', feedId);
                 },
 
                 updateRSSFeed: function(feedId, updates) {
-                    const updatedFeeds = rssFeeds.map(feed =>
+                    const updatedFeeds = DataHooksCache.rssFeeds.map(feed =>
                         feed.id === feedId ? { ...feed, ...updates } : feed
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Updated feed:', feedId);
                 },
 
@@ -728,7 +817,7 @@
                     let totalErrors = 0;
                     let feedResults = [];
 
-                    for (const feed of rssFeeds.filter(f => f.isActive)) {
+                    for (const feed of DataHooksCache.rssFeeds.filter(f => f.isActive)) {
                         try {
                             console.log(`[RSS] Fetching feed: ${feed.title} (${feed.url})`);
                             
@@ -766,14 +855,11 @@
                             });
                         }
                     }
-
-                    state.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, []);
-                    render();
                     
                     return { 
                         totalAdded, 
                         totalErrors, 
-                        totalFeeds: rssFeeds.filter(f => f.isActive).length,
+                        totalFeeds: DataHooksCache.rssFeeds.filter(f => f.isActive).length,
                         feedResults
                     };
                 }
@@ -781,82 +867,131 @@
         },
 
         useAILearning: function() {
-            const aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
+            const stored = localStorage.getItem(STORAGE_KEYS.AI_LEARNING);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.aiLearning || DataHooksCache.lastUpdate.aiLearning !== timestamp) {
+                DataHooksCache.aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
+                DataHooksCache.lastUpdate.aiLearning = timestamp;
+                console.log('[Cache] AI learning cache updated');
+            }
             
             return {
-                aiLearning: aiLearning,
+                aiLearning: DataHooksCache.aiLearning,
                 
                 updateWordWeight: function(word, weight) {
                     const updatedLearning = {
-                        ...aiLearning,
+                        ...DataHooksCache.aiLearning,
                         wordWeights: {
-                            ...aiLearning.wordWeights,
-                            [word]: (aiLearning.wordWeights[word] || 0) + weight
+                            ...DataHooksCache.aiLearning.wordWeights,
+                            [word]: (DataHooksCache.aiLearning.wordWeights[word] || 0) + weight
                         },
                         lastUpdated: new Date().toISOString()
                     };
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     console.log('[AI] Updated word weight:', word, weight);
                 },
                 
                 updateCategoryWeight: function(category, weight) {
                     const updatedLearning = {
-                        ...aiLearning,
+                        ...DataHooksCache.aiLearning,
                         categoryWeights: {
-                            ...aiLearning.categoryWeights,
-                            [category]: (aiLearning.categoryWeights[category] || 0) + weight
+                            ...DataHooksCache.aiLearning.categoryWeights,
+                            [category]: (DataHooksCache.aiLearning.categoryWeights[category] || 0) + weight
                         },
                         lastUpdated: new Date().toISOString()
                     };
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     console.log('[AI] Updated category weight:', category, weight);
                 },
 
                 updateLearningData: function(article, rating) {
-                    const updatedLearning = AIScoring.updateLearning(article, rating, aiLearning);
+                    const updatedLearning = AIScoring.updateLearning(article, rating, DataHooksCache.aiLearning);
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     return updatedLearning;
                 }
             };
         },
 
         useWordFilters: function() {
-            const wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+            const stored = localStorage.getItem(STORAGE_KEYS.WORD_FILTERS);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.wordFilters || DataHooksCache.lastUpdate.wordFilters !== timestamp) {
+                DataHooksCache.wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+                DataHooksCache.lastUpdate.wordFilters = timestamp;
+                console.log('[Cache] Word filters cache updated');
+            }
             
             return {
-                wordFilters: wordFilters,
+                wordFilters: DataHooksCache.wordFilters,
                 
                 addInterestWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
                 
                 addNGWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
 
                 removeInterestWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
 
                 removeNGWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
@@ -866,7 +1001,7 @@
     };
 
     // ===========================================
-    // アプリケーション状態管理
+    // アプリケーション状態管理（継承）
     // ===========================================
 
     let state = {
@@ -890,6 +1025,12 @@
         const aiData = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
         const wordData = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
         
+        // キャッシュ初期化
+        DataHooksCache.articles = articlesData;
+        DataHooksCache.rssFeeds = rssData;
+        DataHooksCache.aiLearning = aiData;
+        DataHooksCache.wordFilters = wordData;
+        
         state.articles = articlesData;
 
         if (state.articles.length === 0) {
@@ -898,29 +1039,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Minews PWA：UI改善アップデート完了',
+                    title: 'Minews PWA：UIデザイン改善完了',
                     url: '#',
-                    content: 'アプリ名をMinewsに変更し、ナビゲーション改善と記事アクションボタンの視認性向上を実装しました。更新ボタンには絵文字を追加し、より使いやすいインターフェースを実現しています。',
+                    content: 'ナビゲーション配置の最適化により、更新ボタンを最右端に配置し絵文字で視認性を向上。記事アクションボタンもシンプルで見やすいデザインに変更しました。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'Minews Development',
-                    category: 'Technology',
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords: ['UI', '改善', 'PWA', 'Minews', 'ナビゲーション']
-                },
-                {
-                    id: 'sample_2',
-                    title: 'シンプルで視認性の高いボタンデザイン',
-                    url: '#',
-                    content: '既読・後で読むボタンを派手にせず、シンプルで視認性の高いデザインに改善。ユーザビリティを重視したアプローチで、より直感的な操作を実現しました。',
-                    publishDate: new Date(Date.now() - 3600000).toISOString(),
-                    rssSource: 'UX Design',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['UI/UX', 'ボタン', 'デザイン', 'シンプル', '視認性']
+                    keywords: ['デザイン', 'UI', '改善', 'ナビゲーション', '視認性']
+                },
+                {
+                    id: 'sample_2',
+                    title: 'アクションボタンの使いやすさ向上',
+                    url: '#',
+                    content: '「既読にする」「後で読む」ボタンをシンプルな形状に変更し、ユーザビリティを大幅に向上。直感的な操作が可能になりました。',
+                    publishDate: new Date(Date.now() - 3600000).toISOString(),
+                    rssSource: 'UX Blog',
+                    category: 'UX',
+                    readStatus: 'unread',
+                    readLater: false,
+                    userRating: 0,
+                    keywords: ['ボタン', 'ユーザビリティ', 'UX', 'シンプル', '操作性']
                 }
             ];
             
@@ -929,18 +1070,18 @@
                 articlesHook.addArticle(article);
             });
             
-            state.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, []);
+            state.articles = DataHooksCache.articles;
         }
         
         const storageInfo = LocalStorageManager.getStorageInfo();
         console.log('[App] Storage info:', storageInfo);
         console.log('[App] Data initialization complete. Articles:', state.articles.length);
-        console.log('[App] RSS Feeds:', rssData.length);
-        console.log('[App] Word Filters initialized');
+        console.log('[App] RSS Feeds:', DataHooksCache.rssFeeds.length);
+        console.log('[App] Cache initialized:', DataHooksCache.getStats());
     }
 
     // ===========================================
-    // Utility functions
+    // Utility functions（継承）
     // ===========================================
 
     function formatDate(dateString) {
@@ -978,7 +1119,7 @@
     }
 
     // ===========================================
-    // Event handlers
+    // Event handlers（継承）
     // ===========================================
 
     function handleFilterClick(mode) {
@@ -1047,7 +1188,7 @@
                 lastUpdate: new Date().toISOString() 
             });
             
-            let message = `📰 更新完了！\n${result.totalAdded}件の新記事を追加しました。\n`;
+            let message = `更新完了！${result.totalAdded}件の新記事を追加しました。\n`;
             
             if (result.feedResults && result.feedResults.length > 0) {
                 message += '\n【フィード別結果】\n';
@@ -1139,12 +1280,18 @@
     }
 
     // ===========================================
-    // フィルタリング・レンダリング関数
+    // フィルタリング・レンダリング関数（最適化版）
     // ===========================================
 
     function getFilteredArticles() {
         const aiHook = DataHooks.useAILearning();
         const wordHook = DataHooks.useWordFilters();
+        
+        console.log('[Debug] Filtering articles:', {
+            totalArticles: state.articles.length,
+            viewMode: state.viewMode,
+            cacheStats: DataHooksCache.getStats()
+        });
         
         const filteredByWords = WordFilterManager.filterArticles(state.articles, wordHook.wordFilters);
         
@@ -1163,7 +1310,10 @@
                 filteredByMode = filteredByWords;
         }
 
-        return AIScoring.sortArticlesByScore(filteredByMode, aiHook.aiLearning, wordHook.wordFilters);
+        const result = AIScoring.sortArticlesByScore(filteredByMode, aiHook.aiLearning, wordHook.wordFilters);
+        console.log('[Debug] Final filtered articles:', result.length);
+        
+        return result;
     }
 
     function renderNavigation() {
@@ -1181,7 +1331,7 @@
         }).join('');
 
         const refreshButtonClass = state.isLoading ? 'action-btn refresh-btn loading' : 'action-btn refresh-btn';
-        const refreshButtonText = state.isLoading ? '📥 更新中...' : '🔄 更新';
+        const refreshButtonText = state.isLoading ? '🔄 更新中...' : '🔄 更新';
 
         return `
             <nav class="nav">
@@ -1193,9 +1343,9 @@
                     ${filterButtons}
                 </div>
                 <div class="nav-actions">
-                    <button class="action-btn" data-modal="rss">📡 RSS管理</button>
-                    <button class="action-btn" data-modal="words">🔤 ワード管理</button>
-                    <button class="action-btn" data-action="storage">📊 データ</button>
+                    <button class="action-btn" data-modal="rss">RSS管理</button>
+                    <button class="action-btn" data-modal="words">ワード管理</button>
+                    <button class="action-btn" data-action="storage">データ</button>
                     <button class="${refreshButtonClass}" data-action="refresh" ${state.isLoading ? 'disabled' : ''}>${refreshButtonText}</button>
                 </div>
             </nav>
@@ -1220,7 +1370,7 @@
 
     function renderArticleCard(article) {
         const readStatusLabel = article.readStatus === 'read' ? '未読' : '既読';
-        const readLaterLabel = article.readLater ? '解除' : '後で読む';
+        const readLaterLabel = article.readLater ? '解除' : '後読';
         const scoreDisplay = article.aiScore !== undefined ? 
             `<span class="ai-score" title="AIスコア">🤖 ${article.aiScore}</span>` : '';
 
@@ -1247,8 +1397,8 @@
                     ).join('') : ''}
                 </div>
                 <div class="article-actions">
-                    <button class="action-btn-simple read-status" data-article-id="${article.id}">📖 ${readStatusLabel}</button>
-                    <button class="action-btn-simple read-later" data-article-id="${article.id}">📌 ${readLaterLabel}</button>
+                    <button class="action-btn simple-btn read-status" data-article-id="${article.id}">${readStatusLabel}</button>
+                    <button class="action-btn simple-btn read-later" data-article-id="${article.id}">${readLaterLabel}</button>
                 </div>
                 ${createStarRating(article.userRating, article.id)}
             </div>
@@ -1280,12 +1430,12 @@
             const rssHook = DataHooks.useRSSManager();
             modalContent = `
                 <div class="modal-header">
-                    <h2>📡 RSS管理</h2>
+                    <h2>RSS管理</h2>
                     <button class="modal-close">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="modal-actions">
-                        <button class="action-btn success" data-action="rss-add">➕ RSSフィード追加</button>
+                        <button class="action-btn success" data-action="rss-add">RSSフィード追加</button>
                     </div>
                     <div class="rss-list">
                         <h3>登録済みRSSフィード (${rssHook.rssFeeds.length})</h3>
@@ -1295,16 +1445,16 @@
                                     <strong>${feed.title}</strong>
                                     <small class="rss-url">${feed.url}</small>
                                     <small class="rss-updated">更新: ${formatDate(feed.lastUpdated)}</small>
-                                    <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">${feed.isActive ? '✅ 有効' : '❌ 無効'}</span>
+                                    <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">${feed.isActive ? '有効' : '無効'}</span>
                                 </div>
                                 <div class="rss-actions">
-                                    <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">🗑️ 削除</button>
+                                    <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">削除</button>
                                 </div>
                             </div>
                         `).join('')}
                         
                         <div class="rss-help">
-                            <h4>📝 推奨RSSフィード</h4>
+                            <h4>推奨RSSフィード</h4>
                             <ul>
                                 <li><strong>NHKニュース</strong>: https://www3.nhk.or.jp/rss/news/cat0.xml</li>
                                 <li><strong>ITmedia</strong>: https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml</li>
@@ -1318,14 +1468,14 @@
             const wordHook = DataHooks.useWordFilters();
             modalContent = `
                 <div class="modal-header">
-                    <h2>🔤 ワード管理</h2>
+                    <h2>ワード管理</h2>
                     <button class="modal-close">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="word-section">
                         <div class="word-section-header">
-                            <h3>💡 気になるワード (${wordHook.wordFilters.interestWords.length}) +20pt</h3>
-                            <button class="action-btn success" data-action="word-add" data-type="interest">➕ 追加</button>
+                            <h3>気になるワード (${wordHook.wordFilters.interestWords.length}) +20pt</h3>
+                            <button class="action-btn success" data-action="word-add" data-type="interest">追加</button>
                         </div>
                         <div class="word-list">
                             ${wordHook.wordFilters.interestWords.map(word => `
@@ -1339,8 +1489,8 @@
                     
                     <div class="word-section">
                         <div class="word-section-header">
-                            <h3>🚫 NGワード (${wordHook.wordFilters.ngWords.length}) -50pt</h3>
-                            <button class="action-btn danger" data-action="word-add" data-type="ng">➕ 追加</button>
+                            <h3>NGワード (${wordHook.wordFilters.ngWords.length}) -50pt</h3>
+                            <button class="action-btn danger" data-action="word-add" data-type="ng">追加</button>
                         </div>
                         <div class="word-list">
                             ${wordHook.wordFilters.ngWords.map(word => `
@@ -1353,26 +1503,26 @@
                     </div>
                     
                     <div class="word-help">
-                        <h4>ℹ️ ワードフィルターについて</h4>
-                        <p><strong>💡 気になるワード</strong>: 記事のタイトルや内容に含まれると+20ポイント</p>
-                        <p><strong>🚫 NGワード</strong>: 記事のタイトルや内容に含まれると-50ポイント（除外対象）</p>
+                        <h4>ワードフィルターについて</h4>
+                        <p><strong>気になるワード</strong>: 記事のタイトルや内容に含まれると+20ポイント</p>
+                        <p><strong>NGワード</strong>: 記事のタイトルや内容に含まれると-50ポイント（除外対象）</p>
                     </div>
                 </div>
             `;
         } else if (state.showModal === 'storage') {
             const storageInfo = LocalStorageManager.getStorageInfo();
-            const aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
-            const rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
-            const wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+            const aiLearning = DataHooksCache.aiLearning || DEFAULT_DATA.aiLearning;
+            const rssFeeds = DataHooksCache.rssFeeds || DEFAULT_DATA.rssFeeds;
+            const wordFilters = DataHooksCache.wordFilters || DEFAULT_DATA.wordFilters;
             
             modalContent = `
                 <div class="modal-header">
-                    <h2>📊 データ管理</h2>
+                    <h2>データ管理</h2>
                     <button class="modal-close">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="storage-info">
-                        <h3>💾 ストレージ使用状況</h3>
+                        <h3>ストレージ使用状況</h3>
                         <div class="storage-stats">
                             <div class="stat-item">
                                 <span class="stat-label">使用容量</span>
@@ -1392,7 +1542,27 @@
                             </div>
                         </div>
                         
-                        <h3>🤖 AI学習データ</h3>
+                        <h3>パフォーマンス情報</h3>
+                        <div class="storage-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">キャッシュ状態</span>
+                                <span class="stat-value">✅ 有効</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">articles キャッシュ</span>
+                                <span class="stat-value">${DataHooksCache.articles ? '✅' : '❌'}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">wordFilters キャッシュ</span>
+                                <span class="stat-value">${DataHooksCache.wordFilters ? '✅' : '❌'}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">データバージョン</span>
+                                <span class="stat-value">${DATA_VERSION}</span>
+                            </div>
+                        </div>
+                        
+                        <h3>AI学習データ</h3>
                         <div class="storage-stats">
                             <div class="stat-item">
                                 <span class="stat-label">単語重み学習数</span>
@@ -1408,7 +1578,7 @@
                             </div>
                         </div>
 
-                        <h3>🔤 ワードフィルター</h3>
+                        <h3>ワードフィルター</h3>
                         <div class="storage-stats">
                             <div class="stat-item">
                                 <span class="stat-label">気になるワード数</span>
@@ -1417,22 +1587,6 @@
                             <div class="stat-item">
                                 <span class="stat-label">NGワード数</span>
                                 <span class="stat-value">${wordFilters.ngWords.length}</span>
-                            </div>
-                        </div>
-
-                        <h3>⚙️ 技術情報</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">データバージョン</span>
-                                <span class="stat-value">${DATA_VERSION}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">プロキシサーバー数</span>
-                                <span class="stat-value">${RSS_PROXY_URLS.length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">タイムアウト設定</span>
-                                <span class="stat-value">${REQUEST_TIMEOUT/1000}秒</span>
                             </div>
                         </div>
                     </div>
@@ -1471,7 +1625,7 @@
             });
         });
 
-        document.querySelectorAll('.action-btn, .action-btn-simple').forEach(btn => {
+        document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const modal = e.target.dataset.modal;
                 const action = e.target.dataset.action;
@@ -1543,9 +1697,8 @@
         });
     }
 
-    // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[App] Starting Minews PWA - UI Improved Version');
+        console.log('[App] Starting Minews PWA - UI Design Optimized Complete Implementation');
         initializeData();
         render();
     });
