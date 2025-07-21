@@ -1,9 +1,9 @@
-// Mysews PWA - 第3段階：機能実装完全版
+// Mysews PWA - 第3段階：RSS取得問題修正完全版
 (function() {
     'use strict';
 
     // ===========================================
-    // データ型定義・定数
+    // データ型定義・定数（改良版）
     // ===========================================
 
     const STORAGE_KEYS = {
@@ -16,26 +16,30 @@
     const MAX_ARTICLES = 1000;
     const DATA_VERSION = '1.0';
     const RSS_PROXY_URLS = [
+        'https://api.codetabs.com/v1/proxy?quest=',
         'https://api.allorigins.win/get?url=',
+        'https://thingproxy.freeboard.io/fetch/',
         'https://corsproxy.io/?'
     ];
-    const REQUEST_TIMEOUT = 10000; // 10秒
+    const REQUEST_TIMEOUT = 15000; // 15秒に延長
+    const MAX_RETRIES = 2; // リトライ回数
+    const RETRY_DELAY = 3000; // 3秒待機
 
     // デフォルトデータ
     const DEFAULT_DATA = {
         articles: [],
         rssFeeds: [
             {
-                id: 'default-tech',
-                url: 'https://feeds.feedburner.com/TechCrunch',
-                title: 'TechCrunch',
+                id: 'default-nhk',
+                url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                title: 'NHKニュース',
                 lastUpdated: new Date().toISOString(),
                 isActive: true
             },
             {
-                id: 'default-dev',
-                url: 'https://dev.to/feed',
-                title: 'DEV Community',
+                id: 'default-itmedia',
+                url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
+                title: 'ITmedia',
                 lastUpdated: new Date().toISOString(),
                 isActive: true
             }
@@ -63,20 +67,25 @@
     };
 
     // ===========================================
-    // RSS取得・解析システム
+    // RSS取得・解析システム（修正版）
     // ===========================================
 
     const RSSProcessor = {
-        // RSS取得（CORS対応）
-        fetchRSS: async function(url, proxyIndex = 0) {
+        // RSS取得（修正版：複数プロキシ対応・リトライ機能付き）
+        fetchRSS: async function(url, proxyIndex = 0, retryCount = 0) {
             if (proxyIndex >= RSS_PROXY_URLS.length) {
-                throw new Error('All proxy servers failed');
+                if (retryCount < MAX_RETRIES) {
+                    console.log(`[RSS] Retrying from first proxy (attempt ${retryCount + 1})`);
+                    await this.delay(RETRY_DELAY);
+                    return this.fetchRSS(url, 0, retryCount + 1);
+                }
+                throw new Error('All proxy servers failed after retries');
             }
 
             const proxyUrl = RSS_PROXY_URLS[proxyIndex];
             const fullUrl = proxyUrl + encodeURIComponent(url);
             
-            console.log(`[RSS] Fetching via proxy ${proxyIndex + 1}:`, fullUrl);
+            console.log(`[RSS] Fetching via proxy ${proxyIndex + 1} (${proxyUrl.split('?')[0]}):`, url);
 
             try {
                 const controller = new AbortController();
@@ -85,8 +94,10 @@
                 const response = await fetch(fullUrl, {
                     signal: controller.signal,
                     headers: {
-                        'Accept': 'application/json, text/plain, */*',
-                    }
+                        'Accept': '*/*',
+                        'User-Agent': 'Mozilla/5.0 (compatible; Mysews/1.0)',
+                    },
+                    mode: 'cors'
                 });
 
                 clearTimeout(timeoutId);
@@ -95,8 +106,39 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                const data = await response.json();
-                return data.contents || data; // allorigins.win の場合は contents プロパティ
+                // プロキシごとの適切なレスポンス処理
+                let xmlContent;
+                
+                if (proxyUrl.includes('allorigins.win')) {
+                    const data = await response.json();
+                    xmlContent = data.contents;
+                    if (!xmlContent) throw new Error('No contents in allorigins.win response');
+                } else if (proxyUrl.includes('codetabs.com')) {
+                    xmlContent = await response.text();
+                } else if (proxyUrl.includes('thingproxy.freeboard.io')) {
+                    xmlContent = await response.text();
+                } else {
+                    // corsproxy.io など
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        try {
+                            const data = await response.json();
+                            xmlContent = data.contents || data;
+                        } catch {
+                            xmlContent = await response.text();
+                        }
+                    } else {
+                        xmlContent = await response.text();
+                    }
+                }
+
+                if (!xmlContent || xmlContent.trim().length === 0) {
+                    throw new Error('Empty response content');
+                }
+
+                console.log(`[RSS] Successfully fetched via proxy ${proxyIndex + 1}`);
+                return xmlContent;
+
             } catch (error) {
                 console.warn(`[RSS] Proxy ${proxyIndex + 1} failed:`, error.message);
                 
@@ -105,44 +147,70 @@
                 }
                 
                 // 次のプロキシを試行
-                return this.fetchRSS(url, proxyIndex + 1);
+                return this.fetchRSS(url, proxyIndex + 1, retryCount);
             }
         },
 
-        // XML解析
+        // 遅延関数
+        delay: function(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        },
+
+        // XML解析（改良版）
         parseRSS: function(xmlString, sourceUrl) {
             try {
+                // XMLの前処理（不正な文字を除去）
+                const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+                
                 const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+                const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
 
                 // パースエラーチェック
                 const parseError = xmlDoc.querySelector('parsererror');
                 if (parseError) {
+                    console.error('[RSS] XML Parse Error:', parseError.textContent);
                     throw new Error('XML parse error: ' + parseError.textContent);
                 }
 
                 const articles = [];
                 let feedTitle = 'Unknown Feed';
 
-                // RSS 2.0形式
+                // RSS 2.0形式の解析
                 const rss2Items = xmlDoc.querySelectorAll('rss channel item');
                 if (rss2Items.length > 0) {
-                    feedTitle = xmlDoc.querySelector('rss channel title')?.textContent || feedTitle;
+                    feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle;
                     
                     rss2Items.forEach((item, index) => {
-                        const article = this.parseRSSItem(item, sourceUrl, 'rss2');
-                        if (article) articles.push(article);
+                        if (index < 20) { // 最大20記事まで
+                            const article = this.parseRSSItem(item, sourceUrl);
+                            if (article) articles.push(article);
+                        }
                     });
                 }
 
-                // Atom形式
+                // Atom形式の解析
                 const atomEntries = xmlDoc.querySelectorAll('feed entry');
-                if (atomEntries.length > 0) {
-                    feedTitle = xmlDoc.querySelector('feed title')?.textContent || feedTitle;
+                if (atomEntries.length > 0 && articles.length === 0) {
+                    feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle;
                     
                     atomEntries.forEach((entry, index) => {
-                        const article = this.parseAtomEntry(entry, sourceUrl);
-                        if (article) articles.push(article);
+                        if (index < 20) { // 最大20記事まで
+                            const article = this.parseAtomEntry(entry, sourceUrl);
+                            if (article) articles.push(article);
+                        }
+                    });
+                }
+
+                // RDF形式の解析（追加対応）
+                const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
+                if (rdfItems.length > 0 && articles.length === 0) {
+                    feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
+                    
+                    rdfItems.forEach((item, index) => {
+                        if (index < 20) { // 最大20記事まで
+                            const article = this.parseRSSItem(item, sourceUrl);
+                            if (article) articles.push(article);
+                        }
                     });
                 }
 
@@ -154,16 +222,17 @@
             }
         },
 
-        // RSS 2.0アイテム解析
-        parseRSSItem: function(item, sourceUrl, type) {
+        // RSS 2.0アイテム解析（改良版）
+        parseRSSItem: function(item, sourceUrl) {
             try {
-                const title = item.querySelector('title')?.textContent?.trim();
-                const link = item.querySelector('link')?.textContent?.trim() || 
-                           item.querySelector('guid')?.textContent?.trim();
-                const description = item.querySelector('description')?.textContent?.trim() || 
-                                 item.querySelector('content\\:encoded, content')?.textContent?.trim();
-                const pubDate = item.querySelector('pubDate')?.textContent?.trim();
-                const category = item.querySelector('category')?.textContent?.trim() || 'General';
+                const title = this.getTextContent(item, ['title']);
+                const link = this.getTextContent(item, ['link', 'guid']) || 
+                           item.getAttribute('rdf:about');
+                const description = this.getTextContent(item, [
+                    'description', 'content:encoded', 'content', 'summary'
+                ]);
+                const pubDate = this.getTextContent(item, ['pubDate', 'dc:date', 'date']);
+                const category = this.getTextContent(item, ['category', 'dc:subject']) || 'General';
 
                 if (!title || !link) {
                     console.warn('[RSS] Skipping item: missing title or link');
@@ -172,20 +241,20 @@
 
                 // HTML タグを削除してプレーンテキストに
                 const cleanDescription = description ? 
-                    description.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : 
-                    'No description available';
+                    this.cleanHtml(description).substring(0, 300) : 
+                    '記事の概要は提供されていません';
 
-                // キーワード抽出（簡易版）
+                // キーワード抽出
                 const keywords = this.extractKeywords(title + ' ' + cleanDescription);
 
                 const article = {
                     id: 'rss_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    title: title,
-                    url: link,
+                    title: this.cleanHtml(title).trim(),
+                    url: link.trim(),
                     content: cleanDescription,
-                    publishDate: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+                    publishDate: this.parseDate(pubDate),
                     rssSource: this.extractDomain(sourceUrl),
-                    category: category,
+                    category: this.cleanHtml(category).trim(),
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
@@ -200,17 +269,18 @@
             }
         },
 
-        // Atomエントリー解析
+        // Atomエントリー解析（改良版）
         parseAtomEntry: function(entry, sourceUrl) {
             try {
-                const title = entry.querySelector('title')?.textContent?.trim();
+                const title = this.getTextContent(entry, ['title']);
                 const link = entry.querySelector('link')?.getAttribute('href') || 
-                           entry.querySelector('id')?.textContent?.trim();
-                const content = entry.querySelector('content')?.textContent?.trim() || 
-                              entry.querySelector('summary')?.textContent?.trim();
-                const published = entry.querySelector('published')?.textContent?.trim() || 
-                                entry.querySelector('updated')?.textContent?.trim();
-                const category = entry.querySelector('category')?.getAttribute('term') || 'General';
+                           this.getTextContent(entry, ['id']);
+                const content = this.getTextContent(entry, [
+                    'content', 'summary', 'description'
+                ]);
+                const published = this.getTextContent(entry, ['published', 'updated']);
+                const category = entry.querySelector('category')?.getAttribute('term') || 
+                               entry.querySelector('category')?.textContent || 'General';
 
                 if (!title || !link) {
                     console.warn('[RSS] Skipping Atom entry: missing title or link');
@@ -218,19 +288,19 @@
                 }
 
                 const cleanContent = content ? 
-                    content.replace(/<[^>]*>/g, '').substring(0, 300) + '...' : 
-                    'No content available';
+                    this.cleanHtml(content).substring(0, 300) : 
+                    '記事の概要は提供されていません';
 
                 const keywords = this.extractKeywords(title + ' ' + cleanContent);
 
                 const article = {
                     id: 'atom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    title: title,
-                    url: link,
+                    title: this.cleanHtml(title).trim(),
+                    url: link.trim(),
                     content: cleanContent,
-                    publishDate: published ? new Date(published).toISOString() : new Date().toISOString(),
+                    publishDate: this.parseDate(published),
                     rssSource: this.extractDomain(sourceUrl),
-                    category: category,
+                    category: this.cleanHtml(category).trim(),
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
@@ -245,14 +315,55 @@
             }
         },
 
-        // キーワード抽出（簡易版）
+        // テキスト取得ヘルパー
+        getTextContent: function(element, selectors) {
+            for (const selector of selectors) {
+                const el = element.querySelector(selector);
+                if (el && el.textContent && el.textContent.trim()) {
+                    return el.textContent.trim();
+                }
+            }
+            return null;
+        },
+
+        // HTML除去
+        cleanHtml: function(html) {
+            if (!html) return '';
+            return html.replace(/<[^>]*>/g, '')
+                      .replace(/&lt;/g, '<')
+                      .replace(/&gt;/g, '>')
+                      .replace(/&amp;/g, '&')
+                      .replace(/&quot;/g, '"')
+                      .replace(/&#039;/g, "'")
+                      .replace(/\s+/g, ' ')
+                      .trim();
+        },
+
+        // 日付解析
+        parseDate: function(dateString) {
+            if (!dateString) return new Date().toISOString();
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    return new Date().toISOString();
+                }
+                return date.toISOString();
+            } catch {
+                return new Date().toISOString();
+            }
+        },
+
+        // キーワード抽出（改良版）
         extractKeywords: function(text) {
-            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで'];
+            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 
+                             'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+            
             const words = text.toLowerCase()
                              .replace(/[^\w\sぁ-んァ-ン一-龯]/g, ' ')
                              .split(/\s+/)
                              .filter(word => word.length > 2 && !stopWords.includes(word))
-                             .slice(0, 10);
+                             .slice(0, 8);
             
             return [...new Set(words)]; // 重複除去
         },
@@ -269,7 +380,7 @@
     };
 
     // ===========================================
-    // AI学習・スコアリングシステム
+    // AI学習・スコアリングシステム（継承）
     // ===========================================
 
     const AIScoring = {
@@ -363,7 +474,7 @@
     };
 
     // ===========================================
-    // ワードフィルター管理システム
+    // ワードフィルター管理システム（継承）
     // ===========================================
 
     const WordFilterManager = {
@@ -428,7 +539,7 @@
     };
 
     // ===========================================
-    // 既存のローカルストレージ管理システム（継承）
+    // ローカルストレージ管理システム（修正版）
     // ===========================================
 
     const LocalStorageManager = {
@@ -452,7 +563,11 @@
             try {
                 const stored = localStorage.getItem(key);
                 if (!stored) {
-                    console.log('[Storage] No data found for:', key, 'Using default');
+                    // デフォルトデータを保存（修正版）
+                    if (defaultValue) {
+                        this.setItem(key, defaultValue);
+                        console.log('[Storage] Initialized with default for:', key);
+                    }
                     return defaultValue;
                 }
 
@@ -467,6 +582,10 @@
                 return parsed.data;
             } catch (error) {
                 console.error('[Storage] Load failed:', key, error);
+                // エラー時はデフォルトデータを保存
+                if (defaultValue) {
+                    this.setItem(key, defaultValue);
+                }
                 return defaultValue;
             }
         },
@@ -513,7 +632,7 @@
     };
 
     // ===========================================
-    // データ操作フック（拡張版）
+    // データ操作フック（修正版）
     // ===========================================
 
     const DataHooks = {
@@ -620,6 +739,7 @@
                     const articlesHook = DataHooks.useArticles();
                     let totalAdded = 0;
                     let totalErrors = 0;
+                    let feedResults = [];
 
                     for (const feed of rssFeeds.filter(f => f.isActive)) {
                         try {
@@ -642,18 +762,34 @@
                             });
                             
                             totalAdded += addedCount;
+                            feedResults.push({
+                                name: feed.title,
+                                success: true,
+                                added: addedCount,
+                                total: parsed.articles.length
+                            });
                             console.log(`[RSS] Added ${addedCount} articles from ${feed.title}`);
                             
                         } catch (error) {
                             console.error(`[RSS] Failed to fetch ${feed.title}:`, error.message);
                             totalErrors++;
+                            feedResults.push({
+                                name: feed.title,
+                                success: false,
+                                error: error.message
+                            });
                         }
                     }
 
                     state.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, []);
                     render();
                     
-                    return { totalAdded, totalErrors, totalFeeds: rssFeeds.filter(f => f.isActive).length };
+                    return { 
+                        totalAdded, 
+                        totalErrors, 
+                        totalFeeds: rssFeeds.filter(f => f.isActive).length,
+                        feedResults
+                    };
                 }
             };
         },
@@ -744,7 +880,7 @@
     };
 
     // ===========================================
-    // アプリケーション状態管理
+    // アプリケーション状態管理（継承）
     // ===========================================
 
     let state = {
@@ -760,29 +896,17 @@
         render();
     }
 
-    // データ初期化
+    // データ初期化（修正版）
     function initializeData() {
         console.log('[App] Initializing data...');
         
-        // 既存データを読み込み
-        const articlesHook = DataHooks.useArticles();
-        const rssHook = DataHooks.useRSSManager();
-        const wordHook = DataHooks.useWordFilters();
+        // 確実な初期化処理
+        const articlesData = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
+        const rssData = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
+        const aiData = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
+        const wordData = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
         
-        state.articles = articlesHook.articles;
-
-        // デフォルトデータの初期化
-        if (rssHook.rssFeeds.length === 0) {
-            console.log('[App] Initializing default RSS feeds');
-            DEFAULT_DATA.rssFeeds.forEach(feed => {
-                rssHook.addRSSFeed(feed.url, feed.title);
-            });
-        }
-
-        if (wordHook.wordFilters.interestWords.length === 0) {
-            console.log('[App] Initializing default word filters');
-            LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
-        }
+        state.articles = articlesData;
 
         // サンプル記事がない場合のみ追加
         if (state.articles.length === 0) {
@@ -791,45 +915,33 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'AIパーソナライズニュースリーダーの未来',
+                    title: 'Mysews PWA：AI パーソナライズニュースリーダーの完成',
                     url: '#',
-                    content: 'AI技術を活用したニュース配信の新しい形が注目されています。機械学習により、ユーザーの興味や読書履歴を分析し、最適な記事を推薦する技術が発達しています。',
+                    content: '第3段階の実装が完了し、RSS取得・AI学習・ワードフィルター管理のすべての機能が動作するようになりました。修正版では複数のプロキシサーバー対応とリトライ機能により安定性が向上しています。',
                     publishDate: new Date().toISOString(),
-                    rssSource: 'Tech News',
+                    rssSource: 'Mysews Development',
                     category: 'AI',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['AI', 'ニュース', '技術', '機械学習', 'パーソナライズ']
+                    keywords: ['AI', 'PWA', 'RSS', 'ニュース', 'パーソナライズ']
                 },
                 {
                     id: 'sample_2',
-                    title: 'PWAアプリケーションの開発手法',
+                    title: 'RSS取得システムの技術改善点',
                     url: '#',
-                    content: 'Progressive Web Appの効率的な開発方法について詳しく解説します。Service WorkerやWeb App Manifestの活用により、ネイティブアプリに近い体験を提供できます。',
-                    publishDate: new Date(Date.now() - 86400000).toISOString(),
-                    rssSource: 'Web Dev',
-                    category: 'Web',
-                    readStatus: 'read',
-                    readLater: true,
-                    userRating: 4,
-                    keywords: ['PWA', '開発', 'Web', 'Service Worker', 'アプリ']
-                },
-                {
-                    id: 'sample_3',
-                    title: 'React Hooksを活用した状態管理',
-                    url: '#',
-                    content: 'React HooksのuseState、useEffect、useContextを効率的に活用し、コンポーネント間の状態管理を行う方法を紹介します。',
-                    publishDate: new Date(Date.now() - 172800000).toISOString(),
-                    rssSource: 'Frontend Tips',
-                    category: 'Development',
+                    content: 'プロキシサーバーの冗長化、レスポンス形式の統一対応、XMLパースエラー対策、リトライ機能の実装により、外部RSS取得の成功率が大幅に向上しました。',
+                    publishDate: new Date(Date.now() - 3600000).toISOString(),
+                    rssSource: 'Tech Blog',
+                    category: 'Technology',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['React', 'Hooks', 'useState', 'useEffect', 'JavaScript']
+                    keywords: ['RSS', 'プロキシ', 'XML', 'パース', '技術']
                 }
             ];
             
+            const articlesHook = DataHooks.useArticles();
             sampleArticles.forEach(article => {
                 articlesHook.addArticle(article);
             });
@@ -840,10 +952,12 @@
         const storageInfo = LocalStorageManager.getStorageInfo();
         console.log('[App] Storage info:', storageInfo);
         console.log('[App] Data initialization complete. Articles:', state.articles.length);
+        console.log('[App] RSS Feeds:', rssData.length);
+        console.log('[App] Word Filters initialized');
     }
 
     // ===========================================
-    // Utility functions（拡張版）
+    // Utility functions（継承）
     // ===========================================
 
     function formatDate(dateString) {
@@ -881,7 +995,7 @@
     }
 
     // ===========================================
-    // Event handlers（完全版）
+    // Event handlers（改良版）
     // ===========================================
 
     function handleFilterClick(mode) {
@@ -954,8 +1068,23 @@
                 lastUpdate: new Date().toISOString() 
             });
             
-            const message = `更新完了！ ${result.totalAdded}件の新記事を追加しました。` + 
-                          (result.totalErrors > 0 ? ` (${result.totalErrors}件のフィードでエラー)` : '');
+            // 詳細な結果メッセージ
+            let message = `更新完了！${result.totalAdded}件の新記事を追加しました。\n`;
+            
+            if (result.feedResults && result.feedResults.length > 0) {
+                message += '\n【フィード別結果】\n';
+                result.feedResults.forEach(feedResult => {
+                    if (feedResult.success) {
+                        message += `✅ ${feedResult.name}: ${feedResult.added}/${feedResult.total}件追加\n`;
+                    } else {
+                        message += `❌ ${feedResult.name}: 取得失敗\n`;
+                    }
+                });
+            }
+            
+            if (result.totalErrors > 0) {
+                message += `\n${result.totalErrors}件のフィードで取得エラーが発生しました。`;
+            }
             
             alert(message);
             console.log('[App] Refresh completed:', result);
@@ -968,7 +1097,7 @@
     }
 
     function handleRSSAdd() {
-        const url = prompt('RSSフィードのURLを入力してください:');
+        const url = prompt('RSSフィードのURLを入力してください:\n\n推奨フィード例:\n• https://www3.nhk.or.jp/rss/news/cat0.xml\n• https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml');
         if (!url) return;
         
         const title = prompt('フィードのタイトルを入力してください (空欄可):') || undefined;
@@ -1032,7 +1161,7 @@
     }
 
     // ===========================================
-    // フィルタリング・レンダリング関数（AI対応版）
+    // フィルタリング・レンダリング関数（継承）
     // ===========================================
 
     function getFilteredArticles() {
@@ -1181,7 +1310,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="modal-actions">
-                        <button class="action-btn" data-action="rss-add">RSSフィード追加</button>
+                        <button class="action-btn success" data-action="rss-add">RSSフィード追加</button>
                     </div>
                     <div class="rss-list">
                         <h3>登録済みRSSフィード (${rssHook.rssFeeds.length})</h3>
@@ -1198,6 +1327,15 @@
                                 </div>
                             </div>
                         `).join('')}
+                        
+                        <div class="rss-help">
+                            <h4>推奨RSSフィード</h4>
+                            <ul>
+                                <li><strong>NHKニュース</strong>: https://www3.nhk.or.jp/rss/news/cat0.xml</li>
+                                <li><strong>ITmedia</strong>: https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml</li>
+                                <li><strong>Qiita</strong>: https://qiita.com/popular-items/feed</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1211,8 +1349,8 @@
                 <div class="modal-body">
                     <div class="word-section">
                         <div class="word-section-header">
-                            <h3>気になるワード (${wordHook.wordFilters.interestWords.length})</h3>
-                            <button class="action-btn" data-action="word-add" data-type="interest">追加</button>
+                            <h3>気になるワード (${wordHook.wordFilters.interestWords.length}) +20pt</h3>
+                            <button class="action-btn success" data-action="word-add" data-type="interest">追加</button>
                         </div>
                         <div class="word-list">
                             ${wordHook.wordFilters.interestWords.map(word => `
@@ -1226,8 +1364,8 @@
                     
                     <div class="word-section">
                         <div class="word-section-header">
-                            <h3>NGワード (${wordHook.wordFilters.ngWords.length})</h3>
-                            <button class="action-btn" data-action="word-add" data-type="ng">追加</button>
+                            <h3>NGワード (${wordHook.wordFilters.ngWords.length}) -50pt</h3>
+                            <button class="action-btn danger" data-action="word-add" data-type="ng">追加</button>
                         </div>
                         <div class="word-list">
                             ${wordHook.wordFilters.ngWords.map(word => `
@@ -1237,6 +1375,12 @@
                                 </span>
                             `).join('') || '<em>登録されたワードはありません</em>'}
                         </div>
+                    </div>
+                    
+                    <div class="word-help">
+                        <h4>ワードフィルターについて</h4>
+                        <p><strong>気になるワード</strong>: 記事のタイトルや内容に含まれると+20ポイント</p>
+                        <p><strong>NGワード</strong>: 記事のタイトルや内容に含まれると-50ポイント（除外対象）</p>
                     </div>
                 </div>
             `;
@@ -1298,6 +1442,22 @@
                             <div class="stat-item">
                                 <span class="stat-label">NGワード数</span>
                                 <span class="stat-value">${wordFilters.ngWords.length}</span>
+                            </div>
+                        </div>
+
+                        <h3>技術情報</h3>
+                        <div class="storage-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">データバージョン</span>
+                                <span class="stat-value">${DATA_VERSION}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">プロキシサーバー数</span>
+                                <span class="stat-value">${RSS_PROXY_URLS.length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">タイムアウト設定</span>
+                                <span class="stat-value">${REQUEST_TIMEOUT/1000}秒</span>
                             </div>
                         </div>
                     </div>
@@ -1419,7 +1579,7 @@
 
     // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[App] Starting Mysews PWA - Stage 3: Full Feature Implementation');
+        console.log('[App] Starting Mysews PWA - Stage 3: RSS Fixed Complete Implementation');
         initializeData();
         render();
     });
