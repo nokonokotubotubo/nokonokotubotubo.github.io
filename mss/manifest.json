@@ -1,6 +1,6 @@
 {
-  "name": "Mysews",
-  "short_name": "Mysews",
+  "name": "Minews",
+  "short_name": "Minews",
   "description": "AIパーソナライズRSSニュースリーダー",
   "start_url": "/mss/",
   "scope": "/mss/",
