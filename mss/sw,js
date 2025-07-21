@@ -1,27 +1,59 @@
 const CACHE_NAME = 'mysews-v1';
 const urlsToCache = [
   '/mss/',
-  '/mss/src/App.tsx',
-  '/mss/src/styles.css'
+  '/mss/app.js',
+  '/mss/styles.css',
+  '/mss/manifest.json',
+  '/mss/vite.svg',
+  '/mss/icon-192.svg'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
+  console.log('[SW] Install');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
+      .then(cache => {
+        console.log('[SW] Caching files');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
+      .then(response => {
+        // キャッシュにあればそれを返す、なければネットワークから取得
         if (response) {
+          console.log('[SW] Found in cache:', event.request.url);
           return response;
         }
+        
+        console.log('[SW] Fetching:', event.request.url);
         return fetch(event.request);
       })
+      .catch(error => {
+        console.log('[SW] Fetch failed:', error);
+        // オフライン時のフォールバック
+        if (event.request.destination === 'document') {
+          return caches.match('/mss/');
+        }
+      })
+  );
+});
+
+self.addEventListener('activate', event => {
+  console.log('[SW] Activate');
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
