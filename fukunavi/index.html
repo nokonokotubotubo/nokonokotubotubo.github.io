@@ -42,7 +42,7 @@ body{background:#e6f2ff;overflow:hidden}
   bottom: 60px;
   left: 12px;
   z-index: 1000;
-  background: #ffffff;                   /* ← 完全な白色に変更 */
+  background: #ffffff;
   color: #333;
   padding: 8px 12px;
   border-radius: 6px;
@@ -746,19 +746,27 @@ createApp({
 
     const updateMarker = () => marker.value && marker.value.setLatLng([selectedLatLng.lat, selectedLatLng.lng]);
 
-    const getCurrentLocation = () => {
+    const getCurrentLocation = (event) => {
+      // イベントオブジェクトが渡された場合でも一切使用しない
+      event && event.preventDefault && event.preventDefault();
+      event && event.stopPropagation && event.stopPropagation();
+      
       if (!navigator.geolocation) return void (errorMessage.value = '❌ このデバイスは位置情報に対応していません。\n手動で地図をクリックして位置を選択してください。');
       selectedMemoryIndex.value = -1;
       currentAddress.value = '🔄 位置情報取得中...';
       errorMessage.value = '';
       const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 };
       navigator.geolocation.getCurrentPosition(pos => {
-        selectedLatLng.lat = pos.coords.latitude;
-        selectedLatLng.lng = pos.coords.longitude;
-        map.value && (map.value.setView([selectedLatLng.lat, selectedLatLng.lng], 12), updateMarker());
+        // 必ずGPS座標のみを使用
+        const gpsLat = pos.coords.latitude;
+        const gpsLng = pos.coords.longitude;
+        
+        selectedLatLng.lat = gpsLat;
+        selectedLatLng.lng = gpsLng;
+        map.value && (map.value.setView([gpsLat, gpsLng], 12), updateMarker());
         fetchWeatherData();
-        fetchAddress(pos.coords.latitude, pos.coords.longitude);
-        updateUrl(pos.coords.latitude, pos.coords.longitude);
+        fetchAddress(gpsLat, gpsLng);
+        updateUrl(gpsLat, gpsLng);
       }, err => {
         let msg = '';
         switch (err.code) {
