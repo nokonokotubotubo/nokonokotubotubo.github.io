@@ -1,0 +1,17 @@
+{
+  "name": "Mysews",
+  "short_name": "Mysews",
+  "description": "AIパーソナライズRSSニュースリーダー",
+  "start_url": "/mss/",
+  "display": "standalone",
+  "theme_color": "#4A90A4",
+  "background_color": "#E3F4F7",
+  "icons": [
+    {
+      "src": "/mss/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
