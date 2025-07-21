@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#4A90A4" />
     <title>Mysews</title>
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/ms/manifest.json" />
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/App.tsx"></script>
+    <script type="module" src="/ms/src/App.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/ms/sw.js')
             .then(function(registration) {
               console.log('ServiceWorker registration successful');
             })
