@@ -1381,7 +1381,7 @@
         return `
             <nav class="nav">
                 <div class="nav-left">
-                    <h1 class="app-logo">Mysews</h1>
+                    <h1 class="app-logo">Minews</h1>
                     ${state.lastUpdate ? `<div class="last-update">最終更新: ${formatDate(state.lastUpdate)}</div>` : ''}
                 </div>
                 <div class="nav-filters">
