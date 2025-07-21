@@ -8,29 +8,28 @@ const urlsToCache = [
   '/mss/icon-192.svg'
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', function(event) {
   console.log('[SW] Install');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then(function(cache) {
         console.log('[SW] Caching files');
         return cache.addAll(urlsToCache);
       })
-      .catch(error => {
+      .catch(function(error) {
         console.error('[SW] Cache failed:', error);
       })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // GitHub Pagesサブディレクトリ対応：/mss/スコープのみ処理
+self.addEventListener('fetch', function(event) {
   if (!event.request.url.includes('/mss/')) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
+      .then(function(response) {
         if (response) {
           console.log('[SW] Found in cache:', event.request.url);
           return response;
@@ -39,9 +38,8 @@ self.addEventListener('fetch', event => {
         console.log('[SW] Fetching:', event.request.url);
         return fetch(event.request);
       })
-      .catch(error => {
+      .catch(function(error) {
         console.log('[SW] Fetch failed:', error);
-        // オフライン時のフォールバック
         if (event.request.destination === 'document') {
           return caches.match('/mss/');
         }
@@ -49,12 +47,18 @@ self.addEventListener('fetch', event => {
   );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', function(event) {
   console.log('[SW] Activate');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map(function(cacheName) {
           if (cacheName !== CACHE_NAME) {
             console.log('[SW] Deleting old cache:', cacheName);
-            return
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
