@@ -311,12 +311,14 @@ body {
   margin-top: 16px;
 }
 
-.word-list {
+.word-list,
+.rss-list {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 8px;
+  margin-top: 8px;
 }
 
 .word-item {
