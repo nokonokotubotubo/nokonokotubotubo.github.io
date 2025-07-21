@@ -1,4 +1,4 @@
-// Minews PWA - フォルダ機能追加完全版
+// Minews PWA - フォルダ機能修正完全版
 (function() {
     'use strict';
 
@@ -1134,14 +1134,14 @@
                     id: 'sample_1',
                     title: 'Minews PWA：フォルダ機能追加完了',
                     url: '#',
-                    content: 'RSSフィードをフォルダで分類管理し、記事表示もフォルダでフィルタリングできる機能を追加しました。カラー分けにより視認性も向上。',
+                    content: 'RSSフィードをフォルダで分類管理し、記事表示もフォルダでフィルタリングできる機能を追加しました。ドロップダウン方式によりシンプルで使いやすいデザインに。',
                     publishDate: new Date().toISOString(),
-                    rssSource: 'Minews Development',
+                    rssSource: 'NHKニュース',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['フォルダ', 'RSS', '分類', 'フィルタ', '機能追加']
+                    keywords: ['フォルダ', 'RSS', 'ドロップダウン', '機能追加']
                 },
                 {
                     id: 'sample_2',
@@ -1149,7 +1149,7 @@
                     url: '#',
                     content: 'ニュース、テック、ブログなど用途別にRSSフィードを分類。記事表示もフォルダ単位でフィルタリングでき、情報収集効率が大幅向上。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
-                    rssSource: 'UX Blog',
+                    rssSource: 'ITmedia',
                     category: 'UX',
                     readStatus: 'unread',
                     readLater: false,
@@ -1340,39 +1340,72 @@
         }
     }
 
+    // ★修正：リスト選択方式のRSS追加
     function handleRSSAdd() {
         const url = prompt('RSSフィードのURLを入力してください:\n\n推奨フィード例:\n• https://www3.nhk.or.jp/rss/news/cat0.xml\n• https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml');
         if (!url) return;
 
         const title = prompt('フィードのタイトルを入力してください (空欄可):') || undefined;
 
-        // フォルダ選択
-        const foldersHook = DataHooks.useFolders();
-        const folderOptions = ['uncategorized', ...foldersHook.folders.map(f => f.id)];
-        const folderNames = ['未分類', ...foldersHook.folders.map(f => f.name)];
-        
-        let folderChoice = prompt(
-            'フィードを追加するフォルダを選択してください:\n\n' +
-            folderNames.map((name, index) => `${index}: ${name}`).join('\n') +
-            '\n\n番号を入力してください (0-' + (folderNames.length - 1) + '):'
-        );
+        // フォルダ選択をモーダル化
+        showFolderSelectionModal(function(selectedFolderId) {
+            const rssHook = DataHooks.useRSSManager();
+            rssHook.addRSSFeed(url, title, selectedFolderId);
 
-        let folderId = 'uncategorized';
-        if (folderChoice !== null) {
-            const index = parseInt(folderChoice);
-            if (!isNaN(index) && index >= 0 && index < folderOptions.length) {
-                folderId = folderOptions[index];
+            if (state.showModal === 'rss') {
+                render();
             }
-        }
 
-        const rssHook = DataHooks.useRSSManager();
-        rssHook.addRSSFeed(url, title, folderId);
+            console.log('[RSS] Manual RSS feed added:', url, 'to folder:', selectedFolderId);
+        });
+    }
 
-        if (state.showModal === 'rss') {
-            render();
-        }
+    // ★修正：フォルダ選択モーダル
+    function showFolderSelectionModal(callback) {
+        const foldersHook = DataHooks.useFolders();
+        const folderOptions = [
+            { id: 'uncategorized', name: '未分類' },
+            ...foldersHook.folders
+        ];
 
-        console.log('[RSS] Manual RSS feed added:', url, 'to folder:', folderId);
+        let modalHtml = `
+            <div class="modal-overlay" onclick="closeFolderSelectionModal()">
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h3>フォルダを選択してください</h3>
+                        <button class="modal-close" onclick="closeFolderSelectionModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="folder-selection-list">
+                            ${folderOptions.map(folder => `
+                                <div class="folder-selection-item" onclick="selectFolderForRSS('${folder.id}')">
+                                    <div style="display: flex; align-items: center;">
+                                        ${folder.color ? `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${folder.color}; border-radius: 50%; margin-right: 0.5rem;"></span>` : ''}
+                                        <strong>${folder.name}</strong>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        window.selectFolderForRSS = function(folderId) {
+            closeFolderSelectionModal();
+            callback(folderId);
+        };
+
+        window.closeFolderSelectionModal = function() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+            delete window.selectFolderForRSS;
+            delete window.closeFolderSelectionModal;
+        };
     }
 
     function handleRSSRemove(feedId) {
@@ -1421,7 +1454,7 @@
         }
     }
 
-    // フォルダ管理のイベントハンドラ
+    // ★修正：リスト選択方式のフォルダ追加
     function handleFolderAdd() {
         const name = prompt('フォルダ名を入力してください:');
         if (!name || name.trim().length === 0) return;
@@ -1431,35 +1464,62 @@
             return;
         }
 
-        // カラー選択
-        const colorChoices = FOLDER_COLORS.map((color, index) => 
-            `${index}: ${color.name}`
-        ).join('\n');
+        // カラー選択モーダル
+        showColorSelectionModal(function(selectedColor) {
+            const foldersHook = DataHooks.useFolders();
+            const newFolder = foldersHook.addFolder(name.trim(), selectedColor);
 
-        const colorChoice = prompt(
-            'フォルダの色を選択してください:\n\n' + colorChoices + 
-            '\n\n番号を入力してください (0-' + (FOLDER_COLORS.length - 1) + '):'
-        );
-
-        let selectedColor = FOLDER_COLORS[0].value;
-        if (colorChoice !== null) {
-            const index = parseInt(colorChoice);
-            if (!isNaN(index) && index >= 0 && index < FOLDER_COLORS.length) {
-                selectedColor = FOLDER_COLORS[index].value;
+            if (newFolder) {
+                if (state.showModal === 'folders') {
+                    render();
+                }
+                console.log('[Folder] Added folder:', name);
+            } else {
+                alert('フォルダの作成に失敗しました');
             }
-        }
+        });
+    }
 
-        const foldersHook = DataHooks.useFolders();
-        const newFolder = foldersHook.addFolder(name.trim(), selectedColor);
+    // ★修正：カラー選択モーダル
+    function showColorSelectionModal(callback) {
+        let modalHtml = `
+            <div class="modal-overlay" onclick="closeColorSelectionModal()">
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h3>フォルダの色を選択してください</h3>
+                        <button class="modal-close" onclick="closeColorSelectionModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="color-selection-list">
+                            ${FOLDER_COLORS.map(color => `
+                                <div class="color-selection-item" onclick="selectColor('${color.value}')">
+                                    <div style="display: flex; align-items: center;">
+                                        <span style="display: inline-block; width: 20px; height: 20px; background-color: ${color.value}; border-radius: 50%; margin-right: 1rem; border: 2px solid #ddd;"></span>
+                                        <strong>${color.name}</strong>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
 
-        if (newFolder) {
-            if (state.showModal === 'folders') {
-                render();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        window.selectColor = function(colorValue) {
+            closeColorSelectionModal();
+            callback(colorValue);
+        };
+
+        window.closeColorSelectionModal = function() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
             }
-            console.log('[Folder] Added folder:', name);
-        } else {
-            alert('フォルダの作成に失敗しました');
-        }
+            delete window.selectColor;
+            delete window.closeColorSelectionModal;
+        };
     }
 
     function handleFolderRemove(folderId) {
@@ -1518,7 +1578,7 @@
     }
 
     // ===========================================
-    // フィルタリング・レンダリング関数（フォルダ対応版）
+    // フィルタリング・レンダリング関数（フォルダ対応修正版）
     // ===========================================
     function getFilteredArticles() {
         const aiHook = DataHooks.useAILearning();
@@ -1534,27 +1594,41 @@
 
         const filteredByWords = WordFilterManager.filterArticles(state.articles, wordHook.wordFilters);
 
-        // フォルダフィルタリング
+        // ★修正：フォルダフィルタリングロジックの改善
         let filteredByFolder = filteredByWords;
         if (state.selectedFolder !== 'all') {
             if (state.selectedFolder === 'uncategorized') {
                 // 未分類記事（フォルダIDが存在しないか、対応するRSSフィードが未分類）
-                const uncategorizedFeedSources = rssHook.rssFeeds
+                const uncategorizedFeedIds = rssHook.rssFeeds
+                    .filter(feed => !feed.folderId || feed.folderId === 'uncategorized')
+                    .map(feed => feed.id);
+                
+                const uncategorizedFeedTitles = rssHook.rssFeeds
                     .filter(feed => !feed.folderId || feed.folderId === 'uncategorized')
                     .map(feed => feed.title);
                 
-                filteredByFolder = filteredByWords.filter(article => 
-                    uncategorizedFeedSources.includes(article.rssSource)
-                );
+                filteredByFolder = filteredByWords.filter(article => {
+                    // RSS源名でマッチングを試行
+                    return uncategorizedFeedTitles.some(title => {
+                        return article.rssSource === title || 
+                               article.rssSource.includes(title) ||
+                               title.includes(article.rssSource);
+                    });
+                });
             } else {
                 // 指定フォルダの記事
-                const folderFeedSources = rssHook.rssFeeds
+                const folderFeedTitles = rssHook.rssFeeds
                     .filter(feed => feed.folderId === state.selectedFolder)
                     .map(feed => feed.title);
                 
-                filteredByFolder = filteredByWords.filter(article =>
-                    folderFeedSources.includes(article.rssSource)
-                );
+                filteredByFolder = filteredByWords.filter(article => {
+                    // RSS源名でマッチングを試行
+                    return folderFeedTitles.some(title => {
+                        return article.rssSource === title || 
+                               article.rssSource.includes(title) ||
+                               title.includes(article.rssSource);
+                    });
+                });
             }
         }
 
@@ -1579,6 +1653,7 @@
         return result;
     }
 
+    // ★修正：ドロップダウン方式のナビゲーション
     function renderNavigation() {
         const modes = [
             { key: 'all', label: 'すべて' },
@@ -1587,23 +1662,13 @@
             { key: 'readLater', label: '後で読む' }
         ];
 
-        const filterButtons = modes.map(mode => {
-            const count = getFilteredArticleCount(mode.key, state.selectedFolder);
-            const active = state.viewMode === mode.key ? 'active' : '';
-            return `<button class="filter-btn ${active}" onclick="handleFilterClick('${mode.key}')">${mode.label} (${count})</button>`;
-        }).join('');
-
-        // フォルダフィルタの作成
+        // フォルダ選択肢の作成
         const foldersHook = DataHooks.useFolders();
-        const folderFilters = [
+        const folderOptions = [
             { id: 'all', name: 'すべて', color: '#4A90A4' },
             { id: 'uncategorized', name: '未分類', color: '#6c757d' },
             ...foldersHook.folders
-        ].map(folder => {
-            const count = getFilteredArticleCount(state.viewMode, folder.id);
-            const active = state.selectedFolder === folder.id ? 'active' : '';
-            return `<button class="filter-btn ${active}" onclick="handleFolderFilterClick('${folder.id}')" style="border-left: 3px solid ${folder.color};">${folder.name} (${count})</button>`;
-        }).join('');
+        ];
 
         const refreshButtonClass = state.isLoading ? 'action-btn refresh-btn loading' : 'action-btn refresh-btn';
         const refreshButtonText = state.isLoading ? '🔄 更新中...' : '🔄 更新';
@@ -1614,18 +1679,29 @@
                     <h1>Minews</h1>
                     ${state.lastUpdate ? `<div class="last-update">最終更新: ${formatDate(state.lastUpdate)}</div>` : ''}
                 </div>
+                
                 <div class="nav-filters">
-                    <div style="margin-bottom: 0.5rem;">
-                        <strong style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;">記事フィルタ:</strong>
+                    <div class="filter-group">
+                        <label for="view-filter">表示:</label>
+                        <select id="view-filter" class="filter-select" onchange="handleFilterChange(this.value)">
+                            ${modes.map(mode => {
+                                const count = getFilteredArticleCount(mode.key, state.selectedFolder);
+                                return `<option value="${mode.key}" ${state.viewMode === mode.key ? 'selected' : ''}>${mode.label} (${count})</option>`;
+                            }).join('')}
+                        </select>
                     </div>
-                    ${filterButtons}
-                </div>
-                <div class="nav-filters">
-                    <div style="margin-bottom: 0.5rem;">
-                        <strong style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;">フォルダ:</strong>
+                    
+                    <div class="filter-group">
+                        <label for="folder-filter">フォルダ:</label>
+                        <select id="folder-filter" class="filter-select" onchange="handleFolderChange(this.value)">
+                            ${folderOptions.map(folder => {
+                                const count = getFilteredArticleCount(state.viewMode, folder.id);
+                                return `<option value="${folder.id}" ${state.selectedFolder === folder.id ? 'selected' : ''}>${folder.name} (${count})</option>`;
+                            }).join('')}
+                        </select>
                     </div>
-                    ${folderFilters}
                 </div>
+                
                 <div class="nav-actions">
                     <button class="action-btn" onclick="handleModalOpen('rss')">📡 RSS</button>
                     <button class="action-btn" onclick="handleModalOpen('folders')">📁 フォルダ</button>
@@ -1634,6 +1710,15 @@
                 </div>
             </nav>
         `;
+    }
+
+    // ★修正：ドロップダウン用のイベントハンドラ
+    function handleFilterChange(mode) {
+        setState({ viewMode: mode });
+    }
+
+    function handleFolderChange(folderId) {
+        setState({ selectedFolder: folderId });
     }
 
     function getFilteredArticleCount(viewMode, folderId) {
@@ -1646,21 +1731,29 @@
         let filteredByFolder = filteredByWords;
         if (folderId && folderId !== 'all') {
             if (folderId === 'uncategorized') {
-                const uncategorizedFeedSources = rssHook.rssFeeds
+                const uncategorizedFeedTitles = rssHook.rssFeeds
                     .filter(feed => !feed.folderId || feed.folderId === 'uncategorized')
                     .map(feed => feed.title);
                 
-                filteredByFolder = filteredByWords.filter(article => 
-                    uncategorizedFeedSources.includes(article.rssSource)
-                );
+                filteredByFolder = filteredByWords.filter(article => {
+                    return uncategorizedFeedTitles.some(title => {
+                        return article.rssSource === title || 
+                               article.rssSource.includes(title) ||
+                               title.includes(article.rssSource);
+                    });
+                });
             } else {
-                const folderFeedSources = rssHook.rssFeeds
+                const folderFeedTitles = rssHook.rssFeeds
                     .filter(feed => feed.folderId === folderId)
                     .map(feed => feed.title);
                 
-                filteredByFolder = filteredByWords.filter(article =>
-                    folderFeedSources.includes(article.rssSource)
-                );
+                filteredByFolder = filteredByWords.filter(article => {
+                    return folderFeedTitles.some(title => {
+                        return article.rssSource === title || 
+                               article.rssSource.includes(title) ||
+                               title.includes(article.rssSource);
+                    });
+                });
             }
         }
 
@@ -1950,6 +2043,8 @@
         // グローバルスコープに関数を追加（HTML onclick用）
         window.handleFilterClick = handleFilterClick;
         window.handleFolderFilterClick = handleFolderFilterClick;
+        window.handleFilterChange = handleFilterChange;
+        window.handleFolderChange = handleFolderChange;
         window.handleModalOpen = handleModalOpen;
         window.handleModalClose = handleModalClose;
         window.handleRefresh = handleRefresh;
