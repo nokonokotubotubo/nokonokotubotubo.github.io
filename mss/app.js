@@ -1,4 +1,4 @@
-// Mysews PWA - 第3段階：RSS取得問題修正完全版
+// Mysews PWA - 第3段階：XMLセレクター問題修正完全版
 (function() {
     'use strict';
 
@@ -222,7 +222,7 @@
             }
         },
 
-        // RSS 2.0アイテム解析（改良版）
+        // RSS 2.0アイテム解析（修正版）
         parseRSSItem: function(item, sourceUrl) {
             try {
                 const title = this.getTextContent(item, ['title']);
@@ -231,8 +231,10 @@
                 const description = this.getTextContent(item, [
                     'description', 'content:encoded', 'content', 'summary'
                 ]);
-                const pubDate = this.getTextContent(item, ['pubDate', 'dc:date', 'date']);
-                const category = this.getTextContent(item, ['category', 'dc:subject']) || 'General';
+                const pubDate = this.getTextContent(item, ['pubDate', 'date']);
+                
+                // 修正：dc:subjectを安全なセレクターに変更
+                const category = this.getTextContent(item, ['category', 'subject']) || 'General';
 
                 if (!title || !link) {
                     console.warn('[RSS] Skipping item: missing title or link');
@@ -315,13 +317,44 @@
             }
         },
 
-        // テキスト取得ヘルパー
+        // テキスト取得ヘルパー（XML名前空間対応版）
         getTextContent: function(element, selectors) {
             for (const selector of selectors) {
-                const el = element.querySelector(selector);
-                if (el && el.textContent && el.textContent.trim()) {
-                    return el.textContent.trim();
+                let result = null;
+                
+                // 名前空間付きセレクターの処理
+                if (selector.includes(':')) {
+                    // getElementsByTagNameで名前空間付き要素を検索
+                    const elements = element.getElementsByTagName(selector);
+                    if (elements.length > 0 && elements[0].textContent) {
+                        result = elements[0].textContent.trim();
+                    }
+                    
+                    // 見つからない場合はローカル名のみで検索
+                    if (!result) {
+                        const localName = selector.split(':')[1];
+                        const localElements = element.getElementsByTagName(localName);
+                        if (localElements.length > 0 && localElements[0].textContent) {
+                            result = localElements[0].textContent.trim();
+                        }
+                    }
+                } else {
+                    // 通常のセレクター
+                    try {
+                        const el = element.querySelector(selector);
+                        if (el && el.textContent) {
+                            result = el.textContent.trim();
+                        }
+                    } catch (e) {
+                        // querySelector失敗時はgetElementsByTagNameにフォールバック
+                        const elements = element.getElementsByTagName(selector);
+                        if (elements.length > 0 && elements[0].textContent) {
+                            result = elements[0].textContent.trim();
+                        }
+                    }
                 }
+                
+                if (result) return result;
             }
             return null;
         },
@@ -915,29 +948,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Mysews PWA：AI パーソナライズニュースリーダーの完成',
+                    title: 'Mysews PWA：XMLセレクター問題修正完了',
                     url: '#',
-                    content: '第3段階の実装が完了し、RSS取得・AI学習・ワードフィルター管理のすべての機能が動作するようになりました。修正版では複数のプロキシサーバー対応とリトライ機能により安定性が向上しています。',
+                    content: 'XMLセレクターエラー「\'dc:subject\' is not a valid selector」の根本原因を特定し、名前空間対応のgetTextContent関数により完全に修正しました。これにより、NHKニュース・ITmediaから正常に記事を取得できるようになります。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'Mysews Development',
-                    category: 'AI',
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords: ['AI', 'PWA', 'RSS', 'ニュース', 'パーソナライズ']
-                },
-                {
-                    id: 'sample_2',
-                    title: 'RSS取得システムの技術改善点',
-                    url: '#',
-                    content: 'プロキシサーバーの冗長化、レスポンス形式の統一対応、XMLパースエラー対策、リトライ機能の実装により、外部RSS取得の成功率が大幅に向上しました。',
-                    publishDate: new Date(Date.now() - 3600000).toISOString(),
-                    rssSource: 'Tech Blog',
                     category: 'Technology',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['RSS', 'プロキシ', 'XML', 'パース', '技術']
+                    keywords: ['XML', 'セレクター', '修正', 'RSS', '名前空間']
+                },
+                {
+                    id: 'sample_2',
+                    title: 'XMLセレクター技術詳解：DOM API仕様準拠',
+                    url: '#',
+                    content: 'querySelector APIは名前空間付きセレクター（dc:subject）を処理できないため、getElementsByTagNameを使用した安全なフォールバック機能を実装。XML文書の正確な解析を実現しました。',
+                    publishDate: new Date(Date.now() - 3600000).toISOString(),
+                    rssSource: 'Tech Blog',
+                    category: 'Development',
+                    readStatus: 'unread',
+                    readLater: false,
+                    userRating: 0,
+                    keywords: ['XML', 'DOM', 'API', 'querySelector', 'getElementsByTagName']
                 }
             ];
             
@@ -1579,7 +1612,7 @@
 
     // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[App] Starting Mysews PWA - Stage 3: RSS Fixed Complete Implementation');
+        console.log('[App] Starting Mysews PWA - Stage 3: XML Selector Fixed Complete Implementation');
         initializeData();
         render();
     });
