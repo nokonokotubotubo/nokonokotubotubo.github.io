@@ -16,14 +16,21 @@ self.addEventListener('install', event => {
         console.log('[SW] Caching files');
         return cache.addAll(urlsToCache);
       })
+      .catch(error => {
+        console.error('[SW] Cache failed:', error);
+      })
   );
 });
 
 self.addEventListener('fetch', event => {
+  // GitHub Pagesサブディレクトリ対応：/mss/スコープのみ処理
+  if (!event.request.url.includes('/mss/')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // キャッシュにあればそれを返す、なければネットワークから取得
         if (response) {
           console.log('[SW] Found in cache:', event.request.url);
           return response;
@@ -50,10 +57,4 @@ self.addEventListener('activate', event => {
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
             console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
+            return
