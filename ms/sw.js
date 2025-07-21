@@ -1,8 +1,8 @@
 const CACHE_NAME = 'mysews-v1';
 const urlsToCache = [
-  '/',
-  '/src/App.tsx',
-  '/src/styles.css'
+  '/ms/',
+  '/ms/src/App.tsx',
+  '/ms/src/styles.css'
 ];
 
 self.addEventListener('install', function(event) {
