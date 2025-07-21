@@ -1,5 +1,6 @@
 // Minews PWA - パフォーマンス問題修正完全版
-(function() {
+
+(function() { 
     'use strict';
 
     // ===========================================
@@ -15,12 +16,14 @@
 
     const MAX_ARTICLES = 1000;
     const DATA_VERSION = '1.0';
+
     const RSS_PROXY_URLS = [
         'https://api.codetabs.com/v1/proxy?quest=',
         'https://api.allorigins.win/get?url=',
         'https://thingproxy.freeboard.io/fetch/',
         'https://corsproxy.io/?'
     ];
+
     const REQUEST_TIMEOUT = 15000;
     const MAX_RETRIES = 2;
     const RETRY_DELAY = 3000;
@@ -37,7 +40,7 @@
                 isActive: true
             },
             {
-                id: 'default-itmedia',
+                id: 'default-itmedia', 
                 url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
                 title: 'ITmedia',
                 lastUpdated: new Date().toISOString(),
@@ -81,7 +84,7 @@
             aiLearning: null,
             wordFilters: null
         },
-        
+
         // キャッシュクリア
         clear: function(key) {
             if (key) {
@@ -94,7 +97,12 @@
                 this.rssFeeds = null;
                 this.aiLearning = null;
                 this.wordFilters = null;
-                this.lastUpdate = { articles: null, rssFeeds: null, aiLearning: null, wordFilters: null };
+                this.lastUpdate = {
+                    articles: null,
+                    rssFeeds: null,
+                    aiLearning: null,
+                    wordFilters: null
+                };
                 console.log('[Cache] Cleared all cache');
             }
         },
@@ -127,7 +135,7 @@
 
             const proxyUrl = RSS_PROXY_URLS[proxyIndex];
             const fullUrl = proxyUrl + encodeURIComponent(url);
-            
+
             console.log(`[RSS] Fetching via proxy ${proxyIndex + 1} (${proxyUrl.split('?')[0]}):`, url);
 
             try {
@@ -150,7 +158,6 @@
                 }
 
                 let xmlContent;
-                
                 if (proxyUrl.includes('allorigins.win')) {
                     const data = await response.json();
                     xmlContent = data.contents;
@@ -182,11 +189,9 @@
 
             } catch (error) {
                 console.warn(`[RSS] Proxy ${proxyIndex + 1} failed:`, error.message);
-                
                 if (error.name === 'AbortError') {
                     console.warn(`[RSS] Request timeout for proxy ${proxyIndex + 1}`);
                 }
-                
                 return this.fetchRSS(url, proxyIndex + 1, retryCount);
             }
         },
@@ -198,7 +203,6 @@
         parseRSS: function(xmlString, sourceUrl) {
             try {
                 const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-                
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
 
@@ -214,7 +218,6 @@
                 const rss2Items = xmlDoc.querySelectorAll('rss channel item');
                 if (rss2Items.length > 0) {
                     feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle;
-                    
                     rss2Items.forEach((item, index) => {
                         if (index < 20) {
                             const article = this.parseRSSItem(item, sourceUrl);
@@ -226,7 +229,6 @@
                 const atomEntries = xmlDoc.querySelectorAll('feed entry');
                 if (atomEntries.length > 0 && articles.length === 0) {
                     feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle;
-                    
                     atomEntries.forEach((entry, index) => {
                         if (index < 20) {
                             const article = this.parseAtomEntry(entry, sourceUrl);
@@ -238,7 +240,6 @@
                 const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
                 if (rdfItems.length > 0 && articles.length === 0) {
                     feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
-                    
                     rdfItems.forEach((item, index) => {
                         if (index < 20) {
                             const article = this.parseRSSItem(item, sourceUrl);
@@ -249,6 +250,7 @@
 
                 console.log(`[RSS] Parsed ${articles.length} articles from ${feedTitle}`);
                 return { articles, feedTitle };
+
             } catch (error) {
                 console.error('[RSS] Parse error:', error);
                 throw new Error('Failed to parse RSS feed: ' + error.message);
@@ -258,10 +260,12 @@
         parseRSSItem: function(item, sourceUrl) {
             try {
                 const title = this.getTextContent(item, ['title']);
-                const link = this.getTextContent(item, ['link', 'guid']) || 
-                           item.getAttribute('rdf:about');
+                const link = this.getTextContent(item, ['link', 'guid']) || item.getAttribute('rdf:about');
                 const description = this.getTextContent(item, [
-                    'description', 'content:encoded', 'content', 'summary'
+                    'description',
+                    'content:encoded',
+                    'content',
+                    'summary'
                 ]);
                 const pubDate = this.getTextContent(item, ['pubDate', 'date']);
                 const category = this.getTextContent(item, ['category', 'subject']) || 'General';
@@ -271,10 +275,7 @@
                     return null;
                 }
 
-                const cleanDescription = description ? 
-                    this.cleanHtml(description).substring(0, 300) : 
-                    '記事の概要は提供されていません';
-
+                const cleanDescription = description ? this.cleanHtml(description).substring(0, 300) : '記事の概要は提供されていません';
                 const keywords = this.extractKeywords(title + ' ' + cleanDescription);
 
                 const article = {
@@ -293,6 +294,7 @@
                 };
 
                 return article;
+
             } catch (error) {
                 console.error('[RSS] Error parsing RSS item:', error);
                 return null;
@@ -302,10 +304,11 @@
         parseAtomEntry: function(entry, sourceUrl) {
             try {
                 const title = this.getTextContent(entry, ['title']);
-                const link = entry.querySelector('link')?.getAttribute('href') || 
-                           this.getTextContent(entry, ['id']);
+                const link = entry.querySelector('link')?.getAttribute('href') || this.getTextContent(entry, ['id']);
                 const content = this.getTextContent(entry, [
-                    'content', 'summary', 'description'
+                    'content',
+                    'summary',
+                    'description'
                 ]);
                 const published = this.getTextContent(entry, ['published', 'updated']);
                 const category = entry.querySelector('category')?.getAttribute('term') || 
@@ -316,10 +319,7 @@
                     return null;
                 }
 
-                const cleanContent = content ? 
-                    this.cleanHtml(content).substring(0, 300) : 
-                    '記事の概要は提供されていません';
-
+                const cleanContent = content ? this.cleanHtml(content).substring(0, 300) : '記事の概要は提供されていません';
                 const keywords = this.extractKeywords(title + ' ' + cleanContent);
 
                 const article = {
@@ -338,6 +338,7 @@
                 };
 
                 return article;
+
             } catch (error) {
                 console.error('[RSS] Error parsing Atom entry:', error);
                 return null;
@@ -347,13 +348,13 @@
         getTextContent: function(element, selectors) {
             for (const selector of selectors) {
                 let result = null;
-                
+
                 if (selector.includes(':')) {
                     const elements = element.getElementsByTagName(selector);
                     if (elements.length > 0 && elements[0].textContent) {
                         result = elements[0].textContent.trim();
                     }
-                    
+
                     if (!result) {
                         const localName = selector.split(':')[1];
                         const localElements = element.getElementsByTagName(localName);
@@ -374,7 +375,7 @@
                         }
                     }
                 }
-                
+
                 if (result) return result;
             }
             return null;
@@ -387,14 +388,13 @@
                       .replace(/&gt;/g, '>')
                       .replace(/&amp;/g, '&')
                       .replace(/&quot;/g, '"')
-                      .replace(/&#039;/g, "'")
+                      .replace(/&#39;/g, "'")
                       .replace(/\s+/g, ' ')
                       .trim();
         },
 
         parseDate: function(dateString) {
             if (!dateString) return new Date().toISOString();
-            
             try {
                 const date = new Date(dateString);
                 if (isNaN(date.getTime())) {
@@ -407,15 +407,12 @@
         },
 
         extractKeywords: function(text) {
-            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 
-                             'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-            
+            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
             const words = text.toLowerCase()
                              .replace(/[^\w\sぁ-んァ-ン一-龯]/g, ' ')
                              .split(/\s+/)
                              .filter(word => word.length > 2 && !stopWords.includes(word))
                              .slice(0, 8);
-            
             return [...new Set(words)];
         },
 
@@ -492,7 +489,6 @@
             }
 
             aiLearning.lastUpdated = new Date().toISOString();
-            
             console.log(`[AI] Learning updated for rating ${rating}, weight: ${weight}`);
             return aiLearning;
         },
@@ -538,7 +534,7 @@
 
         removeWord: function(word, type, wordFilters) {
             word = word.trim().toLowerCase();
-            
+
             if (type === 'interest') {
                 const index = wordFilters.interestWords.indexOf(word);
                 if (index > -1) {
@@ -604,7 +600,6 @@
                 }
 
                 const parsed = JSON.parse(stored);
-                
                 if (parsed.version !== DATA_VERSION) {
                     console.warn('[Storage] Version mismatch:', key, 'Migrating data');
                     return this.migrateData(key, parsed, defaultValue);
@@ -612,6 +607,7 @@
 
                 console.log('[Storage] Loaded:', key, 'Timestamp:', parsed.timestamp);
                 return parsed.data;
+
             } catch (error) {
                 console.error('[Storage] Load failed:', key, error);
                 if (defaultValue) {
@@ -634,26 +630,24 @@
 
         migrateData: function(key, oldData, defaultValue) {
             console.log('[Storage] Migrating data for:', key);
-            
             if (oldData.data) {
                 this.setItem(key, oldData.data);
                 return oldData.data;
             }
-            
             return defaultValue;
         },
 
         getStorageInfo: function() {
             let totalSize = 0;
             let itemCount = 0;
-            
+
             for (let key in localStorage) {
                 if (localStorage.hasOwnProperty(key) && key.startsWith('minews_')) {
                     totalSize += localStorage[key].length;
                     itemCount++;
                 }
             }
-            
+
             return {
                 totalSize: totalSize,
                 itemCount: itemCount,
@@ -670,30 +664,29 @@
         useArticles: function() {
             const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-            
+
             if (!DataHooksCache.articles || DataHooksCache.lastUpdate.articles !== timestamp) {
                 DataHooksCache.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
                 DataHooksCache.lastUpdate.articles = timestamp;
                 console.log('[Cache] Articles cache updated');
             }
-            
+
             return {
                 articles: DataHooksCache.articles,
-                
+
                 addArticle: function(newArticle) {
                     const updatedArticles = [...DataHooksCache.articles];
-                    
                     const exists = updatedArticles.find(article => 
-                        article.id === newArticle.id || 
+                        article.id === newArticle.id ||
                         article.url === newArticle.url ||
                         (article.title === newArticle.title && article.rssSource === newArticle.rssSource)
                     );
-                    
+
                     if (exists) {
                         console.warn('[Articles] Duplicate article:', newArticle.title);
                         return false;
                     }
-                    
+
                     if (updatedArticles.length >= MAX_ARTICLES) {
                         updatedArticles.sort((a, b) => {
                             const aScore = (a.readStatus === 'read' && a.userRating === 0) ? 1 : 0;
@@ -704,47 +697,51 @@
                         updatedArticles.pop();
                         console.log('[Articles] Removed old article for capacity');
                     }
-                    
+
                     updatedArticles.unshift(newArticle);
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.articles = updatedArticles;
                     DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
+
                     return true;
                 },
-                
+
                 updateArticle: function(articleId, updates) {
-                    const updatedArticles = DataHooksCache.articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article =>
                         article.id === articleId ? { ...article, ...updates } : article
                     );
+
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.articles = updatedArticles;
                     DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
-                
+
                 removeArticle: function(articleId) {
                     const updatedArticles = DataHooksCache.articles.filter(article => article.id !== articleId);
+
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.articles = updatedArticles;
                     DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
-                
+
                 bulkUpdateArticles: function(articleIds, updates) {
-                    const updatedArticles = DataHooksCache.articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article =>
                         articleIds.includes(article.id) ? { ...article, ...updates } : article
                     );
+
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.articles = updatedArticles;
                     DataHooksCache.lastUpdate.articles = new Date().toISOString();
@@ -757,16 +754,16 @@
         useRSSManager: function() {
             const stored = localStorage.getItem(STORAGE_KEYS.RSS_FEEDS);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-            
+
             if (!DataHooksCache.rssFeeds || DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
                 DataHooksCache.rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
                 DataHooksCache.lastUpdate.rssFeeds = timestamp;
                 console.log('[Cache] RSS feeds cache updated');
             }
-            
+
             return {
                 rssFeeds: DataHooksCache.rssFeeds,
-                
+
                 addRSSFeed: function(url, title) {
                     const newFeed = {
                         id: 'rss_' + Date.now(),
@@ -775,26 +772,26 @@
                         lastUpdated: new Date().toISOString(),
                         isActive: true
                     };
-                    
+
                     const updatedFeeds = [...DataHooksCache.rssFeeds, newFeed];
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.rssFeeds = updatedFeeds;
                     DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-                    
+
                     console.log('[RSS] Added feed:', title);
                     return newFeed;
                 },
-                
+
                 removeRSSFeed: function(feedId) {
                     const updatedFeeds = DataHooksCache.rssFeeds.filter(feed => feed.id !== feedId);
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.rssFeeds = updatedFeeds;
                     DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-                    
+
                     console.log('[RSS] Removed feed:', feedId);
                 },
 
@@ -802,12 +799,13 @@
                     const updatedFeeds = DataHooksCache.rssFeeds.map(feed =>
                         feed.id === feedId ? { ...feed, ...updates } : feed
                     );
+
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.rssFeeds = updatedFeeds;
                     DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-                    
+
                     console.log('[RSS] Updated feed:', feedId);
                 },
 
@@ -820,22 +818,21 @@
                     for (const feed of DataHooksCache.rssFeeds.filter(f => f.isActive)) {
                         try {
                             console.log(`[RSS] Fetching feed: ${feed.title} (${feed.url})`);
-                            
                             const rssContent = await RSSProcessor.fetchRSS(feed.url);
                             const parsed = RSSProcessor.parseRSS(rssContent, feed.url);
-                            
+
                             let addedCount = 0;
                             parsed.articles.forEach(article => {
                                 if (articlesHook.addArticle(article)) {
                                     addedCount++;
                                 }
                             });
-                            
+
                             this.updateRSSFeed(feed.id, {
                                 lastUpdated: new Date().toISOString(),
                                 title: parsed.feedTitle
                             });
-                            
+
                             totalAdded += addedCount;
                             feedResults.push({
                                 name: feed.title,
@@ -843,8 +840,9 @@
                                 added: addedCount,
                                 total: parsed.articles.length
                             });
+
                             console.log(`[RSS] Added ${addedCount} articles from ${feed.title}`);
-                            
+
                         } catch (error) {
                             console.error(`[RSS] Failed to fetch ${feed.title}:`, error.message);
                             totalErrors++;
@@ -855,10 +853,10 @@
                             });
                         }
                     }
-                    
-                    return { 
-                        totalAdded, 
-                        totalErrors, 
+
+                    return {
+                        totalAdded,
+                        totalErrors,
                         totalFeeds: DataHooksCache.rssFeeds.filter(f => f.isActive).length,
                         feedResults
                     };
@@ -869,16 +867,16 @@
         useAILearning: function() {
             const stored = localStorage.getItem(STORAGE_KEYS.AI_LEARNING);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-            
+
             if (!DataHooksCache.aiLearning || DataHooksCache.lastUpdate.aiLearning !== timestamp) {
                 DataHooksCache.aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
                 DataHooksCache.lastUpdate.aiLearning = timestamp;
                 console.log('[Cache] AI learning cache updated');
             }
-            
+
             return {
                 aiLearning: DataHooksCache.aiLearning,
-                
+
                 updateWordWeight: function(word, weight) {
                     const updatedLearning = {
                         ...DataHooksCache.aiLearning,
@@ -888,15 +886,16 @@
                         },
                         lastUpdated: new Date().toISOString()
                     };
+
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.aiLearning = updatedLearning;
                     DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-                    
+
                     console.log('[AI] Updated word weight:', word, weight);
                 },
-                
+
                 updateCategoryWeight: function(category, weight) {
                     const updatedLearning = {
                         ...DataHooksCache.aiLearning,
@@ -906,23 +905,24 @@
                         },
                         lastUpdated: new Date().toISOString()
                     };
+
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.aiLearning = updatedLearning;
                     DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-                    
+
                     console.log('[AI] Updated category weight:', category, weight);
                 },
 
                 updateLearningData: function(article, rating) {
                     const updatedLearning = AIScoring.updateLearning(article, rating, DataHooksCache.aiLearning);
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                    
+
                     // キャッシュ更新
                     DataHooksCache.aiLearning = updatedLearning;
                     DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-                    
+
                     return updatedLearning;
                 }
             };
@@ -931,39 +931,39 @@
         useWordFilters: function() {
             const stored = localStorage.getItem(STORAGE_KEYS.WORD_FILTERS);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-            
+
             if (!DataHooksCache.wordFilters || DataHooksCache.lastUpdate.wordFilters !== timestamp) {
                 DataHooksCache.wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
                 DataHooksCache.lastUpdate.wordFilters = timestamp;
                 console.log('[Cache] Word filters cache updated');
             }
-            
+
             return {
                 wordFilters: DataHooksCache.wordFilters,
-                
+
                 addInterestWord: function(word) {
                     const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
-                        
+
                         // キャッシュ更新
                         DataHooksCache.wordFilters = updated;
                         DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                        
+
                         return true;
                     }
                     return false;
                 },
-                
+
                 addNGWord: function(word) {
                     const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
-                        
+
                         // キャッシュ更新
                         DataHooksCache.wordFilters = updated;
                         DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                        
+
                         return true;
                     }
                     return false;
@@ -973,11 +973,11 @@
                     const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
-                        
+
                         // キャッシュ更新
                         DataHooksCache.wordFilters = updated;
                         DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                        
+
                         return true;
                     }
                     return false;
@@ -987,11 +987,11 @@
                     const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
-                        
+
                         // キャッシュ更新
                         DataHooksCache.wordFilters = updated;
                         DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                        
+
                         return true;
                     }
                     return false;
@@ -1019,23 +1019,22 @@
 
     function initializeData() {
         console.log('[App] Initializing data...');
-        
+
         const articlesData = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
         const rssData = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
         const aiData = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
         const wordData = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
-        
+
         // キャッシュ初期化
         DataHooksCache.articles = articlesData;
         DataHooksCache.rssFeeds = rssData;
         DataHooksCache.aiLearning = aiData;
         DataHooksCache.wordFilters = wordData;
-        
+
         state.articles = articlesData;
 
         if (state.articles.length === 0) {
             console.log('[App] No existing articles, adding samples');
-            
             const sampleArticles = [
                 {
                     id: 'sample_1',
@@ -1064,15 +1063,15 @@
                     keywords: ['ボタン', 'ユーザビリティ', 'UX', 'シンプル', '操作性']
                 }
             ];
-            
+
             const articlesHook = DataHooks.useArticles();
             sampleArticles.forEach(article => {
                 articlesHook.addArticle(article);
             });
-            
+
             state.articles = DataHooksCache.articles;
         }
-        
+
         const storageInfo = LocalStorageManager.getStorageInfo();
         console.log('[App] Storage info:', storageInfo);
         console.log('[App] Data initialization complete. Articles:', state.articles.length);
@@ -1090,7 +1089,7 @@
         const diffTime = now - date;
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-        
+
         if (diffHours < 1) {
             return '1時間以内';
         } else if (diffHours < 24) {
@@ -1119,7 +1118,7 @@
     }
 
     // ===========================================
-    // Event handlers（継承）
+    // Event handlers（継承・修正版）
     // ===========================================
 
     function handleFilterClick(mode) {
@@ -1134,6 +1133,7 @@
         setState({ showModal: null });
     }
 
+    // ★ 修正済み：重複フィードバック防止・低評価時の自動既読化
     function handleStarClick(event) {
         if (event.target.classList.contains('star')) {
             const rating = parseInt(event.target.dataset.rating);
@@ -1141,10 +1141,25 @@
             
             const articlesHook = DataHooks.useArticles();
             const aiHook = DataHooks.useAILearning();
-            
             const article = state.articles.find(a => a.id === articleId);
+            
             if (article) {
-                articlesHook.updateArticle(articleId, { userRating: rating });
+                // 1. 同じ記事にフィードバックを何度も出来ないようにする
+                if (article.userRating > 0) {
+                    console.log(`[Rating] Article "${article.title}" already rated (${article.userRating} stars). Feedback blocked.`);
+                    return;
+                }
+                
+                // 評価を更新
+                const updateData = { userRating: rating };
+                
+                // 2. 評価の星が1か2の場合、既読になるようにする
+                if (rating === 1 || rating === 2) {
+                    updateData.readStatus = 'read';
+                    console.log(`[Rating] Low rating (${rating} stars) - marking article as read`);
+                }
+                
+                articlesHook.updateArticle(articleId, updateData);
                 aiHook.updateLearningData(article, rating);
                 console.log(`[Rating] Article "${article.title}" rated ${rating} stars`);
             }
@@ -1154,7 +1169,7 @@
     function handleReadStatusToggle(articleId) {
         const articlesHook = DataHooks.useArticles();
         const article = state.articles.find(a => a.id === articleId);
-        
+
         if (article) {
             const newStatus = article.readStatus === 'read' ? 'unread' : 'read';
             articlesHook.updateArticle(articleId, { readStatus: newStatus });
@@ -1165,7 +1180,7 @@
     function handleReadLaterToggle(articleId) {
         const articlesHook = DataHooks.useArticles();
         const article = state.articles.find(a => a.id === articleId);
-        
+
         if (article) {
             const newReadLater = !article.readLater;
             articlesHook.updateArticle(articleId, { readLater: newReadLater });
@@ -1175,21 +1190,21 @@
 
     async function handleRefresh() {
         if (state.isLoading) return;
-        
+
         setState({ isLoading: true });
         console.log('[App] Refreshing RSS feeds...');
-        
+
         try {
             const rssHook = DataHooks.useRSSManager();
             const result = await rssHook.fetchAllFeeds();
-            
+
             setState({ 
-                isLoading: false, 
-                lastUpdate: new Date().toISOString() 
+                isLoading: false,
+                lastUpdate: new Date().toISOString()
             });
-            
+
             let message = `更新完了！${result.totalAdded}件の新記事を追加しました。\n`;
-            
+
             if (result.feedResults && result.feedResults.length > 0) {
                 message += '\n【フィード別結果】\n';
                 result.feedResults.forEach(feedResult => {
@@ -1200,14 +1215,14 @@
                     }
                 });
             }
-            
+
             if (result.totalErrors > 0) {
                 message += `\n${result.totalErrors}件のフィードで取得エラーが発生しました。`;
             }
-            
+
             alert(message);
             console.log('[App] Refresh completed:', result);
-            
+
         } catch (error) {
             setState({ isLoading: false });
             console.error('[App] Refresh failed:', error);
@@ -1218,41 +1233,45 @@
     function handleRSSAdd() {
         const url = prompt('RSSフィードのURLを入力してください:\n\n推奨フィード例:\n• https://www3.nhk.or.jp/rss/news/cat0.xml\n• https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml');
         if (!url) return;
-        
+
         const title = prompt('フィードのタイトルを入力してください (空欄可):') || undefined;
-        
+
         const rssHook = DataHooks.useRSSManager();
         rssHook.addRSSFeed(url, title);
-        
+
         if (state.showModal === 'rss') {
             render();
         }
-        
+
         console.log('[RSS] Manual RSS feed added:', url);
     }
 
     function handleRSSRemove(feedId) {
         if (!confirm('このRSSフィードを削除しますか？')) return;
-        
+
         const rssHook = DataHooks.useRSSManager();
         rssHook.removeRSSFeed(feedId);
-        
+
         if (state.showModal === 'rss') {
             render();
         }
-        
+
         console.log('[RSS] RSS feed removed:', feedId);
     }
 
     function handleWordAdd(type) {
-        const word = prompt(type === 'interest' ? '気になるワードを入力してください:' : 'NGワードを入力してください:');
+        const word = prompt(
+            type === 'interest' 
+                ? '気になるワードを入力してください:' 
+                : 'NGワードを入力してください:'
+        );
         if (!word) return;
-        
+
         const wordHook = DataHooks.useWordFilters();
-        const success = type === 'interest' ? 
-            wordHook.addInterestWord(word) : 
-            wordHook.addNGWord(word);
-        
+        const success = type === 'interest' 
+            ? wordHook.addInterestWord(word) 
+            : wordHook.addNGWord(word);
+
         if (success) {
             if (state.showModal === 'words') {
                 render();
@@ -1265,12 +1284,12 @@
 
     function handleWordRemove(word, type) {
         if (!confirm(`「${word}」を削除しますか？`)) return;
-        
+
         const wordHook = DataHooks.useWordFilters();
-        const success = type === 'interest' ? 
-            wordHook.removeInterestWord(word) : 
-            wordHook.removeNGWord(word);
-        
+        const success = type === 'interest' 
+            ? wordHook.removeInterestWord(word) 
+            : wordHook.removeNGWord(word);
+
         if (success) {
             if (state.showModal === 'words') {
                 render();
@@ -1286,15 +1305,15 @@
     function getFilteredArticles() {
         const aiHook = DataHooks.useAILearning();
         const wordHook = DataHooks.useWordFilters();
-        
+
         console.log('[Debug] Filtering articles:', {
             totalArticles: state.articles.length,
             viewMode: state.viewMode,
             cacheStats: DataHooksCache.getStats()
         });
-        
+
         const filteredByWords = WordFilterManager.filterArticles(state.articles, wordHook.wordFilters);
-        
+
         let filteredByMode;
         switch (state.viewMode) {
             case 'unread':
@@ -1312,7 +1331,6 @@
 
         const result = AIScoring.sortArticlesByScore(filteredByMode, aiHook.aiLearning, wordHook.wordFilters);
         console.log('[Debug] Final filtered articles:', result.length);
-        
         return result;
     }
 
@@ -1327,7 +1345,7 @@
         const filterButtons = modes.map(mode => {
             const count = getFilteredArticleCount(mode.key);
             const active = state.viewMode === mode.key ? 'active' : '';
-            return `<button class="filter-btn ${active}" data-mode="${mode.key}">${mode.label} (${count})</button>`;
+            return `<button class="filter-btn ${active}" onclick="handleFilterClick('${mode.key}')">${mode.label} (${count})</button>`;
         }).join('');
 
         const refreshButtonClass = state.isLoading ? 'action-btn refresh-btn loading' : 'action-btn refresh-btn';
@@ -1336,17 +1354,16 @@
         return `
             <nav class="nav">
                 <div class="nav-left">
-                    <h1>Minews</h1>
-                    ${state.lastUpdate ? `<small class="last-update">最終更新: ${formatDate(state.lastUpdate)}</small>` : ''}
+                    <h1 class="app-logo">Mysews</h1>
+                    ${state.lastUpdate ? `<div class="last-update">最終更新: ${formatDate(state.lastUpdate)}</div>` : ''}
                 </div>
                 <div class="nav-filters">
                     ${filterButtons}
                 </div>
                 <div class="nav-actions">
-                    <button class="action-btn" data-modal="rss">RSS管理</button>
-                    <button class="action-btn" data-modal="words">ワード管理</button>
-                    <button class="action-btn" data-action="storage">データ</button>
-                    <button class="${refreshButtonClass}" data-action="refresh" ${state.isLoading ? 'disabled' : ''}>${refreshButtonText}</button>
+                    <button class="action-btn" onclick="handleModalOpen('rss')">📡 RSS管理</button>
+                    <button class="action-btn" onclick="handleModalOpen('words')">🔤 ワード管理</button>
+                    <button class="${refreshButtonClass}" onclick="handleRefresh()" ${state.isLoading ? 'disabled' : ''}>${refreshButtonText}</button>
                 </div>
             </nav>
         `;
@@ -1355,7 +1372,7 @@
     function getFilteredArticleCount(mode) {
         const wordHook = DataHooks.useWordFilters();
         const filteredByWords = WordFilterManager.filterArticles(state.articles, wordHook.wordFilters);
-        
+
         switch (mode) {
             case 'unread':
                 return filteredByWords.filter(article => article.readStatus === 'unread').length;
@@ -1371,240 +1388,166 @@
     function renderArticleCard(article) {
         const readStatusLabel = article.readStatus === 'read' ? '未読' : '既読';
         const readLaterLabel = article.readLater ? '解除' : '後読';
-        const scoreDisplay = article.aiScore !== undefined ? 
-            `<span class="ai-score" title="AIスコア">🤖 ${article.aiScore}</span>` : '';
+        const scoreDisplay = article.aiScore !== undefined ? `🤖 ${article.aiScore}` : '';
 
         return `
-            <div class="article-card" data-read-status="${article.readStatus}">
-                <div class="article-header">
-                    <h3 class="article-title">
-                        <a href="${article.url}" target="_blank" data-article-id="${article.id}">${article.title}</a>
-                    </h3>
-                </div>
+            <article class="article-card" data-read-status="${article.readStatus}">
+                <header class="article-header">
+                    <h2 class="article-title">
+                        <a href="${article.url}" target="_blank" onclick="handleReadStatusToggle('${article.id}')">${article.title}</a>
+                    </h2>
+                </header>
                 <div class="article-meta">
                     <span class="date">${formatDate(article.publishDate)}</span>
                     <span class="source">${article.rssSource}</span>
                     <span class="category">${article.category}</span>
-                    ${scoreDisplay}
-                    ${article.userRating > 0 ? `<span class="rating-badge">★${article.userRating}</span>` : ''}
+                    ${scoreDisplay ? `<span class="ai-score">${scoreDisplay}</span>` : ''}
+                    ${article.userRating > 0 ? `<span class="rating-badge">${article.userRating}★</span>` : ''}
                 </div>
                 <div class="article-content">
-                    ${truncateText(article.content, 250)}
+                    ${truncateText(article.content)}
                 </div>
                 <div class="article-keywords">
-                    ${article.keywords ? article.keywords.slice(0, 5).map(keyword => 
-                        `<span class="keyword">${keyword}</span>`
-                    ).join('') : ''}
+                    ${article.keywords.map(keyword => `<span class="keyword">${keyword}</span>`).join('')}
                 </div>
                 <div class="article-actions">
-                    <button class="action-btn simple-btn read-status" data-article-id="${article.id}">${readStatusLabel}</button>
-                    <button class="action-btn simple-btn read-later" data-article-id="${article.id}">${readLaterLabel}</button>
+                    <button class="simple-btn read-status" onclick="handleReadStatusToggle('${article.id}')">${readStatusLabel}</button>
+                    <button class="simple-btn read-later ${article.readLater ? 'active' : ''}" onclick="handleReadLaterToggle('${article.id}')" data-active="${article.readLater}">${readLaterLabel}</button>
                 </div>
                 ${createStarRating(article.userRating, article.id)}
-            </div>
+            </article>
         `;
     }
 
     function renderArticleGrid() {
-        const filteredArticles = getFilteredArticles();
-        if (filteredArticles.length === 0) {
-            const emptyMessage = state.viewMode === 'all' ? 
-                '記事がありません。RSSフィードを追加して「🔄 更新」ボタンを押してください。' :
-                '該当する記事がありません';
-            return `<div class="empty-message">${emptyMessage}</div>`;
+        const articles = getFilteredArticles();
+
+        if (articles.length === 0) {
+            return '<div class="empty-message">📰 表示する記事がありません</div>';
         }
 
         return `
             <div class="article-grid">
-                ${filteredArticles.map(renderArticleCard).join('')}
+                ${articles.map(article => renderArticleCard(article)).join('')}
+            </div>
+        `;
+    }
+
+    function renderRSSModal() {
+        const rssHook = DataHooks.useRSSManager();
+
+        return `
+            <div class="modal-overlay" onclick="handleModalClose()">
+                <div class="modal" onclick="event.stopPropagation()">
+                    <header class="modal-header">
+                        <h2>📡 RSS フィード管理</h2>
+                        <button class="modal-close" onclick="handleModalClose()">×</button>
+                    </header>
+                    <div class="modal-body">
+                        <div class="modal-actions">
+                            <button class="action-btn success" onclick="handleRSSAdd()">➕ フィード追加</button>
+                        </div>
+                        <div class="rss-list">
+                            ${rssHook.rssFeeds.map(feed => `
+                                <div class="rss-item">
+                                    <div class="rss-info">
+                                        <strong>${feed.title}</strong>
+                                        <div class="rss-url">${feed.url}</div>
+                                        <div class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</div>
+                                        <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">
+                                            ${feed.isActive ? 'アクティブ' : '無効'}
+                                        </span>
+                                    </div>
+                                    <div class="rss-actions">
+                                        <button class="action-btn danger" onclick="handleRSSRemove('${feed.id}')">削除</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="rss-help">
+                            <h4>📋 使い方</h4>
+                            <ul>
+                                <li>RSS/AtomフィードのURLを追加できます</li>
+                                <li>フィード削除は取り消せません</li>
+                                <li>非アクティブなフィードは更新されません</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderWordModal() {
+        const wordHook = DataHooks.useWordFilters();
+
+        return `
+            <div class="modal-overlay" onclick="handleModalClose()">
+                <div class="modal" onclick="event.stopPropagation()">
+                    <header class="modal-header">
+                        <h2>🔤 ワード管理</h2>
+                        <button class="modal-close" onclick="handleModalClose()">×</button>
+                    </header>
+                    <div class="modal-body">
+                        <div class="word-section">
+                            <div class="word-section-header">
+                                <h3>✨ 気になるワード</h3>
+                                <button class="action-btn success" onclick="handleWordAdd('interest')">➕ 追加</button>
+                            </div>
+                            <div class="word-list">
+                                ${wordHook.wordFilters.interestWords.map(word => `
+                                    <span class="word-tag interest">
+                                        ${word}
+                                        <button class="word-remove" onclick="handleWordRemove('${word}', 'interest')">×</button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="word-section">
+                            <div class="word-section-header">
+                                <h3>🚫 NGワード</h3>
+                                <button class="action-btn danger" onclick="handleWordAdd('ng')">➕ 追加</button>
+                            </div>
+                            <div class="word-list">
+                                ${wordHook.wordFilters.ngWords.map(word => `
+                                    <span class="word-tag ng">
+                                        ${word}
+                                        <button class="word-remove" onclick="handleWordRemove('${word}', 'ng')">×</button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="word-help">
+                            <h4>🎯 ワードフィルターの効果</h4>
+                            <p><strong>気になるワード</strong>: 記事のタイトルや内容に含まれると+20ポイント</p>
+                            <p><strong>NGワード</strong>: 記事のタイトルや内容に含まれると-50ポイント（除外対象）</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }
 
     function renderModal() {
-        if (!state.showModal) return '';
-
-        let modalContent = '';
-        
-        if (state.showModal === 'rss') {
-            const rssHook = DataHooks.useRSSManager();
-            modalContent = `
-                <div class="modal-header">
-                    <h2>RSS管理</h2>
-                    <button class="modal-close">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-actions">
-                        <button class="action-btn success" data-action="rss-add">RSSフィード追加</button>
-                    </div>
-                    <div class="rss-list">
-                        <h3>登録済みRSSフィード (${rssHook.rssFeeds.length})</h3>
-                        ${rssHook.rssFeeds.map(feed => `
-                            <div class="rss-item">
-                                <div class="rss-info">
-                                    <strong>${feed.title}</strong>
-                                    <small class="rss-url">${feed.url}</small>
-                                    <small class="rss-updated">更新: ${formatDate(feed.lastUpdated)}</small>
-                                    <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">${feed.isActive ? '有効' : '無効'}</span>
-                                </div>
-                                <div class="rss-actions">
-                                    <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">削除</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                        
-                        <div class="rss-help">
-                            <h4>推奨RSSフィード</h4>
-                            <ul>
-                                <li><strong>NHKニュース</strong>: https://www3.nhk.or.jp/rss/news/cat0.xml</li>
-                                <li><strong>ITmedia</strong>: https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml</li>
-                                <li><strong>Qiita</strong>: https://qiita.com/popular-items/feed</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (state.showModal === 'words') {
-            const wordHook = DataHooks.useWordFilters();
-            modalContent = `
-                <div class="modal-header">
-                    <h2>ワード管理</h2>
-                    <button class="modal-close">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="word-section">
-                        <div class="word-section-header">
-                            <h3>気になるワード (${wordHook.wordFilters.interestWords.length}) +20pt</h3>
-                            <button class="action-btn success" data-action="word-add" data-type="interest">追加</button>
-                        </div>
-                        <div class="word-list">
-                            ${wordHook.wordFilters.interestWords.map(word => `
-                                <span class="word-tag interest">
-                                    ${word}
-                                    <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="interest">×</button>
-                                </span>
-                            `).join('') || '<em>登録されたワードはありません</em>'}
-                        </div>
-                    </div>
-                    
-                    <div class="word-section">
-                        <div class="word-section-header">
-                            <h3>NGワード (${wordHook.wordFilters.ngWords.length}) -50pt</h3>
-                            <button class="action-btn danger" data-action="word-add" data-type="ng">追加</button>
-                        </div>
-                        <div class="word-list">
-                            ${wordHook.wordFilters.ngWords.map(word => `
-                                <span class="word-tag ng">
-                                    ${word}
-                                    <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="ng">×</button>
-                                </span>
-                            `).join('') || '<em>登録されたワードはありません</em>'}
-                        </div>
-                    </div>
-                    
-                    <div class="word-help">
-                        <h4>ワードフィルターについて</h4>
-                        <p><strong>気になるワード</strong>: 記事のタイトルや内容に含まれると+20ポイント</p>
-                        <p><strong>NGワード</strong>: 記事のタイトルや内容に含まれると-50ポイント（除外対象）</p>
-                    </div>
-                </div>
-            `;
-        } else if (state.showModal === 'storage') {
-            const storageInfo = LocalStorageManager.getStorageInfo();
-            const aiLearning = DataHooksCache.aiLearning || DEFAULT_DATA.aiLearning;
-            const rssFeeds = DataHooksCache.rssFeeds || DEFAULT_DATA.rssFeeds;
-            const wordFilters = DataHooksCache.wordFilters || DEFAULT_DATA.wordFilters;
-            
-            modalContent = `
-                <div class="modal-header">
-                    <h2>データ管理</h2>
-                    <button class="modal-close">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="storage-info">
-                        <h3>ストレージ使用状況</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">使用容量</span>
-                                <span class="stat-value">${(storageInfo.totalSize / 1024).toFixed(1)} KB</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">保存項目数</span>
-                                <span class="stat-value">${storageInfo.itemCount}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">記事数</span>
-                                <span class="stat-value">${state.articles.length} / ${MAX_ARTICLES}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">RSSフィード数</span>
-                                <span class="stat-value">${rssFeeds.length}</span>
-                            </div>
-                        </div>
-                        
-                        <h3>パフォーマンス情報</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">キャッシュ状態</span>
-                                <span class="stat-value">✅ 有効</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">articles キャッシュ</span>
-                                <span class="stat-value">${DataHooksCache.articles ? '✅' : '❌'}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">wordFilters キャッシュ</span>
-                                <span class="stat-value">${DataHooksCache.wordFilters ? '✅' : '❌'}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">データバージョン</span>
-                                <span class="stat-value">${DATA_VERSION}</span>
-                            </div>
-                        </div>
-                        
-                        <h3>AI学習データ</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">単語重み学習数</span>
-                                <span class="stat-value">${Object.keys(aiLearning.wordWeights).length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">カテゴリ重み学習数</span>
-                                <span class="stat-value">${Object.keys(aiLearning.categoryWeights).length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">最終更新</span>
-                                <span class="stat-value">${formatDate(aiLearning.lastUpdated)}</span>
-                            </div>
-                        </div>
-
-                        <h3>ワードフィルター</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">気になるワード数</span>
-                                <span class="stat-value">${wordFilters.interestWords.length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">NGワード数</span>
-                                <span class="stat-value">${wordFilters.ngWords.length}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        switch (state.showModal) {
+            case 'rss':
+                return renderRSSModal();
+            case 'words':
+                return renderWordModal();
+            default:
+                return '';
         }
-
-        return `
-            <div class="modal-overlay">
-                <div class="modal">
-                    ${modalContent}
-                </div>
-            </div>
-        `;
     }
 
     function render() {
         const app = document.getElementById('root');
+        if (!app) {
+            console.error('[Render] Root element not found');
+            return;
+        }
+
         app.innerHTML = `
             <div class="app">
                 ${renderNavigation()}
@@ -1615,92 +1558,34 @@
             </div>
         `;
 
-        addEventListeners();
-    }
-
-    function addEventListeners() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                handleFilterClick(e.target.dataset.mode);
-            });
-        });
-
-        document.querySelectorAll('.action-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const modal = e.target.dataset.modal;
-                const action = e.target.dataset.action;
-                
-                if (modal) {
-                    handleModalOpen(modal);
-                } else if (action === 'refresh') {
-                    handleRefresh();
-                } else if (action === 'storage') {
-                    handleModalOpen('storage');
-                } else if (action === 'rss-add') {
-                    handleRSSAdd();
-                } else if (action === 'rss-remove') {
-                    handleRSSRemove(e.target.dataset.feedId);
-                } else if (action === 'word-add') {
-                    handleWordAdd(e.target.dataset.type);
-                } else if (action === 'word-remove') {
-                    handleWordRemove(e.target.dataset.word, e.target.dataset.type);
-                }
-            });
-        });
-
-        const closeBtn = document.querySelector('.modal-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', handleModalClose);
-        }
-
-        const overlay = document.querySelector('.modal-overlay');
-        if (overlay) {
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    handleModalClose();
-                }
-            });
-        }
-
-        document.querySelectorAll('.star-rating').forEach(rating => {
-            rating.addEventListener('click', handleStarClick);
-        });
-
-        document.querySelectorAll('.read-status').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                handleReadStatusToggle(e.target.dataset.articleId);
-            });
-        });
-
-        document.querySelectorAll('.read-later').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                handleReadLaterToggle(e.target.dataset.articleId);
-            });
-        });
-
-        document.querySelectorAll('.article-title a').forEach(link => {
-            link.addEventListener('click', (e) => {
-                const articleId = e.target.dataset.articleId;
-                if (articleId) {
-                    setTimeout(() => handleReadStatusToggle(articleId), 100);
-                }
-            });
-        });
-
-        document.querySelectorAll('.word-remove').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const word = e.target.dataset.word;
-                const type = e.target.dataset.type;
-                handleWordRemove(word, type);
-            });
+        // イベントリスナー再設定
+        document.addEventListener('click', function(event) {
+            handleStarClick(event);
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('[App] Starting Minews PWA - UI Design Optimized Complete Implementation');
+    // ===========================================
+    // アプリケーション初期化・実行
+    // ===========================================
+
+    // Global functions (for onclick handlers)
+    window.handleFilterClick = handleFilterClick;
+    window.handleModalOpen = handleModalOpen;
+    window.handleModalClose = handleModalClose;
+    window.handleRefresh = handleRefresh;
+    window.handleRSSAdd = handleRSSAdd;
+    window.handleRSSRemove = handleRSSRemove;
+    window.handleWordAdd = handleWordAdd;
+    window.handleWordRemove = handleWordRemove;
+    window.handleReadStatusToggle = handleReadStatusToggle;
+    window.handleReadLaterToggle = handleReadLaterToggle;
+
+    // アプリケーション起動
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[App] Application starting...');
         initializeData();
         render();
+        console.log('[App] Application ready!');
     });
 
 })();
