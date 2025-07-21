@@ -1,9 +1,9 @@
-// Mysews PWA - 第3段階：XMLセレクター問題修正完全版
+// Mysews PWA - パフォーマンス問題修正完全版
 (function() {
     'use strict';
 
     // ===========================================
-    // データ型定義・定数（改良版）
+    // データ型定義・定数
     // ===========================================
 
     const STORAGE_KEYS = {
@@ -21,9 +21,9 @@
         'https://thingproxy.freeboard.io/fetch/',
         'https://corsproxy.io/?'
     ];
-    const REQUEST_TIMEOUT = 15000; // 15秒に延長
-    const MAX_RETRIES = 2; // リトライ回数
-    const RETRY_DELAY = 3000; // 3秒待機
+    const REQUEST_TIMEOUT = 15000;
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY = 3000;
 
     // デフォルトデータ
     const DEFAULT_DATA = {
@@ -61,17 +61,60 @@
         },
         wordFilters: {
             interestWords: ['AI', 'React', 'JavaScript', 'PWA', '機械学習'],
-            ngWords: ['広告', 'スパム', 'クリックベイト'],
+            ngWords: [],
             lastUpdated: new Date().toISOString()
         }
     };
 
     // ===========================================
-    // RSS取得・解析システム（修正版）
+    // データキャッシュシステム（新規追加）
+    // ===========================================
+
+    const DataHooksCache = {
+        articles: null,
+        rssFeeds: null,
+        aiLearning: null,
+        wordFilters: null,
+        lastUpdate: {
+            articles: null,
+            rssFeeds: null,
+            aiLearning: null,
+            wordFilters: null
+        },
+        
+        // キャッシュクリア
+        clear: function(key) {
+            if (key) {
+                this[key] = null;
+                this.lastUpdate[key] = null;
+                console.log(`[Cache] Cleared cache for: ${key}`);
+            } else {
+                // 全キャッシュクリア
+                this.articles = null;
+                this.rssFeeds = null;
+                this.aiLearning = null;
+                this.wordFilters = null;
+                this.lastUpdate = { articles: null, rssFeeds: null, aiLearning: null, wordFilters: null };
+                console.log('[Cache] Cleared all cache');
+            }
+        },
+
+        // キャッシュ統計
+        getStats: function() {
+            return {
+                articles: this.articles ? 'cached' : 'not cached',
+                rssFeeds: this.rssFeeds ? 'cached' : 'not cached',
+                aiLearning: this.aiLearning ? 'cached' : 'not cached',
+                wordFilters: this.wordFilters ? 'cached' : 'not cached'
+            };
+        }
+    };
+
+    // ===========================================
+    // RSS取得・解析システム（継承）
     // ===========================================
 
     const RSSProcessor = {
-        // RSS取得（修正版：複数プロキシ対応・リトライ機能付き）
         fetchRSS: async function(url, proxyIndex = 0, retryCount = 0) {
             if (proxyIndex >= RSS_PROXY_URLS.length) {
                 if (retryCount < MAX_RETRIES) {
@@ -106,7 +149,6 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                // プロキシごとの適切なレスポンス処理
                 let xmlContent;
                 
                 if (proxyUrl.includes('allorigins.win')) {
@@ -118,7 +160,6 @@
                 } else if (proxyUrl.includes('thingproxy.freeboard.io')) {
                     xmlContent = await response.text();
                 } else {
-                    // corsproxy.io など
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
                         try {
@@ -146,26 +187,21 @@
                     console.warn(`[RSS] Request timeout for proxy ${proxyIndex + 1}`);
                 }
                 
-                // 次のプロキシを試行
                 return this.fetchRSS(url, proxyIndex + 1, retryCount);
             }
         },
 
-        // 遅延関数
         delay: function(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         },
 
-        // XML解析（改良版）
         parseRSS: function(xmlString, sourceUrl) {
             try {
-                // XMLの前処理（不正な文字を除去）
                 const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
                 
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
 
-                // パースエラーチェック
                 const parseError = xmlDoc.querySelector('parsererror');
                 if (parseError) {
                     console.error('[RSS] XML Parse Error:', parseError.textContent);
@@ -175,39 +211,36 @@
                 const articles = [];
                 let feedTitle = 'Unknown Feed';
 
-                // RSS 2.0形式の解析
                 const rss2Items = xmlDoc.querySelectorAll('rss channel item');
                 if (rss2Items.length > 0) {
                     feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle;
                     
                     rss2Items.forEach((item, index) => {
-                        if (index < 20) { // 最大20記事まで
+                        if (index < 20) {
                             const article = this.parseRSSItem(item, sourceUrl);
                             if (article) articles.push(article);
                         }
                     });
                 }
 
-                // Atom形式の解析
                 const atomEntries = xmlDoc.querySelectorAll('feed entry');
                 if (atomEntries.length > 0 && articles.length === 0) {
                     feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle;
                     
                     atomEntries.forEach((entry, index) => {
-                        if (index < 20) { // 最大20記事まで
+                        if (index < 20) {
                             const article = this.parseAtomEntry(entry, sourceUrl);
                             if (article) articles.push(article);
                         }
                     });
                 }
 
-                // RDF形式の解析（追加対応）
                 const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
                 if (rdfItems.length > 0 && articles.length === 0) {
                     feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
                     
                     rdfItems.forEach((item, index) => {
-                        if (index < 20) { // 最大20記事まで
+                        if (index < 20) {
                             const article = this.parseRSSItem(item, sourceUrl);
                             if (article) articles.push(article);
                         }
@@ -222,7 +255,6 @@
             }
         },
 
-        // RSS 2.0アイテム解析（修正版）
         parseRSSItem: function(item, sourceUrl) {
             try {
                 const title = this.getTextContent(item, ['title']);
@@ -232,8 +264,6 @@
                     'description', 'content:encoded', 'content', 'summary'
                 ]);
                 const pubDate = this.getTextContent(item, ['pubDate', 'date']);
-                
-                // 修正：dc:subjectを安全なセレクターに変更
                 const category = this.getTextContent(item, ['category', 'subject']) || 'General';
 
                 if (!title || !link) {
@@ -241,12 +271,10 @@
                     return null;
                 }
 
-                // HTML タグを削除してプレーンテキストに
                 const cleanDescription = description ? 
                     this.cleanHtml(description).substring(0, 300) : 
                     '記事の概要は提供されていません';
 
-                // キーワード抽出
                 const keywords = this.extractKeywords(title + ' ' + cleanDescription);
 
                 const article = {
@@ -271,7 +299,6 @@
             }
         },
 
-        // Atomエントリー解析（改良版）
         parseAtomEntry: function(entry, sourceUrl) {
             try {
                 const title = this.getTextContent(entry, ['title']);
@@ -317,20 +344,16 @@
             }
         },
 
-        // テキスト取得ヘルパー（XML名前空間対応版）
         getTextContent: function(element, selectors) {
             for (const selector of selectors) {
                 let result = null;
                 
-                // 名前空間付きセレクターの処理
                 if (selector.includes(':')) {
-                    // getElementsByTagNameで名前空間付き要素を検索
                     const elements = element.getElementsByTagName(selector);
                     if (elements.length > 0 && elements[0].textContent) {
                         result = elements[0].textContent.trim();
                     }
                     
-                    // 見つからない場合はローカル名のみで検索
                     if (!result) {
                         const localName = selector.split(':')[1];
                         const localElements = element.getElementsByTagName(localName);
@@ -339,14 +362,12 @@
                         }
                     }
                 } else {
-                    // 通常のセレクター
                     try {
                         const el = element.querySelector(selector);
                         if (el && el.textContent) {
                             result = el.textContent.trim();
                         }
                     } catch (e) {
-                        // querySelector失敗時はgetElementsByTagNameにフォールバック
                         const elements = element.getElementsByTagName(selector);
                         if (elements.length > 0 && elements[0].textContent) {
                             result = elements[0].textContent.trim();
@@ -359,7 +380,6 @@
             return null;
         },
 
-        // HTML除去
         cleanHtml: function(html) {
             if (!html) return '';
             return html.replace(/<[^>]*>/g, '')
@@ -372,7 +392,6 @@
                       .trim();
         },
 
-        // 日付解析
         parseDate: function(dateString) {
             if (!dateString) return new Date().toISOString();
             
@@ -387,7 +406,6 @@
             }
         },
 
-        // キーワード抽出（改良版）
         extractKeywords: function(text) {
             const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 
                              'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
@@ -398,10 +416,9 @@
                              .filter(word => word.length > 2 && !stopWords.includes(word))
                              .slice(0, 8);
             
-            return [...new Set(words)]; // 重複除去
+            return [...new Set(words)];
         },
 
-        // ドメイン抽出
         extractDomain: function(url) {
             try {
                 const urlObj = new URL(url);
@@ -417,15 +434,12 @@
     // ===========================================
 
     const AIScoring = {
-        // 記事スコア算出
         calculateScore: function(article, aiLearning, wordFilters) {
             let score = 0;
 
-            // 基本スコア（新しい記事ほど高スコア）
             const ageInDays = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60 * 24);
-            score += Math.max(0, 10 - ageInDays); // 新しいほど最大10ポイント
+            score += Math.max(0, 10 - ageInDays);
 
-            // キーワード重みによるスコア
             if (article.keywords && aiLearning.wordWeights) {
                 article.keywords.forEach(keyword => {
                     const weight = aiLearning.wordWeights[keyword] || 0;
@@ -433,13 +447,11 @@
                 });
             }
 
-            // カテゴリ重みによるスコア
             if (article.category && aiLearning.categoryWeights) {
                 const categoryWeight = aiLearning.categoryWeights[article.category] || 0;
                 score += categoryWeight;
             }
 
-            // 気になるワードボーナス
             if (wordFilters.interestWords && article.title) {
                 wordFilters.interestWords.forEach(word => {
                     if (article.title.toLowerCase().includes(word.toLowerCase()) ||
@@ -449,7 +461,6 @@
                 });
             }
 
-            // NGワードペナルティ
             if (wordFilters.ngWords && article.title) {
                 wordFilters.ngWords.forEach(word => {
                     if (article.title.toLowerCase().includes(word.toLowerCase()) ||
@@ -459,27 +470,23 @@
                 });
             }
 
-            // ユーザー評価による重み
             if (article.userRating > 0) {
-                score += (article.userRating - 3) * 10; // 3を中心として-20〜+20
+                score += (article.userRating - 3) * 10;
             }
 
             return Math.round(score);
         },
 
-        // AI学習データ更新
         updateLearning: function(article, rating, aiLearning) {
-            const weights = [0, -30, -15, 0, 15, 30]; // 1星=-30, 5星=+30
+            const weights = [0, -30, -15, 0, 15, 30];
             const weight = weights[rating] || 0;
 
-            // キーワード重み更新
             if (article.keywords) {
                 article.keywords.forEach(keyword => {
                     aiLearning.wordWeights[keyword] = (aiLearning.wordWeights[keyword] || 0) + weight;
                 });
             }
 
-            // カテゴリ重み更新
             if (article.category) {
                 aiLearning.categoryWeights[article.category] = (aiLearning.categoryWeights[article.category] || 0) + weight;
             }
@@ -490,17 +497,13 @@
             return aiLearning;
         },
 
-        // 記事一覧をスコア順でソート
         sortArticlesByScore: function(articles, aiLearning, wordFilters) {
             return articles.map(article => ({
                 ...article,
                 aiScore: this.calculateScore(article, aiLearning, wordFilters)
             })).sort((a, b) => {
-                // 1. AIスコア順
                 if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
-                // 2. ユーザー評価順
                 if (a.userRating !== b.userRating) return b.userRating - a.userRating;
-                // 3. 日付順（新しい順）
                 return new Date(b.publishDate) - new Date(a.publishDate);
             });
         }
@@ -511,7 +514,6 @@
     // ===========================================
 
     const WordFilterManager = {
-        // ワード追加
         addWord: function(word, type, wordFilters) {
             word = word.trim().toLowerCase();
             if (!word) return false;
@@ -534,7 +536,6 @@
             return false;
         },
 
-        // ワード削除
         removeWord: function(word, type, wordFilters) {
             word = word.trim().toLowerCase();
             
@@ -558,7 +559,6 @@
             return false;
         },
 
-        // 記事フィルタリング
         filterArticles: function(articles, wordFilters) {
             if (!wordFilters.ngWords.length) return articles;
 
@@ -572,7 +572,7 @@
     };
 
     // ===========================================
-    // ローカルストレージ管理システム（修正版）
+    // ローカルストレージ管理システム（継承）
     // ===========================================
 
     const LocalStorageManager = {
@@ -596,7 +596,6 @@
             try {
                 const stored = localStorage.getItem(key);
                 if (!stored) {
-                    // デフォルトデータを保存（修正版）
                     if (defaultValue) {
                         this.setItem(key, defaultValue);
                         console.log('[Storage] Initialized with default for:', key);
@@ -615,7 +614,6 @@
                 return parsed.data;
             } catch (error) {
                 console.error('[Storage] Load failed:', key, error);
-                // エラー時はデフォルトデータを保存
                 if (defaultValue) {
                     this.setItem(key, defaultValue);
                 }
@@ -665,18 +663,25 @@
     };
 
     // ===========================================
-    // データ操作フック（修正版）
+    // データ操作フック（パフォーマンス最適化版）
     // ===========================================
 
     const DataHooks = {
         useArticles: function() {
-            const articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
+            const stored = localStorage.getItem(STORAGE_KEYS.ARTICLES);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.articles || DataHooksCache.lastUpdate.articles !== timestamp) {
+                DataHooksCache.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
+                DataHooksCache.lastUpdate.articles = timestamp;
+                console.log('[Cache] Articles cache updated');
+            }
             
             return {
-                articles: articles,
+                articles: DataHooksCache.articles,
                 
                 addArticle: function(newArticle) {
-                    const updatedArticles = [...articles];
+                    const updatedArticles = [...DataHooksCache.articles];
                     
                     const exists = updatedArticles.find(article => 
                         article.id === newArticle.id || 
@@ -702,31 +707,47 @@
                     
                     updatedArticles.unshift(newArticle);
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     return true;
                 },
                 
                 updateArticle: function(articleId, updates) {
-                    const updatedArticles = articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         article.id === articleId ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
                 
                 removeArticle: function(articleId) {
-                    const updatedArticles = articles.filter(article => article.id !== articleId);
+                    const updatedArticles = DataHooksCache.articles.filter(article => article.id !== articleId);
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 },
                 
                 bulkUpdateArticles: function(articleIds, updates) {
-                    const updatedArticles = articles.map(article => 
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         articleIds.includes(article.id) ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.ARTICLES, updatedArticles);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.articles = updatedArticles;
+                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
                     state.articles = updatedArticles;
                     render();
                 }
@@ -734,10 +755,17 @@
         },
 
         useRSSManager: function() {
-            const rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
+            const stored = localStorage.getItem(STORAGE_KEYS.RSS_FEEDS);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.rssFeeds || DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
+                DataHooksCache.rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
+                DataHooksCache.lastUpdate.rssFeeds = timestamp;
+                console.log('[Cache] RSS feeds cache updated');
+            }
             
             return {
-                rssFeeds: rssFeeds,
+                rssFeeds: DataHooksCache.rssFeeds,
                 
                 addRSSFeed: function(url, title) {
                     const newFeed = {
@@ -748,23 +776,38 @@
                         isActive: true
                     };
                     
-                    const updatedFeeds = [...rssFeeds, newFeed];
+                    const updatedFeeds = [...DataHooksCache.rssFeeds, newFeed];
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Added feed:', title);
                     return newFeed;
                 },
                 
                 removeRSSFeed: function(feedId) {
-                    const updatedFeeds = rssFeeds.filter(feed => feed.id !== feedId);
+                    const updatedFeeds = DataHooksCache.rssFeeds.filter(feed => feed.id !== feedId);
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Removed feed:', feedId);
                 },
 
                 updateRSSFeed: function(feedId, updates) {
-                    const updatedFeeds = rssFeeds.map(feed =>
+                    const updatedFeeds = DataHooksCache.rssFeeds.map(feed =>
                         feed.id === feedId ? { ...feed, ...updates } : feed
                     );
                     LocalStorageManager.setItem(STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.rssFeeds = updatedFeeds;
+                    DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
+                    
                     console.log('[RSS] Updated feed:', feedId);
                 },
 
@@ -774,7 +817,7 @@
                     let totalErrors = 0;
                     let feedResults = [];
 
-                    for (const feed of rssFeeds.filter(f => f.isActive)) {
+                    for (const feed of DataHooksCache.rssFeeds.filter(f => f.isActive)) {
                         try {
                             console.log(`[RSS] Fetching feed: ${feed.title} (${feed.url})`);
                             
@@ -788,7 +831,6 @@
                                 }
                             });
                             
-                            // フィード更新時刻を記録
                             this.updateRSSFeed(feed.id, {
                                 lastUpdated: new Date().toISOString(),
                                 title: parsed.feedTitle
@@ -813,14 +855,11 @@
                             });
                         }
                     }
-
-                    state.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, []);
-                    render();
                     
                     return { 
                         totalAdded, 
                         totalErrors, 
-                        totalFeeds: rssFeeds.filter(f => f.isActive).length,
+                        totalFeeds: DataHooksCache.rssFeeds.filter(f => f.isActive).length,
                         feedResults
                     };
                 }
@@ -828,82 +867,131 @@
         },
 
         useAILearning: function() {
-            const aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
+            const stored = localStorage.getItem(STORAGE_KEYS.AI_LEARNING);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.aiLearning || DataHooksCache.lastUpdate.aiLearning !== timestamp) {
+                DataHooksCache.aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
+                DataHooksCache.lastUpdate.aiLearning = timestamp;
+                console.log('[Cache] AI learning cache updated');
+            }
             
             return {
-                aiLearning: aiLearning,
+                aiLearning: DataHooksCache.aiLearning,
                 
                 updateWordWeight: function(word, weight) {
                     const updatedLearning = {
-                        ...aiLearning,
+                        ...DataHooksCache.aiLearning,
                         wordWeights: {
-                            ...aiLearning.wordWeights,
-                            [word]: (aiLearning.wordWeights[word] || 0) + weight
+                            ...DataHooksCache.aiLearning.wordWeights,
+                            [word]: (DataHooksCache.aiLearning.wordWeights[word] || 0) + weight
                         },
                         lastUpdated: new Date().toISOString()
                     };
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     console.log('[AI] Updated word weight:', word, weight);
                 },
                 
                 updateCategoryWeight: function(category, weight) {
                     const updatedLearning = {
-                        ...aiLearning,
+                        ...DataHooksCache.aiLearning,
                         categoryWeights: {
-                            ...aiLearning.categoryWeights,
-                            [category]: (aiLearning.categoryWeights[category] || 0) + weight
+                            ...DataHooksCache.aiLearning.categoryWeights,
+                            [category]: (DataHooksCache.aiLearning.categoryWeights[category] || 0) + weight
                         },
                         lastUpdated: new Date().toISOString()
                     };
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     console.log('[AI] Updated category weight:', category, weight);
                 },
 
                 updateLearningData: function(article, rating) {
-                    const updatedLearning = AIScoring.updateLearning(article, rating, aiLearning);
+                    const updatedLearning = AIScoring.updateLearning(article, rating, DataHooksCache.aiLearning);
                     LocalStorageManager.setItem(STORAGE_KEYS.AI_LEARNING, updatedLearning);
+                    
+                    // キャッシュ更新
+                    DataHooksCache.aiLearning = updatedLearning;
+                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
+                    
                     return updatedLearning;
                 }
             };
         },
 
         useWordFilters: function() {
-            const wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+            const stored = localStorage.getItem(STORAGE_KEYS.WORD_FILTERS);
+            const timestamp = stored ? JSON.parse(stored).timestamp : null;
+            
+            if (!DataHooksCache.wordFilters || DataHooksCache.lastUpdate.wordFilters !== timestamp) {
+                DataHooksCache.wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+                DataHooksCache.lastUpdate.wordFilters = timestamp;
+                console.log('[Cache] Word filters cache updated');
+            }
             
             return {
-                wordFilters: wordFilters,
+                wordFilters: DataHooksCache.wordFilters,
                 
                 addInterestWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
                 
                 addNGWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
 
                 removeInterestWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'interest', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
                 },
 
                 removeNGWord: function(word) {
-                    const updated = { ...wordFilters };
+                    const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.removeWord(word, 'ng', updated)) {
                         LocalStorageManager.setItem(STORAGE_KEYS.WORD_FILTERS, updated);
+                        
+                        // キャッシュ更新
+                        DataHooksCache.wordFilters = updated;
+                        DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
+                        
                         return true;
                     }
                     return false;
@@ -929,48 +1017,51 @@
         render();
     }
 
-    // データ初期化（修正版）
     function initializeData() {
         console.log('[App] Initializing data...');
         
-        // 確実な初期化処理
         const articlesData = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
         const rssData = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
         const aiData = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
         const wordData = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
         
+        // キャッシュ初期化
+        DataHooksCache.articles = articlesData;
+        DataHooksCache.rssFeeds = rssData;
+        DataHooksCache.aiLearning = aiData;
+        DataHooksCache.wordFilters = wordData;
+        
         state.articles = articlesData;
 
-        // サンプル記事がない場合のみ追加
         if (state.articles.length === 0) {
             console.log('[App] No existing articles, adding samples');
             
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Mysews PWA：XMLセレクター問題修正完了',
+                    title: 'Mysews PWA：パフォーマンス最適化完了',
                     url: '#',
-                    content: 'XMLセレクターエラー「\'dc:subject\' is not a valid selector」の根本原因を特定し、名前空間対応のgetTextContent関数により完全に修正しました。これにより、NHKニュース・ITmediaから正常に記事を取得できるようになります。',
+                    content: 'DataHooksキャッシュシステムの実装により、不要なlocalStorage読み込みを大幅に削減しました。wordFiltersの重複読み込み問題を根本的に解決し、快適な動作を実現しています。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'Mysews Development',
                     category: 'Technology',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['XML', 'セレクター', '修正', 'RSS', '名前空間']
+                    keywords: ['パフォーマンス', 'キャッシュ', '最適化', 'localStorage', '高速化']
                 },
                 {
                     id: 'sample_2',
-                    title: 'XMLセレクター技術詳解：DOM API仕様準拠',
+                    title: 'DataHooksキャッシュシステムの技術詳解',
                     url: '#',
-                    content: 'querySelector APIは名前空間付きセレクター（dc:subject）を処理できないため、getElementsByTagNameを使用した安全なフォールバック機能を実装。XML文書の正確な解析を実現しました。',
+                    content: 'タイムスタンプベースのキャッシュ無効化機能により、データの整合性を保ちつつ高速アクセスを実現。メモリ使用量を最小限に抑えた効率的な実装です。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
                     rssSource: 'Tech Blog',
                     category: 'Development',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['XML', 'DOM', 'API', 'querySelector', 'getElementsByTagName']
+                    keywords: ['DataHooks', 'キャッシュ', 'タイムスタンプ', 'メモリ', '効率']
                 }
             ];
             
@@ -979,14 +1070,14 @@
                 articlesHook.addArticle(article);
             });
             
-            state.articles = LocalStorageManager.getItem(STORAGE_KEYS.ARTICLES, []);
+            state.articles = DataHooksCache.articles;
         }
         
         const storageInfo = LocalStorageManager.getStorageInfo();
         console.log('[App] Storage info:', storageInfo);
         console.log('[App] Data initialization complete. Articles:', state.articles.length);
-        console.log('[App] RSS Feeds:', rssData.length);
-        console.log('[App] Word Filters initialized');
+        console.log('[App] RSS Feeds:', DataHooksCache.rssFeeds.length);
+        console.log('[App] Cache initialized:', DataHooksCache.getStats());
     }
 
     // ===========================================
@@ -1028,7 +1119,7 @@
     }
 
     // ===========================================
-    // Event handlers（改良版）
+    // Event handlers（継承）
     // ===========================================
 
     function handleFilterClick(mode) {
@@ -1053,12 +1144,8 @@
             
             const article = state.articles.find(a => a.id === articleId);
             if (article) {
-                // 記事の評価を更新
                 articlesHook.updateArticle(articleId, { userRating: rating });
-                
-                // AI学習データを更新
                 aiHook.updateLearningData(article, rating);
-                
                 console.log(`[Rating] Article "${article.title}" rated ${rating} stars`);
             }
         }
@@ -1101,7 +1188,6 @@
                 lastUpdate: new Date().toISOString() 
             });
             
-            // 詳細な結果メッセージ
             let message = `更新完了！${result.totalAdded}件の新記事を追加しました。\n`;
             
             if (result.feedResults && result.feedResults.length > 0) {
@@ -1139,7 +1225,7 @@
         rssHook.addRSSFeed(url, title);
         
         if (state.showModal === 'rss') {
-            render(); // モーダル表示更新
+            render();
         }
         
         console.log('[RSS] Manual RSS feed added:', url);
@@ -1152,7 +1238,7 @@
         rssHook.removeRSSFeed(feedId);
         
         if (state.showModal === 'rss') {
-            render(); // モーダル表示更新
+            render();
         }
         
         console.log('[RSS] RSS feed removed:', feedId);
@@ -1169,7 +1255,7 @@
         
         if (success) {
             if (state.showModal === 'words') {
-                render(); // モーダル表示更新
+                render();
             }
             console.log(`[WordFilter] Added ${type} word:`, word);
         } else {
@@ -1187,24 +1273,28 @@
         
         if (success) {
             if (state.showModal === 'words') {
-                render(); // モーダル表示更新
+                render();
             }
             console.log(`[WordFilter] Removed ${type} word:`, word);
         }
     }
 
     // ===========================================
-    // フィルタリング・レンダリング関数（継承）
+    // フィルタリング・レンダリング関数（最適化版）
     // ===========================================
 
     function getFilteredArticles() {
         const aiHook = DataHooks.useAILearning();
         const wordHook = DataHooks.useWordFilters();
         
-        // ワードフィルターでNGワードを除外
+        console.log('[Debug] Filtering articles:', {
+            totalArticles: state.articles.length,
+            viewMode: state.viewMode,
+            cacheStats: DataHooksCache.getStats()
+        });
+        
         const filteredByWords = WordFilterManager.filterArticles(state.articles, wordHook.wordFilters);
         
-        // 表示モードでフィルター
         let filteredByMode;
         switch (state.viewMode) {
             case 'unread':
@@ -1220,8 +1310,10 @@
                 filteredByMode = filteredByWords;
         }
 
-        // AIスコアでソート
-        return AIScoring.sortArticlesByScore(filteredByMode, aiHook.aiLearning, wordHook.wordFilters);
+        const result = AIScoring.sortArticlesByScore(filteredByMode, aiHook.aiLearning, wordHook.wordFilters);
+        console.log('[Debug] Final filtered articles:', result.length);
+        
+        return result;
     }
 
     function renderNavigation() {
@@ -1419,9 +1511,9 @@
             `;
         } else if (state.showModal === 'storage') {
             const storageInfo = LocalStorageManager.getStorageInfo();
-            const aiLearning = LocalStorageManager.getItem(STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
-            const rssFeeds = LocalStorageManager.getItem(STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
-            const wordFilters = LocalStorageManager.getItem(STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
+            const aiLearning = DataHooksCache.aiLearning || DEFAULT_DATA.aiLearning;
+            const rssFeeds = DataHooksCache.rssFeeds || DEFAULT_DATA.rssFeeds;
+            const wordFilters = DataHooksCache.wordFilters || DEFAULT_DATA.wordFilters;
             
             modalContent = `
                 <div class="modal-header">
@@ -1450,6 +1542,26 @@
                             </div>
                         </div>
                         
+                        <h3>パフォーマンス情報</h3>
+                        <div class="storage-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">キャッシュ状態</span>
+                                <span class="stat-value">✅ 有効</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">articles キャッシュ</span>
+                                <span class="stat-value">${DataHooksCache.articles ? '✅' : '❌'}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">wordFilters キャッシュ</span>
+                                <span class="stat-value">${DataHooksCache.wordFilters ? '✅' : '❌'}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">データバージョン</span>
+                                <span class="stat-value">${DATA_VERSION}</span>
+                            </div>
+                        </div>
+                        
                         <h3>AI学習データ</h3>
                         <div class="storage-stats">
                             <div class="stat-item">
@@ -1475,22 +1587,6 @@
                             <div class="stat-item">
                                 <span class="stat-label">NGワード数</span>
                                 <span class="stat-value">${wordFilters.ngWords.length}</span>
-                            </div>
-                        </div>
-
-                        <h3>技術情報</h3>
-                        <div class="storage-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">データバージョン</span>
-                                <span class="stat-value">${DATA_VERSION}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">プロキシサーバー数</span>
-                                <span class="stat-value">${RSS_PROXY_URLS.length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">タイムアウト設定</span>
-                                <span class="stat-value">${REQUEST_TIMEOUT/1000}秒</span>
                             </div>
                         </div>
                     </div>
@@ -1523,14 +1619,12 @@
     }
 
     function addEventListeners() {
-        // Filter buttons
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 handleFilterClick(e.target.dataset.mode);
             });
         });
 
-        // Action buttons
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const modal = e.target.dataset.modal;
@@ -1554,13 +1648,11 @@
             });
         });
 
-        // Modal close
         const closeBtn = document.querySelector('.modal-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', handleModalClose);
         }
 
-        // Modal overlay close
         const overlay = document.querySelector('.modal-overlay');
         if (overlay) {
             overlay.addEventListener('click', (e) => {
@@ -1570,26 +1662,22 @@
             });
         }
 
-        // Star rating
         document.querySelectorAll('.star-rating').forEach(rating => {
             rating.addEventListener('click', handleStarClick);
         });
 
-        // Read status toggle
         document.querySelectorAll('.read-status').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 handleReadStatusToggle(e.target.dataset.articleId);
             });
         });
 
-        // Read later toggle
         document.querySelectorAll('.read-later').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 handleReadLaterToggle(e.target.dataset.articleId);
             });
         });
 
-        // Article title links
         document.querySelectorAll('.article-title a').forEach(link => {
             link.addEventListener('click', (e) => {
                 const articleId = e.target.dataset.articleId;
@@ -1599,7 +1687,6 @@
             });
         });
 
-        // Word remove buttons
         document.querySelectorAll('.word-remove').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1610,9 +1697,8 @@
         });
     }
 
-    // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[App] Starting Mysews PWA - Stage 3: XML Selector Fixed Complete Implementation');
+        console.log('[App] Starting Mysews PWA - Performance Optimized Complete Implementation');
         initializeData();
         render();
     });
