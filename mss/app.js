@@ -421,15 +421,18 @@ const AIScoring = {
 };
 
 // ===========================================
-// ワードフィルター管理
+// ワードフィルター管理（修正版）
 // ===========================================
 const WordFilterManager = {
     addWord(word, type, wordFilters) {
-        word = word.trim().toLowerCase();
+        word = word.trim();
         if (!word) return false;
 
         const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
-        if (!targetArray.includes(word)) {
+        // 大文字小文字を区別せずに重複チェック
+        const exists = targetArray.some(existingWord => existingWord.toLowerCase() === word.toLowerCase());
+        
+        if (!exists) {
             targetArray.push(word);
             wordFilters.lastUpdated = new Date().toISOString();
             return true;
@@ -438,8 +441,10 @@ const WordFilterManager = {
     },
 
     removeWord(word, type, wordFilters) {
-        word = word.trim().toLowerCase();
+        word = word.trim();
         const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
+        
+        // 完全一致で検索（大文字小文字も含めて）
         const index = targetArray.indexOf(word);
         
         if (index > -1) {
