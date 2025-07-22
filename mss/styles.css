@@ -991,3 +991,33 @@ body {
   border-left: 4px solid var(--success-color);
   margin: 1rem 0;
 }
+
+/* RSS編集可能要素のスタイル */
+.rss-editable-row {
+    margin-bottom: 0.3rem;
+}
+
+.rss-editable-row:hover {
+    background: rgba(74, 144, 164, 0.1);
+    border-radius: 4px;
+    padding: 0.2rem;
+    margin: -0.2rem -0.2rem 0.1rem -0.2rem;
+}
+
+.rss-info strong[onclick],
+.rss-info .rss-url[onclick],
+.rss-info div[onclick] {
+    transition: var(--transition);
+    padding: 0.2rem;
+    border-radius: 4px;
+}
+
+.rss-info strong[onclick]:hover {
+    background: var(--primary-blue);
+    color: var(--accent-blue);
+}
+
+.rss-info .rss-url[onclick]:hover {
+    background: var(--primary-blue);
+    color: var(--text-color);
+}
