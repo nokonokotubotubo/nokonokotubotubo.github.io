@@ -1375,7 +1375,7 @@
         }
     }
     
-// ★完全修正版：フォルダ選択モーダル
+// ★×ボタン統一版：フォルダ選択モーダル
 function showFolderSelectionModal(callback) {
     const foldersHook = DataHooks.useFolders();
     const folderOptions = [
@@ -1393,7 +1393,7 @@ function showFolderSelectionModal(callback) {
             <div class="modal" style="pointer-events: auto;">
                 <div class="modal-header">
                     <h2>フォルダを選択</h2>
-                    <button type="button" class="modal-close-btn" style="cursor: pointer;">&times;</button>
+                    <button type="button" class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="folder-selection-list">
@@ -1417,8 +1417,8 @@ function showFolderSelectionModal(callback) {
     
     const modalElement = document.getElementById(modalId);
     
-    // 閉じるボタンのイベント処理
-    const closeBtn = modalElement.querySelector('.modal-close-btn');
+    // 既存スタイルに合わせた閉じるボタンのイベント処理
+    const closeBtn = modalElement.querySelector('.modal-close');
     closeBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1461,7 +1461,7 @@ function showFolderSelectionModal(callback) {
     console.log('[Modal] Folder selection modal opened with', folderOptions.length, 'options');
 }
 
-// ★完全修正版：カラー選択モーダル
+// ★×ボタン統一版：カラー選択モーダル
 function showColorSelectionModal(callback) {
     const modalId = 'color-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     
@@ -1473,7 +1473,7 @@ function showColorSelectionModal(callback) {
             <div class="modal" style="pointer-events: auto;">
                 <div class="modal-header">
                     <h2>フォルダカラーを選択</h2>
-                    <button type="button" class="modal-close-btn" style="cursor: pointer;">&times;</button>
+                    <button type="button" class="modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="color-selection-list">
@@ -1495,8 +1495,8 @@ function showColorSelectionModal(callback) {
     
     const modalElement = document.getElementById(modalId);
     
-    // 閉じるボタンのイベント処理
-    const closeBtn = modalElement.querySelector('.modal-close-btn');
+    // 既存スタイルに合わせた閉じるボタンのイベント処理
+    const closeBtn = modalElement.querySelector('.modal-close');
     closeBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
