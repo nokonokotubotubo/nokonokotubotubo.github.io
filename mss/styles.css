@@ -860,3 +860,31 @@ body {
     animation: none !important;
   }
 }
+
+/* ★追加：ドロップダウン方式のフィルター */
+.nav-filters {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+}
+
+.filter-select {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 0
