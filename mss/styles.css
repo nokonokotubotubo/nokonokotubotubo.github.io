@@ -1,4 +1,4 @@
-/* Minews PWA - UIデザイン改善版スタイル */
+/* Minews PWA - フォルダ機能対応完全版スタイル */
 
 :root {
   --primary-blue: #E3F4F7;
@@ -33,7 +33,7 @@ body {
   background: var(--primary-blue);
 }
 
-/* Navigation Enhanced */
+/* ────────────── ナビゲーション（ドロップダウン対応） ────────────── */
 .nav {
   background: var(--accent-blue);
   color: white;
@@ -44,6 +44,9 @@ body {
   box-shadow: var(--card-shadow);
   flex-wrap: wrap;
   gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .nav-left {
@@ -62,10 +65,47 @@ body {
   font-size: 0.8rem;
 }
 
+/* ドロップダウンフィルター */
 .nav-filters {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  align-items: center;
   flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.filter-select {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-color);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
+}
+
+.filter-select:hover {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .nav-actions {
@@ -75,7 +115,6 @@ body {
   align-items: center;
 }
 
-.filter-btn,
 .action-btn {
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -88,15 +127,8 @@ body {
   white-space: nowrap;
 }
 
-.filter-btn:hover,
 .action-btn:hover {
   background: rgba(255, 255, 255, 0.3);
-}
-
-.filter-btn.active {
-  background: white;
-  color: var(--accent-blue);
-  font-weight: 600;
 }
 
 .action-btn.loading {
@@ -131,7 +163,7 @@ body {
   animation: pulse 1.5s infinite;
 }
 
-/* Main content */
+/* ────────────── メインコンテンツ ────────────── */
 .main-content {
   padding: 2rem;
   max-width: 1200px;
@@ -154,7 +186,7 @@ body {
   box-shadow: var(--card-shadow);
 }
 
-/* Article cards Enhanced */
+/* ────────────── 記事カード ────────────── */
 .article-card {
   background: white;
   border-radius: var(--border-radius);
@@ -282,6 +314,7 @@ body {
   transition: var(--transition);
   min-width: 60px;
   text-align: center;
+  cursor: pointer;
 }
 
 .article-actions .simple-btn:hover {
@@ -306,14 +339,13 @@ body {
 }
 
 /* 後で読むボタンのアクティブ状態 */
-.article-actions .simple-btn.read-later[data-active="true"],
-.article-card .article-actions .simple-btn.read-later:focus {
+.article-actions .simple-btn.read-later[data-active="true"] {
   background: #fff3cd;
   color: #856404;
   border-color: #ffeaa7;
 }
 
-/* Star rating Enhanced */
+/* ────────────── 星評価 ────────────── */
 .star-rating {
   display: flex;
   gap: 0.25rem;
@@ -337,7 +369,7 @@ body {
   transform: scale(1.1);
 }
 
-/* Modal Enhanced */
+/* ────────────── モーダル ────────────── */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -411,7 +443,7 @@ body {
   border-bottom: 1px solid #eee;
 }
 
-/* RSS Management */
+/* ────────────── RSS管理 ────────────── */
 .rss-list {
   margin-bottom: 1.5rem;
 }
@@ -495,7 +527,35 @@ body {
   font-size: 0.9rem;
 }
 
-/* Word Management */
+/* ────────────── フォルダ・カラー選択モーダル ────────────── */
+.folder-selection-list,
+.color-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.folder-selection-item,
+.color-selection-item {
+  padding: 0.8rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: white;
+}
+
+.folder-selection-item:hover,
+.color-selection-item:hover {
+  border-color: var(--accent-blue);
+  background: var(--primary-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(74, 144, 164, 0.2);
+}
+
+/* ────────────── ワード管理 ────────────── */
 .word-section {
   margin-bottom: 2rem;
 }
@@ -575,46 +635,7 @@ body {
   font-size: 0.9rem;
 }
 
-/* Storage Info */
-.storage-info {
-  margin-bottom: 1.5rem;
-}
-
-.storage-info h3 {
-  margin-bottom: 1rem;
-  color: var(--accent-blue);
-  border-bottom: 2px solid var(--primary-blue);
-  padding-bottom: 0.5rem;
-}
-
-.storage-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.8rem;
-  background: #f9f9f9;
-  border-radius: 6px;
-  border-left: 4px solid var(--accent-blue);
-}
-
-.stat-label {
-  font-weight: 500;
-  color: #666;
-}
-
-.stat-value {
-  font-weight: 600;
-  color: var(--accent-blue);
-}
-
-/* Button variants */
+/* ────────────── ボタンバリエーション ────────────── */
 .action-btn.danger {
   background: var(--danger-color);
   color: white;
@@ -633,18 +654,48 @@ body {
   background: #388e3c;
 }
 
-/* Loading animations */
+/* ────────────── アニメーション ────────────── */
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
 
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0; 
+    transform: translateX(-20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
+.article-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal {
+  animation: fadeIn 0.2s ease-out;
+}
+
 .loading {
   animation: pulse 1.5s infinite;
 }
 
-/* Responsive design Enhanced */
+/* ────────────── レスポンシブデザイン ────────────── */
 @media (max-width: 768px) {
   .nav {
     flex-direction: column;
@@ -657,7 +708,22 @@ body {
     gap: 0.5rem;
   }
 
-  .nav-filters,
+  .nav-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    text-align: center;
+  }
+
   .nav-actions {
     flex-wrap: wrap;
     justify-content: center;
@@ -677,6 +743,7 @@ body {
 
   .modal {
     min-width: 90vw;
+    margin: 1rem;
   }
 
   .rss-item {
@@ -695,8 +762,9 @@ body {
     align-items: stretch;
   }
 
-  .storage-stats {
-    grid-template-columns: 1fr;
+  .folder-selection-item,
+  .color-selection-item {
+    padding: 0.6rem;
   }
 
   /* モバイルでのアクションボタン調整 */
@@ -712,7 +780,6 @@ body {
     font-size: 1.5rem;
   }
 
-  .filter-btn,
   .action-btn {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
@@ -735,30 +802,12 @@ body {
     padding: 1rem;
   }
 
- /* 小さな画面でのアクションボタン */
-.article-actions {
-  gap: 0.3rem;
+  .article-actions {
+    gap: 0.3rem;
+  }
 }
 
-/* ───────────── ① アプリ名ロゴのスタイルを変更 ───────────── */
-.app-logo {
-  font-family: 'Roboto Slab', serif;   /* 新ロゴ用フォント */
-  font-size: 2rem;                     /* 以前よりやや大きく */
-  letter-spacing: 0.03em;
-  color: var(--accent-blue);
-  margin: 0;
-}
-
-/* ───────────── ② ナビゲーション固定時の影を強調 ───────────── */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* 強調 */
-  backdrop-filter: blur(3px);                 /* 透明度を保ちながら背景をぼかす */
-}
-
-/* ───────────── ③ ダークモード強化 ───────────── */
+/* ────────────── ダークモード対応 ────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
     --primary-blue: #1e2a32;
@@ -777,15 +826,14 @@ body {
     color: var(--text-color);
   }
 
-  .filter-btn,
-  .action-btn {
+  .filter-select {
     background: rgba(255, 255, 255, 0.12);
     color: var(--text-color);
   }
 
-  .filter-btn.active {
-    background: var(--accent-blue);
-    color: #111;
+  .action-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-color);
   }
 
   .article-card {
@@ -807,33 +855,68 @@ body {
   }
 }
 
-/* 480px 以下 - モバイル最適化 */
-@media (max-width: 480px) {
-  .nav h1,
-  .app-logo {
-    font-size: 1.6rem;
-  }
-
-  .filter-btn,
-  .action-btn {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
-  }
-
-  .article-card {
-    padding: 0.9rem;
-  }
-
-  .article-title {
-    font-size: 1rem;
-  }
-
-  .modal-body {
-    padding: 0.9rem;
+/* ────────────── アクセシビリティ ────────────── */
+@media (prefers-contrast: high) {
+  .article-card,
+  .modal {
+    border: 2px solid var(--accent-blue);
   }
 }
 
-/* PWA セーフエリア対応 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ────────────── スクロールバーカスタマイズ ────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--primary-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a7a8a;
+}
+
+/* ────────────── 印刷用スタイル ────────────── */
+@media print {
+  .nav,
+  .modal-overlay,
+  .article-actions,
+  .star-rating {
+    display: none !important;
+  }
+
+  .article-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ddd;
+    margin-bottom: 1rem;
+  }
+
+  .article-title a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* ────────────── PWA セーフエリア対応 ────────────── */
 @media (display-mode: standalone) {
   body {
     padding-top: env(safe-area-inset-top);
@@ -845,46 +928,66 @@ body {
   }
 }
 
-/* コントラストが高い環境向け */
-@media (prefers-contrast: high) {
-  .article-card,
-  .modal {
-    border: 2px solid var(--accent-blue);
-  }
+/* ────────────── ユーティリティクラス ────────────── */
+.text-center {
+  text-align: center;
 }
 
-/* アニメーションを最小化（ユーザー設定） */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
+.text-muted {
+  color: #6c757d;
 }
 
-/* ★追加：ドロップダウン方式のフィルター */
-.nav-filters {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+
+.d-flex { display: flex; }
+.d-none { display: none; }
+.d-block { display: block; }
+
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+
+/* ────────────── 最終調整 ────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.filter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+html {
+  scroll-behavior: smooth;
 }
 
-.filter-group label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    white-space: nowrap;
+body {
+  overflow-x: hidden;
 }
 
-.filter-select {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
-    padding: 0
+.app {
+  position: relative;
+  width: 100%;
+}
+
+/* エラーメッセージ用スタイル */
+.error-message {
+  color: var(--danger-color);
+  background: #ffebee;
+  padding: 0.8rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--danger-color);
+  margin: 1rem 0;
+}
+
+.success-message {
+  color: var(--success-color);
+  background: #e8f5e8;
+  padding: 0.8rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--success-color);
+  margin: 1rem 0;
+}
