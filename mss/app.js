@@ -1,4 +1,4 @@
-// Minews PWA - フォルダ機能完全修正版
+// Minews PWA - 完全修正版（フィード追加簡略化・編集機能対応）
 (function() {
     'use strict';
     
@@ -1375,186 +1375,99 @@
         }
     }
     
-// ★×ボタン統一版：フォルダ選択モーダル
-function showFolderSelectionModal(callback) {
-    const foldersHook = DataHooks.useFolders();
-    const folderOptions = [
-        { id: 'uncategorized', name: '未分類', color: '#6c757d' },
-        ...foldersHook.folders
-    ];
-
-    const modalId = 'folder-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-    
-    // 既存のモーダルを削除
-    document.querySelectorAll('[id^="folder-selection-modal-"]').forEach(modal => modal.remove());
-    
-    const modalHtml = `
-        <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
-            <div class="modal" style="pointer-events: auto;">
-                <div class="modal-header">
-                    <h2>フォルダを選択</h2>
-                    <button type="button" class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="folder-selection-list">
-                        ${folderOptions.map(folder => `
-                            <div class="folder-selection-item" data-folder-id="${folder.id}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
-                                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                    <div style="width: 16px; height: 16px; border-radius: 3px; background: ${folder.color || '#6c757d'}; flex-shrink: 0;"></div>
-                                    <div>
-                                        <div style="font-weight: 600;">${folder.name}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modalElement = document.getElementById(modalId);
-    
-    // 既存スタイルに合わせた閉じるボタンのイベント処理
-    const closeBtn = modalElement.querySelector('.modal-close');
-    closeBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        modalElement.remove();
-        console.log('[Modal] Folder selection modal closed via close button');
-    });
-    
-    // フォルダ選択項目のイベント処理
-    const folderItems = modalElement.querySelectorAll('.folder-selection-item');
-    folderItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const folderId = this.dataset.folderId;
-            modalElement.remove();
-            callback(folderId);
-            console.log('[Modal] Folder selected:', folderId);
-        });
-        
-        // ホバーエフェクト
-        item.addEventListener('mouseenter', function() {
-            this.style.borderColor = '#4A90A4';
-            this.style.background = '#E3F4F7';
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            this.style.borderColor = '#e9ecef';
-            this.style.background = 'white';
-        });
-    });
-    
-    // オーバーレイクリックで閉じる
-    modalElement.addEventListener('click', function(e) {
-        if (e.target === modalElement) {
-            modalElement.remove();
-            console.log('[Modal] Folder selection modal closed via overlay click');
-        }
-    });
-    
-    console.log('[Modal] Folder selection modal opened with', folderOptions.length, 'options');
-}
-
-// ★×ボタン統一版：カラー選択モーダル
-function showColorSelectionModal(callback) {
-    const modalId = 'color-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-    
-    // 既存のモーダルを削除
-    document.querySelectorAll('[id^="color-selection-modal-"]').forEach(modal => modal.remove());
-    
-    const modalHtml = `
-        <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
-            <div class="modal" style="pointer-events: auto;">
-                <div class="modal-header">
-                    <h2>フォルダカラーを選択</h2>
-                    <button type="button" class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="color-selection-list">
-                        ${FOLDER_COLORS.map(color => `
-                            <div class="color-selection-item" data-color-value="${color.value}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
-                                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: ${color.value}; flex-shrink: 0;"></div>
-                                    <div style="font-weight: 600;">${color.name}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modalElement = document.getElementById(modalId);
-    
-    // 既存スタイルに合わせた閉じるボタンのイベント処理
-    const closeBtn = modalElement.querySelector('.modal-close');
-    closeBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        modalElement.remove();
-        console.log('[Modal] Color selection modal closed via close button');
-    });
-    
-    // カラー選択項目のイベント処理
-    const colorItems = modalElement.querySelectorAll('.color-selection-item');
-    colorItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const colorValue = this.dataset.colorValue;
-            modalElement.remove();
-            callback(colorValue);
-            console.log('[Modal] Color selected:', colorValue);
-        });
-        
-        // ホバーエフェクト
-        item.addEventListener('mouseenter', function() {
-            this.style.borderColor = '#4A90A4';
-            this.style.background = '#E3F4F7';
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            this.style.borderColor = '#e9ecef';
-            this.style.background = 'white';
-        });
-    });
-    
-    // オーバーレイクリックで閉じる
-    modalElement.addEventListener('click', function(e) {
-        if (e.target === modalElement) {
-            modalElement.remove();
-            console.log('[Modal] Color selection modal closed via overlay click');
-        }
-    });
-    
-    console.log('[Modal] Color selection modal opened with', FOLDER_COLORS.length, 'colors');
-}
-    
-    // RSS追加処理（モーダル対応）
+    // ★修正版：RSS追加処理（タイトル入力省略）
     function handleRSSAdd() {
-        const url = prompt('RSSフィードのURLを入力してください:\n\n推奨フィード例:\n• https://www3.nhk.or.jp/rss/news/cat0.xml\n• https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml');
+        const url = prompt('RSSフィードのURLを入力してください:');
         if (!url) return;
-        
-        const title = prompt('フィードのタイトルを入力してください (空欄可):') || undefined;
         
         // フォルダ選択モーダルを表示
         showFolderSelectionModal(function(selectedFolderId) {
+            // 一時的にプレースホルダーとしてフィードを追加
             const rssHook = DataHooks.useRSSManager();
-            rssHook.addRSSFeed(url, title, selectedFolderId);
+            const tempFeed = rssHook.addRSSFeed(url, 'フィード取得中...', selectedFolderId);
+            
+            // フィードからタイトルを自動取得
+            fetchFeedTitleAndUpdate(tempFeed.id, url);
+            
             if (state.showModal === 'rss') {
                 render();
             }
-            console.log('[RSS] Manual RSS feed added:', url, 'to folder:', selectedFolderId);
+            console.log('[RSS] RSS feed added, fetching title:', url, 'to folder:', selectedFolderId);
         });
+    }
+    
+    // ★新規追加：フィードタイトル自動取得関数
+    async function fetchFeedTitleAndUpdate(feedId, url) {
+        try {
+            console.log('[RSS] Fetching feed title for:', url);
+            const rssContent = await RSSProcessor.fetchRSS(url);
+            const parsed = RSSProcessor.parseRSS(rssContent, url);
+            
+            // フィードタイトルでRSSフィードを更新
+            const rssHook = DataHooks.useRSSManager();
+            rssHook.updateRSSFeed(feedId, {
+                title: parsed.feedTitle || 'タイトル不明',
+                lastUpdated: new Date().toISOString()
+            });
+            
+            // RSS管理モーダルが開いている場合は再レンダリング
+            if (state.showModal === 'rss') {
+                render();
+            }
+            
+            console.log('[RSS] Feed title updated:', parsed.feedTitle);
+            
+        } catch (error) {
+            console.error('[RSS] Failed to fetch feed title:', error);
+            
+            // エラーの場合はフォールバックタイトルを設定
+            const rssHook = DataHooks.useRSSManager();
+            rssHook.updateRSSFeed(feedId, {
+                title: `フィード（${new URL(url).hostname}）`,
+                lastUpdated: new Date().toISOString()
+            });
+            
+            if (state.showModal === 'rss') {
+                render();
+            }
+        }
+    }
+    
+    // ★修正版：フィード編集機能（URL編集時タイトル自動更新なし）
+    function handleRSSEdit(feedId, field, currentValue) {
+        const rssHook = DataHooks.useRSSManager();
+        const foldersHook = DataHooks.useFolders();
+        
+        if (field === 'title') {
+            const newTitle = prompt('新しいタイトルを入力してください:', currentValue);
+            if (newTitle && newTitle.trim() !== currentValue) {
+                rssHook.updateRSSFeed(feedId, { title: newTitle.trim() });
+                if (state.showModal === 'rss') {
+                    render();
+                }
+                console.log('[RSS] Feed title updated:', feedId, newTitle);
+            }
+        } else if (field === 'url') {
+            const newUrl = prompt('新しいURLを入力してください:', currentValue);
+            if (newUrl && newUrl.trim() !== currentValue) {
+                // ★修正：URLのみ更新（タイトル自動更新なし）
+                rssHook.updateRSSFeed(feedId, { 
+                    url: newUrl.trim()
+                });
+                if (state.showModal === 'rss') {
+                    render();
+                }
+                console.log('[RSS] Feed URL updated:', feedId, newUrl);
+            }
+        } else if (field === 'folder') {
+            showFolderSelectionModal(function(selectedFolderId) {
+                rssHook.updateRSSFeed(feedId, { folderId: selectedFolderId });
+                if (state.showModal === 'rss') {
+                    render();
+                }
+                console.log('[RSS] Feed folder updated:', feedId, selectedFolderId);
+            });
+        }
     }
     
     // フォルダ追加処理（モーダル対応）
@@ -1580,6 +1493,170 @@ function showColorSelectionModal(callback) {
                 alert('フォルダの作成に失敗しました');
             }
         });
+    }
+    
+    // ★×ボタン統一版：フォルダ選択モーダル
+    function showFolderSelectionModal(callback) {
+        const foldersHook = DataHooks.useFolders();
+        const folderOptions = [
+            { id: 'uncategorized', name: '未分類', color: '#6c757d' },
+            ...foldersHook.folders
+        ];
+
+        const modalId = 'folder-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        
+        // 既存のモーダルを削除
+        document.querySelectorAll('[id^="folder-selection-modal-"]').forEach(modal => modal.remove());
+        
+        const modalHtml = `
+            <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
+                <div class="modal" style="pointer-events: auto;">
+                    <div class="modal-header">
+                        <h2>フォルダを選択</h2>
+                        <button type="button" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="folder-selection-list">
+                            ${folderOptions.map(folder => `
+                                <div class="folder-selection-item" data-folder-id="${folder.id}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                                    <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                        <div style="width: 16px; height: 16px; border-radius: 3px; background: ${folder.color || '#6c757d'}; flex-shrink: 0;"></div>
+                                        <div>
+                                            <div style="font-weight: 600;">${folder.name}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modalElement = document.getElementById(modalId);
+        
+        // 既存スタイルに合わせた閉じるボタンのイベント処理
+        const closeBtn = modalElement.querySelector('.modal-close');
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            modalElement.remove();
+            console.log('[Modal] Folder selection modal closed via close button');
+        });
+        
+        // フォルダ選択項目のイベント処理
+        const folderItems = modalElement.querySelectorAll('.folder-selection-item');
+        folderItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const folderId = this.dataset.folderId;
+                modalElement.remove();
+                callback(folderId);
+                console.log('[Modal] Folder selected:', folderId);
+            });
+            
+            // ホバーエフェクト
+            item.addEventListener('mouseenter', function() {
+                this.style.borderColor = '#4A90A4';
+                this.style.background = '#E3F4F7';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.borderColor = '#e9ecef';
+                this.style.background = 'white';
+            });
+        });
+        
+        // オーバーレイクリックで閉じる
+        modalElement.addEventListener('click', function(e) {
+            if (e.target === modalElement) {
+                modalElement.remove();
+                console.log('[Modal] Folder selection modal closed via overlay click');
+            }
+        });
+        
+        console.log('[Modal] Folder selection modal opened with', folderOptions.length, 'options');
+    }
+
+    // ★×ボタン統一版：カラー選択モーダル
+    function showColorSelectionModal(callback) {
+        const modalId = 'color-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        
+        // 既存のモーダルを削除
+        document.querySelectorAll('[id^="color-selection-modal-"]').forEach(modal => modal.remove());
+        
+        const modalHtml = `
+            <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
+                <div class="modal" style="pointer-events: auto;">
+                    <div class="modal-header">
+                        <h2>フォルダカラーを選択</h2>
+                        <button type="button" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="color-selection-list">
+                            ${FOLDER_COLORS.map(color => `
+                                <div class="color-selection-item" data-color-value="${color.value}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                                    <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                        <div style="width: 24px; height: 24px; border-radius: 50%; background: ${color.value}; flex-shrink: 0;"></div>
+                                        <div style="font-weight: 600;">${color.name}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modalElement = document.getElementById(modalId);
+        
+        // 既存スタイルに合わせた閉じるボタンのイベント処理
+        const closeBtn = modalElement.querySelector('.modal-close');
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            modalElement.remove();
+            console.log('[Modal] Color selection modal closed via close button');
+        });
+        
+        // カラー選択項目のイベント処理
+        const colorItems = modalElement.querySelectorAll('.color-selection-item');
+        colorItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const colorValue = this.dataset.colorValue;
+                modalElement.remove();
+                callback(colorValue);
+                console.log('[Modal] Color selected:', colorValue);
+            });
+            
+            // ホバーエフェクト
+            item.addEventListener('mouseenter', function() {
+                this.style.borderColor = '#4A90A4';
+                this.style.background = '#E3F4F7';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.borderColor = '#e9ecef';
+                this.style.background = 'white';
+            });
+        });
+        
+        // オーバーレイクリックで閉じる
+        modalElement.addEventListener('click', function(e) {
+            if (e.target === modalElement) {
+                modalElement.remove();
+                console.log('[Modal] Color selection modal closed via overlay click');
+            }
+        });
+        
+        console.log('[Modal] Color selection modal opened with', FOLDER_COLORS.length, 'colors');
     }
     
     function handleRSSRemove(feedId) {
@@ -1907,6 +1984,7 @@ function showColorSelectionModal(callback) {
         `;
     }
     
+    // ★修正版：RSS管理モーダル（編集機能・ヒント削除版）
     function renderRSSModal() {
         const rssHook = DataHooks.useRSSManager();
         const foldersHook = DataHooks.useFolders();
@@ -1930,40 +2008,37 @@ function showColorSelectionModal(callback) {
                                 return `
                                     <div class="rss-item">
                                         <div class="rss-info">
-                                            <strong>${feed.title}</strong>
-                                            <span class="rss-url">${feed.url}</span>
-                                            <span class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</span>
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-                                                <div style="width: 12px; height: 12px; border-radius: 3px; background: ${folder.color};"></div>
-                                                <span style="font-size: 0.8rem;">フォルダ: ${folder.name}</span>
+                                            <div class="rss-editable-row">
+                                                <strong onclick="handleRSSEdit('${feed.id}', 'title', '${feed.title.replace(/'/g, '&#39;')}')" style="cursor: pointer; color: var(--accent-blue);" title="クリックで編集">
+                                                    ${feed.title} ✏️
+                                                </strong>
                                             </div>
+                                            
+                                            <div class="rss-editable-row">
+                                                <span class="rss-url" onclick="handleRSSEdit('${feed.id}', 'url', '${feed.url.replace(/'/g, '&#39;')}')" style="cursor: pointer; color: #666;" title="クリックで編集">
+                                                    ${feed.url} ✏️
+                                                </span>
+                                            </div>
+                                            
+                                            <span class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</span>
+                                            
+                                            <div class="rss-editable-row" style="margin-top: 0.5rem;">
+                                                <div onclick="handleRSSEdit('${feed.id}', 'folder')" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;" title="クリックで編集">
+                                                    <div style="width: 12px; height: 12px; border-radius: 3px; background: ${folder.color};"></div>
+                                                    <span style="font-size: 0.8rem;">フォルダ: ${folder.name} ✏️</span>
+                                                </div>
+                                            </div>
+                                            
                                             <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">
                                                 ${feed.isActive ? 'アクティブ' : '無効'}
                                             </span>
                                         </div>
                                         <div class="rss-actions">
-                                            <select onchange="handleRSSMoveFolderChange('${feed.id}', this.value)" style="margin-bottom: 0.5rem;">
-                                                <option value="uncategorized" ${(!feed.folderId || feed.folderId === 'uncategorized') ? 'selected' : ''}>未分類</option>
-                                                ${foldersHook.folders.map(folder => `
-                                                    <option value="${folder.id}" ${feed.folderId === folder.id ? 'selected' : ''}>
-                                                        ${folder.name}
-                                                    </option>
-                                                `).join('')}
-                                            </select>
                                             <button class="action-btn danger" onclick="handleRSSRemove('${feed.id}')">削除</button>
                                         </div>
                                     </div>
                                 `;
                             }).join('')}
-                        </div>
-                        
-                        <div class="rss-help">
-                            <h4>RSS追加のヒント</h4>
-                            <ul>
-                                <li>主要ニュースサイトの多くがRSSフィードを提供しています</li>
-                                <li>ブログのRSSフィードは通常 /feed や /rss のパスにあります</li>
-                                <li>技術ブログ、企業ニュースなどがおすすめです</li>
-                            </ul>
                         </div>
                     </div>
                 </div>
@@ -2133,5 +2208,7 @@ function showColorSelectionModal(callback) {
     window.handleReadStatusToggle = handleReadStatusToggle;
     window.handleReadLaterToggle = handleReadLaterToggle;
     window.handleStarClick = handleStarClick;
+    window.handleRSSEdit = handleRSSEdit;
+    window.fetchFeedTitleAndUpdate = fetchFeedTitleAndUpdate;
 
 })();
