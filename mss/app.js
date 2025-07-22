@@ -1375,129 +1375,169 @@
         }
     }
     
-    // ★修正版：フォルダ選択モーダル（イベントデリゲーション完全対応）
-    function showFolderSelectionModal(callback) {
-        const foldersHook = DataHooks.useFolders();
-        const folderOptions = [
-            { id: 'uncategorized', name: '未分類', color: '#6c757d' },
-            ...foldersHook.folders
-        ];
+// ★完全修正版：フォルダ選択モーダル
+function showFolderSelectionModal(callback) {
+    const foldersHook = DataHooks.useFolders();
+    const folderOptions = [
+        { id: 'uncategorized', name: '未分類', color: '#6c757d' },
+        ...foldersHook.folders
+    ];
 
-        const modalId = 'folder-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-        
-        const modalHtml = `
-            <div id="${modalId}" class="modal-overlay">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>フォルダを選択</h2>
-                        <button type="button" class="modal-close" data-action="close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="folder-selection-list">
-                            ${folderOptions.map(folder => `
-                                <div class="folder-selection-item" data-action="select" data-folder-id="${folder.id}">
-                                    <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                        <div style="width: 16px; height: 16px; border-radius: 3px; background: ${folder.color || '#6c757d'}; flex-shrink: 0;"></div>
-                                        <div>
-                                            <div style="font-weight: 600;">${folder.name}</div>
-                                        </div>
+    const modalId = 'folder-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    
+    // 既存のモーダルを削除
+    document.querySelectorAll('[id^="folder-selection-modal-"]').forEach(modal => modal.remove());
+    
+    const modalHtml = `
+        <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
+            <div class="modal" style="pointer-events: auto;">
+                <div class="modal-header">
+                    <h2>フォルダを選択</h2>
+                    <button type="button" class="modal-close-btn" style="cursor: pointer;">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="folder-selection-list">
+                        ${folderOptions.map(folder => `
+                            <div class="folder-selection-item" data-folder-id="${folder.id}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <div style="width: 16px; height: 16px; border-radius: 3px; background: ${folder.color || '#6c757d'}; flex-shrink: 0;"></div>
+                                    <div>
+                                        <div style="font-weight: 600;">${folder.name}</div>
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        const modalElement = document.getElementById(modalId);
-        
-        // イベントデリゲーション方式でクリック処理
-        const handleClick = function(event) {
-            const target = event.target.closest('[data-action]');
-            if (!target) return;
-            
-            event.preventDefault();
-            event.stopPropagation();
-            
-            if (target.dataset.action === 'close') {
-                modalElement.remove();
-            } else if (target.dataset.action === 'select') {
-                const folderId = target.dataset.folderId;
-                modalElement.remove();
-                callback(folderId);
-            }
-        };
-        
-        modalElement.addEventListener('click', handleClick);
-        
-        // オーバーレイクリックで閉じる
-        modalElement.addEventListener('click', function(event) {
-            if (event.target === modalElement) {
-                modalElement.remove();
-            }
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modalElement = document.getElementById(modalId);
+    
+    // 閉じるボタンのイベント処理
+    const closeBtn = modalElement.querySelector('.modal-close-btn');
+    closeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        modalElement.remove();
+        console.log('[Modal] Folder selection modal closed via close button');
+    });
+    
+    // フォルダ選択項目のイベント処理
+    const folderItems = modalElement.querySelectorAll('.folder-selection-item');
+    folderItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const folderId = this.dataset.folderId;
+            modalElement.remove();
+            callback(folderId);
+            console.log('[Modal] Folder selected:', folderId);
         });
-    }
-
-    // ★修正版：カラー選択モーダル（イベントデリゲーション完全対応）
-    function showColorSelectionModal(callback) {
-        const modalId = 'color-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
         
-        const modalHtml = `
-            <div id="${modalId}" class="modal-overlay">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>フォルダカラーを選択</h2>
-                        <button type="button" class="modal-close" data-action="close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="color-selection-list">
-                            ${FOLDER_COLORS.map(color => `
-                                <div class="color-selection-item" data-action="select" data-color-value="${color.value}">
-                                    <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                        <div style="width: 24px; height: 24px; border-radius: 50%; background: ${color.value}; flex-shrink: 0;"></div>
-                                        <div style="font-weight: 600;">${color.name}</div>
-                                    </div>
+        // ホバーエフェクト
+        item.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#4A90A4';
+            this.style.background = '#E3F4F7';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.borderColor = '#e9ecef';
+            this.style.background = 'white';
+        });
+    });
+    
+    // オーバーレイクリックで閉じる
+    modalElement.addEventListener('click', function(e) {
+        if (e.target === modalElement) {
+            modalElement.remove();
+            console.log('[Modal] Folder selection modal closed via overlay click');
+        }
+    });
+    
+    console.log('[Modal] Folder selection modal opened with', folderOptions.length, 'options');
+}
+
+// ★完全修正版：カラー選択モーダル
+function showColorSelectionModal(callback) {
+    const modalId = 'color-selection-modal-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    
+    // 既存のモーダルを削除
+    document.querySelectorAll('[id^="color-selection-modal-"]').forEach(modal => modal.remove());
+    
+    const modalHtml = `
+        <div id="${modalId}" class="modal-overlay" style="z-index: 1000;">
+            <div class="modal" style="pointer-events: auto;">
+                <div class="modal-header">
+                    <h2>フォルダカラーを選択</h2>
+                    <button type="button" class="modal-close-btn" style="cursor: pointer;">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="color-selection-list">
+                        ${FOLDER_COLORS.map(color => `
+                            <div class="color-selection-item" data-color-value="${color.value}" style="cursor: pointer; padding: 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: ${color.value}; flex-shrink: 0;"></div>
+                                    <div style="font-weight: 600;">${color.name}</div>
                                 </div>
-                            `).join('')}
-                        </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        const modalElement = document.getElementById(modalId);
-        
-        // イベントデリゲーション方式でクリック処理
-        const handleClick = function(event) {
-            const target = event.target.closest('[data-action]');
-            if (!target) return;
-            
-            event.preventDefault();
-            event.stopPropagation();
-            
-            if (target.dataset.action === 'close') {
-                modalElement.remove();
-            } else if (target.dataset.action === 'select') {
-                const colorValue = target.dataset.colorValue;
-                modalElement.remove();
-                callback(colorValue);
-            }
-        };
-        
-        modalElement.addEventListener('click', handleClick);
-        
-        // オーバーレイクリックで閉じる
-        modalElement.addEventListener('click', function(event) {
-            if (event.target === modalElement) {
-                modalElement.remove();
-            }
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modalElement = document.getElementById(modalId);
+    
+    // 閉じるボタンのイベント処理
+    const closeBtn = modalElement.querySelector('.modal-close-btn');
+    closeBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        modalElement.remove();
+        console.log('[Modal] Color selection modal closed via close button');
+    });
+    
+    // カラー選択項目のイベント処理
+    const colorItems = modalElement.querySelectorAll('.color-selection-item');
+    colorItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const colorValue = this.dataset.colorValue;
+            modalElement.remove();
+            callback(colorValue);
+            console.log('[Modal] Color selected:', colorValue);
         });
-    }
+        
+        // ホバーエフェクト
+        item.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#4A90A4';
+            this.style.background = '#E3F4F7';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.borderColor = '#e9ecef';
+            this.style.background = 'white';
+        });
+    });
+    
+    // オーバーレイクリックで閉じる
+    modalElement.addEventListener('click', function(e) {
+        if (e.target === modalElement) {
+            modalElement.remove();
+            console.log('[Modal] Color selection modal closed via overlay click');
+        }
+    });
+    
+    console.log('[Modal] Color selection modal opened with', FOLDER_COLORS.length, 'colors');
+}
     
     // RSS追加処理（モーダル対応）
     function handleRSSAdd() {
