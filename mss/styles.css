@@ -1110,3 +1110,62 @@ body {
         gap: 0.5rem;
     }
 }
+
+/* カラーセレクタ用スタイル */
+.color-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.color-swatch {
+    width: 100px;
+    height: 80px;
+    border: 2px solid #ddd;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.color-swatch:hover {
+    border-color: #666;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.color-swatch:active {
+    transform: scale(0.95);
+}
+
+.color-name {
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .color-selector {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+    
+    .color-swatch {
+        width: 80px;
+        height: 60px;
+    }
+    
+    .color-name {
+        font-size: 0.7rem;
+    }
+}
