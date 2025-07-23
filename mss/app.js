@@ -1702,4 +1702,25 @@
         initializeData();
         render();
     }
-})();
+
+    // =========================================== 
+    // グローバル関数公開（HTML onclick用）
+    // ===========================================
+    window.handleModalOpen = handleModalOpen;
+    window.handleModalClose = handleModalClose;
+    window.handleSettingsTabChange = handleSettingsTabChange;
+    window.handleFilterChange = handleFilterChange;
+    window.handleFolderChange = handleFolderChange;
+    window.handleRefresh = handleRefresh;
+    window.handleStarClick = handleStarClick;
+    window.handleReadStatusToggle = handleReadStatusToggle;
+    window.handleReadLaterToggle = handleReadLaterToggle;
+    window.handleRSSAdd = handleRSSAdd;
+    window.handleRSSEdit = handleRSSEdit;
+    window.handleRSSRemove = handleRSSRemove;
+    window.handleWordAdd = handleWordAdd;
+    window.handleWordRemove = handleWordRemove;
+    window.handleFolderAdd = handleFolderAdd;
+    window.handleFolderRemove = handleFolderRemove;
+
+})(); // ← IIFE終了
