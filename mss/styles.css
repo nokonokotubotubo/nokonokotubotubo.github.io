@@ -1081,34 +1081,6 @@ color: var(--text-color);
     color: var(--accent-blue);
 }
 
-.tab-content-placeholder {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: #666;
-}
-
-.tab-content-placeholder h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--accent-blue);
-    margin-bottom: 1rem;
-}
-
-.tab-content-placeholder p {
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.tab-content-placeholder ul {
-    text-align: left;
-    max-width: 300px;
-    margin: 1rem auto;
-}
-
-.tab-content-placeholder li {
-    margin-bottom: 0.5rem;
-}
-
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .settings-modal {
@@ -1127,9 +1099,5 @@ color: var(--text-color);
         min-width: 100px;
         padding: 0.8rem 0.5rem;
         font-size: 0.85rem;
-    }
-    
-    .tab-content-placeholder {
-        padding: 2rem 1rem;
     }
 }
