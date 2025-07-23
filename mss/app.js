@@ -1,4 +1,4 @@
-// Minews PWA - RSS管理・フォルダ管理完全統合版
+// Minews PWA - RSS管理・フォルダ管理完全統合版（全修正適用済み）
 (function() {
     'use strict';
 
@@ -852,29 +852,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Minews PWA：フォルダ完全統合機能完了',
+                    title: 'Minews PWA：UI/UX完全改良完了',
                     url: '#',
-                    content: 'RSS管理画面内でフォルダの作成・編集・削除・RSS管理を一元化。独立したフォルダ管理画面を廃止し、ユーザビリティを大幅向上。',
+                    content: '番号入力方式を完全廃止し、6色カラーセレクタとリスト選択モーダルを実装。ユーザビリティが劇的に向上し、直感的な操作を実現。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'NHKニュース',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['完全統合', 'RSS管理', 'フォルダ', '一元化']
+                    keywords: ['UI/UX改良', 'ユーザビリティ', '直感的操作', '完全改良']
                 },
                 {
                     id: 'sample_2',
-                    title: '統合UI設計でワークフロー効率化',
+                    title: 'リスト選択による操作効率革命',
                     url: '#',
-                    content: 'RSS管理とフォルダ管理を統合することで、フィード追加からフォルダ分類まで一つの画面で完結。作業効率が格段に向上。',
+                    content: 'RSS・フォルダ管理を完全統合し、リスト方式のモーダルUIで操作性を大幅改善。番号入力の煩わしさを解消し、作業効率が飛躍的向上。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
                     rssSource: 'ITmedia',
                     category: 'UX',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['統合UI', 'ワークフロー', '効率化', '作業効率']
+                    keywords: ['リスト選択', '操作効率', '革命', '作業効率向上']
                 }
             ];
             const articlesHook = DataHooks.useArticles();
@@ -918,32 +918,201 @@
     };
 
     const showColorSelectionModal = (callback) => {
-        const colorOptions = CONFIG.FOLDER_COLORS.map(color => 
-            `${color.name}: ${color.value}`
-        ).join('\n');
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>色を選択</h2>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="color-selector">
+                        ${CONFIG.FOLDER_COLORS.map(color => `
+                            <button class="color-swatch" 
+                                    style="background-color: ${color.value};" 
+                                    data-color="${color.value}" 
+                                    onclick="selectColor('${color.value}')"
+                                    title="${color.name}">
+                                <span class="color-name">${color.name}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
         
-        const selectedIndex = prompt(`色を選択してください（番号を入力）:\n${CONFIG.FOLDER_COLORS.map((color, index) => `${index + 1}. ${color.name}`).join('\n')}`);
-        const index = parseInt(selectedIndex) - 1;
+        document.body.appendChild(modal);
         
-        if (index >= 0 && index < CONFIG.FOLDER_COLORS.length) {
-            callback(CONFIG.FOLDER_COLORS[index].value);
-        }
+        window.selectColor = (selectedColor) => {
+            callback(selectedColor);
+            modal.remove();
+            delete window.selectColor;
+        };
     };
 
     const showFolderSelectionModal = (callback) => {
         const foldersHook = DataHooks.useFolders();
-        const folderOptions = [
-            'uncategorized: 未分類',
-            ...foldersHook.folders.map(folder => `${folder.id}: ${folder.name}`)
-        ];
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>フォルダを選択</h2>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="folder-selection">
+                        <button class="folder-option" data-folder-id="uncategorized" onclick="selectFolder('uncategorized')">
+                            📁 未分類
+                        </button>
+                        ${foldersHook.folders.map(folder => `
+                            <button class="folder-option" style="border-left: 4px solid ${folder.color};" data-folder-id="${folder.id}" onclick="selectFolder('${folder.id}')">
+                                📁 ${folder.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
         
-        const selection = prompt(`フォルダを選択してください（番号を入力）:\n${folderOptions.map((option, index) => `${index + 1}. ${option.split(':')[1]}`).join('\n')}`);
-        const index = parseInt(selection) - 1;
+        document.body.appendChild(modal);
         
-        if (index >= 0 && index < folderOptions.length) {
-            const folderId = index === 0 ? 'uncategorized' : folderOptions[index].split(':')[0];
-            callback(folderId);
+        window.selectFolder = (selectedFolderId) => {
+            callback(selectedFolderId);
+            modal.remove();
+            delete window.selectFolder;
+        };
+    };
+
+    const showBulkRSSActionModal = (folderId, folderName) => {
+        const rssHook = DataHooks.useRSSManager();
+        const folderFeeds = rssHook.rssFeeds.filter(feed => feed.folderId === folderId);
+        if (folderFeeds.length === 0) {
+            alert('このフォルダにはRSSフィードがありません');
+            return;
         }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>${folderName} の一括操作</h2>
+                    <button class="modal-close" onclick="closeBulkRSSActionModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="bulk-action-list">
+                        <button class="action-btn success" onclick="performBulkRSSAction('enable')">
+                            ✅ 全て有効化 (${folderFeeds.length}件)
+                        </button>
+                        <button class="action-btn warning" onclick="performBulkRSSAction('disable')">
+                            ⏸️ 全て無効化 (${folderFeeds.length}件)
+                        </button>
+                        <button class="action-btn" onclick="performBulkRSSAction('move')">
+                            📁 他のフォルダに移動 (${folderFeeds.length}件)
+                        </button>
+                        <button class="action-btn danger" onclick="performBulkRSSAction('delete')">
+                            🗑️ 全て削除 (${folderFeeds.length}件)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        window.closeBulkRSSActionModal = () => {
+            modal.remove();
+            delete window.closeBulkRSSActionModal;
+            delete window.performBulkRSSAction;
+        };
+
+        window.performBulkRSSAction = (action) => {
+            closeBulkRSSActionModal();
+            switch(action) {
+                case 'enable':
+                    folderFeeds.forEach(feed => rssHook.updateRSSFeed(feed.id, { isActive: true }));
+                    alert('全てのRSSフィードを有効化しました');
+                    break;
+                case 'disable':
+                    folderFeeds.forEach(feed => rssHook.updateRSSFeed(feed.id, { isActive: false }));
+                    alert('全てのRSSフィードを無効化しました');
+                    break;
+                case 'delete':
+                    if (confirm(`本当にこのフォルダの${folderFeeds.length}件のRSSフィードを削除しますか？`)) {
+                        folderFeeds.forEach(feed => rssHook.removeRSSFeed(feed.id));
+                        alert('全てのRSSフィードを削除しました');
+                    }
+                    break;
+                case 'move':
+                    showFolderSelectionModal(targetFolderId => {
+                        folderFeeds.forEach(feed => {
+                            rssHook.updateRSSFeed(feed.id, { folderId: targetFolderId });
+                        });
+                        alert('全てのRSSフィードを移動しました');
+                        if (state.showModal === 'rss') render();
+                    });
+                    return;
+            }
+            if (state.showModal === 'rss') render();
+        };
+    };
+
+    const showFolderEditModal = (folderId) => {
+        const foldersHook = DataHooks.useFolders();
+        const folder = foldersHook.folders.find(f => f.id === folderId);
+        if (!folder) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>フォルダ編集</h2>
+                    <button class="modal-close" onclick="closeFolderEditModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="folder-edit-list">
+                        <button class="action-btn" onclick="performFolderEdit('name')">
+                            ✏️ 名前変更
+                        </button>
+                        <button class="action-btn" onclick="performFolderEdit('color')">
+                            🎨 色変更
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        window.closeFolderEditModal = () => {
+            modal.remove();
+            delete window.closeFolderEditModal;
+            delete window.performFolderEdit;
+        };
+
+        window.performFolderEdit = (editType) => {
+            closeFolderEditModal();
+            switch(editType) {
+                case 'name':
+                    const newName = prompt('新しいフォルダ名を入力してください:', folder.name);
+                    if (newName && newName.trim() !== folder.name && newName.trim().length > 0) {
+                        if (newName.trim().length > 50) {
+                            alert('フォルダ名は50文字以内で入力してください');
+                            return;
+                        }
+                        foldersHook.updateFolder(folderId, { name: newName.trim() });
+                        if (state.showModal === 'rss') render();
+                    }
+                    break;
+                case 'color':
+                    showColorSelectionModal(selectedColor => {
+                        foldersHook.updateFolder(folderId, { color: selectedColor });
+                        if (state.showModal === 'rss') render();
+                    });
+                    break;
+            }
+        };
     };
 
     // ===========================================
@@ -1362,77 +1531,13 @@
     };
 
     const handleFolderRSSBulkActions = (folderId) => {
-        const rssHook = DataHooks.useRSSManager();
-        const folderFeeds = rssHook.rssFeeds.filter(feed => feed.folderId === folderId);
-        
-        if (folderFeeds.length === 0) {
-            alert('このフォルダにはRSSフィードがありません');
-            return;
-        }
-        
-        const action = prompt(`フォルダ内の${folderFeeds.length}件のRSSフィードに対する操作を選択してください:\n1. 全て有効化\n2. 全て無効化\n3. 全て削除\n4. 他のフォルダに一括移動\n\n番号を入力してください:`);
-        
-        switch(action) {
-            case '1':
-                folderFeeds.forEach(feed => {
-                    rssHook.updateRSSFeed(feed.id, { isActive: true });
-                });
-                alert('全てのRSSフィードを有効化しました');
-                break;
-            case '2':
-                folderFeeds.forEach(feed => {
-                    rssHook.updateRSSFeed(feed.id, { isActive: false });
-                });
-                alert('全てのRSSフィードを無効化しました');
-                break;
-            case '3':
-                if (confirm(`本当にこのフォルダの${folderFeeds.length}件のRSSフィードを全て削除しますか？`)) {
-                    folderFeeds.forEach(feed => {
-                        rssHook.removeRSSFeed(feed.id);
-                    });
-                    alert('全てのRSSフィードを削除しました');
-                }
-                break;
-            case '4':
-                showFolderSelectionModal(targetFolderId => {
-                    folderFeeds.forEach(feed => {
-                        rssHook.updateRSSFeed(feed.id, { folderId: targetFolderId });
-                    });
-                    alert('全てのRSSフィードを移動しました');
-                    if (state.showModal === 'rss') render();
-                });
-                return;
-        }
-        
-        if (state.showModal === 'rss') render();
+        const foldersHook = DataHooks.useFolders();
+        const folder = foldersHook.folders.find(f => f.id === folderId) || { id: 'uncategorized', name: '未分類' };
+        showBulkRSSActionModal(folderId, folder.name);
     };
 
     const handleFolderEdit = (folderId) => {
-        const foldersHook = DataHooks.useFolders();
-        const folder = foldersHook.folders.find(f => f.id === folderId);
-        if (!folder) return;
-        
-        const action = prompt(`フォルダ「${folder.name}」の編集:\n1. 名前変更\n2. 色変更\n\n番号を入力してください:`);
-        
-        switch(action) {
-            case '1':
-                const newName = prompt('新しいフォルダ名を入力してください:', folder.name);
-                if (newName && newName.trim() !== folder.name && newName.trim().length > 0) {
-                    if (newName.trim().length > 50) {
-                        alert('フォルダ名は50文字以内で入力してください');
-                        return;
-                    }
-                    foldersHook.updateFolder(folderId, { name: newName.trim() });
-                    if (state.showModal === 'rss') render();
-                }
-                break;
-            case '2':
-                showColorSelectionModal(selectedColor => {
-                    foldersHook.updateFolder(folderId, { color: selectedColor });
-                    if (state.showModal === 'rss') render();
-                });
-                break;
-        }
+        showFolderEditModal(folderId);
     };
 
     const handleRSSEdit = (feedId, field, currentValue) => {
