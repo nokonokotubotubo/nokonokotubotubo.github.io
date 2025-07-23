@@ -690,10 +690,11 @@
                                 if (articlesHook.addArticle(article)) addedCount++;
                             });
 
-                            this.updateRSSFeed(feed.id, {
-                                lastUpdated: new Date().toISOString(),
-                                title: parsed.feedTitle
-                            });
+                           this.updateRSSFeed(feed.id, { 
+    lastUpdated: new Date().toISOString() 
+    // titleの自動更新を削除
+});
+
 
                             totalAdded += addedCount;
                             feedResults.push({
