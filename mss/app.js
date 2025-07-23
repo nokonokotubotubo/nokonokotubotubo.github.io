@@ -110,240 +110,249 @@ const FolderManager = {
     }
 };
 
-// ===========================================
-// RSS処理システム
-// ===========================================
-const RSSProcessor = {
-    async fetchRSS(url, proxyIndex = 0, retryCount = 0) {
-        if (proxyIndex >= CONFIG.RSS_PROXY_URLS.length) {
-            if (retryCount < CONFIG.MAX_RETRIES) {
-                await this.delay(CONFIG.RETRY_DELAY);
-                return this.fetchRSS(url, 0, retryCount + 1);
-            }
-            throw new Error('All proxy servers failed after retries');
-        }
-
-        const proxyUrl = CONFIG.RSS_PROXY_URLS[proxyIndex];
-        const fullUrl = proxyUrl + encodeURIComponent(url);
-
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+// =========================================== 
+// RSS処理システム 
+// =========================================== 
+const RSSProcessor = { 
+    async fetchRSS(url, proxyIndex = 0, retryCount = 0) { 
+        if (proxyIndex >= CONFIG.RSS_PROXY_URLS.length) { 
+            if (retryCount < CONFIG.MAX_RETRIES) { 
+                await this.delay(CONFIG.RETRY_DELAY); 
+                return this.fetchRSS(url, 0, retryCount + 1); 
+            } 
+            throw new Error('All proxy servers failed after retries'); 
+        } 
+        
+        const proxyUrl = CONFIG.RSS_PROXY_URLS[proxyIndex]; 
+        const fullUrl = proxyUrl + encodeURIComponent(url); 
+        
+        try { 
+            const controller = new AbortController(); 
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT); 
             
-            const response = await fetch(fullUrl, {
-                signal: controller.signal,
-                headers: { 'Accept': '*/*', 'User-Agent': 'Mozilla/5.0 (compatible; Minews/1.0)' },
-                mode: 'cors'
-            });
+            const response = await fetch(fullUrl, { 
+                signal: controller.signal, 
+                headers: { 
+                    'Accept': '*/*', 
+                    'User-Agent': 'Mozilla/5.0 (compatible; Minews/1.0)' 
+                }, 
+                mode: 'cors' 
+            }); 
             
-            clearTimeout(timeoutId);
-
-            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-            let xmlContent;
-            if (proxyUrl.includes('allorigins.win')) {
-                const data = await response.json();
-                xmlContent = data.contents;
-                if (!xmlContent) throw new Error('No contents in allorigins.win response');
-            } else {
-                const contentType = response.headers.get('content-type');
-                if (contentType?.includes('application/json')) {
-                    try {
-                        const data = await response.json();
-                        xmlContent = data.contents || data;
-                    } catch {
-                        xmlContent = await response.text();
-                    }
-                } else {
-                    xmlContent = await response.text();
-                }
-            }
-
-            if (!xmlContent?.trim()) throw new Error('Empty response content');
-            return xmlContent;
-
-        } catch (error) {
-            if (error.name === 'AbortError') throw new Error(`Request timeout for proxy ${proxyIndex + 1}`);
-            return this.fetchRSS(url, proxyIndex + 1, retryCount);
-        }
-    },
-
-    delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
-
-    parseRSS(xmlString, sourceUrl) {
-        try {
-            const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
+            clearTimeout(timeoutId); 
             
-            const parseError = xmlDoc.querySelector('parsererror');
-            if (parseError) throw new Error('XML parse error: ' + parseError.textContent);
-
-            const articles = [];
-            let feedTitle = 'Unknown Feed';
-
-            // RSS 2.0
-            const rss2Items = xmlDoc.querySelectorAll('rss channel item');
-            if (rss2Items.length > 0) {
-                feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle;
-                rss2Items.forEach((item, index) => {
-                    if (index < 20) {
-                        const article = this.parseRSSItem(item, sourceUrl);
-                        if (article) articles.push(article);
-                    }
-                });
-            }
-
-            // Atom
-            const atomEntries = xmlDoc.querySelectorAll('feed entry');
-            if (atomEntries.length > 0 && articles.length === 0) {
-                feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle;
-                atomEntries.forEach((entry, index) => {
-                    if (index < 20) {
-                        const article = this.parseAtomEntry(entry, sourceUrl);
-                        if (article) articles.push(article);
-                    }
-                });
-            }
-
-            // RDF
-            const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
-            if (rdfItems.length > 0 && articles.length === 0) {
-                feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
-                rdfItems.forEach((item, index) => {
-                    if (index < 20) {
-                        const article = this.parseRSSItem(item, sourceUrl);
-                        if (article) articles.push(article);
-                    }
-                });
-            }
-
-            return { articles, feedTitle };
-        } catch (error) {
-            throw new Error('Failed to parse RSS feed: ' + error.message);
-        }
-    },
-
-    parseRSSItem(item, sourceUrl) {
-        try {
-            const title = this.getTextContent(item, ['title']);
-            const link = this.getTextContent(item, ['link', 'guid']) || item.getAttribute('rdf:about');
-            const description = this.getTextContent(item, ['description', 'content:encoded', 'content', 'summary']);
-            const pubDate = this.getTextContent(item, ['pubDate', 'date']);
-            const category = this.getTextContent(item, ['category', 'subject']) || 'General';
-
-            if (!title || !link) return null;
-
-            const cleanDescription = description ? this.cleanHtml(description).substring(0, 300) : '記事の概要は提供されていません';
-            const keywords = this.extractKeywords(title + ' ' + cleanDescription);
-
-            return {
-                id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                title: this.cleanHtml(title).trim(),
-                url: link.trim(),
-                content: cleanDescription,
-                publishDate: this.parseDate(pubDate),
-                rssSource: this.extractDomain(sourceUrl),
-                category: this.cleanHtml(category).trim(),
-                readStatus: 'unread',
-                readLater: false,
-                userRating: 0,
-                keywords,
-                fetchedAt: new Date().toISOString()
-            };
-        } catch (error) {
-            return null;
-        }
-    },
-
-    parseAtomEntry(entry, sourceUrl) {
-        try {
-            const title = this.getTextContent(entry, ['title']);
-            const link = entry.querySelector('link')?.getAttribute('href') || this.getTextContent(entry, ['id']);
-            const content = this.getTextContent(entry, ['content', 'summary', 'description']);
-            const published = this.getTextContent(entry, ['published', 'updated']);
-            const category = entry.querySelector('category')?.getAttribute('term') || entry.querySelector('category')?.textContent || 'General';
-
-            if (!title || !link) return null;
-
-            const cleanContent = content ? this.cleanHtml(content).substring(0, 300) : '記事の概要は提供されていません';
-            const keywords = this.extractKeywords(title + ' ' + cleanContent);
-
-            return {
-                id: `atom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                title: this.cleanHtml(title).trim(),
-                url: link.trim(),
-                content: cleanContent,
-                publishDate: this.parseDate(published),
-                rssSource: this.extractDomain(sourceUrl),
-                category: this.cleanHtml(category).trim(),
-                readStatus: 'unread',
-                readLater: false,
-                userRating: 0,
-                keywords,
-                fetchedAt: new Date().toISOString()
-            };
-        } catch (error) {
-            return null;
-        }
-    },
-
-    getTextContent(element, selectors) {
-        for (const selector of selectors) {
-            let result = null;
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`); 
             
-            if (selector.includes(':')) {
-                const elements = element.getElementsByTagName(selector);
-                if (elements.length > 0 && elements[0].textContent) {
-                    result = elements[0].textContent.trim();
-                }
-                if (!result) {
-                    const localName = selector.split(':')[1];
-                    const localElements = element.getElementsByTagName(localName);
-                    if (localElements.length > 0 && localElements[0].textContent) {
-                        result = localElements[0].textContent.trim();
-                    }
-                }
-            } else {
-                try {
-                    const el = element.querySelector(selector);
-                    if (el?.textContent) result = el.textContent.trim();
-                } catch (e) {
-                    const elements = element.getElementsByTagName(selector);
-                    if (elements.length > 0 && elements[0].textContent) {
-                        result = elements[0].textContent.trim();
-                    }
-                }
-            }
-            if (result) return result;
-        }
-        return null;
-    },
-
-    cleanHtml: html => html ? html.replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/"/g, '"').replace(/'/g, "'").replace(/\s+/g, ' ').trim() : '',
-
-    parseDate(dateString) {
-        if (!dateString) return new Date().toISOString();
-        try {
-            const date = new Date(dateString);
-            return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
-        } catch {
-            return new Date().toISOString();
-        }
-    },
-
+            let xmlContent; 
+            if (proxyUrl.includes('allorigins.win')) { 
+                const data = await response.json(); 
+                xmlContent = data.contents; 
+                if (!xmlContent) throw new Error('No contents in allorigins.win response'); 
+            } else { 
+                const contentType = response.headers.get('content-type'); 
+                if (contentType?.includes('application/json')) { 
+                    try { 
+                        const data = await response.json(); 
+                        xmlContent = data.contents || data; 
+                    } catch { 
+                        xmlContent = await response.text(); 
+                    } 
+                } else { 
+                    xmlContent = await response.text(); 
+                } 
+            } 
+            
+            if (!xmlContent?.trim()) throw new Error('Empty response content'); 
+            return xmlContent; 
+        } catch (error) { 
+            if (error.name === 'AbortError') throw new Error(`Request timeout for proxy ${proxyIndex + 1}`); 
+            return this.fetchRSS(url, proxyIndex + 1, retryCount); 
+        } 
+    }, 
+    
+    delay: ms => new Promise(resolve => setTimeout(resolve, ms)), 
+    
+    parseRSS(xmlString, sourceUrl) { 
+        try { 
+            const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); 
+            const parser = new DOMParser(); 
+            const xmlDoc = parser.parseFromString(cleanXml, 'text/xml'); 
+            
+            const parseError = xmlDoc.querySelector('parsererror'); 
+            if (parseError) throw new Error('XML parse error: ' + parseError.textContent); 
+            
+            const articles = []; 
+            let feedTitle = 'Unknown Feed'; 
+            
+            // RSS 2.0 
+            const rss2Items = xmlDoc.querySelectorAll('rss channel item'); 
+            if (rss2Items.length > 0) { 
+                feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle; 
+                rss2Items.forEach((item, index) => { 
+                    if (index < 20) { 
+                        const article = this.parseRSSItem(item, sourceUrl); 
+                        if (article) articles.push(article); 
+                    } 
+                }); 
+            } 
+            
+            // Atom 
+            const atomEntries = xmlDoc.querySelectorAll('feed entry'); 
+            if (atomEntries.length > 0 && articles.length === 0) { 
+                feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle; 
+                atomEntries.forEach((entry, index) => { 
+                    if (index < 20) { 
+                        const article = this.parseAtomEntry(entry, sourceUrl); 
+                        if (article) articles.push(article); 
+                    } 
+                }); 
+            } 
+            
+            // RDF 
+            const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item'); 
+            if (rdfItems.length > 0 && articles.length === 0) { 
+                feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle; 
+                rdfItems.forEach((item, index) => { 
+                    if (index < 20) { 
+                        const article = this.parseRSSItem(item, sourceUrl); 
+                        if (article) articles.push(article); 
+                    } 
+                }); 
+            } 
+            
+            return { articles, feedTitle }; 
+        } catch (error) { 
+            throw new Error('Failed to parse RSS feed: ' + error.message); 
+        } 
+    }, 
+    
+    parseRSSItem(item, sourceUrl) { 
+        try { 
+            const title = this.getTextContent(item, ['title']); 
+            const link = this.getTextContent(item, ['link', 'guid']) || item.getAttribute('rdf:about'); 
+            const description = this.getTextContent(item, ['description', 'content:encoded', 'content', 'summary']); 
+            const pubDate = this.getTextContent(item, ['pubDate', 'date']); 
+            const category = this.getTextContent(item, ['category', 'subject']) || 'General'; 
+            
+            if (!title || !link) return null; 
+            
+            const cleanDescription = description ? this.cleanHtml(description).substring(0, 300) : '記事の概要は提供されていません'; 
+            const keywords = this.extractKeywords(title + ' ' + cleanDescription); 
+            
+            return { 
+                id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+                title: this.cleanHtml(title).trim(), 
+                url: link.trim(), 
+                content: cleanDescription, 
+                publishDate: this.parseDate(pubDate), 
+                rssSource: this.extractDomain(sourceUrl), 
+                category: this.cleanHtml(category).trim(), 
+                readStatus: 'unread', 
+                readLater: false, 
+                userRating: 0, 
+                keywords, 
+                fetchedAt: new Date().toISOString() 
+            }; 
+        } catch (error) { 
+            return null; 
+        } 
+    }, 
+    
+    parseAtomEntry(entry, sourceUrl) { 
+        try { 
+            const title = this.getTextContent(entry, ['title']); 
+            const link = entry.querySelector('link')?.getAttribute('href') || this.getTextContent(entry, ['id']); 
+            const content = this.getTextContent(entry, ['content', 'summary', 'description']); 
+            const published = this.getTextContent(entry, ['published', 'updated']); 
+            const category = entry.querySelector('category')?.getAttribute('term') || entry.querySelector('category')?.textContent || 'General'; 
+            
+            if (!title || !link) return null; 
+            
+            const cleanContent = content ? this.cleanHtml(content).substring(0, 300) : '記事の概要は提供されていません'; 
+            const keywords = this.extractKeywords(title + ' ' + cleanContent); 
+            
+            return { 
+                id: `atom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+                title: this.cleanHtml(title).trim(), 
+                url: link.trim(), 
+                content: cleanContent, 
+                publishDate: this.parseDate(published), 
+                rssSource: this.extractDomain(sourceUrl), 
+                category: this.cleanHtml(category).trim(), 
+                readStatus: 'unread', 
+                readLater: false, 
+                userRating: 0, 
+                keywords, 
+                fetchedAt: new Date().toISOString() 
+            }; 
+        } catch (error) { 
+            return null; 
+        } 
+    }, 
+    
+    getTextContent(element, selectors) { 
+        for (const selector of selectors) { 
+            let result = null; 
+            if (selector.includes(':')) { 
+                const elements = element.getElementsByTagName(selector); 
+                if (elements.length > 0 && elements[0].textContent) { 
+                    result = elements[0].textContent.trim(); 
+                } 
+                if (!result) { 
+                    const localName = selector.split(':')[1]; 
+                    const localElements = element.getElementsByTagName(localName); 
+                    if (localElements.length > 0 && localElements[0].textContent) { 
+                        result = localElements[0].textContent.trim(); 
+                    } 
+                } 
+            } else { 
+                try { 
+                    const el = element.querySelector(selector); 
+                    if (el?.textContent) result = el.textContent.trim(); 
+                } catch (e) { 
+                    const elements = element.getElementsByTagName(selector); 
+                    if (elements.length > 0 && elements[0].textContent) { 
+                        result = elements[0].textContent.trim(); 
+                    } 
+                } 
+            } 
+            if (result) return result; 
+        } 
+        return null; 
+    }, 
+    
+    cleanHtml: html => html ? html.replace(/<[^>]*>/g, '').replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&').replace(/"/g, '"').replace(/'/g, "'").replace(/\s+/g, ' ').trim() : '', 
+    
+    parseDate(dateString) { 
+        if (!dateString) return new Date().toISOString(); 
+        try { 
+            const date = new Date(dateString); 
+            return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString(); 
+        } catch { 
+            return new Date().toISOString(); 
+        } 
+    }, 
+    
     extractKeywords(text) {
         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-        return [...new Set(text.toLowerCase().replace(/[^\w\sぁ-んァ-ン一-龯]/g, ' ').split(/\s+/).filter(word => word.length > 2 && !stopWords.includes(word)).slice(0, 8))];
-    },
-
-    extractDomain(url) {
-        try {
-            return new URL(url).hostname.replace(/^www\./, '');
-        } catch {
-            return 'Unknown Source';
-        }
-    }
+        
+        // 長音符「ー」を分割文字から除外し、単語の一部として保持
+        return [...new Set(
+            text.toLowerCase()
+                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')  // 「ー」を保護
+                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)        // 長音符以外で分割
+                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+                .slice(0, 8)
+        )];
+    }, 
+    
+    extractDomain(url) { 
+        try { 
+            return new URL(url).hostname.replace(/^www\./, ''); 
+        } catch { 
+            return 'Unknown Source'; 
+        } 
+    } 
 };
 
 // =========================================== 
