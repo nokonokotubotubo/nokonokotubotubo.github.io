@@ -1,4 +1,4 @@
-// Minews PWA - イベント委譲パターン対応完全版
+// Minews PWA - 統合設定モーダル完全版
 (function() {
     'use strict';
 
@@ -746,11 +746,13 @@
         }
     };
 
-    // アプリケーション状態管理
+    // アプリケーション状態管理（統合設定モーダル対応）
     let state = {
         viewMode: 'all',
         selectedFolder: 'all',
-        showModal: null,
+        showModal: null,                    // null | 'settings' | 'rss' | 'words' | 'folders'
+        settingsTab: 'rss',                 // 'rss' | 'words' | 'data'
+        selectedFolderInSettings: 'all',    // RSS管理用フォルダ選択
         articles: [],
         isLoading: false,
         lastUpdate: null
@@ -782,29 +784,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Minews PWA：イベント委譲パターン実装完了',
+                    title: 'Minews PWA：統合設定モーダル実装完了',
                     url: '#',
-                    content: 'グローバル汚染を解消し、統一イベントリスナーによる安全なイベント処理に移行しました。セキュリティと保守性が大幅向上。',
+                    content: 'RSS管理・ワード設定・データ管理を1つのモーダルにまとめ、タブ切り替えで各機能にアクセス可能になりました。×ボタンの動作も修正済み。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'NHKニュース',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['イベント委譲', 'セキュリティ', '最適化', '統一管理']
+                    keywords: ['統合設定', 'モーダル', 'タブ切り替え', 'UI改善']
                 },
                 {
                     id: 'sample_2',
-                    title: 'フロントエンド最適化：data属性でクリーンなHTML',
+                    title: '設定画面のユーザビリティ向上完了',
                     url: '#',
-                    content: 'onclick属性を削除し、data属性とイベント委譲による統一管理システムを構築。グローバル関数公開なしで安全な動作を実現。',
+                    content: '分離していた管理機能を統合し、1つのモーダルで全設定を操作可能に。イベント委譲パターンにより安全性も向上しました。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
                     rssSource: 'ITmedia',
                     category: 'UX',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['data属性', 'HTML最適化', 'イベント管理', 'クリーンコード']
+                    keywords: ['統合管理', 'ユーザビリティ', '設定画面', 'イベント委譲']
                 }
             ];
 
@@ -841,6 +843,199 @@
     const truncateText = (text, maxLength = 200) => text.length <= maxLength ? text : text.substring(0, maxLength).trim() + '...';
 
     // =========================================== 
+    // 統合設定モーダル（完全実装版）
+    // ===========================================
+    const renderSettingsModal = () => {
+        if (state.showModal !== 'settings') return '';
+        
+        return `
+            <div class="modal-overlay" data-action="close-modal">
+                <div class="modal settings-modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2>⚙️ 設定</h2>
+                        <button class="modal-close" data-action="close-modal">×</button>
+                    </div>
+                    
+                    <div class="settings-tabs">
+                        <button class="tab-btn ${state.settingsTab === 'rss' ? 'active' : ''}" 
+                                data-action="settings-tab" data-tab="rss">
+                            📁 RSS管理
+                        </button>
+                        <button class="tab-btn ${state.settingsTab === 'words' ? 'active' : ''}" 
+                                data-action="settings-tab" data-tab="words">
+                            🔤 ワード設定
+                        </button>
+                        <button class="tab-btn ${state.settingsTab === 'data' ? 'active' : ''}" 
+                                data-action="settings-tab" data-tab="data">
+                            📊 データ管理
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        ${renderSettingsTabContent()}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    const handleSettingsTabChange = (tabId) => {
+        setState({ settingsTab: tabId });
+    };
+
+    const renderSettingsTabContent = () => {
+        switch (state.settingsTab) {
+            case 'rss':
+                return renderRSSManagementTab();
+            case 'words':
+                return renderWordsManagementTab();
+            case 'data':
+                return renderDataManagementTab();
+            default:
+                return '<p>タブが見つかりません</p>';
+        }
+    };
+
+    // RSS管理タブ（統合版）
+    const renderRSSManagementTab = () => {
+        const rssHook = DataHooks.useRSSManager();
+        const foldersHook = DataHooks.useFolders();
+
+        return `
+            <div class="modal-actions">
+                <button class="action-btn success" data-action="rss-add">➕ RSS追加</button>
+            </div>
+            
+            <div class="rss-list">
+                ${rssHook.rssFeeds.map(feed => {
+                    const folder = foldersHook.folders.find(f => f.id === feed.folderId) || 
+                                  { name: '未分類', color: '#6c757d' };
+                    return `
+                        <div class="rss-item">
+                            <div class="rss-info">
+                                <div class="rss-editable-row">
+                                    <strong data-action="rss-edit" data-feed-id="${feed.id}" data-field="title" data-current-value="${feed.title}" style="cursor: pointer;">${feed.title}</strong>
+                                </div>
+                                <div class="rss-editable-row">
+                                    <span class="rss-url" data-action="rss-edit" data-feed-id="${feed.id}" data-field="url" data-current-value="${feed.url}" style="cursor: pointer;">${feed.url}</span>
+                                </div>
+                                <div class="rss-editable-row">
+                                    <div data-action="rss-edit" data-feed-id="${feed.id}" data-field="folder" data-current-value="${feed.folderId}" style="cursor: pointer;">
+                                        📁 フォルダ: 
+                                        <span style="color: ${folder.color}; font-weight: 600;">${folder.name}</span>
+                                    </div>
+                                </div>
+                                <span class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</span>
+                                <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">
+                                    ${feed.isActive ? 'アクティブ' : '無効'}
+                                </span>
+                            </div>
+                            <div class="rss-actions">
+                                <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">削除</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div class="rss-help">
+                <h4>RSS管理のヒント</h4>
+                <ul>
+                    <li>タイトル・URL・フォルダをクリックすると編集できます</li>
+                    <li>フォルダ分類により記事の整理が効率的になります</li>
+                    <li>無効なフィードは自動的に非アクティブになります</li>
+                </ul>
+            </div>
+        `;
+    };
+
+    // ワード設定タブ（統合版）
+    const renderWordsManagementTab = () => {
+        const wordHook = DataHooks.useWordFilters();
+
+        return `
+            <div class="word-section">
+                <div class="word-section-header">
+                    <h3>💚 気になるワード</h3>
+                    <button class="action-btn success" data-action="word-add" data-type="interest">➕ 追加</button>
+                </div>
+                <div class="word-list">
+                    ${wordHook.wordFilters.interestWords.map(word => `
+                        <span class="word-tag interest">
+                            ${word}
+                            <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="interest">×</button>
+                        </span>
+                    `).join('')}
+                    ${wordHook.wordFilters.interestWords.length === 0 ? '<p class="text-muted">気になるワードが登録されていません</p>' : ''}
+                </div>
+            </div>
+            
+            <div class="word-section">
+                <div class="word-section-header">
+                    <h3>🚫 NGワード</h3>
+                    <button class="action-btn danger" data-action="word-add" data-type="ng">➕ 追加</button>
+                </div>
+                <div class="word-list">
+                    ${wordHook.wordFilters.ngWords.map(word => `
+                        <span class="word-tag ng">
+                            ${word}
+                            <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="ng">×</button>
+                        </span>
+                    `).join('')}
+                    ${wordHook.wordFilters.ngWords.length === 0 ? '<p class="text-muted">NGワードが登録されていません</p>' : ''}
+                </div>
+            </div>
+            
+            <div class="word-help">
+                <h4>ワード管理について</h4>
+                <p><strong>気になるワード:</strong> 含まれる記事のスコアが+20されます</p>
+                <p><strong>NGワード:</strong> 含まれる記事は表示されなくなります</p>
+                <p>両方とも記事のタイトルと内容を対象に判定されます</p>
+            </div>
+        `;
+    };
+
+    // データ管理タブ（統合版）
+    const renderDataManagementTab = () => {
+        const foldersHook = DataHooks.useFolders();
+        const rssHook = DataHooks.useRSSManager();
+
+        return `
+            <div class="modal-actions">
+                <button class="action-btn success" data-action="folder-add">➕ フォルダ追加</button>
+            </div>
+            
+            <div class="rss-list">
+                ${foldersHook.folders.map(folder => {
+                    const feedCount = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id).length;
+                    return `
+                        <div class="rss-item" style="border-left-color: ${folder.color};">
+                            <div class="rss-info">
+                                <strong style="color: ${folder.color};">${folder.name}</strong>
+                                <span class="rss-url">カラー: ${FolderManager.getColorName(folder.color)}</span>
+                                <span class="rss-updated">作成日: ${formatDate(folder.createdAt)}</span>
+                                <span class="rss-status active">${feedCount}個のフィード</span>
+                            </div>
+                            <div class="rss-actions">
+                                <button class="action-btn danger" data-action="folder-remove" data-folder-id="${folder.id}">削除</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div class="rss-help">
+                <h4>データ管理について</h4>
+                <ul>
+                    <li>フォルダにはRSSフィードを分類して整理できます</li>
+                    <li>削除するフォルダにフィードがある場合、「未分類」に移動されます</li>
+                    <li>将来的にOPMLインポート・エクスポート機能を追加予定</li>
+                </ul>
+            </div>
+        `;
+    };
+
+    // =========================================== 
     // 統一イベント管理システム（イベント委譲パターン）
     // ===========================================
     const initializeEventListeners = () => {
@@ -866,6 +1061,11 @@
                 
             case 'close-modal':
                 handleModalClose();
+                break;
+
+            case 'settings-tab':
+                const tabId = target.dataset.tab;
+                if (tabId) handleSettingsTabChange(tabId);
                 break;
                 
             case 'toggle-read':
@@ -1034,7 +1234,7 @@
             const rssHook = DataHooks.useRSSManager();
             const tempFeed = rssHook.addRSSFeed(url, '... フィード取得中...', selectedFolderId);
             fetchFeedTitleAndUpdate(tempFeed.id, url);
-            if (state.showModal === 'rss') render();
+            render();
         });
     };
 
@@ -1047,14 +1247,14 @@
                 title: parsed.feedTitle || 'タイトル不明',
                 lastUpdated: new Date().toISOString()
             });
-            if (state.showModal === 'rss') render();
+            render();
         } catch (error) {
             const rssHook = DataHooks.useRSSManager();
             rssHook.updateRSSFeed(feedId, {
                 title: `フィード（${new URL(url).hostname}）`,
                 lastUpdated: new Date().toISOString()
             });
-            if (state.showModal === 'rss') render();
+            render();
         }
     };
 
@@ -1064,18 +1264,18 @@
             const newTitle = prompt('新しいタイトルを入力してください:', currentValue);
             if (newTitle && newTitle.trim() !== currentValue) {
                 rssHook.updateRSSFeed(feedId, { title: newTitle.trim() });
-                if (state.showModal === 'rss') render();
+                render();
             }
         } else if (field === 'url') {
             const newUrl = prompt('新しいURLを入力してください:', currentValue);
             if (newUrl && newUrl.trim() !== currentValue) {
                 rssHook.updateRSSFeed(feedId, { url: newUrl.trim() });
-                if (state.showModal === 'rss') render();
+                render();
             }
         } else if (field === 'folder') {
             showFolderSelectionModal(selectedFolderId => {
                 rssHook.updateRSSFeed(feedId, { folderId: selectedFolderId });
-                if (state.showModal === 'rss') render();
+                render();
             });
         }
     };
@@ -1092,7 +1292,7 @@
             const foldersHook = DataHooks.useFolders();
             const newFolder = foldersHook.addFolder(name.trim(), selectedColor);
             if (newFolder) {
-                if (state.showModal === 'folders') render();
+                render();
             } else {
                 alert('フォルダの作成に失敗しました');
             }
@@ -1197,7 +1397,7 @@
         if (!confirm('このRSSフィードを削除しますか？')) return;
         const rssHook = DataHooks.useRSSManager();
         rssHook.removeRSSFeed(feedId);
-        if (state.showModal === 'rss') render();
+        render();
     };
 
     const handleWordAdd = type => {
@@ -1208,7 +1408,7 @@
         const success = type === 'interest' ? wordHook.addInterestWord(word) : wordHook.addNGWord(word);
 
         if (success) {
-            if (state.showModal === 'words') render();
+            render();
         } else {
             alert('このワードは既に登録されています');
         }
@@ -1220,7 +1420,7 @@
         const wordHook = DataHooks.useWordFilters();
         const success = type === 'interest' ? wordHook.removeInterestWord(word) : wordHook.removeNGWord(word);
 
-        if (success && state.showModal === 'words') render();
+        if (success) render();
     };
 
     const handleFolderRemove = folderId => {
@@ -1235,7 +1435,7 @@
             if (state.selectedFolder === folderId) {
                 setState({ selectedFolder: 'all' });
             }
-            if (state.showModal === 'folders') render();
+            render();
         } else if (result.reason === 'FEEDS_EXIST') {
             if (confirm(`このフォルダには${result.feedCount}件のRSSフィードが含まれています。\nフィードを「未分類」に移動してからフォルダを削除しますか？`)) {
                 const rssHook = DataHooks.useRSSManager();
@@ -1250,7 +1450,7 @@
                     if (state.selectedFolder === folderId) {
                         setState({ selectedFolder: 'all' });
                     }
-                    if (state.showModal === 'folders') render();
+                    render();
                     alert(`${feedsToMove.length}件のフィードを「未分類」に移動し、フォルダを削除しました`);
                 }
             }
@@ -1357,14 +1557,8 @@
                     <button class="${refreshButtonClass}" data-action="refresh" ${state.isLoading ? 'disabled' : ''}>
                         ${refreshButtonText}
                     </button>
-                    <button class="action-btn" data-action="open-modal" data-modal="rss">
-                        📡 RSS
-                    </button>
-                    <button class="action-btn" data-action="open-modal" data-modal="words">
-                        🔤 ワード
-                    </button>
-                    <button class="action-btn" data-action="open-modal" data-modal="folders">
-                        📁 フォルダ
+                    <button class="action-btn" data-action="open-modal" data-modal="settings">
+                        ⚙️ 設定
                     </button>
                 </div>
             </nav>
@@ -1458,180 +1652,7 @@
         `;
     };
 
-    // モーダル関数（data属性対応）
-    const renderRSSModal = () => {
-        if (state.showModal !== 'rss') return '';
-
-        const rssHook = DataHooks.useRSSManager();
-        const foldersHook = DataHooks.useFolders();
-
-        return `
-            <div class="modal-overlay" data-action="close-modal">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>📡 RSS管理</h2>
-                        <button class="modal-close" data-action="close-modal">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="modal-actions">
-                            <button class="action-btn success" data-action="rss-add">➕ RSS追加</button>
-                        </div>
-                        
-                        <div class="rss-list">
-                            ${rssHook.rssFeeds.map(feed => {
-                                const folder = foldersHook.folders.find(f => f.id === feed.folderId) || 
-                                              { name: '未分類', color: '#6c757d' };
-                                return `
-                                    <div class="rss-item">
-                                        <div class="rss-info">
-                                            <div class="rss-editable-row">
-                                                <strong data-action="rss-edit" data-feed-id="${feed.id}" data-field="title" data-current-value="${feed.title}">${feed.title}</strong>
-                                            </div>
-                                            <div class="rss-editable-row">
-                                                <span class="rss-url" data-action="rss-edit" data-feed-id="${feed.id}" data-field="url" data-current-value="${feed.url}">${feed.url}</span>
-                                            </div>
-                                            <div class="rss-editable-row">
-                                                <div data-action="rss-edit" data-feed-id="${feed.id}" data-field="folder" data-current-value="${feed.folderId}" style="cursor: pointer;">
-                                                    📁 フォルダ: 
-                                                    <span style="color: ${folder.color}; font-weight: 600;">${folder.name}</span>
-                                                </div>
-                                            </div>
-                                            <span class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</span>
-                                            <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">
-                                                ${feed.isActive ? 'アクティブ' : '無効'}
-                                            </span>
-                                        </div>
-                                        <div class="rss-actions">
-                                            <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">削除</button>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                        
-                        <div class="rss-help">
-                            <h4>RSS管理のヒント</h4>
-                            <ul>
-                                <li>タイトル・URL・フォルダをクリックすると編集できます</li>
-                                <li>フォルダ分類により記事の整理が効率的になります</li>
-                                <li>無効なフィードは自動的に非アクティブになります</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
-
-    const renderWordsModal = () => {
-        if (state.showModal !== 'words') return '';
-
-        const wordHook = DataHooks.useWordFilters();
-
-        return `
-            <div class="modal-overlay" data-action="close-modal">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>🔤 ワード管理</h2>
-                        <button class="modal-close" data-action="close-modal">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>💚 気になるワード</h3>
-                                <button class="action-btn success" data-action="word-add" data-type="interest">➕ 追加</button>
-                            </div>
-                            <div class="word-list">
-                                ${wordHook.wordFilters.interestWords.map(word => `
-                                    <span class="word-tag interest">
-                                        ${word}
-                                        <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="interest">×</button>
-                                    </span>
-                                `).join('')}
-                                ${wordHook.wordFilters.interestWords.length === 0 ? '<p class="text-muted">気になるワードが登録されていません</p>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>🚫 NGワード</h3>
-                                <button class="action-btn danger" data-action="word-add" data-type="ng">➕ 追加</button>
-                            </div>
-                            <div class="word-list">
-                                ${wordHook.wordFilters.ngWords.map(word => `
-                                    <span class="word-tag ng">
-                                        ${word}
-                                        <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="ng">×</button>
-                                    </span>
-                                `).join('')}
-                                ${wordHook.wordFilters.ngWords.length === 0 ? '<p class="text-muted">NGワードが登録されていません</p>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="word-help">
-                            <h4>ワード管理について</h4>
-                            <p><strong>気になるワード:</strong> 含まれる記事のスコアが+20されます</p>
-                            <p><strong>NGワード:</strong> 含まれる記事は表示されなくなります</p>
-                            <p>両方とも記事のタイトルと内容を対象に判定されます</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
-
-    const renderFoldersModal = () => {
-        if (state.showModal !== 'folders') return '';
-
-        const foldersHook = DataHooks.useFolders();
-        const rssHook = DataHooks.useRSSManager();
-
-        return `
-            <div class="modal-overlay" data-action="close-modal">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>📁 フォルダ管理</h2>
-                        <button class="modal-close" data-action="close-modal">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="modal-actions">
-                            <button class="action-btn success" data-action="folder-add">➕ フォルダ追加</button>
-                        </div>
-                        
-                        <div class="rss-list">
-                            ${foldersHook.folders.map(folder => {
-                                const feedCount = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id).length;
-                                return `
-                                    <div class="rss-item" style="border-left-color: ${folder.color};">
-                                        <div class="rss-info">
-                                            <strong style="color: ${folder.color};">${folder.name}</strong>
-                                            <span class="rss-url">カラー: ${FolderManager.getColorName(folder.color)}</span>
-                                            <span class="rss-updated">作成日: ${formatDate(folder.createdAt)}</span>
-                                            <span class="rss-status active">${feedCount}個のフィード</span>
-                                        </div>
-                                        <div class="rss-actions">
-                                            <button class="action-btn danger" data-action="folder-remove" data-folder-id="${folder.id}">削除</button>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                        
-                        <div class="rss-help">
-                            <h4>フォルダ管理について</h4>
-                            <ul>
-                                <li>フォルダにはRSSフィードを分類して整理できます</li>
-                                <li>削除するフォルダにフィードがある場合、「未分類」に移動されます</li>
-                                <li>カラーはフォルダの識別に使用されます</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
-
-    // メインレンダリング関数（イベント委譲対応）
+    // メインレンダリング関数（統合設定モーダル対応）
     const render = () => {
         const filteredArticles = getFilteredArticles();
         
@@ -1644,9 +1665,7 @@
                         : '<div class="empty-message">📰 記事がありません</div>'
                     }
                 </main>
-                ${renderRSSModal()}
-                ${renderWordsModal()}
-                ${renderFoldersModal()}
+                ${renderSettingsModal()}
             </div>
         `;
     };
@@ -1670,8 +1689,5 @@
         initializeEventListeners(); // 統一イベントリスナー初期化
         render();
     }
-
-    // 注意：グローバル関数公開は完全に削除しました
-    // 全てのイベントは統一イベントリスナーで安全に管理されます
 
 })();
