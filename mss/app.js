@@ -1125,81 +1125,74 @@
     };
 
     // RSSデータインポート（OPML形式）
-    const handleImportRSSData = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
-                
-                const parseError = xmlDoc.querySelector('parsererror');
-                if (parseError) {
-                    throw new Error('無効なOPMLファイルです');
-                }
-                
-                const rssHook = DataHooks.useRSSManager();
-                const foldersHook = DataHooks.useFolders();
-                
-                let importedFeeds = 0;
-                let importedFolders = 0;
-                
-                // フォルダとフィードの処理
-                const outlines = xmlDoc.querySelectorAll('outline');
-                
-                outlines.forEach(outline => {
-                    const text = outline.getAttribute('text') || outline.getAttribute('title');
-                    const xmlUrl = outline.getAttribute('xmlUrl');
-                    const type = outline.getAttribute('type');
-                    
-                    if (xmlUrl && type === 'rss') {
-                        // RSS フィード
-                        const existingFeed = rssHook.rssFeeds.find(feed => feed.url === xmlUrl);
-                        if (!existingFeed) {
-                            rssHook.addRSSFeed(xmlUrl, text || 'インポートされたフィード', 'uncategorized');
-                            importedFeeds++;
-                        }
-                    } else if (text && !xmlUrl) {
-                        // フォルダ
-                        const existingFolder = foldersHook.folders.find(folder => folder.name === text);
-                        if (!existingFolder && text !== '未分類') {
-                            const newFolder = foldersHook.addFolder(text, '#4A90A4');
-                            if (newFolder) {
-                                importedFolders++;
-                                
-                                // フォルダ内のフィードを処理
-                                const childOutlines = outline.querySelectorAll('outline[xmlUrl]');
-                                childOutlines.forEach(childOutline => {
-                                    const childText = childOutline.getAttribute('text') || childOutline.getAttribute('title');
-                                    const childXmlUrl = childOutline.getAttribute('xmlUrl');
-                                    const childType = childOutline.getAttribute('type');
-                                    
-                                    if (childXmlUrl && childType === 'rss') {
-                                        const existingChildFeed = rssHook.rssFeeds.find(feed => feed.url === childXmlUrl);
-                                        if (!existingChildFeed) {
-                                            rssHook.addRSSFeed(childXmlUrl, childText || 'インポートされたフィード', newFolder.id);
-                                            importedFeeds++;
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                    }
-                });
-                
-                alert(`RSSデータをインポートしました\nフォルダ: ${importedFolders}件\nフィード: ${importedFeeds}件`);
-                render();
-            } catch (error) {
-                alert('インポートに失敗しました: ' + error.message);
+const handleImportRSSData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const xmlContent = e.target.result;
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+            
+            const parseError = xmlDoc.querySelector('parsererror');
+            if (parseError) {
+                throw new Error('OPML parse error: ' + parseError.textContent);
             }
-        };
-        reader.readAsText(file);
-        
-        // ファイル選択をリセット
-        event.target.value = '';
+            
+            const rssHook = DataHooks.useRSSManager();
+            const foldersHook = DataHooks.useFolders();
+            let importedCount = 0;
+            let skippedCount = 0;
+            
+            // OPML outlineの処理
+            const outlines = xmlDoc.querySelectorAll('outline[xmlUrl]');
+            outlines.forEach(outline => {
+                const url = outline.getAttribute('xmlUrl');
+                const title = outline.getAttribute('title') || outline.getAttribute('text') || 'Unknown Feed';
+                const category = outline.getAttribute('category') || outline.parentElement.getAttribute('title') || 'General';
+                
+                if (url) {
+                    // 既存フィードの重複チェック
+                    const existingFeed = rssHook.rssFeeds.find(feed => 
+                        feed.url === url || 
+                        feed.url === url.trim() ||
+                        feed.title === title
+                    );
+                    
+                    if (existingFeed) {
+                        skippedCount++;
+                        return; // 重複の場合はスキップ
+                    }
+                    
+                    // フォルダが存在しない場合は作成
+                    let targetFolder = foldersHook.folders.find(f => f.name === category);
+                    if (!targetFolder) {
+                        targetFolder = foldersHook.addFolder(category);
+                    }
+                    
+                    // RSSフィードを追加
+                    rssHook.addRSSFeed(url.trim(), title, targetFolder.id);
+                    importedCount++;
+                }
+            });
+            
+            let message = `${importedCount}個のRSSフィードをインポートしました`;
+            if (skippedCount > 0) {
+                message += `（${skippedCount}個は既存のため重複スキップ）`;
+            }
+            alert(message);
+            render();
+        } catch (error) {
+            alert('OPMLインポートに失敗しました: ' + error.message);
+        }
     };
+    reader.readAsText(file);
+    
+    // ファイル選択をリセット
+    event.target.value = '';
+};
 
     // ===========================================
     // イベントハンドラー
