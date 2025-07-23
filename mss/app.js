@@ -1,4 +1,4 @@
-// Minews PWA - RSS管理・フォルダ管理統合・完全版
+// Minews PWA - RSS管理・フォルダ管理完全統合版
 (function() {
     'use strict';
 
@@ -852,29 +852,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Minews PWA：フォルダ機能追加完了',
+                    title: 'Minews PWA：フォルダ完全統合機能完了',
                     url: '#',
-                    content: 'RSSフィードをフォルダで分類管理し、記事表示もフォルダでフィルタリングできる機能を追加しました。リスト選択モーダルによりユーザビリティも向上。',
+                    content: 'RSS管理画面内でフォルダの作成・編集・削除・RSS管理を一元化。独立したフォルダ管理画面を廃止し、ユーザビリティを大幅向上。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'NHKニュース',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['フォルダ', 'RSS', 'リスト選択', '機能追加']
+                    keywords: ['完全統合', 'RSS管理', 'フォルダ', '一元化']
                 },
                 {
                     id: 'sample_2',
-                    title: 'フォルダ管理で記事整理が便利に',
+                    title: '統合UI設計でワークフロー効率化',
                     url: '#',
-                    content: 'ニュース、テック、ブログなど用途別にRSSフィードを分類。記事表示もフォルダ単位でフィルタリングでき、情報収集効率が大幅向上。',
+                    content: 'RSS管理とフォルダ管理を統合することで、フィード追加からフォルダ分類まで一つの画面で完結。作業効率が格段に向上。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
                     rssSource: 'ITmedia',
                     category: 'UX',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['フォルダ管理', '記事整理', '分類', 'フィルタリング', '効率化']
+                    keywords: ['統合UI', 'ワークフロー', '効率化', '作業効率']
                 }
             ];
             const articlesHook = DataHooks.useArticles();
@@ -1045,8 +1045,7 @@
                     <button class="${refreshButtonClass}" onclick="handleRefresh()" ${state.isLoading ? 'disabled' : ''}>
                         ${refreshButtonText}
                     </button>
-                    <button class="action-btn" onclick="handleModalOpen('rss')">RSS管理</button>
-                    <button class="action-btn" onclick="handleModalOpen('folders')">フォルダ管理</button>
+                    <button class="action-btn" onclick="handleModalOpen('rss')">RSS・フォルダ管理</button>
                     <button class="action-btn" onclick="handleModalOpen('words')">ワード管理</button>
                 </div>
             </nav>
@@ -1127,7 +1126,7 @@
     };
 
     // ===========================================
-    // RSS管理モーダル（フォルダ統合版）
+    // RSS・フォルダ完全統合管理モーダル
     // ===========================================
     const renderRSSModal = () => {
         const rssHook = DataHooks.useRSSManager();
@@ -1146,12 +1145,13 @@
             <div class="modal-overlay">
                 <div class="modal">
                     <div class="modal-header">
-                        <h2>RSS管理（フォルダ別）</h2>
+                        <h2>RSS・フォルダ管理</h2>
                         <button class="modal-close" onclick="handleModalClose()">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="modal-actions">
-                            <button class="action-btn success" onclick="handleRSSAdd()">新しいRSSフィードを追加</button>
+                            <button class="action-btn success" onclick="handleRSSAdd()">RSSフィードを追加</button>
+                            <button class="action-btn" onclick="handleFolderAdd()">📁 新しいフォルダを作成</button>
                         </div>
                         
                         ${renderFolderGroups(groupedFeeds, foldersHook.folders)}
@@ -1180,7 +1180,6 @@
 
     const renderFolderGroup = (folderId, folderName, folderColor, feeds) => {
         const feedCount = feeds.length;
-        const folderColorName = FolderManager.getColorName(folderColor);
         
         return `
             <div class="folder-group" data-folder-id="${folderId}">
@@ -1193,6 +1192,7 @@
                         <div class="folder-actions">
                             ${folderId !== 'uncategorized' ? `
                                 <button class="action-btn" onclick="handleFolderEdit('${folderId}')">フォルダ編集</button>
+                                <button class="action-btn danger" onclick="handleFolderRemove('${folderId}')">フォルダ削除</button>
                             ` : ''}
                             <button class="action-btn" onclick="handleFolderRSSBulkActions('${folderId}')">一括操作</button>
                         </div>
@@ -1237,50 +1237,6 @@
                     <button class="action-btn" onclick="handleRSSMoveToFolder('${feed.id}')">📁 移動</button>
                     <button class="action-btn" onclick="handleRSSToggleStatus('${feed.id}')">${status === 'active' ? '無効化' : '有効化'}</button>
                     <button class="action-btn danger" onclick="handleRSSRemove('${feed.id}')">削除</button>
-                </div>
-            </div>
-        `;
-    };
-
-    const renderFoldersModal = () => {
-        const foldersHook = DataHooks.useFolders();
-        const rssHook = DataHooks.useRSSManager();
-        
-        return `
-            <div class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h2>フォルダ管理</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="modal-actions">
-                            <button class="action-btn success" onclick="handleFolderAdd()">新しいフォルダを追加</button>
-                        </div>
-                        <div class="folder-list">
-                            ${foldersHook.folders.map(folder => {
-                                const feedsInFolder = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id);
-                                const colorName = FolderManager.getColorName(folder.color);
-                                return `
-                                    <div class="folder-item">
-                                        <div class="folder-info">
-                                            <div class="folder-name" style="color: ${folder.color};">
-                                                📁 ${folder.name}
-                                            </div>
-                                            <div class="folder-meta">
-                                                <span class="folder-color">${colorName}</span>
-                                                <span class="folder-feeds-count">${feedsInFolder.length}件のRSSフィード</span>
-                                                <span class="folder-created">作成: ${formatDate(folder.createdAt)}</span>
-                                            </div>
-                                        </div>
-                                        <div class="folder-actions">
-                                            <button class="action-btn danger" onclick="handleFolderRemove('${folder.id}')">削除</button>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
                 </div>
             </div>
         `;
@@ -1509,7 +1465,7 @@
             const foldersHook = DataHooks.useFolders();
             const newFolder = foldersHook.addFolder(name.trim(), selectedColor);
             if (newFolder) {
-                if (state.showModal === 'folders') render();
+                if (state.showModal === 'rss') render();
             } else {
                 alert('フォルダの作成に失敗しました');
             }
@@ -1521,7 +1477,7 @@
         const result = foldersHook.removeFolder(folderId);
         
         if (result.success) {
-            if (state.showModal === 'folders') render();
+            if (state.showModal === 'rss') render();
         } else if (result.reason === 'FEEDS_EXIST') {
             alert(`このフォルダには${result.feedCount}件のRSSフィードが含まれています。先にRSSフィードを移動または削除してください。`);
         }
@@ -1620,7 +1576,6 @@
                     }
                 </main>
                 ${state.showModal === 'rss' ? renderRSSModal() : ''}
-                ${state.showModal === 'folders' ? renderFoldersModal() : ''}
                 ${state.showModal === 'words' ? renderWordsModal() : ''}
             </div>
         `;
