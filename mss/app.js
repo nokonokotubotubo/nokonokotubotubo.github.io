@@ -1,4 +1,4 @@
-// Minews PWA - 統合設定モーダル対応版
+// Minews PWA - 統合設定モーダル対応完全版
 (function() {
     'use strict';
 
@@ -120,10 +120,7 @@
                 
                 const response = await fetch(fullUrl, {
                     signal: controller.signal,
-                    headers: {
-                        'Accept': '*/*',
-                        'User-Agent': 'Mozilla/5.0 (compatible; Minews/1.0)'
-                    },
+                    headers: { 'Accept': '*/*', 'User-Agent': 'Mozilla/5.0 (compatible; Minews/1.0)' },
                     mode: 'cors'
                 });
 
@@ -190,18 +187,6 @@
                     atomEntries.forEach((entry, index) => {
                         if (index < 20) {
                             const article = this.parseAtomEntry(entry, sourceUrl);
-                            if (article) articles.push(article);
-                        }
-                    });
-                }
-
-                // RDF
-                const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
-                if (rdfItems.length > 0 && articles.length === 0) {
-                    feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
-                    rdfItems.forEach((item, index) => {
-                        if (index < 20) {
-                            const article = this.parseRSSItem(item, sourceUrl);
                             if (article) articles.push(article);
                         }
                     });
@@ -479,18 +464,6 @@
                 return oldData.data;
             }
             return defaultValue;
-        },
-
-        getStorageInfo() {
-            let totalSize = 0;
-            let itemCount = 0;
-            for (let key in localStorage) {
-                if (localStorage.hasOwnProperty(key) && key.startsWith('minews_')) {
-                    totalSize += localStorage[key].length;
-                    itemCount++;
-                }
-            }
-            return { totalSize, itemCount, available: 5000000 - totalSize };
         }
     };
 
@@ -547,17 +520,6 @@
 
                 removeArticle(articleId) {
                     const updatedArticles = DataHooksCache.articles.filter(article => article.id !== articleId);
-                    LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-                    DataHooksCache.articles = updatedArticles;
-                    DataHooksCache.lastUpdate.articles = new Date().toISOString();
-                    state.articles = updatedArticles;
-                    render();
-                },
-
-                bulkUpdateArticles(articleIds, updates) {
-                    const updatedArticles = DataHooksCache.articles.map(article => 
-                        articleIds.includes(article.id) ? { ...article, ...updates } : article
-                    );
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                     DataHooksCache.articles = updatedArticles;
                     DataHooksCache.lastUpdate.articles = new Date().toISOString();
@@ -716,34 +678,6 @@
 
             return {
                 aiLearning: DataHooksCache.aiLearning,
-                updateWordWeight(word, weight) {
-                    const updatedLearning = {
-                        ...DataHooksCache.aiLearning,
-                        wordWeights: {
-                            ...DataHooksCache.aiLearning.wordWeights,
-                            [word]: (DataHooksCache.aiLearning.wordWeights[word] || 0) + weight
-                        },
-                        lastUpdated: new Date().toISOString()
-                    };
-                    LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                    DataHooksCache.aiLearning = updatedLearning;
-                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-                },
-
-                updateCategoryWeight(category, weight) {
-                    const updatedLearning = {
-                        ...DataHooksCache.aiLearning,
-                        categoryWeights: {
-                            ...DataHooksCache.aiLearning.categoryWeights,
-                            [category]: (DataHooksCache.aiLearning.categoryWeights[category] || 0) + weight
-                        },
-                        lastUpdated: new Date().toISOString()
-                    };
-                    LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                    DataHooksCache.aiLearning = updatedLearning;
-                    DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-                },
-
                 updateLearningData(article, rating, isRevert = false) {
                     const updatedLearning = AIScoring.updateLearning(article, rating, DataHooksCache.aiLearning, isRevert);
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
@@ -1357,12 +1291,6 @@
                 }
             }
         }
-    };
-
-    const handleRSSMoveFolderChange = (feedId, newFolderId) => {
-        const rssHook = DataHooks.useRSSManager();
-        rssHook.updateRSSFeed(feedId, { folderId: newFolderId });
-        if (state.showModal === 'rss') render();
     };
 
     // フィルタリング・レンダリング
