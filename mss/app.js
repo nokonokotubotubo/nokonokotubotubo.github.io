@@ -1,4 +1,4 @@
-// Minews PWA - 統合設定モーダル対応完全版
+// Minews PWA - イベント委譲パターン対応完全版
 (function() {
     'use strict';
 
@@ -746,13 +746,11 @@
         }
     };
 
-    // アプリケーション状態管理（統合設定モーダル対応）
+    // アプリケーション状態管理
     let state = {
         viewMode: 'all',
         selectedFolder: 'all',
-        showModal: null,                    // null | 'settings' | 'rss' | 'words' | 'folders'
-        settingsTab: 'rss',                 // 'rss' | 'words' | 'data'
-        selectedFolderInSettings: 'all',    // RSS管理用フォルダ選択
+        showModal: null,
         articles: [],
         isLoading: false,
         lastUpdate: null
@@ -784,29 +782,29 @@
             const sampleArticles = [
                 {
                     id: 'sample_1',
-                    title: 'Minews PWA：統合設定モーダル実装完了',
+                    title: 'Minews PWA：イベント委譲パターン実装完了',
                     url: '#',
-                    content: 'RSS管理・ワード設定・データ管理を1つのモーダルにまとめ、タブ切り替えで各機能にアクセス可能になりました。',
+                    content: 'グローバル汚染を解消し、統一イベントリスナーによる安全なイベント処理に移行しました。セキュリティと保守性が大幅向上。',
                     publishDate: new Date().toISOString(),
                     rssSource: 'NHKニュース',
                     category: 'Design',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['設定統合', 'タブ', 'UI改善', '機能統合']
+                    keywords: ['イベント委譲', 'セキュリティ', '最適化', '統一管理']
                 },
                 {
                     id: 'sample_2',
-                    title: '設定画面のユーザビリティ向上',
+                    title: 'フロントエンド最適化：data属性でクリーンなHTML',
                     url: '#',
-                    content: '統合設定モーダルにより、全ての管理機能が1画面で操作可能に。RSS・フォルダ・ワード・データ管理が効率化されました。',
+                    content: 'onclick属性を削除し、data属性とイベント委譲による統一管理システムを構築。グローバル関数公開なしで安全な動作を実現。',
                     publishDate: new Date(Date.now() - 3600000).toISOString(),
                     rssSource: 'ITmedia',
                     category: 'UX',
                     readStatus: 'unread',
                     readLater: false,
                     userRating: 0,
-                    keywords: ['統合管理', 'ユーザビリティ', '効率化', 'モーダル設計']
+                    keywords: ['data属性', 'HTML最適化', 'イベント管理', 'クリーンコード']
                 }
             ];
 
@@ -835,127 +833,127 @@
         let stars = '';
         for (let i = 1; i <= 5; i++) {
             const filled = i <= rating ? 'filled' : '';
-            stars += `<span class="star ${filled}" data-rating="${i}" data-article-id="${articleId}">★</span>`;
+            stars += `<span class="star ${filled}" data-action="star-rating" data-rating="${i}" data-article-id="${articleId}">★</span>`;
         }
         return `<div class="star-rating">${stars}</div>`;
     };
 
     const truncateText = (text, maxLength = 200) => text.length <= maxLength ? text : text.substring(0, maxLength).trim() + '...';
 
-    // 統合設定モーダル（新規実装）
-    const renderSettingsModal = () => {
-        if (state.showModal !== 'settings') return '';
+    // =========================================== 
+    // 統一イベント管理システム（イベント委譲パターン）
+    // ===========================================
+    const initializeEventListeners = () => {
+        document.addEventListener('click', handleGlobalClick);
+        document.addEventListener('change', handleGlobalChange);
+    };
+
+    const handleGlobalClick = (event) => {
+        const target = event.target;
+        const action = target.dataset.action;
         
-        return `
-            <div class="modal-overlay" onclick="handleModalClose()">
-                <div class="modal settings-modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>⚙️ 設定</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
-                    </div>
-                    
-                    <!-- タブナビゲーション -->
-                    <div class="settings-tabs">
-                        <button class="tab-btn ${state.settingsTab === 'rss' ? 'active' : ''}" 
-                                onclick="handleSettingsTabChange('rss')">
-                            📁 RSS管理
-                        </button>
-                        <button class="tab-btn ${state.settingsTab === 'words' ? 'active' : ''}" 
-                                onclick="handleSettingsTabChange('words')">
-                            🔤 ワード設定
-                        </button>
-                        <button class="tab-btn ${state.settingsTab === 'data' ? 'active' : ''}" 
-                                onclick="handleSettingsTabChange('data')">
-                            📊 データ管理
-                        </button>
-                    </div>
-                    
-                    <!-- タブコンテンツ -->
-                    <div class="modal-body">
-                        ${renderSettingsTabContent()}
-                    </div>
-                </div>
-            </div>
-        `;
-    };
+        if (!action) return;
+        
+        switch (action) {
+            case 'refresh':
+                if (!target.disabled) handleRefresh();
+                break;
+                
+            case 'open-modal':
+                const modalType = target.dataset.modal;
+                if (modalType) handleModalOpen(modalType);
+                break;
+                
+            case 'close-modal':
+                handleModalClose();
+                break;
+                
+            case 'toggle-read':
+                const readArticleId = target.dataset.articleId;
+                if (readArticleId) handleReadStatusToggle(readArticleId);
+                break;
+                
+            case 'toggle-later':
+                const laterArticleId = target.dataset.articleId;
+                if (laterArticleId) handleReadLaterToggle(laterArticleId);
+                break;
+                
+            case 'star-rating':
+                const rating = parseInt(target.dataset.rating);
+                const starArticleId = target.dataset.articleId;
+                if (rating && starArticleId) {
+                    handleStarRating(starArticleId, rating);
+                }
+                break;
+                
+            case 'mark-read':
+                const markReadId = target.dataset.articleId;
+                if (markReadId) handleReadStatusToggle(markReadId);
+                break;
 
-    const handleSettingsTabChange = (tabId) => {
-        setState({ settingsTab: tabId });
-    };
+            case 'rss-add':
+                handleRSSAdd();
+                break;
 
-    const renderSettingsTabContent = () => {
-        switch (state.settingsTab) {
-            case 'rss':
-                return renderRSSManagementTab();
-            case 'words':
-                return renderWordsManagementTab();
-            case 'data':
-                return renderDataManagementTab();
-            default:
-                return '<p>タブが見つかりません</p>';
+            case 'rss-edit':
+                const feedId = target.dataset.feedId;
+                const field = target.dataset.field;
+                const currentValue = target.dataset.currentValue;
+                if (feedId && field && currentValue) {
+                    handleRSSEdit(feedId, field, currentValue);
+                }
+                break;
+
+            case 'rss-remove':
+                const removeFeedId = target.dataset.feedId;
+                if (removeFeedId) handleRSSRemove(removeFeedId);
+                break;
+
+            case 'word-add':
+                const wordType = target.dataset.type;
+                if (wordType) handleWordAdd(wordType);
+                break;
+
+            case 'word-remove':
+                const removeWord = target.dataset.word;
+                const removeType = target.dataset.type;
+                if (removeWord && removeType) handleWordRemove(removeWord, removeType);
+                break;
+
+            case 'folder-add':
+                handleFolderAdd();
+                break;
+
+            case 'folder-remove':
+                const removeFolderId = target.dataset.folderId;
+                if (removeFolderId) handleFolderRemove(removeFolderId);
+                break;
         }
     };
 
-    // 暫定：既存機能をそのまま表示（Phase 2で統合予定）
-    const renderRSSManagementTab = () => {
-        return `<div class="tab-content-placeholder">
-            <h3>📁 RSS管理機能</h3>
-            <p>Phase 2で統合RSS・フォルダ管理インターフェイスを実装します</p>
-            <p>現在の機能：</p>
-            <ul>
-                <li>RSS追加・削除</li>
-                <li>フォルダ管理</li>
-                <li>フィード更新</li>
-            </ul>
-        </div>`;
-    };
-
-    const renderWordsManagementTab = () => {
-        return `<div class="tab-content-placeholder">
-            <h3>🔤 ワード設定機能</h3>
-            <p>既存のワード管理機能をここに移行します</p>
-            <p>現在の機能：</p>
-            <ul>
-                <li>気になるワード管理</li>
-                <li>NGワード管理</li>
-                <li>フィルタリング設定</li>
-            </ul>
-        </div>`;
-    };
-
-    const renderDataManagementTab = () => {
-        return `<div class="tab-content-placeholder">
-            <h3>📊 データ管理機能</h3>
-            <p>OPML機能とデータ統計をここに実装します</p>
-            <p>予定機能：</p>
-            <ul>
-                <li>OPMLインポート・エクスポート</li>
-                <li>データ統計表示</li>
-                <li>記事アーカイブ管理</li>
-            </ul>
-        </div>`;
-    };
-
-    // イベントハンドラー
-    const handleFilterClick = mode => setState({ viewMode: mode });
-    const handleFolderFilterClick = folderId => setState({ selectedFolder: folderId });
-    
-    // 統合設定モーダル対応（修正版）
-    const handleModalOpen = modalType => {
-        if (modalType === 'settings') {
-            setState({ showModal: 'settings', settingsTab: 'rss' }); // デフォルトはRSSタブ
-        } else {
-            setState({ showModal: modalType });
+    const handleGlobalChange = (event) => {
+        const target = event.target;
+        const action = target.dataset.action;
+        
+        if (!action) return;
+        
+        switch (action) {
+            case 'filter-change':
+                const filterType = target.dataset.type;
+                if (filterType === 'view') {
+                    handleFilterChange(target.value);
+                } else if (filterType === 'folder') {
+                    handleFolderChange(target.value);
+                }
+                break;
         }
     };
 
+    // イベントハンドラー（統一管理）
+    const handleModalOpen = modalType => setState({ showModal: modalType });
     const handleModalClose = () => setState({ showModal: null });
 
-    const handleStarClick = event => {
-        if (!event.target.classList.contains('star')) return;
-
-        const rating = parseInt(event.target.dataset.rating);
-        const articleId = event.target.dataset.articleId;
+    const handleStarRating = (articleId, rating) => {
         const articlesHook = DataHooks.useArticles();
         const aiHook = DataHooks.useAILearning();
         const article = state.articles.find(a => a.id === articleId);
@@ -1116,12 +1114,12 @@
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h2>📁 フォルダを選択</h2>
-                        <button class="modal-close">×</button>
+                        <button class="modal-close" data-action="close-selection-modal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="folder-selection-list">
                             ${folderOptions.map(folder => `
-                                <div class="folder-selection-item" data-folder-id="${folder.id}">
+                                <div class="folder-selection-item" data-action="select-folder" data-folder-id="${folder.id}">
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <div style="width: 20px; height: 20px; background: ${folder.color}; border-radius: 4px;"></div>
                                         <strong>${folder.name}</strong>
@@ -1137,34 +1135,17 @@
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modalElement = document.getElementById(modalId);
 
-        modalElement.querySelector('.modal-close').addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            modalElement.remove();
-        });
-
-        modalElement.querySelectorAll('.folder-selection-item').forEach(item => {
-            item.addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                const folderId = item.dataset.folderId;
+        modalElement.addEventListener('click', (e) => {
+            const action = e.target.dataset.action;
+            if (action === 'close-selection-modal') {
+                modalElement.remove();
+            } else if (action === 'select-folder') {
+                const folderId = e.target.closest('[data-folder-id]').dataset.folderId;
                 modalElement.remove();
                 callback(folderId);
-            });
-
-            item.addEventListener('mouseenter', () => {
-                item.style.borderColor = '#4A90A4';
-                item.style.background = '#E3F4F7';
-            });
-
-            item.addEventListener('mouseleave', () => {
-                item.style.borderColor = '#e9ecef';
-                item.style.background = 'white';
-            });
-        });
-
-        modalElement.addEventListener('click', e => {
-            if (e.target === modalElement) modalElement.remove();
+            } else if (e.target === modalElement) {
+                modalElement.remove();
+            }
         });
     };
 
@@ -1177,12 +1158,12 @@
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h2>🎨 カラーを選択</h2>
-                        <button class="modal-close">×</button>
+                        <button class="modal-close" data-action="close-color-modal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="color-selection-list">
                             ${CONFIG.FOLDER_COLORS.map(color => `
-                                <div class="color-selection-item" data-color-value="${color.value}">
+                                <div class="color-selection-item" data-action="select-color" data-color-value="${color.value}">
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <div style="width: 30px; height: 30px; background: ${color.value}; border-radius: 6px;"></div>
                                         <strong>${color.name}</strong>
@@ -1198,34 +1179,17 @@
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modalElement = document.getElementById(modalId);
 
-        modalElement.querySelector('.modal-close').addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            modalElement.remove();
-        });
-
-        modalElement.querySelectorAll('.color-selection-item').forEach(item => {
-            item.addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                const colorValue = item.dataset.colorValue;
+        modalElement.addEventListener('click', (e) => {
+            const action = e.target.dataset.action;
+            if (action === 'close-color-modal') {
+                modalElement.remove();
+            } else if (action === 'select-color') {
+                const colorValue = e.target.closest('[data-color-value]').dataset.colorValue;
                 modalElement.remove();
                 callback(colorValue);
-            });
-
-            item.addEventListener('mouseenter', () => {
-                item.style.borderColor = '#4A90A4';
-                item.style.background = '#E3F4F7';
-            });
-
-            item.addEventListener('mouseleave', () => {
-                item.style.borderColor = '#e9ecef';
-                item.style.background = 'white';
-            });
-        });
-
-        modalElement.addEventListener('click', e => {
-            if (e.target === modalElement) modalElement.remove();
+            } else if (e.target === modalElement) {
+                modalElement.remove();
+            }
         });
     };
 
@@ -1368,7 +1332,7 @@
                 <div class="nav-filters">
                     <div class="filter-group">
                         <label>表示:</label>
-                        <select class="filter-select" value="${state.viewMode}" onchange="handleFilterChange(this.value)">
+                        <select class="filter-select" value="${state.viewMode}" data-action="filter-change" data-type="view">
                             ${modes.map(mode => 
                                 `<option value="${mode.key}" ${state.viewMode === mode.key ? 'selected' : ''}>
                                     ${mode.label} (${getFilteredArticleCount(mode.key, state.selectedFolder)})
@@ -1379,7 +1343,7 @@
                     
                     <div class="filter-group">
                         <label>フォルダ:</label>
-                        <select class="filter-select" value="${state.selectedFolder}" onchange="handleFolderChange(this.value)">
+                        <select class="filter-select" value="${state.selectedFolder}" data-action="filter-change" data-type="folder">
                             ${folderOptions.map(folder => 
                                 `<option value="${folder.id}" ${state.selectedFolder === folder.id ? 'selected' : ''}>
                                     ${folder.name} (${getFilteredArticleCount(state.viewMode, folder.id)})
@@ -1389,13 +1353,18 @@
                     </div>
                 </div>
                 
-                <!-- 統合設定ボタン（既存デザイン踏襲） -->
                 <div class="nav-actions">
-                    <button class="${refreshButtonClass}" onclick="handleRefresh()" ${state.isLoading ? 'disabled' : ''}>
+                    <button class="${refreshButtonClass}" data-action="refresh" ${state.isLoading ? 'disabled' : ''}>
                         ${refreshButtonText}
                     </button>
-                    <button class="action-btn" onclick="handleModalOpen('settings')">
-                        ⚙️ 設定
+                    <button class="action-btn" data-action="open-modal" data-modal="rss">
+                        📡 RSS
+                    </button>
+                    <button class="action-btn" data-action="open-modal" data-modal="words">
+                        🔤 ワード
+                    </button>
+                    <button class="action-btn" data-action="open-modal" data-modal="folders">
+                        📁 フォルダ
                     </button>
                 </div>
             </nav>
@@ -1453,7 +1422,7 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-                        <a href="${article.url}" target="_blank" onclick="handleReadStatusToggle('${article.id}')">${article.title}</a>
+                        <a href="${article.url}" target="_blank" data-action="mark-read" data-article-id="${article.id}">${article.title}</a>
                     </h3>
                     
                     <div class="article-meta">
@@ -1476,10 +1445,10 @@
                 ` : ''}
                 
                 <div class="article-actions">
-                    <button class="simple-btn read-status" onclick="handleReadStatusToggle('${article.id}')">
+                    <button class="simple-btn read-status" data-action="toggle-read" data-article-id="${article.id}">
                         ${readStatusLabel}
                     </button>
-                    <button class="simple-btn read-later" data-active="${article.readLater}" onclick="handleReadLaterToggle('${article.id}')">
+                    <button class="simple-btn read-later" data-active="${article.readLater}" data-action="toggle-later" data-article-id="${article.id}">
                         ${readLaterLabel}
                     </button>
                 </div>
@@ -1489,7 +1458,7 @@
         `;
     };
 
-    // 既存モーダル関数（Phase 2まで保持）
+    // モーダル関数（data属性対応）
     const renderRSSModal = () => {
         if (state.showModal !== 'rss') return '';
 
@@ -1497,15 +1466,15 @@
         const foldersHook = DataHooks.useFolders();
 
         return `
-            <div class="modal-overlay" onclick="handleModalClose()">
+            <div class="modal-overlay" data-action="close-modal">
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h2>📡 RSS管理</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
+                        <button class="modal-close" data-action="close-modal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="modal-actions">
-                            <button class="action-btn success" onclick="handleRSSAdd()">➕ RSS追加</button>
+                            <button class="action-btn success" data-action="rss-add">➕ RSS追加</button>
                         </div>
                         
                         <div class="rss-list">
@@ -1516,13 +1485,13 @@
                                     <div class="rss-item">
                                         <div class="rss-info">
                                             <div class="rss-editable-row">
-                                                <strong onclick="handleRSSEdit('${feed.id}', 'title', '${feed.title}')">${feed.title}</strong>
+                                                <strong data-action="rss-edit" data-feed-id="${feed.id}" data-field="title" data-current-value="${feed.title}">${feed.title}</strong>
                                             </div>
                                             <div class="rss-editable-row">
-                                                <span class="rss-url" onclick="handleRSSEdit('${feed.id}', 'url', '${feed.url}')">${feed.url}</span>
+                                                <span class="rss-url" data-action="rss-edit" data-feed-id="${feed.id}" data-field="url" data-current-value="${feed.url}">${feed.url}</span>
                                             </div>
                                             <div class="rss-editable-row">
-                                                <div onclick="handleRSSEdit('${feed.id}', 'folder', '${feed.folderId}')" style="cursor: pointer;">
+                                                <div data-action="rss-edit" data-feed-id="${feed.id}" data-field="folder" data-current-value="${feed.folderId}" style="cursor: pointer;">
                                                     📁 フォルダ: 
                                                     <span style="color: ${folder.color}; font-weight: 600;">${folder.name}</span>
                                                 </div>
@@ -1533,7 +1502,7 @@
                                             </span>
                                         </div>
                                         <div class="rss-actions">
-                                            <button class="action-btn danger" onclick="handleRSSRemove('${feed.id}')">削除</button>
+                                            <button class="action-btn danger" data-action="rss-remove" data-feed-id="${feed.id}">削除</button>
                                         </div>
                                     </div>
                                 `;
@@ -1560,23 +1529,23 @@
         const wordHook = DataHooks.useWordFilters();
 
         return `
-            <div class="modal-overlay" onclick="handleModalClose()">
+            <div class="modal-overlay" data-action="close-modal">
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h2>🔤 ワード管理</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
+                        <button class="modal-close" data-action="close-modal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="word-section">
                             <div class="word-section-header">
                                 <h3>💚 気になるワード</h3>
-                                <button class="action-btn success" onclick="handleWordAdd('interest')">➕ 追加</button>
+                                <button class="action-btn success" data-action="word-add" data-type="interest">➕ 追加</button>
                             </div>
                             <div class="word-list">
                                 ${wordHook.wordFilters.interestWords.map(word => `
                                     <span class="word-tag interest">
                                         ${word}
-                                        <button class="word-remove" onclick="handleWordRemove('${word}', 'interest')">×</button>
+                                        <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="interest">×</button>
                                     </span>
                                 `).join('')}
                                 ${wordHook.wordFilters.interestWords.length === 0 ? '<p class="text-muted">気になるワードが登録されていません</p>' : ''}
@@ -1586,13 +1555,13 @@
                         <div class="word-section">
                             <div class="word-section-header">
                                 <h3>🚫 NGワード</h3>
-                                <button class="action-btn danger" onclick="handleWordAdd('ng')">➕ 追加</button>
+                                <button class="action-btn danger" data-action="word-add" data-type="ng">➕ 追加</button>
                             </div>
                             <div class="word-list">
                                 ${wordHook.wordFilters.ngWords.map(word => `
                                     <span class="word-tag ng">
                                         ${word}
-                                        <button class="word-remove" onclick="handleWordRemove('${word}', 'ng')">×</button>
+                                        <button class="word-remove" data-action="word-remove" data-word="${word}" data-type="ng">×</button>
                                     </span>
                                 `).join('')}
                                 ${wordHook.wordFilters.ngWords.length === 0 ? '<p class="text-muted">NGワードが登録されていません</p>' : ''}
@@ -1618,15 +1587,15 @@
         const rssHook = DataHooks.useRSSManager();
 
         return `
-            <div class="modal-overlay" onclick="handleModalClose()">
+            <div class="modal-overlay" data-action="close-modal">
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h2>📁 フォルダ管理</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
+                        <button class="modal-close" data-action="close-modal">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="modal-actions">
-                            <button class="action-btn success" onclick="handleFolderAdd()">➕ フォルダ追加</button>
+                            <button class="action-btn success" data-action="folder-add">➕ フォルダ追加</button>
                         </div>
                         
                         <div class="rss-list">
@@ -1641,7 +1610,7 @@
                                             <span class="rss-status active">${feedCount}個のフィード</span>
                                         </div>
                                         <div class="rss-actions">
-                                            <button class="action-btn danger" onclick="handleFolderRemove('${folder.id}')">削除</button>
+                                            <button class="action-btn danger" data-action="folder-remove" data-folder-id="${folder.id}">削除</button>
                                         </div>
                                     </div>
                                 `;
@@ -1662,7 +1631,7 @@
         `;
     };
 
-    // メインレンダリング関数（統合設定モーダル対応）
+    // メインレンダリング関数（イベント委譲対応）
     const render = () => {
         const filteredArticles = getFilteredArticles();
         
@@ -1675,7 +1644,6 @@
                         : '<div class="empty-message">📰 記事がありません</div>'
                     }
                 </main>
-                ${renderSettingsModal()}
                 ${renderRSSModal()}
                 ${renderWordsModal()}
                 ${renderFoldersModal()}
@@ -1683,12 +1651,10 @@
         `;
     };
 
-    // イベントリスナー設定
-    document.addEventListener('click', handleStarClick);
-
-    // アプリケーション初期化
+    // アプリケーション初期化（イベント委譲対応）
     document.addEventListener('DOMContentLoaded', () => {
         initializeData();
+        initializeEventListeners(); // 統一イベントリスナー初期化
         render();
     });
 
@@ -1696,31 +1662,16 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
+            initializeEventListeners(); // 統一イベントリスナー初期化
             render();
         });
     } else {
         initializeData();
+        initializeEventListeners(); // 統一イベントリスナー初期化
         render();
     }
 
-    // =========================================== 
-    // グローバル関数公開（HTML onclick用）
-    // ===========================================
-    window.handleModalOpen = handleModalOpen;
-    window.handleModalClose = handleModalClose;
-    window.handleSettingsTabChange = handleSettingsTabChange;
-    window.handleFilterChange = handleFilterChange;
-    window.handleFolderChange = handleFolderChange;
-    window.handleRefresh = handleRefresh;
-    window.handleStarClick = handleStarClick;
-    window.handleReadStatusToggle = handleReadStatusToggle;
-    window.handleReadLaterToggle = handleReadLaterToggle;
-    window.handleRSSAdd = handleRSSAdd;
-    window.handleRSSEdit = handleRSSEdit;
-    window.handleRSSRemove = handleRSSRemove;
-    window.handleWordAdd = handleWordAdd;
-    window.handleWordRemove = handleWordRemove;
-    window.handleFolderAdd = handleFolderAdd;
-    window.handleFolderRemove = handleFolderRemove;
+    // 注意：グローバル関数公開は完全に削除しました
+    // 全てのイベントは統一イベントリスナーで安全に管理されます
 
-})(); // ← IIFE終了
+})();
