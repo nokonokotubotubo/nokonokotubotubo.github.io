@@ -1477,7 +1477,7 @@ const getFilteredArticleCount = (viewMode, folderId) => {
 };
 
 const renderArticleCard = article => {
-    const readStatusLabel = article.readStatus === 'read' ? '未読' : '既読';
+    const readStatusLabel = article.readStatus === 'read' ? '既読' : '未読';
     const readLaterLabel = article.readLater ? '解除' : '後で読む';
     const scoreDisplay = article.aiScore !== undefined ? `🤖 ${article.aiScore}` : '';
 
