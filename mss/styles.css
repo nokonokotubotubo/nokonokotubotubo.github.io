@@ -1042,3 +1042,102 @@ color: var(--accent-blue);
 background: var(--primary-blue);
 color: var(--text-color);
 }
+
+/* ========================================
+   設定モーダル専用スタイル（既存デザイン踏襲）
+   ======================================== */
+
+/* 設定モーダルサイズ調整 */
+.settings-modal {
+    min-width: 800px;
+    max-width: 95vw;
+    min-height: 600px;
+    max-height: 90vh;
+}
+
+/* タブナビゲーション（既存カラーテーマ踏襲） */
+.settings-tabs {
+    display: flex;
+    border-bottom: 2px solid #eee;
+    background: #f9f9f9;
+    padding: 0 1.5rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: var(--transition);
+    font-size: 0.95rem;
+}
+
+.tab-btn.active {
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
+    background: rgba(74, 144, 164, 0.05);
+}
+
+.tab-btn:hover {
+    background: rgba(74, 144, 164, 0.1);
+    color: var(--accent-blue);
+}
+
+/* タブコンテンツエリア */
+.tab-content-placeholder {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #666;
+}
+
+.tab-content-placeholder p {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.tab-content-placeholder p:first-child {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent-blue);
+    margin-bottom: 1rem;
+}
+
+/* レスポンシブ対応（既存パターン踏襲） */
+@media (max-width: 768px) {
+    .settings-modal {
+        min-width: 95vw;
+        margin: 0.5rem;
+        min-height: 70vh;
+    }
+    
+    .settings-tabs {
+        flex-wrap: wrap;
+        padding: 0 0.5rem;
+    }
+    
+    .tab-btn {
+        flex: 1;
+        min-width: 100px;
+        padding: 0.8rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .tab-content-placeholder {
+        padding: 2rem 1rem;
+    }
+    
+    .tab-content-placeholder p:first-child {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tab-btn {
+        font-size: 0.8rem;
+        padding: 0.7rem 0.4rem;
+    }
+}
+
