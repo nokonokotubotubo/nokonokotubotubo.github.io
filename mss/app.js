@@ -1759,54 +1759,61 @@
     };
 
        // データ管理モーダルのレンダリング
-    const renderDataManagementModal = () => {
-        return `
-            <div class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h2>💾 データ管理</h2>
-                        <button class="modal-close" onclick="handleModalClose()">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="data-section">
-                            <h3>📊 学習データ（JSON）</h3>
-                            <div class="data-actions">
+const renderDataManagementModal = () => {
+    return `
+        <div class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>💾 データ管理</h2>
+                    <button class="modal-close" onclick="handleModalClose()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="rss-list">
+                        <div class="rss-item">
+                            <div class="rss-info">
+                                <strong>📊 学習データ（JSON）</strong>
+                                <div class="rss-updated">AI学習データとワードフィルターをJSON形式でエクスポート・インポートできます。</div>
+                            </div>
+                            <div class="rss-actions">
                                 <button class="action-btn success" onclick="handleExportLearningData()">📤 エクスポート</button>
                                 <label class="action-btn" style="cursor: pointer; background: var(--accent-blue); color: white;">
                                     📥 インポート
                                     <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
                                 </label>
                             </div>
-                            <p class="text-muted">AI学習データとワードフィルターをJSON形式でエクスポート・インポートできます。</p>
                         </div>
                         
-                        <div class="data-section">
-                            <h3>📡 RSSデータ（OPML）</h3>
-                            <div class="data-actions">
+                        <div class="rss-item">
+                            <div class="rss-info">
+                                <strong>📡 RSSデータ（OPML）</strong>
+                                <div class="rss-updated">RSSフィードとフォルダをOPML形式でエクスポート・インポートできます。</div>
+                            </div>
+                            <div class="rss-actions">
                                 <button class="action-btn success" onclick="handleExportRSSData()">📤 エクスポート</button>
                                 <label class="action-btn" style="cursor: pointer; background: var(--accent-blue); color: white;">
                                     📥 インポート
                                     <input type="file" accept=".opml,.xml" onchange="handleImportRSSData(event)" style="display: none;">
                                 </label>
                             </div>
-                            <p class="text-muted">RSSフィードとフォルダをOPML形式でエクスポート・インポートできます。</p>
                         </div>
-                        
-                        <div class="data-help">
-                            <h4>💡 使用方法</h4>
-                            <ul>
-                                <li><strong>エクスポート</strong>: 現在のデータをファイルとしてダウンロードします</li>
-                                <li><strong>インポート</strong>: ファイルからデータを読み込み、既存データに追加します</li>
-                                <li><strong>学習データ</strong>: AI学習重みとワードフィルターが含まれます</li>
-                                <li><strong>RSSデータ</strong>: フォルダとRSSフィードの設定が含まれます</li>
-                            </ul>
-                            <p><strong>注意</strong>: インポート時は既存データとマージされます。重複するデータは更新されます。</p>
-                        </div>
+                    </div>
+                    
+                    <div class="rss-help">
+                        <h4>💡 使用方法</h4>
+                        <ul>
+                            <li><strong>エクスポート</strong>: 現在のデータをファイルとしてダウンロードします</li>
+                            <li><strong>インポート</strong>: ファイルからデータを読み込み、既存データに追加します</li>
+                            <li><strong>学習データ</strong>: AI学習重みとワードフィルターが含まれます</li>
+                            <li><strong>RSSデータ</strong>: フォルダとRSSフィードの設定が含まれます</li>
+                        </ul>
+                        <p><strong>注意</strong>: インポート時は既存データとマージされます。重複するデータは更新されます。</p>
                     </div>
                 </div>
             </div>
-        `;
-    };
+        </div>
+    `;
+};
+
 
     const renderRSSModal = () => {
         const rssHook = DataHooks.useRSSManager();
@@ -2006,98 +2013,10 @@
     };
 
     // ===========================================
-    // スタイル挿入とCSSクラス追加
-    // ===========================================
-    const addDataManagementStyles = () => {
-        const style = document.createElement('style');
-        style.textContent = `
-            .data-section {
-                margin-bottom: 2rem;
-                padding: 1.5rem;
-                background: #f8f9fa;
-                border-radius: 8px;
-                border-left: 4px solid var(--accent-blue);
-            }
-            
-            .data-section h3 {
-                margin-bottom: 1rem;
-                color: var(--accent-blue);
-                font-size: 1.1rem;
-                font-weight: 600;
-            }
-            
-            .data-actions {
-                display: flex;
-                gap: 1rem;
-                margin-bottom: 1rem;
-                flex-wrap: wrap;
-            }
-            
-            .data-help {
-                margin-top: 2rem;
-                padding: 1.2rem;
-                background: #e8f4f8;
-                border-radius: 8px;
-                border-left: 4px solid var(--accent-blue);
-                border: 1px solid #d1ecf1;
-            }
-            
-            .data-help h4 {
-                margin-bottom: 0.8rem;
-                color: var(--accent-blue);
-                font-size: 1rem;
-                font-weight: 600;
-            }
-            
-            .data-help ul {
-                margin-left: 1.2rem;
-                margin-bottom: 1rem;
-            }
-            
-            .data-help li {
-                margin-bottom: 0.5rem;
-                font-size: 0.95rem;
-                line-height: 1.5;
-                color: #495057;
-            }
-            
-            .data-help p {
-                margin-bottom: 0.5rem;
-                font-size: 0.95rem;
-                line-height: 1.5;
-                color: #495057;
-                font-weight: 600;
-            }
-            
-            .text-muted {
-                color: #6c757d;
-                font-size: 0.9rem;
-                line-height: 1.4;
-            }
-            
-            @media (max-width: 768px) {
-                .data-actions {
-                    flex-direction: column;
-                }
-                
-                .data-section {
-                    padding: 1rem;
-                }
-                
-                .data-help {
-                    padding: 1rem;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    };
-
-    // ===========================================
     // 初期化処理
     // ===========================================
     const init = () => {
         initializeData();
-        addDataManagementStyles();
         render();
     };
 
