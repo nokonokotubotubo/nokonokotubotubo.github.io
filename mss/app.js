@@ -2035,8 +2035,8 @@ const renderDataManagementModal = () => {
         render();
     };
 
-    // ===========================================
-    // グローバル関数の公開
+     // ===========================================
+    // グローバル関数の公開（修正版）
     // ===========================================
     window.handleRefreshFeeds = handleRefreshFeeds;
     window.handleStarRating = handleStarRating;
@@ -2057,11 +2057,33 @@ const renderDataManagementModal = () => {
     window.render = render;
 
     // ===========================================
-    // 初期化
+    // 初期化（修正版）
     // ===========================================
-    document.addEventListener('DOMContentLoaded', () => {
+    const initApp = () => {
+        console.log('Initializing Minews PWA...');
+        
+        // RakutenMAライブラリの確認
+        if (typeof window.RakutenMA === 'undefined' || typeof window.model_ja === 'undefined') {
+            console.log('RakutenMA not yet loaded, will use fallback');
+        } else {
+            console.log('RakutenMA loaded successfully');
+        }
+        
+        // データ初期化
         initializeData();
+        
+        // 初回レンダリング
         render();
-    });
+        
+        console.log('Minews PWA initialized successfully');
+    };
+
+    // DOM読み込み完了時の初期化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        // すでに読み込み完了している場合は即座に実行
+        initApp();
+    }
 
 })();
