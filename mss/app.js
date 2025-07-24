@@ -338,7 +338,7 @@
         },
 
         extractKeywords(text) {
-    // 同期的にRakutenMA処理を実行（配列を返す）
+    // RakutenMAライブラリの確認
     if (typeof RakutenMA === 'undefined') {
         console.warn('RakutenMA library not loaded, falling back to simple extraction');
         // フォールバック処理（元の実装）
@@ -353,35 +353,43 @@
     }
 
     try {
-        // RakutenMA実行
+        // RakutenMA実装
         const rma = new RakutenMA();
         const tokens = rma.tokenize(text);
         const keywords = [];
         
+        // 日本語ストップワード
         const stopWords = new Set([
             'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
             'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
             'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
         ]);
         
-        for (const token of tokens) {
-            const surface = token[0];
-            const features = token[1];
-            
-            if (features && Array.isArray(features) && features.length > 0) {
-                const pos = features[0];
+        // 形態素解析結果の処理
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            if (Array.isArray(token) && token.length >= 2) {
+                const surface = token[0]; // 表層形
+                const features = token[1]; // 品詞情報
                 
-                if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                    surface.length > 1 && 
-                    !stopWords.has(surface) &&
-                    !/^[a-zA-Z0-9\s]+$/.test(surface)) {
-                    keywords.push(surface.toLowerCase());
+                if (features && Array.isArray(features) && features.length > 0) {
+                    const pos = features[0]; // 主品詞
+                    
+                    // 名詞、動詞、形容詞のみを抽出
+                    if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
+                        surface.length > 1 && 
+                        !stopWords.has(surface) &&
+                        !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
+                        keywords.push(surface.toLowerCase());
+                    }
                 }
             }
             
+            // 最大8個まで
             if (keywords.length >= 8) break;
         }
         
+        // 重複除去して返す
         return [...new Set(keywords)];
         
     } catch (error) {
