@@ -338,76 +338,60 @@
         },
 
         extractKeywords(text) {
-    // RakutenMAライブラリの確認
-    if (typeof RakutenMA === 'undefined') {
-        console.warn('RakutenMA library not loaded, falling back to simple extraction');
-        // フォールバック処理（元の実装）
-        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-        return [...new Set(
-            text.toLowerCase()
-                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                .slice(0, 8)
-        )];
-    }
-
-    try {
-        // RakutenMA正しい初期化方法
-        const rma = new RakutenMA();
-        
-        // 形態素解析実行（正しいAPI使用）
-        const sentence = rma.tokenize(text);
-        const keywords = [];
-        
-        // 日本語ストップワード
-        const stopWords = new Set([
-            'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
-            'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
-            'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
-        ]);
-        
-        // RakutenMAの戻り値を正しく処理
-        for (let i = 0; i < sentence.length; i++) {
-            const token = sentence[i];
-            if (Array.isArray(token) && token.length >= 2) {
-                const surface = token[0]; // 表層形
-                const features = token[1]; // 品詞情報（配列形式）
-                
-                if (features && Array.isArray(features) && features.length > 0) {
-                    const pos = features[0]; // 主品詞
+    // RakutenMA読み込み完了まで待機
+    return new Promise((resolve) => {
+        const checkLibrary = () => {
+            if (typeof RakutenMA !== 'undefined') {
+                // RakutenMA実行
+                try {
+                    const rma = new RakutenMA();
+                    const tokens = rma.tokenize(text);
+                    const keywords = [];
                     
-                    // 名詞、動詞、形容詞のみを抽出
-                    if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                        surface.length > 1 && 
-                        !stopWords.has(surface) &&
-                        !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
-                        keywords.push(surface);
+                    const stopWords = new Set([
+                        'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し'
+                    ]);
+                    
+                    for (const token of tokens) {
+                        const surface = token[0];
+                        const features = token[1];
+                        
+                        if (features && features.length > 0) {
+                            const pos = features[0];
+                            if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
+                                surface.length > 1 && 
+                                !stopWords.has(surface)) {
+                                keywords.push(surface.toLowerCase());
+                            }
+                        }
+                        
+                        if (keywords.length >= 8) break;
                     }
+                    
+                    resolve([...new Set(keywords)]);
+                } catch (error) {
+                    console.error('RakutenMA error:', error);
+                    resolve(this.fallbackExtract(text));
                 }
+            } else {
+                // 100ms後に再チェック
+                setTimeout(checkLibrary, 100);
             }
-            
-            // 最大8個まで
-            if (keywords.length >= 8) break;
-        }
-        
-        // 重複除去して返す
-        return [...new Set(keywords)];
-        
-    } catch (error) {
-        console.error('Error in RakutenMA keyword extraction:', error);
-        // エラー時フォールバック
-        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-        return [...new Set(
-            text.toLowerCase()
-                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                .slice(0, 8)
-        )];
-    }
+        };
+        checkLibrary();
+    });
 },
 
+fallbackExtract(text) {
+    const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+    return [...new Set(
+        text.toLowerCase()
+            .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+            .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+            .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+            .slice(0, 8)
+    )];
+},
         
     extractDomain(url) {
             try {
