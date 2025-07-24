@@ -353,9 +353,31 @@
     }
 
     try {
-        // RakutenMA実装
+        // 入力テキストの前処理
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+            console.warn('Invalid text input for RakutenMA, using fallback');
+            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+            return [...new Set(
+                text.toLowerCase()
+                    .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                    .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+                    .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+                    .slice(0, 8)
+            )];
+        }
+
+        // RakutenMAの正しい初期化
         const rma = new RakutenMA();
-        const tokens = rma.tokenize(text);
+        
+        // デフォルト特徴量を設定（必須）
+        rma.featset = RakutenMA.default_featset_ja || {};
+        rma.model = RakutenMA.default_model_ja || {};
+        
+        // テキストの前処理（長すぎるテキストを制限）
+        const cleanText = text.substring(0, 1000).trim();
+        
+        // 形態素解析実行
+        const tokens = rma.tokenize(cleanText);
         const keywords = [];
         
         // 日本語ストップワード
@@ -377,7 +399,7 @@
                     
                     // 名詞、動詞、形容詞のみを抽出
                     if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                        surface.length > 1 && 
+                        surface && surface.length > 1 && 
                         !stopWords.has(surface) &&
                         !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
                         keywords.push(surface.toLowerCase());
@@ -394,6 +416,7 @@
         
     } catch (error) {
         console.error('Error in RakutenMA keyword extraction:', error);
+        console.warn('Falling back to simple extraction method');
         // エラー時フォールバック
         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
         return [...new Set(
