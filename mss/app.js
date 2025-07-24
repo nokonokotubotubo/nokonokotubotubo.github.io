@@ -237,97 +237,123 @@
         },
 
         async extractKeywords(text) {
-            // RakutenMAライブラリの確認
-            if (typeof RakutenMA === 'undefined') {
-                console.warn('RakutenMA library not loaded, falling back to simple extraction');
-                // フォールバック処理（元の実装）
-                const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-                return [...new Set(
-                    text.toLowerCase()
-                        .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                        .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                        .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                        .slice(0, 8)
-                )];
-            }
+    // RakutenMAライブラリの確認
+    if (typeof RakutenMA === 'undefined') {
+        console.warn('RakutenMA library not loaded, falling back to simple extraction');
+        // フォールバック処理（元の実装）
+        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+        return [...new Set(
+            text.toLowerCase()
+                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+                .slice(0, 8)
+        )];
+    }
 
-            try {
-                // JSONからモデルデータを読み込み
-                const modelData = await this.loadRakutenMAModel();
-                
-                // RakutenMAインスタンス作成
-                const rma = new RakutenMA();
-                
-                // featsetとmodelを設定
-                rma.featset = RakutenMA.default_featset_ja;
-                rma.model = modelData; // JSONから読み込んだモデルデータを使用
-                
-                // モデルが正しく設定されたか確認
-                if (!rma.model || Object.keys(rma.model).length === 0) {
-                    throw new Error('RakutenMA model data is empty');
-                }
-                
-                console.log('RakutenMA initialized with JSON model data');
-                
-                // 入力テキストの前処理
-                const cleanText = text.substring(0, 1000).trim();
-                if (!cleanText) {
-                    return [];
-                }
-                
-                // 形態素解析実行
-                const tokens = rma.tokenize(cleanText);
-                const keywords = [];
-                
-                // 日本語ストップワード
-                const stopWords = new Set([
-                    'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
-                    'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
-                    'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
-                ]);
-                
-                // 形態素解析結果の処理
-                for (let i = 0; i < tokens.length; i++) {
-                    const token = tokens[i];
-                    if (Array.isArray(token) && token.length >= 2) {
-                        const surface = token[0]; // 表層形
-                        const features = token[1]; // 品詞情報
+    try {
+        // JSONからモデルデータを読み込み
+        const modelData = await this.loadRakutenMAModel();
+
+        // RakutenMAインスタンス作成と初期化
+        const rma = new RakutenMA(modelData, RakutenMA.default_featset_ja);
+        
+        console.log('RakutenMA initialized with JSON model data');
+
+        // 入力テキストの前処理（HTMLエンティティデコードを追加）
+        const cleanText = text
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#x27;/g, "'")
+            .substring(0, 1000)
+            .trim();
+            
+        if (!cleanText) {
+            return [];
+        }
+
+        // 形態素解析実行
+        const tokens = rma.tokenize(cleanText);
+        const keywords = [];
+
+        // 日本語ストップワード
+        const stopWords = new Set([
+            'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な', 'も', 
+            'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの', 'する', 
+            'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの', 'ため', 
+            'ところ', 'とき', 'よう', 'ここ', 'そこ', 'あそこ', 'これ', 'それ', 'あれ'
+        ]);
+
+        // 形態素解析結果の処理（修正版）
+        for (const token of tokens) {
+            if (Array.isArray(token) && token.length >= 2) {
+                const surface = token[0]; // 表層形
+                const features = token[1]; // 品詞情報
+
+                if (features && Array.isArray(features) && features.length > 0) {
+                    const pos = features[0]; // 主品詞
+                    const subPos = features[1] || ''; // 副品詞
+
+                    // より詳細な品詞フィルタリング
+                    const isValidPos = (
+                        (pos === '名詞' && !['代名詞', '数', '接尾'].includes(subPos)) ||
+                        (pos === '動詞' && subPos !== '非自立') ||
+                        (pos === '形容詞' && subPos !== '非自立') ||
+                        (pos === '副詞' && !['助詞類接続'].includes(subPos))
+                    );
+
+                    if (isValidPos &&
+                        surface && 
+                        surface.length > 1 &&
+                        !stopWords.has(surface) &&
+                        !/^[a-zA-Z0-9\s\-_]+$/.test(surface) && // 英数字記号のみは除外
+                        !/^[ひらがな]{1,2}$/.test(surface)) { // 短いひらがなは除外
                         
-                        if (features && Array.isArray(features) && features.length > 0) {
-                            const pos = features[0]; // 主品詞
-                            
-                            // 名詞、動詞、形容詞のみを抽出
-                            if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                                surface && surface.length > 1 && 
-                                !stopWords.has(surface) &&
-                                !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
-                                keywords.push(surface.toLowerCase());
-                            }
-                        }
+                        keywords.push(surface);
                     }
-                    
-                    // 最大8個まで
-                    if (keywords.length >= 8) break;
                 }
-                
-                // 重複除去して返す
-                const result = [...new Set(keywords)];
-                console.log('RakutenMA keywords extracted:', result);
-                return result;
-                
-            } catch (error) {
-                console.error('Error in RakutenMA keyword extraction with JSON model:', error);
-                // エラー時フォールバック（元の実装）
-                const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-                return [...new Set(
-                    text.toLowerCase()
-                        .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                        .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                        .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                        .slice(0, 8)
-                )];
             }
-        },
+            
+            // 最大8個まで
+            if (keywords.length >= 8) break;
+        }
+
+        // 重複除去して返す
+        const result = [...new Set(keywords)];
+        console.log('RakutenMA keywords extracted:', result);
+        return result;
+
+    } catch (error) {
+        console.error('Error in RakutenMA keyword extraction with JSON model:', error);
+        
+        // エラー時フォールバック（改良版）
+        const stopWords = new Set([
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+            'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など',
+            'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'これ', 'それ', 'あれ'
+        ]);
+        
+        return [...new Set(
+            text.toLowerCase()
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#x27;/g, "'")
+                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]+/)
+                .filter(word => 
+                    word.length > 2 && 
+                    !stopWords.has(word) && 
+                    word !== 'ー' &&
+                    !/^[a-zA-Z0-9\s\-_]+$/.test(word)
+                )
+                .slice(0, 8)
+        )];
+    }
+},
 
         extractDomain(url) {
             try {
