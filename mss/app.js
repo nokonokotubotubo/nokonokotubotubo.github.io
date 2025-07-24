@@ -353,28 +353,23 @@
     }
 
     try {
-        // 入力テキストの前処理
-        if (!text || typeof text !== 'string' || text.trim().length === 0) {
-            console.warn('Invalid text input for RakutenMA, using fallback');
-            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-            return [...new Set(
-                text.toLowerCase()
-                    .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                    .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                    .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                    .slice(0, 8)
-            )];
-        }
-
-        // RakutenMAの正しい初期化
+        // RakutenMAインスタンス作成
         const rma = new RakutenMA();
         
-        // デフォルト特徴量を設定（必須）
-        rma.featset = RakutenMA.default_featset_ja || {};
-        rma.model = RakutenMA.default_model_ja || {};
+        // モデルとfeatsetを明示的に設定
+        rma.featset = RakutenMA.default_featset_ja;
+        rma.model = RakutenMA.default_model_ja;
         
-        // テキストの前処理（長すぎるテキストを制限）
+        // モデルが正しく読み込まれているか確認
+        if (!rma.model || Object.keys(rma.model).length === 0) {
+            throw new Error('RakutenMA model not properly loaded');
+        }
+        
+        // 入力テキストの前処理
         const cleanText = text.substring(0, 1000).trim();
+        if (!cleanText) {
+            return [];
+        }
         
         // 形態素解析実行
         const tokens = rma.tokenize(cleanText);
@@ -394,6 +389,7 @@
                 const surface = token[0]; // 表層形
                 const features = token[1]; // 品詞情報
                 
+                // 品詞情報が配列として正しく取得されているか確認
                 if (features && Array.isArray(features) && features.length > 0) {
                     const pos = features[0]; // 主品詞
                     
@@ -416,8 +412,7 @@
         
     } catch (error) {
         console.error('Error in RakutenMA keyword extraction:', error);
-        console.warn('Falling back to simple extraction method');
-        // エラー時フォールバック
+        // エラー時フォールバック（元の実装）
         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
         return [...new Set(
             text.toLowerCase()
