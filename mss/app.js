@@ -2,429 +2,334 @@
 (function() {
     'use strict';
 
-    // ===========================================
-    // 定数・設定
-    // ===========================================
-    const CONFIG = {
-        STORAGE_KEYS: {
-            ARTICLES: 'minews_articles',
-            RSS_FEEDS: 'minews_rssFeeds',
-            FOLDERS: 'minews_folders',
-            AI_LEARNING: 'minews_aiLearning',
-            WORD_FILTERS: 'minews_wordFilters'
-        },
-        MAX_ARTICLES: 1000,
-        DATA_VERSION: '1.0',
-        REQUEST_TIMEOUT: 15000,
-        MAX_RETRIES: 2,
-        RETRY_DELAY: 3000,
-        RSS_PROXY_URLS: [
-            'https://api.codetabs.com/v1/proxy?quest=',
-            'https://api.allorigins.win/get?url=',
-            'https://thingproxy.freeboard.io/fetch/',
-            'https://corsproxy.io/?'
-        ],
-        FOLDER_COLORS: [
-            { name: 'ブルー', value: '#4A90A4' },
-            { name: 'グリーン', value: '#28a745' },
-            { name: 'オレンジ', value: '#fd7e14' },
-            { name: 'パープル', value: '#6f42c1' },
-            { name: 'レッド', value: '#dc3545' },
-            { name: 'グレー', value: '#6c757d' }
-        ]
-    };
+    // キャッシュ設定
+    const CACHE_EXPIRY = 1000 * 60 * 30; // 30分
+    const RSS_CACHE_KEY = 'rss_cache';
+    const LAST_UPDATE_KEY = 'last_update';
 
-    const DEFAULT_DATA = {
-        folders: [
-            { id: 'default-general', name: 'ニュース', color: '#4A90A4', createdAt: new Date().toISOString() },
-            { id: 'default-tech', name: 'テック', color: '#28a745', createdAt: new Date().toISOString() }
-        ],
-        articles: [],
-        rssFeeds: [
-            { id: 'default-nhk', url: 'https://www3.nhk.or.jp/rss/news/cat0.xml', title: 'NHKニュース', folderId: 'default-general', lastUpdated: new Date().toISOString(), isActive: true },
-            { id: 'default-itmedia', url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml', title: 'ITmedia', folderId: 'default-tech', lastUpdated: new Date().toISOString(), isActive: true }
-        ],
-        aiLearning: {
-            version: CONFIG.DATA_VERSION,
-            wordWeights: {},
-            categoryWeights: {
-                'Technology': 0, 'Development': 0, 'Business': 0, 'Science': 0,
-                'Design': 0, 'AI': 0, 'Web': 0, 'Mobile': 0
-            },
-            lastUpdated: new Date().toISOString()
-        },
-        wordFilters: {
-            interestWords: ['AI', 'React', 'JavaScript', 'PWA', '機械学習'],
-            ngWords: [],
-            lastUpdated: new Date().toISOString()
-        }
-    };
+    // プロキシサーバー設定
+    const PROXY_SERVERS = [
+        'https://api.allorigins.win/get?url=',
+        'https://thingproxy.freeboard.io/fetch/',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ];
 
-    // ===========================================
-    // キャッシュシステム
-    // ===========================================
-    const DataHooksCache = {
-        articles: null,
-        rssFeeds: null,
-        folders: null,
-        aiLearning: null,
-        wordFilters: null,
-        lastUpdate: {
-            articles: null, rssFeeds: null, folders: null,
-            aiLearning: null, wordFilters: null
-        },
-        clear(key) {
-            if (key) {
-                this[key] = null;
-                this.lastUpdate[key] = null;
-            } else {
-                Object.keys(this).forEach(k => k !== 'clear' && k !== 'lastUpdate' && (this[k] = null));
-                this.lastUpdate = { articles: null, rssFeeds: null, folders: null, aiLearning: null, wordFilters: null };
-            }
-        }
-    };
-
-    // ===========================================
-    // フォルダ管理
-    // ===========================================
-    const FolderManager = {
-        createFolder: (name, color = '#4A90A4') => ({
-            id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: name.trim(),
-            color,
-            createdAt: new Date().toISOString()
-        }),
-        validateFolder: folder => folder && typeof folder.name === 'string' && folder.name.trim().length > 0 && folder.name.trim().length <= 50,
-        getColorName: colorValue => CONFIG.FOLDER_COLORS.find(c => c.value === colorValue)?.name || 'カスタム',
-        matchArticleToFeed(article, feeds) {
-            return feeds.find(feed => 
-                feed.title === article.rssSource || 
-                article.rssSource.includes(feed.title) || 
-                feed.title.includes(article.rssSource) || 
-                this.extractDomainFromSource(article.rssSource) === this.extractDomainFromUrl(feed.url)
-            ) || null;
-        },
-        extractDomainFromSource: source => source.includes('.') ? source.toLowerCase().replace(/^www\./, '') : source.toLowerCase(),
-        extractDomainFromUrl(url) {
-            try {
-                return new URL(url).hostname.replace(/^www\./, '');
-            } catch {
-                return '';
-            }
-        }
-    };
-
-    // ===========================================
-    // RSS処理システム
-    // ===========================================
+    // RSS処理クラス
     const RSSProcessor = {
-        async fetchRSS(url, proxyIndex = 0, retryCount = 0) {
-            if (proxyIndex >= CONFIG.RSS_PROXY_URLS.length) {
-                if (retryCount < CONFIG.MAX_RETRIES) {
-                    await this.delay(CONFIG.RETRY_DELAY);
-                    return this.fetchRSS(url, 0, retryCount + 1);
-                }
-                throw new Error('All proxy servers failed after retries');
-            }
+        // RakutenMAモデル読み込み済みフラグ
+        rakutenmaModelLoaded: false,
+        rakutenmaModelData: null,
 
-            const proxyUrl = CONFIG.RSS_PROXY_URLS[proxyIndex];
-            const fullUrl = proxyUrl + encodeURIComponent(url);
+        // モデル読み込み関数
+        async loadRakutenMAModel() {
+            if (this.rakutenmaModelLoaded && this.rakutenmaModelData) {
+                return this.rakutenmaModelData;
+            }
+            
+            try {
+                const response = await fetch('./model_ja.min.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                this.rakutenmaModelData = await response.json();
+                this.rakutenmaModelLoaded = true;
+                console.log('RakutenMA model loaded successfully from JSON');
+                return this.rakutenmaModelData;
+            } catch (error) {
+                console.error('Failed to load RakutenMA model from JSON:', error);
+                throw error;
+            }
+        },
+
+        async fetchRSS(url, proxyIndex = 0, retryCount = 0) {
+            const MAX_RETRIES = 3;
+            const RETRY_DELAY = 1000;
 
             try {
+                const proxyUrl = PROXY_SERVERS[proxyIndex] + encodeURIComponent(url);
+                console.log(`Fetching RSS from: ${url} via proxy ${proxyIndex}`);
+
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
-                
-                const response = await fetch(fullUrl, {
-                    signal: controller.signal,
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
                     headers: {
-                        'Accept': '*/*',
-                        'User-Agent': 'Mozilla/5.0 (compatible; Minews/1.0)'
+                        'User-Agent': 'Mozilla/5.0 (compatible; RSS Reader)',
+                        'Accept': 'application/rss+xml, application/xml, text/xml',
                     },
-                    mode: 'cors'
+                    signal: controller.signal
                 });
 
                 clearTimeout(timeoutId);
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-                let xmlContent;
-                if (proxyUrl.includes('allorigins.win')) {
-                    const data = await response.json();
-                    xmlContent = data.contents;
-                    if (!xmlContent) throw new Error('No contents in allorigins.win response');
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType?.includes('application/json')) {
-                        try {
-                            const data = await response.json();
-                            xmlContent = data.contents || data;
-                        } catch {
-                            xmlContent = await response.text();
-                        }
-                    } else {
-                        xmlContent = await response.text();
-                    }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                if (!xmlContent?.trim()) throw new Error('Empty response content');
-                return xmlContent;
+                const data = await response.text();
+                
+                // AllOrigins APIのレスポンス形式をチェック
+                try {
+                    const jsonData = JSON.parse(data);
+                    if (jsonData.contents) {
+                        return jsonData.contents;
+                    }
+                } catch (e) {
+                    // JSONパースに失敗した場合は、dataをそのまま返す
+                }
+
+                return data;
+
             } catch (error) {
-                if (error.name === 'AbortError') throw new Error(`Request timeout for proxy ${proxyIndex + 1}`);
-                return this.fetchRSS(url, proxyIndex + 1, retryCount);
+                console.error(`
+            
+            
+           `, error);
+
+                // 次のプロキシサーバーを試す
+                if (proxyIndex < PROXY_SERVERS.length - 1) {
+                    await this.delay(RETRY_DELAY);
+                    return this.fetchRSS(url, proxyIndex + 1, retryCount);
+                }
+
+                // 全プロキシで失敗した場合、リトライ
+                if (retryCount < MAX_RETRIES) {
+                    await this.delay(RETRY_DELAY * (retryCount + 1));
+                    return this.fetchRSS(url, 0, retryCount + 1);
+                }
+
+                throw new Error(`All proxies failed for ${url}: ${error.message}`);
             }
         },
 
         delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
 
-        parseRSS(xmlString, sourceUrl) {
+        async parseRSS(xmlString, sourceUrl) {
             try {
-                const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
                 const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
+                const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
                 
-                const parseError = xmlDoc.querySelector('parsererror');
-                if (parseError) throw new Error('XML parse error: ' + parseError.textContent);
+                const parserError = xmlDoc.querySelector('parsererror');
+                if (parserError) {
+                    console.error('XML parsing error:', parserError.textContent);
+                    return [];
+                }
 
+                const items = xmlDoc.querySelectorAll('item, entry');
                 const articles = [];
-                let feedTitle = 'Unknown Feed';
 
-                // RSS 2.0
-                const rss2Items = xmlDoc.querySelectorAll('rss channel item');
-                if (rss2Items.length > 0) {
-                    feedTitle = xmlDoc.querySelector('rss channel title')?.textContent?.trim() || feedTitle;
-                    rss2Items.forEach((item, index) => {
-                        if (index < 20) {
-                            const article = this.parseRSSItem(item, sourceUrl);
-                            if (article) articles.push(article);
-                        }
-                    });
+                for (const item of items) {
+                    const article = await this.parseRSSItem(item, sourceUrl);
+                    if (article) articles.push(article);
                 }
 
-                // Atom
-                const atomEntries = xmlDoc.querySelectorAll('feed entry');
-                if (atomEntries.length > 0 && articles.length === 0) {
-                    feedTitle = xmlDoc.querySelector('feed title')?.textContent?.trim() || feedTitle;
-                    atomEntries.forEach((entry, index) => {
-                        if (index < 20) {
-                            const article = this.parseAtomEntry(entry, sourceUrl);
-                            if (article) articles.push(article);
-                        }
-                    });
-                }
-
-                // RDF
-                const rdfItems = xmlDoc.querySelectorAll('rdf\\:RDF item, RDF item');
-                if (rdfItems.length > 0 && articles.length === 0) {
-                    feedTitle = xmlDoc.querySelector('channel title')?.textContent?.trim() || feedTitle;
-                    rdfItems.forEach((item, index) => {
-                        if (index < 20) {
-                            const article = this.parseRSSItem(item, sourceUrl);
-                            if (article) articles.push(article);
-                        }
-                    });
-                }
-
-                return { articles, feedTitle };
+                return articles;
             } catch (error) {
-                throw new Error('Failed to parse RSS feed: ' + error.message);
+                console.error('RSS parsing error:', error);
+                return [];
             }
         },
 
-        parseRSSItem(item, sourceUrl) {
+        async parseRSSItem(item, sourceUrl) {
             try {
+                const isAtom = item.tagName === 'entry';
+                
+                if (isAtom) {
+                    return await this.parseAtomEntry(item, sourceUrl);
+                }
+
+                // RSS 2.0 / RSS 1.0 処理
                 const title = this.getTextContent(item, ['title']);
-                const link = this.getTextContent(item, ['link', 'guid']) || item.getAttribute('rdf:about');
-                const description = this.getTextContent(item, ['description', 'content:encoded', 'content', 'summary']);
-                const pubDate = this.getTextContent(item, ['pubDate', 'date']);
-                const category = this.getTextContent(item, ['category', 'subject']) || 'General';
+                const link = this.getTextContent(item, ['link']);
+                const description = this.getTextContent(item, ['description', 'content:encoded', 'summary']);
+                const pubDate = this.getTextContent(item, ['pubDate', 'dc:date']);
+                const category = this.getTextContent(item, ['category']);
 
-                if (!title || !link) return null;
+                if (!title || !link) {
+                    return null;
+                }
 
-                const cleanDescription = description ? this.cleanHtml(description).substring(0, 300) : '記事の概要は提供されていません';
-                const keywords = this.extractKeywords(title + ' ' + cleanDescription);
+                const fullText = `${title} ${description}`;
+                const keywords = await this.extractKeywords(fullText);
 
                 return {
-                    id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    title: this.cleanHtml(title).trim(),
-                    url: link.trim(),
-                    content: cleanDescription,
-                    publishDate: this.parseDate(pubDate),
-                    rssSource: this.extractDomain(sourceUrl),
-                    category: this.cleanHtml(category).trim(),
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords,
-                    fetchedAt: new Date().toISOString()
+                    title: title.trim(),
+                    link: link.trim(),
+                    description: this.cleanHtml(description),
+                    pubDate: this.parseDate(pubDate),
+                    category: category || '',
+                    keywords: keywords,
+                    source: this.extractDomain(sourceUrl),
+                    sourceUrl: sourceUrl
                 };
             } catch (error) {
+                console.error('Error parsing RSS item:', error);
                 return null;
             }
         },
 
-        parseAtomEntry(entry, sourceUrl) {
+        async parseAtomEntry(entry, sourceUrl) {
             try {
                 const title = this.getTextContent(entry, ['title']);
-                const link = entry.querySelector('link')?.getAttribute('href') || this.getTextContent(entry, ['id']);
-                const content = this.getTextContent(entry, ['content', 'summary', 'description']);
-                const published = this.getTextContent(entry, ['published', 'updated']);
-                const category = entry.querySelector('category')?.getAttribute('term') || entry.querySelector('category')?.textContent || 'General';
+                const linkElement = entry.querySelector('link[rel="alternate"], link[href]');
+                const link = linkElement ? linkElement.getAttribute('href') : '';
+                const description = this.getTextContent(entry, ['summary', 'content']);
+                const pubDate = this.getTextContent(entry, ['published', 'updated']);
+                const category = this.getTextContent(entry, ['category']);
 
-                if (!title || !link) return null;
+                if (!title || !link) {
+                    return null;
+                }
 
-                const cleanContent = content ? this.cleanHtml(content).substring(0, 300) : '記事の概要は提供されていません';
-                const keywords = this.extractKeywords(title + ' ' + cleanContent);
+                const fullText = `${title} ${description}`;
+                const keywords = await this.extractKeywords(fullText);
 
                 return {
-                    id: `atom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    title: this.cleanHtml(title).trim(),
-                    url: link.trim(),
-                    content: cleanContent,
-                    publishDate: this.parseDate(published),
-                    rssSource: this.extractDomain(sourceUrl),
-                    category: this.cleanHtml(category).trim(),
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords,
-                    fetchedAt: new Date().toISOString()
+                    title: title.trim(),
+                    link: link.trim(),
+                    description: this.cleanHtml(description),
+                    pubDate: this.parseDate(pubDate),
+                    category: category || '',
+                    keywords: keywords,
+                    source: this.extractDomain(sourceUrl),
+                    sourceUrl: sourceUrl
                 };
             } catch (error) {
+                console.error('Error parsing Atom entry:', error);
                 return null;
             }
         },
 
         getTextContent(element, selectors) {
             for (const selector of selectors) {
-                let result = null;
-                if (selector.includes(':')) {
-                    const elements = element.getElementsByTagName(selector);
-                    if (elements.length > 0 && elements[0].textContent) {
-                        result = elements[0].textContent.trim();
-                    }
-                    if (!result) {
-                        const localName = selector.split(':')[1];
-                        const localElements = element.getElementsByTagName(localName);
-                        if (localElements.length > 0 && localElements[0].textContent) {
-                            result = localElements[0].textContent.trim();
-                        }
-                    }
-                } else {
-                    try {
-                        const el = element.querySelector(selector);
-                        if (el?.textContent) result = el.textContent.trim();
-                    } catch (e) {
-                        const elements = element.getElementsByTagName(selector);
-                        if (elements.length > 0 && elements[0].textContent) {
-                            result = elements[0].textContent.trim();
-                        }
-                    }
+                const found = element.querySelector(selector);
+                if (found && found.textContent) {
+                    return found.textContent.trim();
                 }
-                if (result) return result;
             }
-            return null;
+            return '';
         },
 
-        cleanHtml: html => html ? html.replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/\s+/g, ' ').trim() : '',
+        cleanHtml: html => html ? html.replace(/[^>]*>/g, '').replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&').replace(/"/g, '"').replace(/'/g, "'").replace(/\s+/g, ' ').trim() : '',
 
         parseDate(dateString) {
-            if (!dateString) return new Date().toISOString();
+            if (!dateString) return new Date();
+            
             try {
-                const date = new Date(dateString);
-                return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
-            } catch {
-                return new Date().toISOString();
+                // RFC 2822 形式の日付をパース
+                let date = new Date(dateString);
+                
+                if (isNaN(date.getTime())) {
+                    // ISO 8601 形式を試す
+                    const isoMatch = dateString.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+                    if (isoMatch) {
+                        date = new Date(isoMatch[1]);
+                    }
+                }
+                
+                return isNaN(date.getTime()) ? new Date() : date;
+            } catch (error) {
+                console.error('Date parsing error:', error);
+                return new Date();
             }
         },
 
-        extractKeywords(text) {
-    // RakutenMAライブラリの確認
-    if (typeof RakutenMA === 'undefined') {
-        console.warn('RakutenMA library not loaded, falling back to simple extraction');
-        // フォールバック処理（元の実装）
-        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-        return [...new Set(
-            text.toLowerCase()
-                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                .slice(0, 8)
-        )];
-    }
-
-    try {
-        // RakutenMAインスタンス作成
-        const rma = new RakutenMA();
-        
-        // モデルとfeatsetを明示的に設定
-        rma.featset = RakutenMA.default_featset_ja;
-        rma.model = RakutenMA.default_model_ja;
-        
-        // モデルが正しく読み込まれているか確認
-        if (!rma.model || Object.keys(rma.model).length === 0) {
-            throw new Error('RakutenMA model not properly loaded');
-        }
-        
-        // 入力テキストの前処理
-        const cleanText = text.substring(0, 1000).trim();
-        if (!cleanText) {
-            return [];
-        }
-        
-        // 形態素解析実行
-        const tokens = rma.tokenize(cleanText);
-        const keywords = [];
-        
-        // 日本語ストップワード
-        const stopWords = new Set([
-            'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
-            'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
-            'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
-        ]);
-        
-        // 形態素解析結果の処理
-        for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
-            if (Array.isArray(token) && token.length >= 2) {
-                const surface = token[0]; // 表層形
-                const features = token[1]; // 品詞情報
-                
-                // 品詞情報が配列として正しく取得されているか確認
-                if (features && Array.isArray(features) && features.length > 0) {
-                    const pos = features[0]; // 主品詞
-                    
-                    // 名詞、動詞、形容詞のみを抽出
-                    if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                        surface && surface.length > 1 && 
-                        !stopWords.has(surface) &&
-                        !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
-                        keywords.push(surface.toLowerCase());
-                    }
-                }
+        async extractKeywords(text) {
+            // RakutenMAライブラリの確認
+            if (typeof RakutenMA === 'undefined') {
+                console.warn('RakutenMA library not loaded, falling back to simple extraction');
+                // フォールバック処理（元の実装）
+                const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+                return [...new Set(
+                    text.toLowerCase()
+                        .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                        .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+                        .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+                        .slice(0, 8)
+                )];
             }
-            
-            // 最大8個まで
-            if (keywords.length >= 8) break;
-        }
-        
-        // 重複除去して返す
-        return [...new Set(keywords)];
-        
-    } catch (error) {
-        console.error('Error in RakutenMA keyword extraction:', error);
-        // エラー時フォールバック（元の実装）
-        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-        return [...new Set(
-            text.toLowerCase()
-                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                .slice(0, 8)
-        )];
-    }
-},
-        
-    extractDomain(url) {
+
+            try {
+                // JSONからモデルデータを読み込み
+                const modelData = await this.loadRakutenMAModel();
+                
+                // RakutenMAインスタンス作成
+                const rma = new RakutenMA();
+                
+                // featsetとmodelを設定
+                rma.featset = RakutenMA.default_featset_ja;
+                rma.model = modelData; // JSONから読み込んだモデルデータを使用
+                
+                // モデルが正しく設定されたか確認
+                if (!rma.model || Object.keys(rma.model).length === 0) {
+                    throw new Error('RakutenMA model data is empty');
+                }
+                
+                console.log('RakutenMA initialized with JSON model data');
+                
+                // 入力テキストの前処理
+                const cleanText = text.substring(0, 1000).trim();
+                if (!cleanText) {
+                    return [];
+                }
+                
+                // 形態素解析実行
+                const tokens = rma.tokenize(cleanText);
+                const keywords = [];
+                
+                // 日本語ストップワード
+                const stopWords = new Set([
+                    'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
+                    'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
+                    'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
+                ]);
+                
+                // 形態素解析結果の処理
+                for (let i = 0; i < tokens.length; i++) {
+                    const token = tokens[i];
+                    if (Array.isArray(token) && token.length >= 2) {
+                        const surface = token[0]; // 表層形
+                        const features = token[1]; // 品詞情報
+                        
+                        if (features && Array.isArray(features) && features.length > 0) {
+                            const pos = features[0]; // 主品詞
+                            
+                            // 名詞、動詞、形容詞のみを抽出
+                            if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
+                                surface && surface.length > 1 && 
+                                !stopWords.has(surface) &&
+                                !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
+                                keywords.push(surface.toLowerCase());
+                            }
+                        }
+                    }
+                    
+                    // 最大8個まで
+                    if (keywords.length >= 8) break;
+                }
+                
+                // 重複除去して返す
+                const result = [...new Set(keywords)];
+                console.log('RakutenMA keywords extracted:', result);
+                return result;
+                
+            } catch (error) {
+                console.error('Error in RakutenMA keyword extraction with JSON model:', error);
+                // エラー時フォールバック（元の実装）
+                const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+                return [...new Set(
+                    text.toLowerCase()
+                        .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                        .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+                        .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+                        .slice(0, 8)
+                )];
+            }
+        },
+
+        extractDomain(url) {
             try {
                 return new URL(url).hostname.replace(/^www\./, '');
             } catch {
