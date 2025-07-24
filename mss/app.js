@@ -338,10 +338,10 @@
         },
 
         extractKeywords(text) {
-    // RakutenMAを用いた形態素解析でキーワード抽出
-    if (!window.RakutenMA) {
+    // RakutenMAライブラリの確認
+    if (typeof RakutenMA === 'undefined') {
         console.warn('RakutenMA library not loaded, falling back to simple extraction');
-        // フォールバック処理（元の実装の簡略版）
+        // フォールバック処理（元の実装）
         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
         return [...new Set(
             text.toLowerCase()
@@ -353,34 +353,37 @@
     }
 
     try {
-        // RakutenMAインスタンス作成と設定
-        const ma = new RakutenMA();
+        // RakutenMA正しい初期化方法
+        const rma = new RakutenMA();
         
-        // 形態素解析実行
-        const tokens = ma.tokenize(text);
+        // 形態素解析実行（正しいAPI使用）
+        const sentence = rma.tokenize(text);
         const keywords = [];
         
-        // 日本語ストップワード（機能語など）を除外
+        // 日本語ストップワード
         const stopWords = new Set([
             'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ', 'な',
             'も', 'から', 'まで', 'について', 'という', 'など', 'この', 'その', 'あの',
-            'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる'
+            'する', 'なる', 'ある', 'いる', 'できる', 'れる', 'られる', 'こと', 'もの'
         ]);
         
-        // 重要な品詞（名詞、動詞、形容詞）のみを抽出
-        for (const token of tokens) {
-            const surface = token[0]; // 表層形
-            const features = token[1]; // 品詞情報
-            
-            if (features && features.length > 0) {
-                const pos = features[0]; // 主品詞
+        // RakutenMAの戻り値を正しく処理
+        for (let i = 0; i < sentence.length; i++) {
+            const token = sentence[i];
+            if (Array.isArray(token) && token.length >= 2) {
+                const surface = token[0]; // 表層形
+                const features = token[1]; // 品詞情報（配列形式）
                 
-                // 名詞、動詞、形容詞で、かつ長さが2文字以上、ストップワードでない
-                if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
-                    surface.length > 1 && 
-                    !stopWords.has(surface) &&
-                    !/^[a-zA-Z0-9]+$/.test(surface)) { // 英数字のみの単語は除外
-                    keywords.push(surface.toLowerCase());
+                if (features && Array.isArray(features) && features.length > 0) {
+                    const pos = features[0]; // 主品詞
+                    
+                    // 名詞、動詞、形容詞のみを抽出
+                    if ((pos === '名詞' || pos === '動詞' || pos === '形容詞') &&
+                        surface.length > 1 && 
+                        !stopWords.has(surface) &&
+                        !/^[a-zA-Z0-9\s]+$/.test(surface)) { // 英数字のみは除外
+                        keywords.push(surface);
+                    }
                 }
             }
             
@@ -393,7 +396,7 @@
         
     } catch (error) {
         console.error('Error in RakutenMA keyword extraction:', error);
-        // エラー時は元の実装にフォールバック
+        // エラー時フォールバック
         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
         return [...new Set(
             text.toLowerCase()
@@ -404,6 +407,7 @@
         )];
     }
 },
+
         
     extractDomain(url) {
             try {
