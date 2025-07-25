@@ -388,12 +388,12 @@ const AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let score = 0;
 
-        // 鮮度スコア（0-20点、指数減衰）
+        // 1. 鮮度スコア（0-20点、指数減衰）
         const hours = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60);
         const freshness = Math.exp(-hours / 72) * 20;
         score += freshness;
 
-        // キーワード学習重み（-20～+20点にクリッピング）
+        // 2. キーワード学習重み（-20～+20点にクリッピング）
         if (article.keywords && aiLearning.wordWeights) {
             article.keywords.forEach(keyword => {
                 const weight = aiLearning.wordWeights[keyword] || 0;
@@ -401,13 +401,13 @@ const AIScoring = {
             });
         }
 
-        // カテゴリ学習重み（-15～+15点にクリッピング）
+        // 3. カテゴリ学習重み（-15～+15点にクリッピング）
         if (article.category && aiLearning.categoryWeights) {
             const weight = aiLearning.categoryWeights[article.category] || 0;
             score += Math.max(-15, Math.min(15, weight));
         }
 
-        // 興味ワードマッチ（+10点、重複なし）
+        // 4. 興味ワードマッチ（+10点、重複なし）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const hasInterestWord = wordFilters.interestWords.some(word => 
@@ -415,12 +415,12 @@ const AIScoring = {
             if (hasInterestWord) score += 10;
         }
 
-        // ユーザー評価（-20～+20点）
+        // 5. ユーザー評価（-20～+20点）
         if (article.userRating > 0) {
             score += (article.userRating - 3) * 10;
         }
 
-        // 最終スコアを0-100に正規化
+        // 6. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
 
@@ -613,7 +613,6 @@ const DataHooks = {
                 DataHooksCache.articles = updatedArticles;
                 DataHooksCache.lastUpdate.articles = new Date().toISOString();
 
-                // グローバル状態更新
                 if (typeof window !== 'undefined' && window.state) {
                     window.state.articles = updatedArticles;
                 }
