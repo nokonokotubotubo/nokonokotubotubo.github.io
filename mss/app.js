@@ -1,9 +1,9 @@
-// Minews PWA - RakutenMA統合版（エラーリスク最小化）
+// Minews PWA - RakutenMA統合版（元仕様準拠）
 (function() {
     'use strict';
-    
-    // =========================================== 
-    // 定数・設定 
+
+    // ===========================================
+    // 定数・設定
     // ===========================================
     const CONFIG = {
         STORAGE_KEYS: {
@@ -34,7 +34,7 @@
         ]
     };
 
-    // =========================================== 
+    // ===========================================
     // RakutenMA統合システム（エラーリスク最小化版）
     // ===========================================
     let rakutenMA = null;
@@ -44,7 +44,7 @@
     // RakutenMA初期化関数（安全化版）
     const initializeRakutenMA = async () => {
         if (rakutenMAReady) return rakutenMAReady;
-        
+
         rakutenMAReady = new Promise(async (resolve) => {
             try {
                 console.log('RakutenMA初期化開始...');
@@ -57,27 +57,24 @@
                     resolve(false);
                     return;
                 }
-                
+
                 // モデルファイルの読み込み
                 const response = await fetch('./model_ja.min.json');
                 if (!response.ok) {
                     throw new Error(`モデルファイル読み込み失敗: HTTP ${response.status}`);
                 }
-                
                 const model = await response.json();
                 if (!model || !model.mu) {
                     throw new Error('無効なモデルデータ');
                 }
-                
+
                 // RakutenMAインスタンス作成
                 rakutenMA = new RakutenMA(model);
                 rakutenMA.featset = RakutenMA.default_featset_ja;
                 rakutenMA.hash_func = RakutenMA.create_hash_func(15);
-                
                 rakutenMAInitialized = true;
                 console.log('RakutenMA初期化完了');
                 resolve(true);
-                
             } catch (error) {
                 console.error('RakutenMA初期化失敗:', error);
                 rakutenMA = null;
@@ -85,7 +82,7 @@
                 resolve(false);
             }
         });
-        
+
         return rakutenMAReady;
     };
 
@@ -96,8 +93,22 @@
         ],
         articles: [],
         rssFeeds: [
-            { id: 'default-nhk', url: 'https://www3.nhk.or.jp/rss/news/cat0.xml', title: 'NHKニュース', folderId: 'default-general', lastUpdated: new Date().toISOString(), isActive: true },
-            { id: 'default-itmedia', url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml', title: 'ITmedia', folderId: 'default-tech', lastUpdated: new Date().toISOString(), isActive: true }
+            {
+                id: 'default-nhk',
+                url: 'https://www3.nhk.or.jp/rss/news/cat0.xml',
+                title: 'NHKニュース',
+                folderId: 'default-general',
+                lastUpdated: new Date().toISOString(),
+                isActive: true
+            },
+            {
+                id: 'default-itmedia',
+                url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml',
+                title: 'ITmedia',
+                folderId: 'default-tech',
+                lastUpdated: new Date().toISOString(),
+                isActive: true
+            }
         ],
         aiLearning: {
             version: CONFIG.DATA_VERSION,
@@ -115,8 +126,8 @@
         }
     };
 
-    // =========================================== 
-    // キャッシュシステム 
+    // ===========================================
+    // キャッシュシステム
     // ===========================================
     const DataHooksCache = {
         articles: null,
@@ -125,7 +136,7 @@
         aiLearning: null,
         wordFilters: null,
         lastUpdate: {
-            articles: null, rssFeeds: null, folders: null, 
+            articles: null, rssFeeds: null, folders: null,
             aiLearning: null, wordFilters: null
         },
         clear(key) {
@@ -139,8 +150,8 @@
         }
     };
 
-    // =========================================== 
-    // フォルダ管理 
+    // ===========================================
+    // フォルダ管理
     // ===========================================
     const FolderManager = {
         createFolder: (name, color = '#4A90A4') => ({
@@ -154,14 +165,13 @@
         getColorName: colorValue => CONFIG.FOLDER_COLORS.find(c => c.value === colorValue)?.name || 'カスタム',
         matchArticleToFeed(article, feeds) {
             return feeds.find(feed => 
-                feed.title === article.rssSource || 
-                article.rssSource.includes(feed.title) || 
+                feed.title === article.rssSource ||
+                article.rssSource.includes(feed.title) ||
                 feed.title.includes(article.rssSource) ||
                 this.extractDomainFromSource(article.rssSource) === this.extractDomainFromUrl(feed.url)
             ) || null;
         },
-        extractDomainFromSource: source => source.includes('.') ? 
-                                          source.toLowerCase().replace(/^www\./, '') : source.toLowerCase(),
+        extractDomainFromSource: source => source.includes('.') ? source.toLowerCase().replace(/^www\./, '') : source.toLowerCase(),
         extractDomainFromUrl(url) {
             try {
                 return new URL(url).hostname.replace(/^www\./, '');
@@ -171,7 +181,7 @@
         }
     };
 
-    // =========================================== 
+    // ===========================================
     // RSS処理システム（extractKeywords修正版）
     // ===========================================
     const RSSProcessor = {
@@ -190,7 +200,6 @@
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
-
                 const response = await fetch(fullUrl, {
                     signal: controller.signal,
                     headers: {
@@ -199,7 +208,6 @@
                     },
                     mode: 'cors'
                 });
-
                 clearTimeout(timeoutId);
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -225,7 +233,6 @@
 
                 if (!xmlContent?.trim()) throw new Error('Empty response content');
                 return xmlContent;
-
             } catch (error) {
                 if (error.name === 'AbortError') throw new Error(`Request timeout for proxy ${proxyIndex + 1}`);
                 return this.fetchRSS(url, proxyIndex + 1, retryCount);
@@ -239,7 +246,6 @@
                 const cleanXml = xmlString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(cleanXml, 'text/xml');
-
                 const parseError = xmlDoc.querySelector('parsererror');
                 if (parseError) throw new Error('XML parse error: ' + parseError.textContent);
 
@@ -357,7 +363,6 @@
         getTextContent(element, selectors) {
             for (const selector of selectors) {
                 let result = null;
-
                 if (selector.includes(':')) {
                     const elements = element.getElementsByTagName(selector);
                     if (elements.length > 0 && elements[0].textContent) {
@@ -381,20 +386,19 @@
                         }
                     }
                 }
-
                 if (result) return result;
             }
             return null;
         },
 
         cleanHtml: html => html ? html.replace(/<[^>]*>/g, '')
-                                    .replace(/&lt;/g, '<')
-                                    .replace(/&gt;/g, '>')
-                                    .replace(/&amp;/g, '&')
-                                    .replace(/&quot;/g, '"')
-                                    .replace(/&apos;/g, "'")
-                                    .replace(/\s+/g, ' ')
-                                    .trim() : '',
+                                      .replace(/&lt;/g, '<')
+                                      .replace(/&gt;/g, '>')
+                                      .replace(/&amp;/g, '&')
+                                      .replace(/&quot;/g, '"')
+                                      .replace(/&#39;/g, "'")
+                                      .replace(/\s+/g, ' ')
+                                      .trim() : '',
 
         parseDate(dateString) {
             if (!dateString) return new Date().toISOString();
@@ -426,8 +430,8 @@
                                 const pos = token[1];
                                 // 名詞、動詞、形容詞、副詞のみを抽出
                                 return word.length > 1 && 
-                                       !stopWords.includes(word) &&
-                                       (pos.startsWith('N-') || pos.startsWith('V-') || pos.startsWith('A-') || pos.startsWith('R')) &&
+                                       !stopWords.includes(word) && 
+                                       (pos.startsWith('N-') || pos.startsWith('V-') || pos.startsWith('A-') || pos.startsWith('R')) && 
                                        !/^[\d\s\-\.\,\!\?\;\:\(\)\[\]\{\}]+$/.test(word);
                             })
                             .map(token => token[0])
@@ -438,7 +442,7 @@
                     // エラー時はフォールバック
                 }
             }
-            
+
             // フォールバック: 従来の方式
             const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
             return [...new Set(
@@ -459,8 +463,8 @@
         }
     };
 
-    // =========================================== 
-    // AI学習システム 
+    // ===========================================
+    // AI学習システム
     // ===========================================
     const AIScoring = {
         filterArticles(articles, wordFilters) {
@@ -546,19 +550,19 @@
         }
     };
 
-    // =========================================== 
-    // ワードフィルター管理 
+    // ===========================================
+    // ワードフィルター管理
     // ===========================================
     const WordFilterManager = {
         addWord(word, type, wordFilters) {
             word = word.trim();
             if (!word) return false;
-
+            
             const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
             const exists = targetArray.some(existingWord => 
                 existingWord.toLowerCase() === word.toLowerCase()
             );
-
+            
             if (!exists) {
                 targetArray.push(word);
                 wordFilters.lastUpdated = new Date().toISOString();
@@ -571,7 +575,7 @@
             word = word.trim();
             const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
             const index = targetArray.indexOf(word);
-
+            
             if (index > -1) {
                 targetArray.splice(index, 1);
                 wordFilters.lastUpdated = new Date().toISOString();
@@ -582,7 +586,6 @@
 
         filterArticles(articles, wordFilters) {
             if (!wordFilters.ngWords.length) return articles;
-
             return articles.filter(article => {
                 const text = (article.title + ' ' + article.content).toLowerCase();
                 return !wordFilters.ngWords.some(ngWord => 
@@ -592,8 +595,8 @@
         }
     };
 
-    // =========================================== 
-    // ローカルストレージ管理 
+    // ===========================================
+    // ローカルストレージ管理
     // ===========================================
     const LocalStorageManager = {
         setItem(key, data) {
@@ -617,12 +620,11 @@
                     if (defaultValue) this.setItem(key, defaultValue);
                     return defaultValue;
                 }
-
+                
                 const parsed = JSON.parse(stored);
                 if (parsed.version !== CONFIG.DATA_VERSION) {
                     return this.migrateData(key, parsed, defaultValue);
                 }
-
                 return parsed.data;
             } catch (error) {
                 if (defaultValue) this.setItem(key, defaultValue);
@@ -650,14 +652,12 @@
         getStorageInfo() {
             let totalSize = 0;
             let itemCount = 0;
-
             for (let key in localStorage) {
                 if (localStorage.hasOwnProperty(key) && key.startsWith('minews_')) {
                     totalSize += localStorage[key].length;
                     itemCount++;
                 }
             }
-
             return {
                 totalSize,
                 itemCount,
@@ -666,14 +666,14 @@
         }
     };
 
-    // =========================================== 
-    // データ操作フック 
+    // ===========================================
+    // データ操作フック
     // ===========================================
     const DataHooks = {
         useArticles() {
             const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.ARTICLES);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-
+            
             if (!DataHooksCache.articles || DataHooksCache.lastUpdate.articles !== timestamp) {
                 DataHooksCache.articles = LocalStorageManager.getItem(CONFIG.STORAGE_KEYS.ARTICLES, DEFAULT_DATA.articles);
                 DataHooksCache.lastUpdate.articles = timestamp;
@@ -681,15 +681,14 @@
 
             return {
                 articles: DataHooksCache.articles,
-
                 addArticle(newArticle) {
                     const updatedArticles = [...DataHooksCache.articles];
                     const exists = updatedArticles.find(article => 
                         article.id === newArticle.id || 
-                        article.url === newArticle.url ||
+                        article.url === newArticle.url || 
                         (article.title === newArticle.title && article.rssSource === newArticle.rssSource)
                     );
-
+                    
                     if (exists) return false;
 
                     if (updatedArticles.length >= CONFIG.MAX_ARTICLES) {
@@ -711,7 +710,7 @@
                 },
 
                 updateArticle(articleId, updates) {
-                    const updatedArticles = DataHooksCache.articles.map(article =>
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         article.id === articleId ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
@@ -731,7 +730,7 @@
                 },
 
                 bulkUpdateArticles(articleIds, updates) {
-                    const updatedArticles = DataHooksCache.articles.map(article =>
+                    const updatedArticles = DataHooksCache.articles.map(article => 
                         articleIds.includes(article.id) ? { ...article, ...updates } : article
                     );
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
@@ -746,7 +745,7 @@
         useRSSManager() {
             const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.RSS_FEEDS);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-
+            
             if (!DataHooksCache.rssFeeds || DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
                 DataHooksCache.rssFeeds = LocalStorageManager.getItem(CONFIG.STORAGE_KEYS.RSS_FEEDS, DEFAULT_DATA.rssFeeds);
                 DataHooksCache.lastUpdate.rssFeeds = timestamp;
@@ -754,7 +753,6 @@
 
             return {
                 rssFeeds: DataHooksCache.rssFeeds,
-
                 addRSSFeed(url, title, folderId = 'uncategorized') {
                     const newFeed = {
                         id: `rss_${Date.now()}`,
@@ -764,7 +762,6 @@
                         lastUpdated: new Date().toISOString(),
                         isActive: true
                     };
-
                     const updatedFeeds = [...DataHooksCache.rssFeeds, newFeed];
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
                     DataHooksCache.rssFeeds = updatedFeeds;
@@ -780,7 +777,7 @@
                 },
 
                 updateRSSFeed(feedId, updates) {
-                    const updatedFeeds = DataHooksCache.rssFeeds.map(feed =>
+                    const updatedFeeds = DataHooksCache.rssFeeds.map(feed => 
                         feed.id === feedId ? { ...feed, ...updates } : feed
                     );
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
@@ -798,15 +795,17 @@
                         try {
                             const rssContent = await RSSProcessor.fetchRSS(feed.url);
                             const parsed = RSSProcessor.parseRSS(rssContent, feed.url);
-
                             let addedCount = 0;
+
+                            // ★ 追加: 非同期キーワード抽出を待つ
                             for (const article of parsed.articles) {
-                                // extractKeywordsが非同期になったため、awaitを追加
                                 article.keywords = await RSSProcessor.extractKeywords(article.title + ' ' + article.content);
                                 if (articlesHook.addArticle(article)) addedCount++;
                             }
 
+                            // ★ 復活: フィード名自動更新
                             this.updateRSSFeed(feed.id, {
+                                title: parsed.feedTitle,
                                 lastUpdated: new Date().toISOString()
                             });
 
@@ -817,7 +816,6 @@
                                 added: addedCount,
                                 total: parsed.articles.length
                             });
-
                         } catch (error) {
                             totalErrors++;
                             feedResults.push({
@@ -841,7 +839,7 @@
         useFolders() {
             const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.FOLDERS);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-
+            
             if (!DataHooksCache.folders || DataHooksCache.lastUpdate.folders !== timestamp) {
                 DataHooksCache.folders = LocalStorageManager.getItem(CONFIG.STORAGE_KEYS.FOLDERS, DEFAULT_DATA.folders);
                 DataHooksCache.lastUpdate.folders = timestamp;
@@ -849,11 +847,10 @@
 
             return {
                 folders: DataHooksCache.folders,
-
                 addFolder(name, color) {
                     const newFolder = FolderManager.createFolder(name, color);
                     if (!FolderManager.validateFolder(newFolder)) return null;
-
+                    
                     const updatedFolders = [...DataHooksCache.folders, newFolder];
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.FOLDERS, updatedFolders);
                     DataHooksCache.folders = updatedFolders;
@@ -864,12 +861,12 @@
                 removeFolder(folderId) {
                     const rssHook = DataHooks.useRSSManager();
                     const feedsInFolder = rssHook.rssFeeds.filter(feed => feed.folderId === folderId);
-
+                    
                     if (feedsInFolder.length > 0) {
-                        return {
-                            success: false,
-                            reason: 'FEEDS_EXIST',
-                            feedCount: feedsInFolder.length
+                        return { 
+                            success: false, 
+                            reason: 'FEEDS_EXIST', 
+                            feedCount: feedsInFolder.length 
                         };
                     }
 
@@ -881,7 +878,7 @@
                 },
 
                 updateFolder(folderId, updates) {
-                    const updatedFolders = DataHooksCache.folders.map(folder =>
+                    const updatedFolders = DataHooksCache.folders.map(folder => 
                         folder.id === folderId ? { ...folder, ...updates } : folder
                     );
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.FOLDERS, updatedFolders);
@@ -894,7 +891,7 @@
         useAILearning() {
             const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.AI_LEARNING);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-
+            
             if (!DataHooksCache.aiLearning || DataHooksCache.lastUpdate.aiLearning !== timestamp) {
                 DataHooksCache.aiLearning = LocalStorageManager.getItem(CONFIG.STORAGE_KEYS.AI_LEARNING, DEFAULT_DATA.aiLearning);
                 DataHooksCache.lastUpdate.aiLearning = timestamp;
@@ -902,7 +899,6 @@
 
             return {
                 aiLearning: DataHooksCache.aiLearning,
-
                 updateWordWeight(word, weight) {
                     const updatedLearning = {
                         ...DataHooksCache.aiLearning,
@@ -912,7 +908,6 @@
                         },
                         lastUpdated: new Date().toISOString()
                     };
-
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
                     DataHooksCache.aiLearning = updatedLearning;
                     DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
@@ -927,7 +922,6 @@
                         },
                         lastUpdated: new Date().toISOString()
                     };
-
                     LocalStorageManager.setItem(CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
                     DataHooksCache.aiLearning = updatedLearning;
                     DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
@@ -946,7 +940,7 @@
         useWordFilters() {
             const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.WORD_FILTERS);
             const timestamp = stored ? JSON.parse(stored).timestamp : null;
-
+            
             if (!DataHooksCache.wordFilters || DataHooksCache.lastUpdate.wordFilters !== timestamp) {
                 DataHooksCache.wordFilters = LocalStorageManager.getItem(CONFIG.STORAGE_KEYS.WORD_FILTERS, DEFAULT_DATA.wordFilters);
                 DataHooksCache.lastUpdate.wordFilters = timestamp;
@@ -954,7 +948,6 @@
 
             return {
                 wordFilters: DataHooksCache.wordFilters,
-
                 addInterestWord(word) {
                     const updated = { ...DataHooksCache.wordFilters };
                     if (WordFilterManager.addWord(word, 'interest', updated)) {
@@ -1002,8 +995,8 @@
         }
     };
 
-    // =========================================== 
-    // アプリケーション状態管理 
+    // ===========================================
+    // アプリケーション状態管理
     // ===========================================
     let state = {
         viewMode: 'all',
@@ -1075,8 +1068,8 @@
         initializeRakutenMA();
     };
 
-    // =========================================== 
-    // ユーティリティ関数 
+    // ===========================================
+    // ユーティリティ関数
     // ===========================================
     const formatDate = dateString => {
         const date = new Date(dateString);
@@ -1096,7 +1089,7 @@
         let stars = '';
         for (let i = 1; i <= 5; i++) {
             const filled = i <= rating ? 'filled' : '';
-            stars += `<span class="star ${filled}" onclick="handleRateArticle('${articleId}', ${i})">★</span>`;
+            stars += `<span class="star ${filled}" onclick="handleRating('${articleId}', ${i})">★</span>`;
         }
         return `<div class="star-rating">${stars}</div>`;
     };
@@ -1112,20 +1105,21 @@
                 case '>': return '&gt;';
                 case '&': return '&amp;';
                 case '"': return '&quot;';
-                case "'": return '&apos;';
+                case "'": return '&#39;';
                 default: return char;
             }
         });
     };
 
-    // =========================================== 
-    // データ管理機能 
     // ===========================================
+    // データ管理機能
+    // ===========================================
+    
     // 学習データエクスポート
     const handleExportLearningData = () => {
         const aiHook = DataHooks.useAILearning();
         const wordHook = DataHooks.useWordFilters();
-
+        
         const exportData = {
             version: CONFIG.DATA_VERSION,
             exportDate: new Date().toISOString(),
@@ -1139,7 +1133,6 @@
         link.href = URL.createObjectURL(dataBlob);
         link.download = `minews_learning_data_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
-
         alert('学習データをエクスポートしました');
     };
 
@@ -1181,13 +1174,12 @@
 
                 alert('学習データをインポートしました');
                 render();
-
             } catch (error) {
                 alert('インポートに失敗しました: ' + error.message);
             }
         };
         reader.readAsText(file);
-
+        
         // ファイル選択をリセット
         event.target.value = '';
     };
@@ -1196,65 +1188,50 @@
     const handleExportRSSData = () => {
         const rssHook = DataHooks.useRSSManager();
         const foldersHook = DataHooks.useFolders();
-
+        
         let opmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
-  <head>
+<head>
     <title>Minews RSS Feeds</title>
     <dateCreated>${new Date().toUTCString()}</dateCreated>
-  </head>
-  <body>`;
+    <docs>http://www.opml.org/spec2</docs>
+</head>
+<body>
+`;
 
-        // フォルダ別にグループ化
-        const folderMap = {};
+        // フォルダ別にRSSフィードを整理
         foldersHook.folders.forEach(folder => {
-            folderMap[folder.id] = {
-                name: folder.name,
-                feeds: []
-            };
-        });
-
-        // 未分類フォルダを追加
-        folderMap['uncategorized'] = {
-            name: '未分類',
-            feeds: []
-        };
-
-        // フィードをフォルダに分類
-        rssHook.rssFeeds.forEach(feed => {
-            const folderId = feed.folderId || 'uncategorized';
-            if (folderMap[folderId]) {
-                folderMap[folderId].feeds.push(feed);
-            }
-        });
-
-        // OPML出力
-        Object.values(folderMap).forEach(folder => {
-            if (folder.feeds.length > 0) {
-                opmlContent += `
-    <outline text="${escapeXml(folder.name)}" title="${escapeXml(folder.name)}">`;
-                
-                folder.feeds.forEach(feed => {
-                    opmlContent += `
-      <outline type="rss" text="${escapeXml(feed.title)}" title="${escapeXml(feed.title)}" xmlUrl="${escapeXml(feed.url)}" />`;
+            const feedsInFolder = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id);
+            if (feedsInFolder.length > 0) {
+                opmlContent += `    <outline text="${escapeXml(folder.name)}" title="${escapeXml(folder.name)}">\n`;
+                feedsInFolder.forEach(feed => {
+                    opmlContent += `        <outline type="rss" text="${escapeXml(feed.title)}" title="${escapeXml(feed.title)}" xmlUrl="${escapeXml(feed.url)}" />\n`;
                 });
-                
-                opmlContent += `
-    </outline>`;
+                opmlContent += `    </outline>\n`;
             }
         });
 
-        opmlContent += `
-  </body>
+        // フォルダに属さないRSSフィード
+        const uncategorizedFeeds = rssHook.rssFeeds.filter(feed => 
+            !foldersHook.folders.some(folder => folder.id === feed.folderId)
+        );
+        if (uncategorizedFeeds.length > 0) {
+            opmlContent += `    <outline text="未分類" title="未分類">\n`;
+            uncategorizedFeeds.forEach(feed => {
+                opmlContent += `        <outline type="rss" text="${escapeXml(feed.title)}" title="${escapeXml(feed.title)}" xmlUrl="${escapeXml(feed.url)}" />\n`;
+            });
+            opmlContent += `    </outline>\n`;
+        }
+
+        opmlContent += `</body>
 </opml>`;
 
-        const dataBlob = new Blob([opmlContent], { type: 'text/xml' });
+        const dataBlob = new Blob([opmlContent], { type: 'application/xml' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
         link.download = `minews_rss_feeds_${new Date().toISOString().split('T')[0]}.opml`;
         link.click();
-
-        alert('RSSデータをOPML形式でエクスポートしました');
+        alert('RSSデータをエクスポートしました');
     };
 
     // RSSデータインポート（OPML形式）
@@ -1268,258 +1245,204 @@
                 const opmlContent = e.target.result;
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(opmlContent, 'text/xml');
+                
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) {
+                    throw new Error('OPMLファイルの解析に失敗しました');
+                }
 
                 const rssHook = DataHooks.useRSSManager();
                 const foldersHook = DataHooks.useFolders();
+                let importCount = 0;
 
-                let importedCount = 0;
-
-                // アウトライン要素を取得
-                const outlines = xmlDoc.querySelectorAll('outline');
-                
-                outlines.forEach(outline => {
-                    const type = outline.getAttribute('type');
+                // OPMLのoutline要素を解析
+                const processOutline = (outline, parentFolderId = null) => {
+                    const text = outline.getAttribute('text') || outline.getAttribute('title') || '';
                     const xmlUrl = outline.getAttribute('xmlUrl');
-                    const title = outline.getAttribute('text') || outline.getAttribute('title');
+                    const type = outline.getAttribute('type');
 
-                    if (type === 'rss' && xmlUrl) {
-                        // RSSフィードとして処理
-                        const parentOutline = outline.parentElement;
-                        let folderId = 'uncategorized';
-
-                        if (parentOutline && parentOutline.tagName === 'outline') {
-                            const folderName = parentOutline.getAttribute('text') || parentOutline.getAttribute('title');
-                            if (folderName && folderName !== 'body') {
-                                // フォルダが存在するかチェック
-                                let folder = foldersHook.folders.find(f => f.name === folderName);
-                                if (!folder) {
-                                    // フォルダを作成
-                                    folder = foldersHook.addFolder(folderName, CONFIG.FOLDER_COLORS[0].value);
-                                }
-                                if (folder) {
-                                    folderId = folder.id;
-                                }
-                            }
+                    if (xmlUrl && type === 'rss') {
+                        // RSSフィード
+                        const existingFeed = rssHook.rssFeeds.find(feed => feed.url === xmlUrl);
+                        if (!existingFeed) {
+                            rssHook.addRSSFeed(xmlUrl, text, parentFolderId);
+                            importCount++;
+                        }
+                    } else if (text && !xmlUrl) {
+                        // フォルダ
+                        const existingFolder = foldersHook.folders.find(folder => folder.name === text);
+                        let folderId = existingFolder ? existingFolder.id : null;
+                        
+                        if (!existingFolder) {
+                            const newFolder = foldersHook.addFolder(text, CONFIG.FOLDER_COLORS[0].value);
+                            if (newFolder) folderId = newFolder.id;
                         }
 
-                        // 重複チェック
-                        const exists = rssHook.rssFeeds.find(feed => feed.url === xmlUrl);
-                        if (!exists) {
-                            rssHook.addRSSFeed(xmlUrl, title, folderId);
-                            importedCount++;
-                        }
+                        // 子要素を処理
+                        const childOutlines = outline.querySelectorAll('outline');
+                        childOutlines.forEach(childOutline => processOutline(childOutline, folderId));
                     }
-                });
+                };
 
-                alert(`RSSデータをインポートしました（${importedCount}件追加）`);
+                const outlines = xmlDoc.querySelectorAll('opml body > outline');
+                outlines.forEach(outline => processOutline(outline));
+
+                alert(`${importCount}件のRSSフィードをインポートしました`);
                 render();
-
             } catch (error) {
                 alert('インポートに失敗しました: ' + error.message);
             }
         };
         reader.readAsText(file);
-
+        
         // ファイル選択をリセット
         event.target.value = '';
     };
 
-    // データリセット
-    const handleResetAllData = () => {
-        if (confirm('すべてのデータをリセットしますか？この操作は元に戻せません。')) {
-            Object.values(CONFIG.STORAGE_KEYS).forEach(key => {
-                LocalStorageManager.removeItem(key);
-            });
-            DataHooksCache.clear();
-            initializeData();
-            alert('すべてのデータをリセットしました');
-            render();
-        }
-    };
-
-    // =========================================== 
-    // イベントハンドラ 
-    // ===========================================
-    const handleRefreshFeeds = async () => {
-        if (state.isLoading) return;
-
-        setState({ isLoading: true });
-
-        try {
-            const rssHook = DataHooks.useRSSManager();
-            const result = await rssHook.fetchAllFeeds();
-
-            setState({ 
-                isLoading: false, 
-                lastUpdate: new Date().toISOString() 
-            });
-
-            let message = `更新完了: ${result.totalAdded}件の新着記事を取得しました\n`;
-            message += `成功: ${result.totalFeeds - result.totalErrors}/${result.totalFeeds}フィード\n\n`;
-
-            result.feedResults.forEach(feedResult => {
-                if (feedResult.success) {
-                    message += `✓ ${feedResult.name}: ${feedResult.added}/${feedResult.total}件追加\n`;
-                } else {
-                    message += `✗ ${feedResult.name}: ${feedResult.error}\n`;
-                }
-            });
-
-            alert(message);
-            render();
-
-        } catch (error) {
-            setState({ isLoading: false });
-            alert('フィード更新中にエラーが発生しました: ' + error.message);
-        }
-    };
-
-    const handleToggleReadStatus = (articleId) => {
-        const articlesHook = DataHooks.useArticles();
-        const article = state.articles.find(a => a.id === articleId);
-        
-        if (article) {
-            const newStatus = article.readStatus === 'read' ? 'unread' : 'read';
-            articlesHook.updateArticle(articleId, { readStatus: newStatus });
-        }
-    };
-
-    const handleToggleReadLater = (articleId) => {
-        const articlesHook = DataHooks.useArticles();
-        const article = state.articles.find(a => a.id === articleId);
-        
-        if (article) {
-            articlesHook.updateArticle(articleId, { readLater: !article.readLater });
-        }
-    };
-
-    const handleRateArticle = (articleId, rating) => {
-        const articlesHook = DataHooks.useArticles();
-        const aiHook = DataHooks.useAILearning();
-        const article = state.articles.find(a => a.id === articleId);
-        
-        if (article) {
-            const oldRating = article.userRating;
-            
-            // 前回の評価を取り消し
-            if (oldRating > 0) {
-                aiHook.updateLearningData(article, oldRating, true);
-            }
-            
-            // 新しい評価を適用
-            if (rating > 0) {
-                aiHook.updateLearningData(article, rating, false);
-            }
-            
-            articlesHook.updateArticle(articleId, { userRating: rating });
-        }
-    };
-
-    const handleViewModeChange = (mode) => {
-        setState({ viewMode: mode });
-    };
-
-    const handleFolderChange = (folderId) => {
-        setState({ selectedFolder: folderId });
-    };
-
-    const handleOpenModal = (modalType) => {
-        setState({ showModal: modalType });
-    };
-
-    const handleCloseModal = () => {
-        setState({ showModal: null });
-    };
-
-    // =========================================== 
-    // RSS管理関数 
-    // ===========================================
-    const handleAddRSSFeed = (url, title, folderId) => {
-        if (!url?.trim()) {
-            alert('URLを入力してください');
+    // 全データクリア
+    const handleClearAllData = () => {
+        if (!confirm('⚠️ 全データを削除します。この操作は取り消せません。\n\n削除対象:\n• 記事データ\n• RSSフィード設定\n• フォルダ設定\n• AI学習データ\n• ワードフィルター\n\n本当に削除しますか？')) {
             return;
         }
 
-        try {
-            new URL(url);
-        } catch {
-            alert('有効なURLを入力してください');
-            return;
-        }
+        // 全ストレージキーを削除
+        Object.values(CONFIG.STORAGE_KEYS).forEach(key => {
+            LocalStorageManager.removeItem(key);
+        });
 
-        const rssHook = DataHooks.useRSSManager();
-        const exists = rssHook.rssFeeds.find(feed => feed.url === url);
+        // キャッシュクリア
+        DataHooksCache.clear();
 
-        if (exists) {
-            alert('このRSSフィードは既に登録されています');
-            return;
-        }
-
-        rssHook.addRSSFeed(url, title, folderId);
-        alert('RSSフィードを追加しました');
+        // デフォルトデータで初期化
+        initializeData();
+        
+        alert('全データを削除しました');
         render();
     };
 
-    const handleRemoveRSSFeed = (feedId) => {
-        if (confirm('このRSSフィードを削除しますか？')) {
-            const rssHook = DataHooks.useRSSManager();
-            rssHook.removeRSSFeed(feedId);
-            alert('RSSフィードを削除しました');
-            render();
-        }
-    };
-
-    const handleToggleRSSFeed = (feedId) => {
-        const rssHook = DataHooks.useRSSManager();
-        const feed = rssHook.rssFeeds.find(f => f.id === feedId);
-        
-        if (feed) {
-            rssHook.updateRSSFeed(feedId, { isActive: !feed.isActive });
-            render();
-        }
-    };
-
-    const handleEditRSSField = (feedId, field, currentValue) => {
-        const newValue = prompt(`${field}を編集:`, currentValue);
-        if (newValue && newValue.trim() !== currentValue) {
-            const rssHook = DataHooks.useRSSManager();
-            rssHook.updateRSSFeed(feedId, { [field]: newValue.trim() });
-            render();
-        }
-    };
-
-    // =========================================== 
-    // フォルダ管理関数 
     // ===========================================
-    const handleAddFolder = (name, color) => {
-        if (!name?.trim()) {
-            alert('フォルダ名を入力してください');
-            return;
+    // イベントハンドラー
+    // ===========================================
+    
+    // 記事評価処理
+    const handleRating = (articleId, rating) => {
+        const articlesHook = DataHooks.useArticles();
+        const aiHook = DataHooks.useAILearning();
+        
+        const article = articlesHook.articles.find(a => a.id === articleId);
+        if (!article) return;
+
+        // 既存評価の取り消し
+        if (article.userRating > 0) {
+            aiHook.updateLearningData(article, article.userRating, true);
         }
 
+        // 新しい評価の適用
+        articlesHook.updateArticle(articleId, { userRating: rating });
+        if (rating > 0) {
+            aiHook.updateLearningData(article, rating, false);
+        }
+    };
+
+    // 記事の既読/未読切り替え
+    const toggleReadStatus = (articleId) => {
+        const articlesHook = DataHooks.useArticles();
+        const article = articlesHook.articles.find(a => a.id === articleId);
+        if (!article) return;
+
+        const newStatus = article.readStatus === 'read' ? 'unread' : 'read';
+        articlesHook.updateArticle(articleId, { readStatus: newStatus });
+    };
+
+    // あとで読む切り替え
+    const toggleReadLater = (articleId) => {
+        const articlesHook = DataHooks.useArticles();
+        const article = articlesHook.articles.find(a => a.id === articleId);
+        if (!article) return;
+
+        articlesHook.updateArticle(articleId, { readLater: !article.readLater });
+    };
+
+    // 記事削除
+    const deleteArticle = (articleId) => {
+        if (!confirm('この記事を削除しますか？')) return;
+        const articlesHook = DataHooks.useArticles();
+        articlesHook.removeArticle(articleId);
+    };
+
+    // 一括既読処理
+    const markAllAsRead = () => {
+        const articlesHook = DataHooks.useArticles();
+        const visibleArticles = getFilteredArticles();
+        const unreadIds = visibleArticles.filter(article => article.readStatus === 'unread').map(article => article.id);
+        
+        if (unreadIds.length === 0) return;
+        
+        if (!confirm(`${unreadIds.length}件の記事を既読にしますか？`)) return;
+        articlesHook.bulkUpdateArticles(unreadIds, { readStatus: 'read' });
+    };
+
+    // RSS取得処理
+    const handleFetchRSS = async () => {
+        setState({ isLoading: true });
+        try {
+            const rssHook = DataHooks.useRSSManager();
+            const result = await rssHook.fetchAllFeeds();
+            
+            let message = `RSS取得完了\n\n`;
+            message += `📊 統計:\n`;
+            message += `• 対象フィード数: ${result.totalFeeds}件\n`;
+            message += `• 新規記事数: ${result.totalAdded}件\n`;
+            message += `• エラー数: ${result.totalErrors}件\n\n`;
+            
+            if (result.feedResults.length > 0) {
+                message += `📋 詳細:\n`;
+                result.feedResults.forEach(feed => {
+                    if (feed.success) {
+                        message += `✅ ${feed.name}: ${feed.added}/${feed.total}件追加\n`;
+                    } else {
+                        message += `❌ ${feed.name}: ${feed.error.substring(0, 50)}...\n`;
+                    }
+                });
+            }
+
+            alert(message);
+            setState({ lastUpdate: new Date().toISOString() });
+        } catch (error) {
+            alert('RSS取得中にエラーが発生しました: ' + error.message);
+        } finally {
+            setState({ isLoading: false });
+        }
+    };
+
+    // フォルダ作成
+    const handleCreateFolder = () => {
+        const name = prompt('フォルダ名を入力してください:');
+        if (!name || !name.trim()) return;
+
+        const colorIndex = Math.floor(Math.random() * CONFIG.FOLDER_COLORS.length);
+        const color = CONFIG.FOLDER_COLORS[colorIndex].value;
+        
         const foldersHook = DataHooks.useFolders();
-        const exists = foldersHook.folders.find(folder => 
-            folder.name.toLowerCase() === name.trim().toLowerCase()
-        );
-
-        if (exists) {
-            alert('このフォルダ名は既に使用されています');
-            return;
-        }
-
         const newFolder = foldersHook.addFolder(name.trim(), color);
+        
         if (newFolder) {
-            alert('フォルダを作成しました');
+            alert(`フォルダ「${newFolder.name}」を作成しました`);
             render();
         } else {
             alert('フォルダの作成に失敗しました');
         }
     };
 
-    const handleRemoveFolder = (folderId) => {
+    // フォルダ削除
+    const handleDeleteFolder = (folderId) => {
         const foldersHook = DataHooks.useFolders();
-        const result = foldersHook.removeFolder(folderId);
+        const folder = foldersHook.folders.find(f => f.id === folderId);
+        if (!folder) return;
 
+        if (!confirm(`フォルダ「${folder.name}」を削除しますか？`)) return;
+
+        const result = foldersHook.removeFolder(folderId);
         if (result.success) {
             alert('フォルダを削除しました');
             if (state.selectedFolder === folderId) {
@@ -1527,695 +1450,643 @@
             }
             render();
         } else if (result.reason === 'FEEDS_EXIST') {
-            alert(
-                `このフォルダには${result.feedCount}個のRSSフィードが含まれています。\n` +
-                'フォルダを削除する前に、フィードを他のフォルダに移動するか削除してください。'
-            );
+            alert(`このフォルダには${result.feedCount}件のRSSフィードが含まれています。\n先にRSSフィードを削除または移動してください。`);
         }
     };
 
-    const handleEditFolder = (folderId) => {
-        const foldersHook = DataHooks.useFolders();
-        const folder = foldersHook.folders.find(f => f.id === folderId);
-        
-        if (folder) {
-            const newName = prompt('フォルダ名を編集:', folder.name);
-            if (newName && newName.trim() !== folder.name) {
-                const exists = foldersHook.folders.find(f => 
-                    f.id !== folderId && f.name.toLowerCase() === newName.trim().toLowerCase()
-                );
-                
-                if (exists) {
-                    alert('このフォルダ名は既に使用されています');
-                    return;
-                }
-                
-                foldersHook.updateFolder(folderId, { name: newName.trim() });
-                render();
-            }
-        }
+    // RSSフィード追加
+    const handleAddRSSFeed = () => {
+        setState({ showModal: 'addRss' });
     };
 
-    const handleMoveFeedToFolder = (feedId, newFolderId) => {
+    // RSSフィード削除
+    const handleDeleteRSSFeed = (feedId) => {
         const rssHook = DataHooks.useRSSManager();
-        rssHook.updateRSSFeed(feedId, { folderId: newFolderId });
+        const feed = rssHook.rssFeeds.find(f => f.id === feedId);
+        if (!feed) return;
+
+        if (!confirm(`RSSフィード「${feed.title}」を削除しますか？`)) return;
+
+        rssHook.removeRSSFeed(feedId);
+        alert('RSSフィードを削除しました');
         render();
     };
 
-    // =========================================== 
-    // ワード管理関数 
-    // ===========================================
-    const handleAddInterestWord = (word) => {
-        if (!word?.trim()) {
-            alert('キーワードを入力してください');
-            return;
-        }
+    // 興味ワード追加
+    const handleAddInterestWord = () => {
+        const word = prompt('興味のあるキーワードを入力してください:');
+        if (!word || !word.trim()) return;
 
         const wordHook = DataHooks.useWordFilters();
         if (wordHook.addInterestWord(word.trim())) {
+            alert(`興味ワード「${word.trim()}」を追加しました`);
             render();
         } else {
             alert('このキーワードは既に登録されています');
         }
     };
 
-    const handleAddNGWord = (word) => {
-        if (!word?.trim()) {
-            alert('NGワードを入力してください');
-            return;
-        }
+    // NGワード追加
+    const handleAddNGWord = () => {
+        const word = prompt('NGワードを入力してください:');
+        if (!word || !word.trim()) return;
 
         const wordHook = DataHooks.useWordFilters();
         if (wordHook.addNGWord(word.trim())) {
+            alert(`NGワード「${word.trim()}」を追加しました`);
             render();
         } else {
-            alert('このNGワードは既に登録されています');
+            alert('このワードは既に登録されています');
         }
     };
 
+    // 興味ワード削除
     const handleRemoveInterestWord = (word) => {
+        if (!confirm(`興味ワード「${word}」を削除しますか？`)) return;
+        
         const wordHook = DataHooks.useWordFilters();
-        wordHook.removeInterestWord(word);
-        render();
+        if (wordHook.removeInterestWord(word)) {
+            alert('興味ワードを削除しました');
+            render();
+        }
     };
 
+    // NGワード削除
     const handleRemoveNGWord = (word) => {
+        if (!confirm(`NGワード「${word}」を削除しますか？`)) return;
+        
         const wordHook = DataHooks.useWordFilters();
-        wordHook.removeNGWord(word);
-        render();
+        if (wordHook.removeNGWord(word)) {
+            alert('NGワードを削除しました');
+            render();
+        }
     };
 
-    // =========================================== 
-    // 記事表示・フィルタリング 
     // ===========================================
+    // フィルタリング・ソート処理
+    // ===========================================
+    
     const getFilteredArticles = () => {
+        const articlesHook = DataHooks.useArticles();
         const aiHook = DataHooks.useAILearning();
         const wordHook = DataHooks.useWordFilters();
-        const foldersHook = DataHooks.useFolders();
         const rssHook = DataHooks.useRSSManager();
+        const foldersHook = DataHooks.useFolders();
 
-        let filteredArticles = [...state.articles];
+        let filteredArticles = [...articlesHook.articles];
 
         // NGワードフィルタリング
-        filteredArticles = AIScoring.filterArticles(filteredArticles, wordHook.wordFilters);
+        filteredArticles = WordFilterManager.filterArticles(filteredArticles, wordHook.wordFilters);
+
+        // 表示モードフィルタリング
+        if (state.viewMode === 'unread') {
+            filteredArticles = filteredArticles.filter(article => article.readStatus === 'unread');
+        } else if (state.viewMode === 'readLater') {
+            filteredArticles = filteredArticles.filter(article => article.readLater);
+        } else if (state.viewMode === 'starred') {
+            filteredArticles = filteredArticles.filter(article => article.userRating > 0);
+        }
 
         // フォルダフィルタリング
         if (state.selectedFolder !== 'all') {
-            const folderFeeds = rssHook.rssFeeds
-                .filter(feed => feed.folderId === state.selectedFolder)
-                .map(feed => feed.title);
-
-            filteredArticles = filteredArticles.filter(article => 
-                folderFeeds.some(feedTitle => 
-                    feedTitle === article.rssSource ||
-                    article.rssSource.includes(feedTitle) ||
-                    feedTitle.includes(article.rssSource)
-                )
-            );
-        }
-
-        // 表示モードフィルタリング
-        switch (state.viewMode) {
-            case 'unread':
-                filteredArticles = filteredArticles.filter(article => article.readStatus === 'unread');
-                break;
-            case 'read':
-                filteredArticles = filteredArticles.filter(article => article.readStatus === 'read');
-                break;
-            case 'readLater':
-                filteredArticles = filteredArticles.filter(article => article.readLater);
-                break;
-            case 'rated':
-                filteredArticles = filteredArticles.filter(article => article.userRating > 0);
-                break;
+            const selectedFolder = foldersHook.folders.find(f => f.id === state.selectedFolder);
+            if (selectedFolder) {
+                const feedsInFolder = rssHook.rssFeeds.filter(feed => feed.folderId === selectedFolder.id);
+                const feedTitles = feedsInFolder.map(feed => feed.title);
+                const feedDomains = feedsInFolder.map(feed => FolderManager.extractDomainFromUrl(feed.url));
+                
+                filteredArticles = filteredArticles.filter(article => {
+                    return feedTitles.some(title => 
+                        article.rssSource === title || 
+                        article.rssSource.includes(title) || 
+                        title.includes(article.rssSource)
+                    ) || feedDomains.includes(FolderManager.extractDomainFromSource(article.rssSource));
+                });
+            }
         }
 
         // AIスコアでソート
         return AIScoring.sortArticlesByScore(filteredArticles, aiHook.aiLearning, wordHook.wordFilters);
     };
 
-    // =========================================== 
-    // レンダリング関数 
     // ===========================================
-    const renderArticleCard = (article) => {
-        const keywords = article.keywords ? article.keywords.map(keyword => 
-            `<span class="keyword">${keyword}</span>`
-        ).join('') : '';
-
-        const aiScoreBadge = article.aiScore !== undefined 
-            ? `<span class="ai-score">AI: ${article.aiScore}</span>` 
-            : '';
-
-        const ratingBadge = article.userRating > 0 
-            ? `<span class="rating-badge">★${article.userRating}</span>` 
-            : '';
+    // UI関数
+    // ===========================================
+    
+    const renderHeader = () => {
+        const foldersHook = DataHooks.useFolders();
+        const rssHook = DataHooks.useRSSManager();
+        
+        const folderOptions = foldersHook.folders.map(folder => {
+            const feedCount = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id).length;
+            return `<option value="${folder.id}"${state.selectedFolder === folder.id ? ' selected' : ''}>${folder.name} (${feedCount})</option>`;
+        }).join('');
 
         return `
-            <article class="article-card" data-read-status="${article.readStatus}">
-                <header class="article-header">
-                    <h2 class="article-title">
-                        <a href="${article.url}" target="_blank" rel="noopener">${article.title}</a>
-                    </h2>
-                    <div class="article-meta">
-                        <span class="date">${formatDate(article.publishDate)}</span>
-                        <span class="source">${article.rssSource}</span>
-                        <span class="category">${article.category}</span>
-                        ${aiScoreBadge}
-                        ${ratingBadge}
-                    </div>
-                </header>
-                
-                <div class="article-content">
-                    ${truncateText(article.content)}
-                </div>
-                
-                <div class="article-keywords">
-                    ${keywords}
-                </div>
-                
-                <div class="article-actions">
-                    <button class="simple-btn read-status" onclick="handleToggleReadStatus('${article.id}')">
-                        ${article.readStatus === 'read' ? '未読' : '既読'}
+            <header class="app-header">
+                <h1 class="app-title">📰 Minews</h1>
+                <div class="header-controls">
+                    <select class="folder-select" onchange="setState({selectedFolder: this.value})">
+                        <option value="all"${state.selectedFolder === 'all' ? ' selected' : ''}>すべてのフォルダ</option>
+                        ${folderOptions}
+                    </select>
+                    <button class="fetch-button" onclick="handleFetchRSS()" ${state.isLoading ? 'disabled' : ''}>
+                        ${state.isLoading ? '⏳ 取得中...' : '🔄 RSS取得'}
                     </button>
-                    <button class="simple-btn read-later" data-active="${article.readLater}" onclick="handleToggleReadLater('${article.id}')">
-                        ${article.readLater ? '解除' : '後読'}
-                    </button>
+                    <button class="settings-button" onclick="setState({showModal: 'settings'})">⚙️</button>
                 </div>
-                
-                ${createStarRating(article.userRating, article.id)}
-            </article>
+            </header>
         `;
     };
 
-    const renderNavigation = () => {
-        const foldersHook = DataHooks.useFolders();
-        const lastUpdateText = state.lastUpdate 
-            ? `最終更新: ${new Date(state.lastUpdate).toLocaleString('ja-JP')}`
-            : '';
-
-        // フォルダオプションの生成
-        const folderOptions = [
-            '<option value="all">すべて</option>',
-            ...foldersHook.folders.map(folder => 
-                `<option value="${folder.id}" ${state.selectedFolder === folder.id ? 'selected' : ''}>${folder.name}</option>`
-            )
-        ].join('');
+    const renderTabs = () => {
+        const articlesHook = DataHooks.useArticles();
+        const tabs = [
+            { key: 'all', label: 'すべて', count: articlesHook.articles.length },
+            { key: 'unread', label: '未読', count: articlesHook.articles.filter(a => a.readStatus === 'unread').length },
+            { key: 'readLater', label: 'あとで読む', count: articlesHook.articles.filter(a => a.readLater).length },
+            { key: 'starred', label: 'お気に入り', count: articlesHook.articles.filter(a => a.userRating > 0).length }
+        ];
 
         return `
-            <nav class="nav">
-                <div class="nav-left">
-                    <h1>Minews</h1>
-                    <div class="last-update">${lastUpdateText}</div>
-                </div>
-                
-                <div class="nav-filters">
-                    <div class="filter-group">
-                        <label for="viewMode">表示:</label>
-                        <select id="viewMode" class="filter-select" onchange="handleViewModeChange(this.value)">
-                            <option value="all" ${state.viewMode === 'all' ? 'selected' : ''}>すべて</option>
-                            <option value="unread" ${state.viewMode === 'unread' ? 'selected' : ''}>未読</option>
-                            <option value="read" ${state.viewMode === 'read' ? 'selected' : ''}>既読</option>
-                            <option value="readLater" ${state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
-                            <option value="rated" ${state.viewMode === 'rated' ? 'selected' : ''}>評価済み</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label for="folderFilter">フォルダ:</label>
-                        <select id="folderFilter" class="filter-select" onchange="handleFolderChange(this.value)">
-                            ${folderOptions}
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="nav-actions">
-                    <button class="action-btn refresh-btn ${state.isLoading ? 'loading' : ''}" 
-                            onclick="handleRefreshFeeds()" 
-                            ${state.isLoading ? 'disabled' : ''}>
-                        ${state.isLoading ? '更新中...' : '更新'}
+            <nav class="tabs">
+                ${tabs.map(tab => `
+                    <button class="tab ${state.viewMode === tab.key ? 'active' : ''}" 
+                            onclick="setState({viewMode: '${tab.key}'})">
+                        ${tab.label} <span class="tab-count">${tab.count}</span>
                     </button>
-                    <button class="action-btn" onclick="handleOpenModal('rss')">RSS</button>
-                    <button class="action-btn" onclick="handleOpenModal('folders')">フォルダ</button>
-                    <button class="action-btn" onclick="handleOpenModal('words')">ワード</button>
-                    <button class="action-btn" onclick="handleOpenModal('data')">データ</button>
-                </div>
+                `).join('')}
             </nav>
         `;
     };
 
-    const renderRSSModal = () => {
-        const rssHook = DataHooks.useRSSManager();
-        const foldersHook = DataHooks.useFolders();
+    const renderActionBar = () => {
+        const filteredArticles = getFilteredArticles();
+        const unreadCount = filteredArticles.filter(article => article.readStatus === 'unread').length;
 
-        const feedsList = rssHook.rssFeeds.map(feed => {
-            const folder = foldersHook.folders.find(f => f.id === feed.folderId);
-            const folderName = folder ? folder.name : '未分類';
-            
-            return `
-                <div class="rss-item">
-                    <div class="rss-info">
-                        <div class="rss-editable-row">
-                            <strong onclick="handleEditRSSField('${feed.id}', 'title', '${feed.title}')">${feed.title}</strong>
-                        </div>
-                        <div class="rss-editable-row">
-                            <span class="rss-url" onclick="handleEditRSSField('${feed.id}', 'url', '${feed.url}')">${feed.url}</span>
-                        </div>
-                        <div class="rss-editable-row">
-                            <div onclick="handleShowFolderSelection('${feed.id}')">フォルダ: ${folderName}</div>
-                        </div>
-                        <span class="rss-updated">最終更新: ${formatDate(feed.lastUpdated)}</span>
-                        <span class="rss-status ${feed.isActive ? 'active' : 'inactive'}">
-                            ${feed.isActive ? 'アクティブ' : '無効'}
-                        </span>
+        return `
+            <div class="action-bar">
+                <div class="action-info">
+                    表示中: ${filteredArticles.length}件
+                    ${state.lastUpdate ? `(最終更新: ${formatDate(state.lastUpdate)})` : ''}
+                </div>
+                <div class="action-buttons">
+                    ${unreadCount > 0 ? `<button class="action-button" onclick="markAllAsRead()">📖 一括既読 (${unreadCount})</button>` : ''}
+                </div>
+            </div>
+        `;
+    };
+
+    const renderArticleCard = (article) => {
+        const keywordTags = article.keywords ? article.keywords.slice(0, 3).map(keyword => 
+            `<span class="keyword-tag">${keyword}</span>`
+        ).join('') : '';
+
+        return `
+            <article class="article-card ${article.readStatus}" data-score="${article.aiScore || 0}">
+                <div class="article-header">
+                    <h3 class="article-title">
+                        <a href="${article.url}" target="_blank" onclick="toggleReadStatus('${article.id}')">${article.title}</a>
+                    </h3>
+                    <div class="article-meta">
+                        <span class="article-source">${article.rssSource}</span>
+                        <span class="article-date">${formatDate(article.publishDate)}</span>
+                        ${article.aiScore ? `<span class="ai-score">AI: ${article.aiScore}</span>` : ''}
                     </div>
-                    <div class="rss-actions">
-                        <button class="action-btn" onclick="handleToggleRSSFeed('${feed.id}')">
-                            ${feed.isActive ? '無効化' : '有効化'}
+                </div>
+                
+                <div class="article-content">
+                    <p class="article-excerpt">${truncateText(article.content)}</p>
+                    ${keywordTags ? `<div class="keyword-tags">${keywordTags}</div>` : ''}
+                </div>
+                
+                <div class="article-actions">
+                    <div class="article-rating">
+                        ${createStarRating(article.userRating, article.id)}
+                    </div>
+                    <div class="article-buttons">
+                        <button class="action-btn ${article.readStatus === 'read' ? 'active' : ''}" 
+                                onclick="toggleReadStatus('${article.id}')" title="既読切り替え">
+                            ${article.readStatus === 'read' ? '📖' : '📄'}
                         </button>
-                        <button class="action-btn danger" onclick="handleRemoveRSSFeed('${feed.id}')">削除</button>
+                        <button class="action-btn ${article.readLater ? 'active' : ''}" 
+                                onclick="toggleReadLater('${article.id}')" title="あとで読む">
+                            🔖
+                        </button>
+                        <button class="action-btn delete" onclick="deleteArticle('${article.id}')" title="削除">
+                            🗑️
+                        </button>
                     </div>
                 </div>
-            `;
-        }).join('');
-
-        const folderOptions = [
-            '<option value="uncategorized">未分類</option>',
-            ...foldersHook.folders.map(folder => 
-                `<option value="${folder.id}">${folder.name}</option>`
-            )
-        ].join('');
-
-        return `
-            <div class="modal-body">
-                <div class="modal-actions">
-                    <h3>新しいRSSフィードを追加</h3>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <input type="url" id="rssUrl" placeholder="RSS URL" style="flex: 2; min-width: 200px;">
-                        <input type="text" id="rssTitle" placeholder="タイトル（省略可）" style="flex: 1; min-width: 150px;">
-                        <select id="rssFolder" style="flex: 1; min-width: 100px;">
-                            ${folderOptions}
-                        </select>
-                        <button class="action-btn success" onclick="
-                            const url = document.getElementById('rssUrl').value;
-                            const title = document.getElementById('rssTitle').value;
-                            const folderId = document.getElementById('rssFolder').value;
-                            handleAddRSSFeed(url, title, folderId);
-                            document.getElementById('rssUrl').value = '';
-                            document.getElementById('rssTitle').value = '';
-                        ">追加</button>
-                    </div>
-                </div>
-                
-                <h3>登録済みRSSフィード</h3>
-                <div class="rss-list">
-                    ${feedsList}
-                </div>
-                
-                <div class="rss-help">
-                    <h4>RSS管理ヘルプ</h4>
-                    <ul>
-                        <li><strong>編集機能</strong>: タイトル、URL、フォルダをクリックすると編集できます</li>
-                        <li><strong>フォルダ移動</strong>: 「フォルダ: ○○」をクリックすると移動先を選択できます</li>
-                        <li><strong>有効/無効</strong>: 無効にしたフィードは更新対象から除外されます</li>
-                        <li><strong>対応形式</strong>: RSS 2.0、Atom、RDF形式に対応</li>
-                        <li><strong>プロキシ使用</strong>: CORS回避のため複数のプロキシサーバーを自動選択</li>
-                    </ul>
-                </div>
-            </div>
+            </article>
         `;
     };
 
-    const renderFoldersModal = () => {
-        const foldersHook = DataHooks.useFolders();
-        const rssHook = DataHooks.useRSSManager();
-
-        const foldersList = foldersHook.folders.map(folder => {
-            const feedCount = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id).length;
-            const colorName = FolderManager.getColorName(folder.color);
-            
+    const renderArticleList = () => {
+        const articles = getFilteredArticles();
+        
+        if (articles.length === 0) {
             return `
-                <div class="rss-item">
-                    <div class="rss-info">
-                        <strong>${folder.name}</strong>
-                        <span class="rss-url">色: ${colorName}</span>
-                        <span class="rss-updated">作成日: ${formatDate(folder.createdAt)}</span>
-                        <span class="rss-status active">${feedCount}個のフィード</span>
-                    </div>
-                    <div class="rss-actions">
-                        <button class="action-btn" onclick="handleEditFolder('${folder.id}')">編集</button>
-                        <button class="action-btn" onclick="handleShowColorSelection('${folder.id}')">色変更</button>
-                        <button class="action-btn danger" onclick="handleRemoveFolder('${folder.id}')">削除</button>
-                    </div>
+                <div class="empty-state">
+                    <h3>📭 記事がありません</h3>
+                    <p>RSSフィードを追加して記事を取得してください</p>
+                    <button class="primary-button" onclick="handleAddRSSFeed()">📡 RSSフィード追加</button>
                 </div>
             `;
-        }).join('');
-
-        const colorOptions = CONFIG.FOLDER_COLORS.map(color => 
-            `<option value="${color.value}">${color.name}</option>`
-        ).join('');
-
-        return `
-            <div class="modal-body">
-                <div class="modal-actions">
-                    <h3>新しいフォルダを作成</h3>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <input type="text" id="folderName" placeholder="フォルダ名" style="flex: 2; min-width: 200px;">
-                        <select id="folderColor" style="flex: 1; min-width: 120px;">
-                            ${colorOptions}
-                        </select>
-                        <button class="action-btn success" onclick="
-                            const name = document.getElementById('folderName').value;
-                            const color = document.getElementById('folderColor').value;
-                            handleAddFolder(name, color);
-                            document.getElementById('folderName').value = '';
-                        ">作成</button>
-                    </div>
-                </div>
-                
-                <h3>既存フォルダ</h3>
-                <div class="rss-list">
-                    ${foldersList}
-                </div>
-                
-                <div class="rss-help">
-                    <h4>フォルダ管理ヘルプ</h4>
-                    <ul>
-                        <li><strong>フォルダの役割</strong>: RSSフィードをカテゴリ別に整理できます</li>
-                        <li><strong>記事フィルタ</strong>: ナビゲーションでフォルダ別に記事を表示できます</li>
-                        <li><strong>色分け</strong>: フォルダごとに色を設定して視覚的に区別できます</li>
-                        <li><strong>削除制限</strong>: フィードが含まれるフォルダは削除できません</li>
-                        <li><strong>デフォルトフォルダ</strong>: 「ニュース」「テック」は初期設定として提供</li>
-                    </ul>
-                </div>
-            </div>
-        `;
-    };
-
-    const renderWordsModal = () => {
-        const wordHook = DataHooks.useWordFilters();
-
-        const interestWordsList = wordHook.wordFilters.interestWords.map(word => 
-            `<span class="word-tag interest">${word}
-                <button class="word-remove" onclick="handleRemoveInterestWord('${word}')">×</button>
-            </span>`
-        ).join('');
-
-        const ngWordsList = wordHook.wordFilters.ngWords.map(word => 
-            `<span class="word-tag ng">${word}
-                <button class="word-remove" onclick="handleRemoveNGWord('${word}')">×</button>
-            </span>`
-        ).join('');
-
-        return `
-            <div class="modal-body">
-                <div class="word-section">
-                    <div class="word-section-header">
-                        <h3>興味のあるキーワード</h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="interestWord" placeholder="キーワード" style="min-width: 150px;">
-                            <button class="action-btn success" onclick="
-                                const word = document.getElementById('interestWord').value;
-                                handleAddInterestWord(word);
-                                document.getElementById('interestWord').value = '';
-                            ">追加</button>
-                        </div>
-                    </div>
-                    <div class="word-list">
-                        ${interestWordsList || '<span class="text-muted">キーワードが登録されていません</span>'}
-                    </div>
-                </div>
-                
-                <div class="word-section">
-                    <div class="word-section-header">
-                        <h3>NGワード</h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="ngWord" placeholder="NGワード" style="min-width: 150px;">
-                            <button class="action-btn danger" onclick="
-                                const word = document.getElementById('ngWord').value;
-                                handleAddNGWord(word);
-                                document.getElementById('ngWord').value = '';
-                            ">追加</button>
-                        </div>
-                    </div>
-                    <div class="word-list">
-                        ${ngWordsList || '<span class="text-muted">NGワードが登録されていません</span>'}
-                    </div>
-                </div>
-                
-                <div class="word-help">
-                    <h4>ワードフィルター機能</h4>
-                    <ul>
-                        <li><strong>興味キーワード</strong>: 含まれる記事のAIスコアが+10点されます</li>
-                        <li><strong>NGワード</strong>: 含まれる記事は表示から除外されます</li>
-                        <li><strong>学習効果</strong>: 星評価と組み合わせて記事の自動スコアリングが向上します</li>
-                        <li><strong>大文字小文字</strong>: 区別せずにマッチングします</li>
-                        <li><strong>部分一致</strong>: タイトルと本文の両方で部分一致検索を行います</li>
-                    </ul>
-                    <p><strong>ヒント</strong>: 興味のあるトピックをキーワード登録し、星評価で学習させると記事の自動優先順位付けが向上します。</p>
-                </div>
-            </div>
-        `;
-    };
-
-    const renderDataModal = () => {
-        const storageInfo = LocalStorageManager.getStorageInfo();
-        const articlesHook = DataHooks.useArticles();
-        const rssHook = DataHooks.useRSSManager();
-        const foldersHook = DataHooks.useFolders();
-        const aiHook = DataHooks.useAILearning();
-        const wordHook = DataHooks.useWordFilters();
-
-        const wordWeightsCount = Object.keys(aiHook.aiLearning.wordWeights || {}).length;
-        const categoryWeightsCount = Object.keys(aiHook.aiLearning.categoryWeights || {}).length;
-        const interestWordsCount = wordHook.wordFilters.interestWords?.length || 0;
-        const ngWordsCount = wordHook.wordFilters.ngWords?.length || 0;
-
-        return `
-            <div class="modal-body">
-                <div class="data-section">
-                    <h3>ストレージ情報</h3>
-                    <div class="storage-info">
-                        <p>使用容量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB</p>
-                        <p>データ項目数: ${storageInfo.itemCount}個</p>
-                        <p>残り容量: ${Math.round(storageInfo.available / 1024)}KB</p>
-                    </div>
-                </div>
-
-                <div class="data-section">
-                    <h3>データ統計</h3>
-                    <div class="data-stats">
-                        <p>記事数: ${articlesHook.articles.length}件</p>
-                        <p>RSSフィード数: ${rssHook.rssFeeds.length}件</p>
-                        <p>フォルダ数: ${foldersHook.folders.length}個</p>
-                        <p>学習済みキーワード数: ${wordWeightsCount}語</p>
-                        <p>学習済みカテゴリ数: ${categoryWeightsCount}個</p>
-                        <p>興味キーワード数: ${interestWordsCount}語</p>
-                        <p>NGワード数: ${ngWordsCount}語</p>
-                    </div>
-                </div>
-
-                <div class="data-section">
-                    <h3>学習データ管理</h3>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <button class="action-btn success" onclick="handleExportLearningData()">学習データをエクスポート</button>
-                        <input type="file" id="learningDataImport" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
-                        <button class="action-btn" onclick="document.getElementById('learningDataImport').click()">学習データをインポート</button>
-                    </div>
-                </div>
-
-                <div class="data-section">
-                    <h3>RSSデータ管理</h3>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <button class="action-btn success" onclick="handleExportRSSData()">RSSをOPMLでエクスポート</button>
-                        <input type="file" id="rssDataImport" accept=".opml,.xml" onchange="handleImportRSSData(event)" style="display: none;">
-                        <button class="action-btn" onclick="document.getElementById('rssDataImport').click()">OPMLファイルをインポート</button>
-                    </div>
-                </div>
-
-                <div class="data-section">
-                    <h3>危険操作</h3>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <button class="action-btn danger" onclick="handleResetAllData()">すべてのデータをリセット</button>
-                    </div>
-                </div>
-
-                <div class="data-help">
-                    <h4>データ管理機能</h4>
-                    <ul>
-                        <li><strong>学習データ</strong>: AI評価学習とワードフィルターの設定をバックアップ</li>
-                        <li><strong>OPMLエクスポート</strong>: 標準的なRSSリーダーで利用できる形式で出力</li>
-                        <li><strong>データインポート</strong>: 他のデバイスからデータを移行</li>
-                        <li><strong>リセット機能</strong>: すべてのデータを初期状態に戻します（復元不可）</li>
-                    </ul>
-                </div>
-            </div>
-        `;
-    };
-
-    // モーダル表示の統合関数
-    const renderModal = () => {
-        if (!state.showModal) return '';
-
-        let modalContent = '';
-        let modalTitle = '';
-
-        switch (state.showModal) {
-            case 'rss':
-                modalTitle = 'RSS管理';
-                modalContent = renderRSSModal();
-                break;
-            case 'folders':
-                modalTitle = 'フォルダ管理';
-                modalContent = renderFoldersModal();
-                break;
-            case 'words':
-                modalTitle = 'ワード管理';
-                modalContent = renderWordsModal();
-                break;
-            case 'data':
-                modalTitle = 'データ管理';
-                modalContent = renderDataModal();
-                break;
-            case 'folderSelection':
-                modalTitle = 'フォルダ選択';
-                modalContent = renderFolderSelectionModal();
-                break;
-            case 'colorSelection':
-                modalTitle = '色選択';
-                modalContent = renderColorSelectionModal();
-                break;
         }
 
         return `
-            <div class="modal-overlay" onclick="handleCloseModal()">
-                <div class="modal" onclick="event.stopPropagation()">
+            <div class="article-list">
+                ${articles.map(article => renderArticleCard(article)).join('')}
+            </div>
+        `;
+    };
+
+    const renderAddRSSModal = () => {
+        const foldersHook = DataHooks.useFolders();
+        const folderOptions = foldersHook.folders.map(folder => 
+            `<option value="${folder.id}">${folder.name}</option>`
+        ).join('');
+
+        return `
+            <div class="modal-overlay" onclick="if(event.target === this) setState({showModal: null})">
+                <div class="modal">
                     <div class="modal-header">
-                        <h2>${modalTitle}</h2>
-                        <button class="modal-close" onclick="handleCloseModal()">×</button>
+                        <h3>📡 RSSフィード追加</h3>
+                        <button class="modal-close" onclick="setState({showModal: null})">×</button>
                     </div>
-                    ${modalContent}
+                    <form class="modal-form" onsubmit="handleSubmitRSSForm(event)">
+                        <div class="form-group">
+                            <label>RSS URL *</label>
+                            <input type="url" name="url" required placeholder="https://example.com/rss.xml">
+                            <small>RSS/Atom/RDFフィードのURLを入力してください</small>
+                        </div>
+                        <div class="form-group">
+                            <label>タイトル</label>
+                            <input type="text" name="title" placeholder="自動取得されます">
+                            <small>空欄の場合はフィードから自動取得されます</small>
+                        </div>
+                        <div class="form-group">
+                            <label>フォルダ *</label>
+                            <select name="folderId" required>
+                                ${folderOptions}
+                            </select>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="secondary-button" onclick="setState({showModal: null})">キャンセル</button>
+                            <button type="submit" class="primary-button">追加</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
     };
 
-    // フォルダ選択モーダル
-    let currentFeedIdForFolderSelection = null;
-
-    const handleShowFolderSelection = (feedId) => {
-        currentFeedIdForFolderSelection = feedId;
-        setState({ showModal: 'folderSelection' });
-    };
-
-    const renderFolderSelectionModal = () => {
-        const foldersHook = DataHooks.useFolders();
+    const renderSettingsModal = () => {
         const rssHook = DataHooks.useRSSManager();
-        const feed = rssHook.rssFeeds.find(f => f.id === currentFeedIdForFolderSelection);
-
-        const foldersList = [
-            { id: 'uncategorized', name: '未分類', color: '#6c757d' },
-            ...foldersHook.folders
-        ].map(folder => `
-            <div class="folder-selection-item" onclick="
-                handleMoveFeedToFolder('${currentFeedIdForFolderSelection}', '${folder.id}');
-                handleCloseModal();
-            ">
-                <span style="display: inline-block; width: 20px; height: 20px; background: ${folder.color}; border-radius: 3px; margin-right: 0.5rem;"></span>
-                ${folder.name}
-            </div>
-        `).join('');
-
-        return `
-            <div class="modal-body">
-                <h3>${feed ? feed.title : 'フィード'} の移動先フォルダを選択</h3>
-                <div class="folder-selection-list">
-                    ${foldersList}
-                </div>
-            </div>
-        `;
-    };
-
-    // 色選択モーダル
-    let currentFolderIdForColorSelection = null;
-
-    const handleShowColorSelection = (folderId) => {
-        currentFolderIdForColorSelection = folderId;
-        setState({ showModal: 'colorSelection' });
-    };
-
-    const renderColorSelectionModal = () => {
         const foldersHook = DataHooks.useFolders();
-        const folder = foldersHook.folders.find(f => f.id === currentFolderIdForColorSelection);
+        const wordHook = DataHooks.useWordFilters();
+        const aiHook = DataHooks.useAILearning();
+        const storageInfo = LocalStorageManager.getStorageInfo();
 
-        const colorsList = CONFIG.FOLDER_COLORS.map(color => `
-            <div class="color-selection-item" onclick="
-                const foldersHook = DataHooks.useFolders();
-                foldersHook.updateFolder('${currentFolderIdForColorSelection}', { color: '${color.value}' });
-                handleCloseModal();
-            ">
-                <span style="display: inline-block; width: 30px; height: 30px; background: ${color.value}; border-radius: 6px; margin-right: 0.5rem;"></span>
-                ${color.name}
-            </div>
-        `).join('');
+        const wordWeightsCount = Object.keys(aiHook.aiLearning.wordWeights).length;
+        const categoryWeightsCount = Object.keys(aiHook.aiLearning.categoryWeights).filter(k => aiHook.aiLearning.categoryWeights[k] !== 0).length;
+        const interestWordsCount = wordHook.wordFilters.interestWords.length;
+        const ngWordsCount = wordHook.wordFilters.ngWords.length;
 
         return `
-            <div class="modal-body">
-                <h3>${folder ? folder.name : 'フォルダ'} の色を選択</h3>
-                <div class="color-selection-list">
-                    ${colorsList}
+            <div class="modal-overlay" onclick="if(event.target === this) setState({showModal: null})">
+                <div class="modal settings-modal">
+                    <div class="modal-header">
+                                               <h3>⚙️ 設定</h3>
+                        <button class="modal-close" onclick="setState({showModal: null})">×</button>
+                    </div>
+                    <div class="modal-content">
+                        <div class="settings-tabs">
+                            <button class="settings-tab active" onclick="showSettingsTab('feeds')">📡 フィード管理</button>
+                            <button class="settings-tab" onclick="showSettingsTab('folders')">📁 フォルダ管理</button>
+                            <button class="settings-tab" onclick="showSettingsTab('words')">🔤 ワード管理</button>
+                            <button class="settings-tab" onclick="showSettingsTab('data')">💾 データ管理</button>
+                            <button class="settings-tab" onclick="showSettingsTab('info')">ℹ️ システム情報</button>
+                        </div>
+                        
+                        <div class="settings-content">
+                            <div id="settings-feeds" class="settings-panel active">
+                                <h4>📡 RSSフィード管理</h4>
+                                <div class="settings-actions">
+                                    <button class="primary-button" onclick="handleAddRSSFeed(); setState({showModal: null})">
+                                        ➕ フィード追加
+                                    </button>
+                                </div>
+                                <div class="feed-list">
+                                    ${rssHook.rssFeeds.map(feed => {
+                                        const folder = foldersHook.folders.find(f => f.id === feed.folderId);
+                                        return `
+                                            <div class="feed-item">
+                                                <div class="feed-info">
+                                                    <strong>${feed.title}</strong>
+                                                    <small>${feed.url}</small>
+                                                    <span class="feed-folder">📁 ${folder ? folder.name : '未分類'}</span>
+                                                </div>
+                                                <div class="feed-actions">
+                                                    <button class="action-btn" onclick="handleDeleteRSSFeed('${feed.id}')" title="削除">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            
+                            <div id="settings-folders" class="settings-panel">
+                                <h4>📁 フォルダ管理</h4>
+                                <div class="settings-actions">
+                                    <button class="primary-button" onclick="handleCreateFolder()">
+                                        ➕ フォルダ作成
+                                    </button>
+                                </div>
+                                <div class="folder-list">
+                                    ${foldersHook.folders.map(folder => {
+                                        const feedCount = rssHook.rssFeeds.filter(feed => feed.folderId === folder.id).length;
+                                        return `
+                                            <div class="folder-item">
+                                                <div class="folder-color" style="background-color: ${folder.color}"></div>
+                                                <div class="folder-info">
+                                                    <strong>${folder.name}</strong>
+                                                    <small>${feedCount}件のフィード</small>
+                                                    <span class="folder-color-name">${FolderManager.getColorName(folder.color)}</span>
+                                                </div>
+                                                <div class="folder-actions">
+                                                    <button class="action-btn" onclick="handleDeleteFolder('${folder.id}')" title="削除">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            
+                            <div id="settings-words" class="settings-panel">
+                                <h4>🔤 ワード管理</h4>
+                                
+                                <div class="word-section">
+                                    <h5>💚 興味ワード</h5>
+                                    <div class="settings-actions">
+                                        <button class="primary-button" onclick="handleAddInterestWord()">
+                                            ➕ 興味ワード追加
+                                        </button>
+                                    </div>
+                                    <div class="word-list">
+                                        ${wordHook.wordFilters.interestWords.map(word => `
+                                            <div class="word-item interest">
+                                                <span>${word}</span>
+                                                <button class="word-remove" onclick="handleRemoveInterestWord('${word}')">×</button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="word-section">
+                                    <h5>🚫 NGワード</h5>
+                                    <div class="settings-actions">
+                                        <button class="secondary-button" onclick="handleAddNGWord()">
+                                            ➕ NGワード追加
+                                        </button>
+                                    </div>
+                                    <div class="word-list">
+                                        ${wordHook.wordFilters.ngWords.map(word => `
+                                            <div class="word-item ng">
+                                                <span>${word}</span>
+                                                <button class="word-remove" onclick="handleRemoveNGWord('${word}')">×</button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="settings-data" class="settings-panel">
+                                <h4>💾 データ管理</h4>
+                                
+                                <div class="data-section">
+                                    <h5>📤 エクスポート</h5>
+                                    <div class="data-actions">
+                                        <button class="primary-button" onclick="handleExportLearningData()">
+                                            📊 学習データ書き出し
+                                        </button>
+                                        <button class="primary-button" onclick="handleExportRSSData()">
+                                            📡 RSSデータ書き出し (OPML)
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="data-section">
+                                    <h5>📥 インポート</h5>
+                                    <div class="data-actions">
+                                        <label class="file-input-label">
+                                            📊 学習データ読み込み
+                                            <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
+                                        </label>
+                                        <label class="file-input-label">
+                                            📡 RSSデータ読み込み (OPML)
+                                            <input type="file" accept=".opml,.xml" onchange="handleImportRSSData(event)" style="display: none;">
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="data-section danger-zone">
+                                    <h5>⚠️ 危険な操作</h5>
+                                    <button class="danger-button" onclick="handleClearAllData()">
+                                        🗑️ 全データ削除
+                                    </button>
+                                    <small>この操作は取り消せません</small>
+                                </div>
+                            </div>
+                            
+                            <div id="settings-info" class="settings-panel">
+                                <h4>ℹ️ システム情報</h4>
+                                
+                                <div class="info-section">
+                                    <h5>📱 アプリケーション</h5>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">バージョン</span>
+                                            <span class="info-value">${CONFIG.DATA_VERSION}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">形態素解析</span>
+                                            <span class="info-value">${rakutenMAInitialized ? '✅ RakutenMA有効' : '❌ フォールバック'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="info-section">
+                                    <h5>💡 使用方法</h5>
+                                    <p><strong>ヒント</strong>: 興味のあるトピックをキーワード登録し、星評価で学習させると記事の自動優先順位付けが向上します。</p>
+                                </div>
+                                
+                                <div class="info-section">
+                                    <h5>💾 ストレージ使用状況</h5>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">使用容量</span>
+                                            <span class="info-value">${Math.round(storageInfo.totalSize / 1024)}KB / 5MB</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">データ項目数</span>
+                                            <span class="info-value">${storageInfo.itemCount}個</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">残り容量</span>
+                                            <span class="info-value">${Math.round(storageInfo.available / 1024)}KB</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="info-section">
+                                    <h5>📊 データ統計</h5>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">記事数</span>
+                                            <span class="info-value">${articlesHook.articles.length}件</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">RSSフィード数</span>
+                                            <span class="info-value">${rssHook.rssFeeds.length}件</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">フォルダ数</span>
+                                            <span class="info-value">${foldersHook.folders.length}個</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">学習済みキーワード数</span>
+                                            <span class="info-value">${wordWeightsCount}語</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">学習済みカテゴリ数</span>
+                                            <span class="info-value">${categoryWeightsCount}個</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">興味キーワード数</span>
+                                            <span class="info-value">${interestWordsCount}語</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">NGワード数</span>
+                                            <span class="info-value">${ngWordsCount}語</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
     };
 
-    // =========================================== 
-    // メインレンダリング関数 
-    // ===========================================
-    const render = () => {
-        const filteredArticles = getFilteredArticles();
+    // 設定タブ切り替え
+    const showSettingsTab = (tabName) => {
+        // 全パネルを非アクティブに
+        document.querySelectorAll('.settings-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
 
-        const articlesHTML = filteredArticles.length > 0 
-            ? filteredArticles.map(renderArticleCard).join('')
-            : '<div class="empty-message">該当する記事がありません</div>';
-
-        const appHTML = `
-            <div class="app">
-                ${renderNavigation()}
-                
-                <main class="main-content">
-                    <div class="article-grid">
-                        ${articlesHTML}
-                    </div>
-                </main>
-                
-                ${renderModal()}
-            </div>
-        `;
-
-        document.body.innerHTML = appHTML;
+        // 選択されたパネルとタブをアクティブに
+        const targetPanel = document.getElementById(`settings-${tabName}`);
+        const targetTab = document.querySelector(`[onclick="showSettingsTab('${tabName}')"]`);
+        
+        if (targetPanel) targetPanel.classList.add('active');
+        if (targetTab) targetTab.classList.add('active');
     };
 
-    // =========================================== 
-    // グローバル関数の定義（HTMLから呼び出し用）
+    // RSSフォーム送信処理
+    const handleSubmitRSSForm = async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const url = formData.get('url');
+        const title = formData.get('title');
+        const folderId = formData.get('folderId');
+
+        if (!url || !folderId) {
+            alert('URL とフォルダは必須です');
+            return;
+        }
+
+        try {
+            setState({ isLoading: true });
+            const rssHook = DataHooks.useRSSManager();
+            
+            // フィード追加
+            const newFeed = rssHook.addRSSFeed(url, title, folderId);
+            
+            // 即座にフィードを取得してタイトルを更新
+            if (!title) {
+                try {
+                    const rssContent = await RSSProcessor.fetchRSS(url);
+                    const parsed = RSSProcessor.parseRSS(rssContent, url);
+                    rssHook.updateRSSFeed(newFeed.id, {
+                        title: parsed.feedTitle,
+                        lastUpdated: new Date().toISOString()
+                    });
+                } catch (error) {
+                    console.warn('フィードタイトル取得失敗:', error);
+                }
+            }
+
+            alert('RSSフィードを追加しました');
+            setState({ showModal: null });
+        } catch (error) {
+            alert('RSSフィード追加に失敗しました: ' + error.message);
+        } finally {
+            setState({ isLoading: false });
+        }
+    };
+
     // ===========================================
-    window.handleRefreshFeeds = handleRefreshFeeds;
-    window.handleToggleReadStatus = handleToggleReadStatus;
-    window.handleToggleReadLater = handleToggleReadLater;
-    window.handleRateArticle = handleRateArticle;
-    window.handleViewModeChange = handleViewModeChange;
-    window.handleFolderChange = handleFolderChange;
-    window.handleOpenModal = handleOpenModal;
-    window.handleCloseModal = handleCloseModal;
+    // メインレンダリング関数
+    // ===========================================
+    
+    const render = () => {
+        const app = document.getElementById('app');
+        if (!app) return;
+
+        let content = `
+            ${renderHeader()}
+            ${renderTabs()}
+            ${renderActionBar()}
+            ${renderArticleList()}
+        `;
+
+        // モーダル表示
+        if (state.showModal === 'addRss') {
+            content += renderAddRSSModal();
+        } else if (state.showModal === 'settings') {
+            content += renderSettingsModal();
+        }
+
+        app.innerHTML = content;
+    };
+
+    // ===========================================
+    // アプリケーション初期化
+    // ===========================================
+    
+    // グローバル関数として公開（HTML内のonclick属性で使用）
+    window.setState = setState;
+    window.handleRating = handleRating;
+    window.toggleReadStatus = toggleReadStatus;
+    window.toggleReadLater = toggleReadLater;
+    window.deleteArticle = deleteArticle;
+    window.markAllAsRead = markAllAsRead;
+    window.handleFetchRSS = handleFetchRSS;
+    window.handleCreateFolder = handleCreateFolder;
+    window.handleDeleteFolder = handleDeleteFolder;
     window.handleAddRSSFeed = handleAddRSSFeed;
-    window.handleRemoveRSSFeed = handleRemoveRSSFeed;
-    window.handleToggleRSSFeed = handleToggleRSSFeed;
-    window.handleEditRSSField = handleEditRSSField;
-    window.handleAddFolder = handleAddFolder;
-    window.handleRemoveFolder = handleRemoveFolder;
-    window.handleEditFolder = handleEditFolder;
-    window.handleMoveFeedToFolder = handleMoveFeedToFolder;
-    window.handleShowFolderSelection = handleShowFolderSelection;
-    window.handleShowColorSelection = handleShowColorSelection;
+    window.handleDeleteRSSFeed = handleDeleteRSSFeed;
     window.handleAddInterestWord = handleAddInterestWord;
     window.handleAddNGWord = handleAddNGWord;
     window.handleRemoveInterestWord = handleRemoveInterestWord;
@@ -2224,48 +2095,14 @@
     window.handleImportLearningData = handleImportLearningData;
     window.handleExportRSSData = handleExportRSSData;
     window.handleImportRSSData = handleImportRSSData;
-    window.handleResetAllData = handleResetAllData;
+    window.handleClearAllData = handleClearAllData;
+    window.showSettingsTab = showSettingsTab;
+    window.handleSubmitRSSForm = handleSubmitRSSForm;
 
-    // =========================================== 
-    // アプリケーション初期化 
-    // ===========================================
+    // DOMContentLoaded後にアプリケーション初期化
     document.addEventListener('DOMContentLoaded', () => {
         initializeData();
         render();
-
-        // Service Worker登録
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(registration => console.log('Service Worker registered'))
-                .catch(error => console.log('Service Worker registration failed'));
-        }
-
-        // キーボードショートカット
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch (e.key) {
-                    case 'r':
-                        e.preventDefault();
-                        if (!state.isLoading) handleRefreshFeeds();
-                        break;
-                    case 'Escape':
-                        if (state.showModal) {
-                            e.preventDefault();
-                            handleCloseModal();
-                        }
-                        break;
-                }
-            }
-        });
-
-        // オンライン・オフライン状態の監視
-        window.addEventListener('online', () => {
-            console.log('オンラインになりました');
-        });
-
-        window.addEventListener('offline', () => {
-            console.log('オフラインになりました');
-        });
     });
 
 })();
