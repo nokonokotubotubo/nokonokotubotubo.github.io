@@ -261,10 +261,18 @@ const handleRefresh = async () => {
             articles: DataHooksCache.articles
         });
 
-        const message = `更新完了！
-追加: ${result.totalAdded}件
-エラー: ${result.totalErrors}件
-処理済み: ${result.totalFeeds}フィード`;
+        // 元コード通りの詳細メッセージ
+        let message = `更新完了！${result.totalAdded}件の新記事を追加しました。\n`;
+        if (result.feedResults?.length > 0) {
+            message += '\n【フィード別結果】\n';
+            result.feedResults.forEach(feedResult => {
+                if (feedResult.success) {
+                    message += `✅ ${feedResult.name}: ${feedResult.added}/${feedResult.total}件追加\n`;
+                } else {
+                    message += `❌ ${feedResult.name}: 取得失敗\n`;
+                }
+            });
+        }
 
         alert(message);
     } catch (error) {
@@ -320,53 +328,61 @@ const handleReadLater = (articleId) => {
     }
 };
 
+// prompt()を使用した元のフォルダ追加方式
 const handleAddFolder = () => {
     const name = prompt('フォルダ名を入力してください:');
     if (!name) return;
-
-    setState({ showModal: 'color-selection', modalData: { action: 'create-folder', name } });
-};
-
-const handleColorSelection = (color) => {
-    const { action, name, folderId } = state.modalData;
+    
+    // デフォルト色を選択するためのprompt
+    const colorChoice = prompt(`フォルダの色を選択してください (1-6を入力):
+1. ブルー
+2. グリーン  
+3. オレンジ
+4. パープル
+5. レッド
+6. グレー`);
+    
+    let color = '#4A90A4'; // デフォルト
+    const colorIndex = parseInt(colorChoice) - 1;
+    if (colorIndex >= 0 && colorIndex < CONFIG.FOLDER_COLORS.length) {
+        color = CONFIG.FOLDER_COLORS[colorIndex].value;
+    }
+    
     const foldersHook = DataHooks.useFolders();
-    
-    if (action === 'create-folder') {
-        const newFolder = foldersHook.addFolder(name, color);
-        if (newFolder) {
-            alert(`フォルダ「${name}」を作成しました`);
-        } else {
-            alert('フォルダの作成に失敗しました');
-        }
-    } else if (action === 'update-folder-color') {
-        foldersHook.updateFolder(folderId, { color });
-        alert('フォルダの色を変更しました');
+    const newFolder = foldersHook.addFolder(name, color);
+    if (newFolder) {
+        alert(`フォルダ「${name}」を作成しました`);
+        render();
+    } else {
+        alert('フォルダの作成に失敗しました');
     }
-    
-    setState({ showModal: null, modalData: null });
-    render();
 };
 
+// prompt()を使用した元のRSS追加方式
 const handleAddRSSFeed = () => {
-    setState({ showModal: 'folder-selection', modalData: { action: 'add-rss' } });
-};
-
-const handleFolderSelection = (folderId) => {
-    const { action } = state.modalData;
+    const url = prompt('RSS URLを入力してください:');
+    if (!url) return;
     
-    if (action === 'add-rss') {
-        const url = prompt('RSS URL を入力してください:');
-        if (!url) {
-            setState({ showModal: null });
-            return;
-        }
-        
-        const rssHook = DataHooks.useRSSManager();
-        const newFeed = rssHook.addRSSFeed(url, 'RSS Feed', folderId);
-        alert(`RSS フィードを追加しました: ${newFeed.title}`);
+    const foldersHook = DataHooks.useFolders();
+    const folders = foldersHook.folders;
+    
+    // フォルダ選択のためのprompt
+    let folderPrompt = 'フォルダを選択してください (番号を入力):\n';
+    folders.forEach((folder, index) => {
+        folderPrompt += `${index + 1}. ${folder.name}\n`;
+    });
+    
+    const folderChoice = prompt(folderPrompt);
+    const folderIndex = parseInt(folderChoice) - 1;
+    let folderId = 'default-general'; // デフォルト
+    
+    if (folderIndex >= 0 && folderIndex < folders.length) {
+        folderId = folders[folderIndex].id;
     }
     
-    setState({ showModal: null, modalData: null });
+    const rssHook = DataHooks.useRSSManager();
+    const newFeed = rssHook.addRSSFeed(url, 'RSS Feed', folderId);
+    alert(`RSS フィードを追加しました: ${newFeed.title}`);
     render();
 };
 
@@ -530,10 +546,6 @@ const renderModal = () => {
             return renderWordFilterModal(wordHook.wordFilters);
         case 'data-manager':
             return renderDataManagerModal();
-        case 'folder-selection':
-            return renderFolderSelectionModal(foldersHook.folders);
-        case 'color-selection':
-            return renderColorSelectionModal();
         default:
             return '';
     }
@@ -688,60 +700,6 @@ const renderDataManagerModal = () => {
     `;
 };
 
-const renderFolderSelectionModal = (folders) => {
-    const folderItems = folders.map(folder => `
-        <div class="folder-selection-item" onclick="handleFolderSelection('${folder.id}')">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="width: 12px; height: 12px; background: ${folder.color}; border-radius: 50%; display: inline-block;"></span>
-                <span>${folder.name}</span>
-            </div>
-        </div>
-    `).join('');
-
-    return `
-        <div class="modal-overlay" onclick="setState({showModal: null})">
-            <div class="modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>フォルダを選択</h2>
-                    <button class="modal-close" onclick="setState({showModal: null})">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="folder-selection-list">
-                        ${folderItems}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
-const renderColorSelectionModal = () => {
-    const colorItems = CONFIG.FOLDER_COLORS.map(color => `
-        <div class="color-selection-item" onclick="handleColorSelection('${color.value}')">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="width: 20px; height: 20px; background: ${color.value}; border-radius: 50%; display: inline-block;"></span>
-                <span>${color.name}</span>
-            </div>
-        </div>
-    `).join('');
-
-    return `
-        <div class="modal-overlay" onclick="setState({showModal: null})">
-            <div class="modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>色を選択</h2>
-                    <button class="modal-close" onclick="setState({showModal: null})">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="color-selection-list">
-                        ${colorItems}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
 // =========================================== 
 // グローバル関数（イベントハンドラー用） 
 // =========================================== 
@@ -751,9 +709,7 @@ window.handleRating = handleRating;
 window.handleMarkAsRead = handleMarkAsRead;
 window.handleReadLater = handleReadLater;
 window.handleAddFolder = handleAddFolder;
-window.handleColorSelection = handleColorSelection;
 window.handleAddRSSFeed = handleAddRSSFeed;
-window.handleFolderSelection = handleFolderSelection;
 window.handleExportLearningData = handleExportLearningData;
 window.handleImportLearningData = handleImportLearningData;
 window.handleExportRSSData = handleExportRSSData;
@@ -826,7 +782,7 @@ window.confirmClearAllData = () => {
     }
 };
 
-// RSS編集用のグローバル関数
+// RSS編集用のグローバル関数（prompt使用）
 window.editRSSFeedTitle = (feedId) => {
     const rssHook = DataHooks.useRSSManager();
     const feed = rssHook.rssFeeds.find(f => f.id === feedId);
@@ -852,10 +808,26 @@ window.editRSSFeedUrl = (feedId) => {
 };
 
 window.editRSSFeedFolder = (feedId) => {
-    setState({ 
-        showModal: 'folder-selection', 
-        modalData: { action: 'update-rss-folder', feedId } 
-    });
+    const rssHook = DataHooks.useRSSManager();
+    const foldersHook = DataHooks.useFolders();
+    const feed = rssHook.rssFeeds.find(f => f.id === feedId);
+    const folders = foldersHook.folders;
+    
+    if (feed) {
+        let folderPrompt = 'フォルダを選択してください (番号を入力):\n';
+        folders.forEach((folder, index) => {
+            folderPrompt += `${index + 1}. ${folder.name}\n`;
+        });
+        
+        const folderChoice = prompt(folderPrompt);
+        const folderIndex = parseInt(folderChoice) - 1;
+        
+        if (folderIndex >= 0 && folderIndex < folders.length) {
+            const newFolderId = folders[folderIndex].id;
+            rssHook.updateRSSFeed(feedId, { folderId: newFolderId });
+            render();
+        }
+    }
 };
 
 // =========================================== 
