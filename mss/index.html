@@ -3,18 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minews - RSS リーダー</title>
+    <title>Minews PWA</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4A90A4">
 </head>
 <body>
     <div id="app"></div>
-    
-    <!-- Core module (データ処理・管理機能) -->
-    <script src="core.js"></script>
-    
-    <!-- Application module (UI・状態管理) -->
-    <script src="app.js"></script>
+    <script type="module" src="dm.js"></script>
+    <script type="module" src="ac.js"></script>
 </body>
 </html>
