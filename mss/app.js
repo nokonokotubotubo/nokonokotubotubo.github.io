@@ -682,22 +682,13 @@ const renderRSSModal = () => {
                 </div>
                 <div class="modal-body">
                     <div class="modal-actions">
-                        <div class="form-group">
-                            <label for="rssUrl">RSS URL:</label>
-                            <input type="text" id="rssUrl" name="rssUrl" placeholder="RSS URL">
-                        </div>
-                        <div class="form-group">
-                            <label for="rssTitle">タイトル（任意）:</label>
-                            <input type="text" id="rssTitle" name="rssTitle" placeholder="タイトル（任意）">
-                        </div>
-                        <div class="form-group">
-                            <label for="rssFolderId">フォルダ:</label>
-                            <select id="rssFolderId" name="rssFolderId">
-                                ${foldersHook.folders.map(folder => 
-                                    `<option value="${folder.id}">${folder.name}</option>`
-                                ).join('')}
-                            </select>
-                        </div>
+                        <input type="text" id="rssUrl" name="rssUrl" placeholder="RSS URL" style="width: 60%; margin-right: 0.5rem;">
+                        <input type="text" id="rssTitle" name="rssTitle" placeholder="タイトル（任意）" style="width: 30%; margin-right: 0.5rem;">
+                        <select id="rssFolderId" name="rssFolderId" style="width: 100%; margin: 0.5rem 0;">
+                            ${foldersHook.folders.map(folder => 
+                                `<option value="${folder.id}">${folder.name}</option>`
+                            ).join('')}
+                        </select>
                         <button class="action-btn success" onclick="handleAddRSSFeed()">追加</button>
                     </div>
 
@@ -753,18 +744,12 @@ const renderFoldersModal = () => {
                 </div>
                 <div class="modal-body">
                     <div class="modal-actions">
-                        <div class="form-group">
-                            <label for="folderName">フォルダ名:</label>
-                            <input type="text" id="folderName" name="folderName" placeholder="フォルダ名">
-                        </div>
-                        <div class="form-group">
-                            <label for="folderColor">カラー:</label>
-                            <select id="folderColor" name="folderColor">
-                                ${CONFIG.FOLDER_COLORS.map(color => 
-                                    `<option value="${color.value}" style="background-color: ${color.value}; color: white;">${color.name}</option>`
-                                ).join('')}
-                            </select>
-                        </div>
+                        <input type="text" id="folderName" name="folderName" placeholder="フォルダ名" style="width: 60%; margin-right: 0.5rem;">
+                        <select id="folderColor" name="folderColor" style="width: 30%; margin-right: 0.5rem;">
+                            ${CONFIG.FOLDER_COLORS.map(color => 
+                                `<option value="${color.value}" style="background-color: ${color.value}; color: white;">${color.name}</option>`
+                            ).join('')}
+                        </select>
                         <button class="action-btn success" onclick="handleAddFolder()">追加</button>
                     </div>
 
@@ -802,12 +787,9 @@ const renderWordsModal = () => {
                     <div class="word-section">
                         <div class="word-section-header">
                             <h3>興味ワード</h3>
-                            <div class="form-group">
-                                <label for="interestWord">興味ワード:</label>
-                                <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                                    <input type="text" id="interestWord" name="interestWord" placeholder="興味ワードを追加" style="flex: 1;">
-                                    <button class="action-btn success" onclick="handleAddInterestWord()">追加</button>
-                                </div>
+                            <div>
+                                <input type="text" id="interestWord" name="interestWord" placeholder="興味ワードを追加" style="margin-right: 0.5rem;">
+                                <button class="action-btn success" onclick="handleAddInterestWord()">追加</button>
                             </div>
                         </div>
                         <div class="word-list">
@@ -823,12 +805,9 @@ const renderWordsModal = () => {
                     <div class="word-section">
                         <div class="word-section-header">
                             <h3>NGワード</h3>
-                            <div class="form-group">
-                                <label for="ngWord">NGワード:</label>
-                                <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                                    <input type="text" id="ngWord" name="ngWord" placeholder="NGワードを追加" style="flex: 1;">
-                                    <button class="action-btn success" onclick="handleAddNGWord()">追加</button>
-                                </div>
+                            <div>
+                                <input type="text" id="ngWord" name="ngWord" placeholder="NGワードを追加" style="margin-right: 0.5rem;">
+                                <button class="action-btn success" onclick="handleAddNGWord()">追加</button>
                             </div>
                         </div>
                         <div class="word-list">
@@ -872,17 +851,13 @@ const renderSettingsModal = () => {
                         <h3>データ管理</h3>
                         <div style="margin-bottom: 1rem;">
                             <button class="action-btn" onclick="handleExportLearningData()">学習データエクスポート</button>
-                            <label for="importLearning" class="action-btn" style="cursor: pointer; display: inline-block; margin-left: 0.5rem;">
-                                学習データインポート
-                            </label>
                             <input type="file" id="importLearning" name="importLearning" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
+                            <button class="action-btn" onclick="document.getElementById('importLearning').click()">学習データインポート</button>
                         </div>
                         <div style="margin-bottom: 1rem;">
                             <button class="action-btn" onclick="handleExportRSSData()">RSS OPMLエクスポート</button>
-                            <label for="importRSS" class="action-btn" style="cursor: pointer; display: inline-block; margin-left: 0.5rem;">
-                                RSS OPMLインポート
-                            </label>
                             <input type="file" id="importRSS" name="importRSS" accept=".opml,.xml" onchange="handleImportRSSData(event)" style="display: none;">
+                            <button class="action-btn" onclick="document.getElementById('importRSS').click()">RSS OPMLインポート</button>
                         </div>
                         <div>
                             <button class="action-btn danger" onclick="handleClearAllData()">全データ削除</button>
