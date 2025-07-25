@@ -2106,3 +2106,255 @@
     });
 
 })();
+
+// app.jsの最後に以下を追加
+
+// =========================================== 
+// レンダリング関数
+// ===========================================
+const render = () => {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    const { articles } = DataHooks.useArticles();
+    const { folders } = DataHooks.useFolders();
+    const { rssFeeds } = DataHooks.useRSSManager();
+    const { aiLearning } = DataHooks.useAILearning();
+    const { wordFilters } = DataHooks.useWordFilters();
+
+    // フィルタリングされた記事
+    let filteredArticles = articles;
+    
+    // フォルダフィルター
+    if (state.selectedFolder !== 'all') {
+        const selectedFolderFeeds = rssFeeds.filter(feed => feed.folderId === state.selectedFolder);
+        const selectedFeedSources = selectedFolderFeeds.map(feed => RSSProcessor.extractDomain(feed.url));
+        filteredArticles = filteredArticles.filter(article => 
+            selectedFeedSources.some(source => article.rssSource.includes(source) || source.includes(article.rssSource))
+        );
+    }
+
+    // 表示モードフィルター
+    if (state.viewMode === 'unread') {
+        filteredArticles = filteredArticles.filter(article => article.readStatus === 'unread');
+    } else if (state.viewMode === 'readLater') {
+        filteredArticles = filteredArticles.filter(article => article.readLater);
+    }
+
+    // NGワードフィルター
+    filteredArticles = WordFilterManager.filterArticles(filteredArticles, wordFilters);
+
+    // AIスコアによるソート
+    filteredArticles = AIScoring.sortArticlesByScore(filteredArticles, aiLearning, wordFilters);
+
+    app.innerHTML = `
+        <nav class="nav">
+            <div class="nav-left">
+                <h1>📰 Minews</h1>
+                ${state.lastUpdate ? `<div class="last-update">最終更新: ${formatDate(state.lastUpdate)}</div>` : ''}
+            </div>
+            <div class="nav-filters">
+                <div class="filter-group">
+                    <label>表示:</label>
+                    <select class="filter-select" onchange="handleViewModeChange(this.value)" ${state.isLoading ? 'disabled' : ''}>
+                        <option value="all" ${state.viewMode === 'all' ? 'selected' : ''}>すべて</option>
+                        <option value="unread" ${state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
+                        <option value="readLater" ${state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>フォルダ:</label>
+                    <select class="filter-select" onchange="handleFolderChange(this.value)" ${state.isLoading ? 'disabled' : ''}>
+                        <option value="all" ${state.selectedFolder === 'all' ? 'selected' : ''}>すべて</option>
+                        ${folders.map(folder => `
+                            <option value="${folder.id}" ${state.selectedFolder === folder.id ? 'selected' : ''}>
+                                ${escapeXml(folder.name)}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <button class="action-btn refresh-btn ${state.isLoading ? 'loading' : ''}" 
+                        onclick="handleRefreshFeeds()" 
+                        ${state.isLoading ? 'disabled' : ''}>
+                    ${state.isLoading ? '更新中...' : '🔄 更新'}
+                </button>
+                <button class="action-btn" onclick="showModal('rss')">📡 RSS管理</button>
+                <button class="action-btn" onclick="showModal('folders')">📁 フォルダ</button>
+                <button class="action-btn" onclick="showModal('words')">🔍 ワード</button>
+                <button class="action-btn" onclick="showModal('export')">⚙️ データ</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            ${filteredArticles.length > 0 ? `
+                <div class="article-grid">
+                    ${filteredArticles.map(article => `
+                        <article class="article-card" data-read-status="${article.readStatus}">
+                            <header class="article-header">
+                                <h2 class="article-title">
+                                    <a href="${article.url}" target="_blank" rel="noopener noreferrer" 
+                                       onclick="handleArticleClick('${article.id}')">
+                                        ${escapeXml(article.title)}
+                                    </a>
+                                </h2>
+                                <div class="article-meta">
+                                    <span class="date">${formatDate(article.publishDate)}</span>
+                                    <span class="source">${escapeXml(article.rssSource)}</span>
+                                    <span class="category">${escapeXml(article.category)}</span>
+                                    <span class="ai-score">スコア: ${article.aiScore || 50}</span>
+                                    ${article.userRating > 0 ? `<span class="rating-badge">${'★'.repeat(article.userRating)}</span>` : ''}
+                                </div>
+                            </header>
+                            <div class="article-content">${truncateText(article.content)}</div>
+                            ${article.keywords && article.keywords.length > 0 ? `
+                                <div class="article-keywords">
+                                    ${article.keywords.map(keyword => `<span class="keyword">${escapeXml(keyword)}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="article-actions">
+                                <button class="simple-btn read-status" onclick="toggleReadStatus('${article.id}')">
+                                    ${article.readStatus === 'read' ? '未読に戻す' : '既読'}
+                                </button>
+                                <button class="simple-btn read-later" data-active="${article.readLater}" onclick="toggleReadLater('${article.id}')">
+                                    ${article.readLater ? '解除' : '後で読む'}
+                                </button>
+                                <button class="simple-btn" onclick="removeArticle('${article.id}')">削除</button>
+                            </div>
+                            ${createStarRating(article.userRating, article.id)}
+                        </article>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="empty-message">
+                    ${state.isLoading ? '記事を読み込み中...' : 'RSSフィードを追加して記事を取得してください'}
+                </div>
+            `}
+        </main>
+
+        ${renderModal()}
+    `;
+};
+
+// =========================================== 
+// イベントハンドラー関数
+// ===========================================
+const handleViewModeChange = (viewMode) => {
+    setState({ viewMode });
+};
+
+const handleFolderChange = (selectedFolder) => {
+    setState({ selectedFolder });
+};
+
+const handleArticleClick = (articleId) => {
+    const articlesHook = DataHooks.useArticles();
+    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+};
+
+const toggleReadStatus = (articleId) => {
+    const articlesHook = DataHooks.useArticles();
+    const article = state.articles.find(a => a.id === articleId);
+    const newStatus = article.readStatus === 'read' ? 'unread' : 'read';
+    articlesHook.updateArticle(articleId, { readStatus: newStatus });
+};
+
+const toggleReadLater = (articleId) => {
+    const articlesHook = DataHooks.useArticles();
+    const article = state.articles.find(a => a.id === articleId);
+    articlesHook.updateArticle(articleId, { readLater: !article.readLater });
+};
+
+const removeArticle = (articleId) => {
+    if (confirm('この記事を削除しますか？')) {
+        const articlesHook = DataHooks.useArticles();
+        articlesHook.removeArticle(articleId);
+    }
+};
+
+const handleRefreshFeeds = async () => {
+    setState({ isLoading: true });
+    try {
+        const rssHook = DataHooks.useRSSManager();
+        const result = await rssHook.fetchAllFeeds();
+        setState({ 
+            isLoading: false, 
+            lastUpdate: new Date().toISOString() 
+        });
+        alert(`更新完了: ${result.totalAdded}件の新しい記事を取得しました`);
+    } catch (error) {
+        setState({ isLoading: false });
+        alert('更新に失敗しました: ' + error.message);
+    }
+};
+
+const showModal = (modalType) => {
+    setState({ showModal: modalType });
+};
+
+const hideModal = () => {
+    setState({ showModal: null });
+};
+
+const renderModal = () => {
+    if (!state.showModal) return '';
+    
+    return `
+        <div class="modal-overlay" onclick="event.target === this && hideModal()">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>${getModalTitle(state.showModal)}</h2>
+                    <button class="modal-close" onclick="hideModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    ${getModalContent(state.showModal)}
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+const getModalTitle = (modalType) => {
+    const titles = {
+        rss: 'RSS管理',
+        folders: 'フォルダ管理',
+        words: 'ワード管理',
+        export: 'データ管理'
+    };
+    return titles[modalType] || '';
+};
+
+const getModalContent = (modalType) => {
+    // モーダルの内容を実装
+    return `<p>${modalType}の管理画面（実装中）</p>`;
+};
+
+// =========================================== 
+// アプリケーション初期化
+// ===========================================
+const initializeApp = async () => {
+    console.log('Minews PWA 初期化開始...');
+    
+    try {
+        // データ初期化
+        initializeData();
+        
+        // 初回レンダリング
+        render();
+        
+        console.log('Minews PWA 初期化完了');
+    } catch (error) {
+        console.error('初期化エラー:', error);
+        document.getElementById('app').innerHTML = `
+            <div class="error-message">
+                アプリケーションの初期化に失敗しました: ${error.message}
+            </div>
+        `;
+    }
+};
+
+// DOM読み込み完了時に初期化実行
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+})(); // 即座実行関数の終了
