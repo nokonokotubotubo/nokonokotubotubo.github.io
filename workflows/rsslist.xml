@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Minews RSS List</title>
+    <dateCreated>Sat, 26 Jul 2025 16:34:00 +0900</dateCreated>
+  </head>
+  <body>
+    <outline text="ニュース" title="ニュース">
+      <outline text="NHKニュース" title="NHKニュース" xmlUrl="https://www3.nhk.or.jp/rss/news/cat0.xml" folderId="default-general"/>
+    </outline>
+    <outline text="テック" title="テック">
+      <outline text="ITmedia" title="ITmedia" xmlUrl="https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml" folderId="default-tech"/>
+    </outline>
+  </body>
+</opml>
