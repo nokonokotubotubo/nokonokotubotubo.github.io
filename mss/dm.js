@@ -9,13 +9,16 @@
 // ===========================================
 
 window.CONFIG = {
+    window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
         RSS_FEEDS: 'minews_rssFeeds',
         FOLDERS: 'minews_folders',
         AI_LEARNING: 'minews_aiLearning',
-        WORD_FILTERS: 'minews_wordFilters'
+        WORD_FILTERS: 'minews_wordFilters',
+        VIEW_SETTINGS: 'minews_viewSettings'
     },
+
     MAX_ARTICLES: 1000,
     DATA_VERSION: '1.0',
     REQUEST_TIMEOUT: 15000,
