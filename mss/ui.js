@@ -595,8 +595,6 @@
                             </div>
                         </div>
 
-                        <hr class="group-divider">
-
                         <div class="modal-section-group">
                             <h3 class="group-title">データ管理</h3>
                             <div class="word-section">
@@ -617,8 +615,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <hr class="group-divider">
 
                         <div class="modal-section-group">
                             <h3 class="group-title">システム情報</h3>
