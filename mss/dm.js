@@ -339,32 +339,41 @@
 
         extractKeywords(text) {
     try {
-        // RakutenMAが利用可能かチェック
+        // RakutenMAライブラリと学習済みモデルの可用性チェック
         if (typeof RakutenMA === 'undefined') {
-            console.warn('RakutenMA is not available, falling back to simple keyword extraction');
+            console.warn('RakutenMA library is not available, falling back to simple keyword extraction');
             return this.fallbackExtractKeywords(text);
         }
 
-        // RakutenMAインスタンスを作成（日本語用設定）
-        const rma = new RakutenMA();
+        if (typeof model_ja === 'undefined') {
+            console.warn('RakutenMA model_ja is not available, falling back to simple keyword extraction');
+            return this.fallbackExtractKeywords(text);
+        }
+
+        // RakutenMAインスタンスを学習済みモデルで初期化
+        const rma = new RakutenMA(model_ja);
         rma.featset = RakutenMA.default_featset_ja;
         rma.hash_func = RakutenMA.create_hash_func(15);
 
-        // 形態素解析を実行
-        const tokens = rma.tokenize(text);
+        // テキストの前処理（長すぎる場合は切り詰め）
+        const processedText = text.length > 500 ? text.substring(0, 500) : text;
         
-        // 名詞、動詞、形容詞などの重要な品詞のみを抽出
-        const importantPosTags = ['名詞', '動詞', '形容詞', '副詞'];
+        // RakutenMAで形態素解析を実行
+        const tokens = rma.tokenize(processedText);
+        
+        // 重要な品詞のみを抽出
+        const importantPosTags = ['名詞', '動詞', '形容詞'];
         const keywords = [];
         
         tokens.forEach(token => {
             const word = token[0];
-            const pos = token[1];
+            const pos = token[1] || '';
             
-            // 単語の長さと品詞をチェック
+            // 品詞チェックと単語フィルタリング
             if (word.length > 1 && 
                 importantPosTags.some(tag => pos.includes(tag)) &&
-                !this.isStopWord(word)) {
+                !this.isJapaneseStopWord(word) &&
+                /[ぁ-んァ-ン一-龯]/.test(word)) {
                 keywords.push(word);
             }
         });
@@ -373,7 +382,7 @@
         return [...new Set(keywords)].slice(0, 8);
         
     } catch (error) {
-        console.warn('RakutenMA tokenization failed:', error);
+        console.warn('RakutenMA processing failed:', error);
         return this.fallbackExtractKeywords(text);
     }
 },
