@@ -8,7 +8,7 @@
 
     window.state = {
         viewMode: 'all',
-        selectedFolder: 'all',
+        selectedSource: 'all',
         showModal: null,
         articles: [],
         isLoading: false,
@@ -30,7 +30,7 @@
         // フィルタ設定の読み込み
         const viewSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
             viewMode: 'all',
-            selectedFolder: 'all'
+            selectedSource: 'all'
         });
 
         Object.assign(window.DataHooksCache, {
@@ -43,7 +43,7 @@
 
         window.state.articles = articlesData;
         window.state.viewMode = viewSettings.viewMode;
-        window.state.selectedFolder = viewSettings.selectedFolder;
+        window.state.selectedSource = viewSettings.selectedSource;
 
         if (window.state.articles.length === 0) {
             const sampleArticles = [
@@ -263,7 +263,7 @@
         // フィルタ設定をLocalStorageに保存
         const currentSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
             viewMode: 'all',
-            selectedFolder: 'all'
+            selectedSource: 'all'
         });
         window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
             ...currentSettings,
@@ -271,17 +271,17 @@
         });
     };
 
-    const handleFolderChange = (folderId) => {
-        setState({ selectedFolder: folderId });
+    const handleSourceChange = (sourceId) => {
+        setState({ selectedSource: sourceId });
         
         // フィルタ設定をLocalStorageに保存
         const currentSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
             viewMode: 'all',
-            selectedFolder: 'all'
+            selectedSource: 'all'
         });
         window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
             ...currentSettings,
-            selectedFolder: folderId
+            selectedSource: sourceId
         });
     };
 
@@ -399,11 +399,12 @@
     // ===========================================
 
     const renderNavigation = () => {
-        const foldersHook = window.DataHooks.useFolders();
-        const folderOptions = [
-            '<option value="all">全フォルダ</option>',
-            ...foldersHook.folders.map(folder => 
-                `<option value="${folder.id}" ${window.state.selectedFolder === folder.id ? 'selected' : ''}>${folder.name}</option>`
+        // 記事から提供元リストを取得
+        const sources = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
+        const sourceOptions = [
+            '<option value="all">全提供元</option>',
+            ...sources.map(source => 
+                `<option value="${source}" ${window.state.selectedSource === source ? 'selected' : ''}>${source}</option>`
             )
         ].join('');
 
@@ -426,9 +427,9 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label for="folderFilter">フォルダ:</label>
-                        <select id="folderFilter" class="filter-select" onchange="handleFolderChange(this.value)">
-                            ${folderOptions}
+                        <label for="sourceFilter">提供元:</label>
+                        <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
+                            ${sourceOptions}
                         </select>
                     </div>
                 </div>
@@ -449,21 +450,9 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // フォルダフィルター
-        if (window.state.selectedFolder !== 'all') {
-            const rssHook = window.DataHooks.useRSSManager();
-            const folderFeeds = rssHook.rssFeeds.filter(feed => feed.folderId === window.state.selectedFolder);
-            const folderFeedTitles = folderFeeds.map(feed => feed.title);
-            
-            filtered = filtered.filter(article => {
-                return folderFeedTitles.some(feedTitle => 
-                    article.rssSource === feedTitle ||
-                    article.rssSource.includes(feedTitle) ||
-                    feedTitle.includes(article.rssSource) ||
-                    window.FolderManager.extractDomainFromSource(article.rssSource) === 
-                    window.FolderManager.extractDomainFromUrl(folderFeeds.find(f => f.title === feedTitle)?.url || '')
-                );
-            });
+        // 提供元フィルター
+        if (window.state.selectedSource !== 'all') {
+            filtered = filtered.filter(article => article.rssSource === window.state.selectedSource);
         }
 
         // 表示モードフィルター
@@ -696,7 +685,7 @@
 
     // グローバル関数をウィンドウに追加
     window.handleFilterChange = handleFilterChange;
-    window.handleFolderChange = handleFolderChange;
+    window.handleSourceChange = handleSourceChange;
     window.handleRefresh = handleRefresh;
     window.handleArticleClick = handleArticleClick;
     window.handleCloseModal = handleCloseModal;
