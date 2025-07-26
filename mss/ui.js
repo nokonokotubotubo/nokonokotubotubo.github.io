@@ -562,85 +562,88 @@
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>興味ワード</h3>
-                                <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+                        <div class="modal-section-group">
+                            <h3 class="group-title">ワード設定</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>興味ワード</h3>
+                                    <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+                                </div>
+                                <div class="word-list">
+                                    ${interestWords || '<div class="text-muted">設定されていません</div>'}
+                                </div>
                             </div>
-                            <div class="word-list">
-                                ${interestWords || '<div class="text-muted">設定されていません</div>'}
+
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>NGワード</h3>
+                                    <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+                                </div>
+                                <div class="word-list">
+                                    ${ngWords || '<div class="text-muted">設定されていません</div>'}
+                                </div>
+                            </div>
+
+                            <div class="word-help">
+                                <h4>ヘルプ</h4>
+                                <ul>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
+                                    <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
+                                    <li>大文字・小文字は区別されません</li>
+                                    <li>部分一致で動作します</li>
+                                </ul>
                             </div>
                         </div>
 
-                        <hr class="section-divider">
+                        <hr class="group-divider">
 
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>NGワード</h3>
-                                <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
-                            </div>
-                            <div class="word-list">
-                                ${ngWords || '<div class="text-muted">設定されていません</div>'}
-                            </div>
-                        </div>
-
-                        <hr class="section-divider">
-
-                        <div class="word-help">
-                            <h4>ヘルプ</h4>
-                            <ul>
-                                <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
-                                <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
-                                <li>大文字・小文字は区別されません</li>
-                                <li>部分一致で動作します</li>
-                            </ul>
-                        </div>
-
-                        <hr class="section-divider">
-
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>学習データ管理</h3>
-                            </div>
-                            <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
-                            
-                            <div class="modal-actions">
-                                <button class="action-btn success" onclick="handleExportLearningData()">
-                                    学習データエクスポート
-                                </button>
+                        <div class="modal-section-group">
+                            <h3 class="group-title">データ管理</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>学習データ管理</h3>
+                                </div>
+                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
                                 
-                                <label class="action-btn" style="cursor: pointer; display: inline-block;">
-                                    学習データインポート
-                                    <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
-                                </label>
+                                <div class="modal-actions">
+                                    <button class="action-btn success" onclick="handleExportLearningData()">
+                                        学習データエクスポート
+                                    </button>
+                                    
+                                    <label class="action-btn" style="cursor: pointer; display: inline-block;">
+                                        学習データインポート
+                                        <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <hr class="section-divider">
+                        <hr class="group-divider">
 
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>ストレージ使用量</h3>
+                        <div class="modal-section-group">
+                            <h3 class="group-title">システム情報</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>ストレージ使用量</h3>
+                                </div>
+                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                    <p class="text-muted" style="margin: 0;">
+                                        使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
+                                        アイテム数: ${storageInfo.itemCount}
+                                    </p>
+                                </div>
                             </div>
-                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                <p class="text-muted" style="margin: 0;">
-                                    使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
-                                    アイテム数: ${storageInfo.itemCount}
-                                </p>
-                            </div>
-                        </div>
 
-                        <hr class="section-divider">
-
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>バージョン情報</h3>
-                            </div>
-                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                <p class="text-muted" style="margin: 0;">
-                                    Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                    GitHub Actions対応版
-                                </p>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>バージョン情報</h3>
+                                </div>
+                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                    <p class="text-muted" style="margin: 0;">
+                                        Minews PWA v${window.CONFIG.DATA_VERSION}<br>
+                                        GitHub Actions対応版
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
