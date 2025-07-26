@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Minews RSS List</title>
+    <dateCreated>Sat, 26 Jul 2025 16:34:00 +0900</dateCreated>
+    <docs>http://www.opml.org/spec2</docs>
+  </head>
+  <body>
+    <outline text="ニュース" title="ニュース">
+      <outline text="NHKニュース" title="NHKニュース" 
+               xmlUrl="https://www3.nhk.or.jp/rss/news/cat0.xml" 
+               folderId="default-general"/>
+      <outline text="読売新聞" title="読売新聞" 
+               xmlUrl="https://www.yomiuri.co.jp/rss/news.xml" 
+               folderId="default-general"/>
+    </outline>
+    <outline text="テクノロジー" title="テクノロジー">
+      <outline text="ITmedia" title="ITmedia" 
+               xmlUrl="https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml" 
+               folderId="default-tech"/>
+      <outline text="TechCrunch Japan" title="TechCrunch Japan" 
+               xmlUrl="https://techcrunch.com/feed/" 
+               folderId="default-tech"/>
+    </outline>
+    <outline text="経済・ビジネス" title="経済・ビジネス">
+      <outline text="日本経済新聞" title="日本経済新聞" 
+               xmlUrl="https://www.nikkei.com/news/feed/" 
+               folderId="default-business"/>
+    </outline>
+  </body>
+</opml>
