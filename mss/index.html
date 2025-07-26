@@ -3,29 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minews PWA</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
+    <meta name="description" content="AIパーソナライズ機能付きRSSニュースリーダー">
     <meta name="theme-color" content="#4A90A4">
+    <title>Minews - AIニュースリーダー</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/svg+xml" href="./vite.svg">
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- PWA用メタタグ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Minews">
+    <link rel="apple-touch-icon" href="./icon-192.svg">
 </head>
 <body>
-    <div id="app"></div>
-<!-- RakutenMA形態素解析ライブラリ -->
-<script src="./rakutenma.js"></script>
-<script>
-// model_ja.min.jsonを正しく読み込み
-fetch('./model_ja.min.json')
-  .then(response => response.json())
-  .then(data => {
-    window.model_ja = data;
-    console.log('RakutenMA model loaded successfully');
-  })
-  .catch(error => {
-    console.error('Failed to load RakutenMA model:', error);
-  });
-</script>
+    <div id="app">
+        <div class="loading-message" style="text-align: center; padding: 2rem; color: #666;">
+            📰 Minews を読み込み中...
+        </div>
+    </div>
 
-<script src="./dm.js"></script>
-<script src="./ui.js"></script>
+    <!-- データ管理レイヤー -->
+    <script src="./dm.js"></script>
+    
+    <!-- UI・表示レイヤー -->
+    <script src="./ui.js"></script>
+
+    <!-- アプリケーション初期化 -->
+    <script>
+        // Service Worker登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // アプリケーション初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.initializeApp) {
+                window.initializeApp();
+            } else {
+                console.error('アプリケーションの初期化に失敗しました');
+            }
+        });
+
+        // エラーハンドリング
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+    </script>
 </body>
 </html>
