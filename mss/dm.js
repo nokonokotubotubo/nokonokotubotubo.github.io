@@ -356,12 +356,33 @@
         rma.featset = RakutenMA.default_featset_ja;
         rma.hash_func = RakutenMA.create_hash_func(15);
 
-        // テキストの前処理
-        const processedText = text.substring(0, 500).trim();
-        if (!processedText) return [];
+        // テキストの前処理と検証
+        let processedText = text.substring(0, 500).trim();
+        if (!processedText) {
+            console.log('Empty text provided to extractKeywords');
+            return [];
+        }
+
+        // 特殊文字やエンコーディング問題を解決
+        processedText = processedText
+            .replace(/[\u200B-\u200D\uFEFF]/g, '') // ゼロ幅文字を除去
+            .replace(/[^\u0000-\u007F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3000-\u303F]/g, ' ') // 基本的な日本語・英語・記号のみ残す
+            .replace(/\s+/g, ' ') // 連続する空白を1つに
+            .trim();
+
+        if (!processedText || processedText.length < 2) {
+            console.log('Text too short after processing:', processedText);
+            return [];
+        }
 
         // RakutenMAで形態素解析を実行
         const tokens = rma.tokenize(processedText);
+        console.log('RakutenMA tokenization result count:', tokens.length);
+        
+        if (!tokens || tokens.length === 0) {
+            console.log('No tokens generated from text:', processedText.substring(0, 100));
+            return [];
+        }
         
         const keywords = [];
         const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'する', 'なる', 'ある', 'いる', 'です', 'である', 'だっ', 'では', 'には', 'から', 'まで', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう', 'ところ', 'とき', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could', 'may', 'might', 'shall', 'should']);
@@ -371,7 +392,8 @@
             const pos = token[1] || '';
             
             // より柔軟な条件でキーワードを抽出
-            if (word.length > 1 && 
+            if (word && 
+                word.length > 1 && 
                 !stopWords.has(word.toLowerCase()) &&
                 !/^[0-9]+$/.test(word) && // 数字のみを除外
                 !/^[、。・\-･▪▫◦‣⁃\u3000\s\(\)（）「」『』\[\]【】〈〉《》〔〕｛｝＜＞]+$/.test(word) && // 記号のみを除外
@@ -379,6 +401,22 @@
                 keywords.push(word);
             }
         });
+        
+        // キーワードが見つからない場合の追加処理
+        if (keywords.length === 0) {
+            console.log('No keywords found, trying simple split method for text:', processedText.substring(0, 100));
+            // シンプルな分割処理で最低限のキーワードを確保
+            const simpleTokens = processedText
+                .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+                .split(/\s+/)
+                .filter(word => word.length > 1 && !stopWords.has(word.toLowerCase()));
+            
+            simpleTokens.forEach(word => {
+                if (keywords.length < 8) {
+                    keywords.push(word);
+                }
+            });
+        }
         
         // 重複を除去し、最大8個に制限
         const result = [...new Set(keywords)].slice(0, 8);
@@ -390,7 +428,6 @@
         return [];
     }
 },
-
 
         extractDomain(url) {
             try {
