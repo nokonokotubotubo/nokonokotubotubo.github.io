@@ -12,7 +12,19 @@
     <div id="root"></div>
 <!-- RakutenMA形態素解析ライブラリ -->
 <script src="./rakutenma.js"></script>
-<script src="./model_ja.min.json"></script>
+<script>
+// model_ja.min.jsonを正しく読み込み
+fetch('./model_ja.min.json')
+  .then(response => response.json())
+  .then(data => {
+    window.model_ja = data;
+    console.log('RakutenMA model loaded successfully');
+  })
+  .catch(error => {
+    console.error('Failed to load RakutenMA model:', error);
+  });
+</script>
+
 <script src="./dm.js"></script>
 <script src="./ui.js"></script>
 </body>
