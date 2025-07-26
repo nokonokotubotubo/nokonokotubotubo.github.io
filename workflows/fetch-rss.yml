@@ -1,0 +1,34 @@
+name: RSS記事取得
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 1時間間隔で実行
+  workflow_dispatch:     # 手動実行も可能
+
+jobs:
+  fetch-rss:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm install xml2js node-fetch
+        
+    - name: RSS記事取得スクリプト実行
+      run: node fetch-rss.js
+      
+    - name: Commit and push
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add mss/articles.json
+        git diff --staged --quiet || git commit -m "Update RSS articles $(date)"
+        git push
+
