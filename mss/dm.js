@@ -338,32 +338,56 @@
         },
 
        extractKeywords(text) {
-    // RakutenMAインスタンスを学習済みモデルで作成
-    const rma = new RakutenMA(window.model_ja);
-    rma.featset = RakutenMA.default_featset_ja;
-    rma.hash_func = RakutenMA.create_hash_func(15);
-
-    // RakutenMAで形態素解析を実行
-    const tokens = rma.tokenize(text.substring(0, 500));
-    
-    // 重要な品詞のみを抽出
-    const importantPosTags = ['名詞', '動詞', '形容詞'];
-    const keywords = [];
-    
-    tokens.forEach(token => {
-        const word = token[0];
-        const pos = token[1] || '';
-        
-        // 品詞チェックと単語フィルタリング
-        if (word.length > 1 && 
-            importantPosTags.some(tag => pos.includes(tag)) &&
-            /[ぁ-んァ-ン一-龯]/.test(word)) {
-            keywords.push(word);
+    try {
+        // RakutenMAライブラリの可用性チェック
+        if (typeof RakutenMA === 'undefined') {
+            console.warn('RakutenMA library not loaded');
+            return [];
         }
-    });
-    
-    // 重複を除去し、最大8個に制限
-    return [...new Set(keywords)].slice(0, 8);
+
+        // 学習済みモデルの可用性チェック
+        if (typeof window.model_ja === 'undefined' || !window.model_ja) {
+            console.warn('RakutenMA model not loaded');
+            return [];
+        }
+
+        // RakutenMAインスタンスを学習済みモデルで作成
+        const rma = new RakutenMA(window.model_ja);
+        rma.featset = RakutenMA.default_featset_ja;
+        rma.hash_func = RakutenMA.create_hash_func(15);
+
+        // テキストの前処理
+        const processedText = text.substring(0, 500).trim();
+        if (!processedText) return [];
+
+        // RakutenMAで形態素解析を実行
+        const tokens = rma.tokenize(processedText);
+        
+        // 重要な品詞のみを抽出
+        const importantPosTags = ['名詞', '動詞', '形容詞'];
+        const keywords = [];
+        
+        tokens.forEach(token => {
+            const word = token[0];
+            const pos = token[1] || '';
+            
+            // 品詞チェックと単語フィルタリング
+            if (word.length > 1 && 
+                importantPosTags.some(tag => pos.includes(tag)) &&
+                /[ぁ-んァ-ン一-龯]/.test(word)) {
+                keywords.push(word);
+            }
+        });
+        
+        // 重複を除去し、最大8個に制限
+        const result = [...new Set(keywords)].slice(0, 8);
+        console.log('RakutenMA keywords extracted:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('RakutenMA extraction failed:', error);
+        return [];
+    }
 },
 
         extractDomain(url) {
