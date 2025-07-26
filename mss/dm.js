@@ -338,15 +338,64 @@
         },
 
         extractKeywords(text) {
-            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-            return [...new Set(
-                text.toLowerCase()
-                    .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-                    .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-                    .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-                    .slice(0, 8)
-            )];
-        },
+    try {
+        // RakutenMAが利用可能かチェック
+        if (typeof RakutenMA === 'undefined') {
+            console.warn('RakutenMA is not available, falling back to simple keyword extraction');
+            return this.fallbackExtractKeywords(text);
+        }
+
+        // RakutenMAインスタンスを作成（日本語用設定）
+        const rma = new RakutenMA();
+        rma.featset = RakutenMA.default_featset_ja;
+        rma.hash_func = RakutenMA.create_hash_func(15);
+
+        // 形態素解析を実行
+        const tokens = rma.tokenize(text);
+        
+        // 名詞、動詞、形容詞などの重要な品詞のみを抽出
+        const importantPosTags = ['名詞', '動詞', '形容詞', '副詞'];
+        const keywords = [];
+        
+        tokens.forEach(token => {
+            const word = token[0];
+            const pos = token[1];
+            
+            // 単語の長さと品詞をチェック
+            if (word.length > 1 && 
+                importantPosTags.some(tag => pos.includes(tag)) &&
+                !this.isStopWord(word)) {
+                keywords.push(word);
+            }
+        });
+        
+        // 重複を除去し、最大8個に制限
+        return [...new Set(keywords)].slice(0, 8);
+        
+    } catch (error) {
+        console.warn('RakutenMA tokenization failed:', error);
+        return this.fallbackExtractKeywords(text);
+    }
+},
+
+// フォールバック用の従来メソッド
+fallbackExtractKeywords(text) {
+    const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
+    return [...new Set(
+        text.toLowerCase()
+            .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
+            .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
+            .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
+            .slice(0, 8)
+    )];
+},
+
+// ストップワード判定メソッド
+isStopWord(word) {
+    const stopWords = ['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'こう', 'そう', 'ああ', 'どう', 'して', 'なる', 'ある', 'する', 'いる', 'れる', 'られる', 'せる', 'させる'];
+    return stopWords.includes(word) || word.length <= 1;
+},
+
 
         extractDomain(url) {
             try {
