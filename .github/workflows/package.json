@@ -1,0 +1,30 @@
+{
+  "name": "minews-rss-fetcher",
+  "version": "1.0.0",
+  "description": "RSS fetcher for Minews PWA",
+  "main": "fetch-rss.js",
+  "scripts": {
+    "start": "node fetch-rss.js",
+    "fetch": "node fetch-rss.js"
+  },
+  "dependencies": {
+    "xml2js": "^0.6.2",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nokonokotubotubo/nokonokotubotubo.github.io.git"
+  },
+  "keywords": [
+    "rss",
+    "news",
+    "pwa",
+    "github-actions"
+  ],
+  "author": "",
+  "license": "MIT",
+  "private": true
+}
