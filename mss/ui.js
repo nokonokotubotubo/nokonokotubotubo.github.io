@@ -572,6 +572,8 @@
                             </div>
                         </div>
 
+                        <hr class="section-divider">
+
                         <div class="word-section">
                             <div class="word-section-header">
                                 <h3>NGワード</h3>
@@ -582,6 +584,8 @@
                             </div>
                         </div>
 
+                        <hr class="section-divider">
+
                         <div class="word-help">
                             <h4>ヘルプ</h4>
                             <ul>
@@ -591,6 +595,8 @@
                                 <li>部分一致で動作します</li>
                             </ul>
                         </div>
+
+                        <hr class="section-divider">
 
                         <div class="word-section">
                             <div class="word-section-header">
@@ -610,6 +616,8 @@
                             </div>
                         </div>
 
+                        <hr class="section-divider">
+
                         <div class="word-section">
                             <div class="word-section-header">
                                 <h3>ストレージ使用量</h3>
@@ -621,6 +629,8 @@
                                 </p>
                             </div>
                         </div>
+
+                        <hr class="section-divider">
 
                         <div class="word-section">
                             <div class="word-section-header">
