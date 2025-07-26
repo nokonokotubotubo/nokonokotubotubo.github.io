@@ -19,7 +19,8 @@ jobs:
         
     - name: Install dependencies
       run: |
-        npm install xml2js node-fetch
+        cd .github/workflows
+        npm install
         
     - name: RSS記事取得スクリプト実行
       run: node .github/workflows/fetch-rss.js
