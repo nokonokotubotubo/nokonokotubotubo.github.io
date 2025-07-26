@@ -337,74 +337,34 @@
             }
         },
 
-        extractKeywords(text) {
-    try {
-        // RakutenMAライブラリと学習済みモデルの可用性チェック
-        if (typeof RakutenMA === 'undefined') {
-            console.warn('RakutenMA library is not available, falling back to simple keyword extraction');
-            return this.fallbackExtractKeywords(text);
+       extractKeywords(text) {
+    // RakutenMAインスタンスを学習済みモデルで作成
+    const rma = new RakutenMA(window.model_ja);
+    rma.featset = RakutenMA.default_featset_ja;
+    rma.hash_func = RakutenMA.create_hash_func(15);
+
+    // RakutenMAで形態素解析を実行
+    const tokens = rma.tokenize(text.substring(0, 500));
+    
+    // 重要な品詞のみを抽出
+    const importantPosTags = ['名詞', '動詞', '形容詞'];
+    const keywords = [];
+    
+    tokens.forEach(token => {
+        const word = token[0];
+        const pos = token[1] || '';
+        
+        // 品詞チェックと単語フィルタリング
+        if (word.length > 1 && 
+            importantPosTags.some(tag => pos.includes(tag)) &&
+            /[ぁ-んァ-ン一-龯]/.test(word)) {
+            keywords.push(word);
         }
-
-        if (typeof model_ja === 'undefined') {
-            console.warn('RakutenMA model_ja is not available, falling back to simple keyword extraction');
-            return this.fallbackExtractKeywords(text);
-        }
-
-        // RakutenMAインスタンスを学習済みモデルで初期化
-        const rma = new RakutenMA(model_ja);
-        rma.featset = RakutenMA.default_featset_ja;
-        rma.hash_func = RakutenMA.create_hash_func(15);
-
-        // テキストの前処理（長すぎる場合は切り詰め）
-        const processedText = text.length > 500 ? text.substring(0, 500) : text;
-        
-        // RakutenMAで形態素解析を実行
-        const tokens = rma.tokenize(processedText);
-        
-        // 重要な品詞のみを抽出
-        const importantPosTags = ['名詞', '動詞', '形容詞'];
-        const keywords = [];
-        
-        tokens.forEach(token => {
-            const word = token[0];
-            const pos = token[1] || '';
-            
-            // 品詞チェックと単語フィルタリング
-            if (word.length > 1 && 
-                importantPosTags.some(tag => pos.includes(tag)) &&
-                !this.isJapaneseStopWord(word) &&
-                /[ぁ-んァ-ン一-龯]/.test(word)) {
-                keywords.push(word);
-            }
-        });
-        
-        // 重複を除去し、最大8個に制限
-        return [...new Set(keywords)].slice(0, 8);
-        
-    } catch (error) {
-        console.warn('RakutenMA processing failed:', error);
-        return this.fallbackExtractKeywords(text);
-    }
+    });
+    
+    // 重複を除去し、最大8個に制限
+    return [...new Set(keywords)].slice(0, 8);
 },
-
-// フォールバック用の従来メソッド
-fallbackExtractKeywords(text) {
-    const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'は', 'が', 'を', 'に', 'で', 'と', 'の', 'から', 'まで', 'について', 'という', 'など'];
-    return [...new Set(
-        text.toLowerCase()
-            .replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
-            .split(/[\s,、。・\-･▪▫◦‣⁃\u3000]/)
-            .filter(word => word.length > 2 && !stopWords.includes(word) && word !== 'ー')
-            .slice(0, 8)
-    )];
-},
-
-// ストップワード判定メソッド
-isStopWord(word) {
-    const stopWords = ['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'こう', 'そう', 'ああ', 'どう', 'して', 'なる', 'ある', 'する', 'いる', 'れる', 'られる', 'せる', 'させる'];
-    return stopWords.includes(word) || word.length <= 1;
-},
-
 
         extractDomain(url) {
             try {
