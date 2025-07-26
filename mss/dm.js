@@ -9,7 +9,6 @@
 // ===========================================
 
 window.CONFIG = {
-    window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
         RSS_FEEDS: 'minews_rssFeeds',
