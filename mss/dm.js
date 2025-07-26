@@ -362,23 +362,20 @@
 
         // RakutenMAで形態素解析を実行
         const tokens = rma.tokenize(processedText);
-        console.log('RakutenMA tokens:', tokens); // デバッグ用
         
         const keywords = [];
-        const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'する', 'なる', 'ある', 'いる', 'です', 'である', 'だっ', 'では', 'には', 'から', 'まで', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう', 'ところ', 'とき']);
+        const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'する', 'なる', 'ある', 'いる', 'です', 'である', 'だっ', 'では', 'には', 'から', 'まで', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう', 'ところ', 'とき', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could', 'may', 'might', 'shall', 'should']);
         
         tokens.forEach(token => {
             const word = token[0];
             const pos = token[1] || '';
             
-            console.log(`Word: "${word}", POS: "${pos}"`); // デバッグ用
-            
             // より柔軟な条件でキーワードを抽出
             if (word.length > 1 && 
-                !stopWords.has(word) &&
+                !stopWords.has(word.toLowerCase()) &&
                 !/^[0-9]+$/.test(word) && // 数字のみを除外
-                word !== 'ー' &&
-                word !== '・') {
+                !/^[、。・\-･▪▫◦‣⁃\u3000\s\(\)（）「」『』\[\]【】〈〉《》〔〕｛｝＜＞]+$/.test(word) && // 記号のみを除外
+                word.trim().length > 1) {
                 keywords.push(word);
             }
         });
