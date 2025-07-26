@@ -440,7 +440,6 @@
                             ${window.state.isLoading ? 'disabled' : ''}>
                         ${window.state.isLoading ? '更新中...' : '記事更新'}
                     </button>
-                    <button class="action-btn" onclick="handleOpenModal('words')">ワード管理</button>
                     <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
                 </div>
             </nav>
@@ -537,7 +536,8 @@
         `;
     };
 
-    const renderWordModal = () => {
+    const renderSettingsModal = () => {
+        const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
         
         const interestWords = wordHook.wordFilters.interestWords.map(word => 
@@ -553,12 +553,12 @@
                 <button class="word-remove" onclick="handleRemoveWord('${word}', 'ng')">×</button>
             </span>`
         ).join('');
-
+        
         return `
             <div class="modal-overlay" onclick="handleCloseModal()">
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
-                        <h2>ワード管理</h2>
+                        <h2>設定</h2>
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
@@ -591,23 +591,7 @@
                                 <li>部分一致で動作します</li>
                             </ul>
                         </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
 
-    const renderSettingsModal = () => {
-        const storageInfo = window.LocalStorageManager.getStorageInfo();
-        
-        return `
-            <div class="modal-overlay" onclick="handleCloseModal()">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>設定</h2>
-                        <button class="modal-close" onclick="handleCloseModal()">×</button>
-                    </div>
-                    <div class="modal-body">
                         <div class="word-section">
                             <h3>学習データ管理</h3>
                             <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
@@ -647,8 +631,6 @@
 
     const renderModal = () => {
         switch (window.state.showModal) {
-            case 'words':
-                return renderWordModal();
             case 'settings':
                 return renderSettingsModal();
             default:
