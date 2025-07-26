@@ -593,7 +593,9 @@
                         </div>
 
                         <div class="word-section">
-                            <h3>学習データ管理</h3>
+                            <div class="word-section-header">
+                                <h3>学習データ管理</h3>
+                            </div>
                             <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
                             
                             <div class="modal-actions">
@@ -609,19 +611,27 @@
                         </div>
 
                         <div class="word-section">
-                            <h3>ストレージ使用量</h3>
-                            <p class="text-muted">
-                                使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
-                                アイテム数: ${storageInfo.itemCount}
-                            </p>
+                            <div class="word-section-header">
+                                <h3>ストレージ使用量</h3>
+                            </div>
+                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                <p class="text-muted" style="margin: 0;">
+                                    使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
+                                    アイテム数: ${storageInfo.itemCount}
+                                </p>
+                            </div>
                         </div>
 
                         <div class="word-section">
-                            <h3>バージョン情報</h3>
-                            <p class="text-muted">
-                                Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                GitHub Actions対応版
-                            </p>
+                            <div class="word-section-header">
+                                <h3>バージョン情報</h3>
+                            </div>
+                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                <p class="text-muted" style="margin: 0;">
+                                    Minews PWA v${window.CONFIG.DATA_VERSION}<br>
+                                    GitHub Actions対応版
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
