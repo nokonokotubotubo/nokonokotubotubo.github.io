@@ -362,19 +362,23 @@
 
         // RakutenMAで形態素解析を実行
         const tokens = rma.tokenize(processedText);
+        console.log('RakutenMA tokens:', tokens); // デバッグ用
         
-        // 重要な品詞のみを抽出
-        const importantPosTags = ['名詞', '動詞', '形容詞'];
         const keywords = [];
+        const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'ここ', 'そこ', 'あそこ', 'する', 'なる', 'ある', 'いる', 'です', 'である', 'だっ', 'では', 'には', 'から', 'まで', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう', 'ところ', 'とき']);
         
         tokens.forEach(token => {
             const word = token[0];
             const pos = token[1] || '';
             
-            // 品詞チェックと単語フィルタリング
+            console.log(`Word: "${word}", POS: "${pos}"`); // デバッグ用
+            
+            // より柔軟な条件でキーワードを抽出
             if (word.length > 1 && 
-                importantPosTags.some(tag => pos.includes(tag)) &&
-                /[ぁ-んァ-ン一-龯]/.test(word)) {
+                !stopWords.has(word) &&
+                !/^[0-9]+$/.test(word) && // 数字のみを除外
+                word !== 'ー' &&
+                word !== '・') {
                 keywords.push(word);
             }
         });
@@ -389,6 +393,7 @@
         return [];
     }
 },
+
 
         extractDomain(url) {
             try {
