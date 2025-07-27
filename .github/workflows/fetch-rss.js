@@ -125,9 +125,26 @@ async function parseRSSItem(item, sourceUrl) {
   };
 }
 
+// OPMLファイルからRSS URLリストを抽出する関数（信頼性向上: エラーハンドリング追加）
+function loadRSSUrlsFromOPML(filePath) {
+  try {
+    const opmlContent = fs.readFileSync(filePath, 'utf8');
+    const urls = [];
+    const outlineRegex = /<outline[^>]*xmlUrl="([^"]+)"[^>]*>/g;
+    let match;
+    while ((match = outlineRegex.exec(opmlContent)) !== null) {
+      urls.push(match[1]);
+    }
+    return urls;
+  } catch (error) {
+    console.error('OPMLファイル読み込みエラー:', error);
+    return []; // エラーハンドリング: 空配列返却で処理継続
+  }
+}
+
 // メイン処理
 async function main() {
-  const rssUrls = ['https://news.yahoo.co.jp/rss/topics/it.xml']; // 修正: 有効なRSS URLに置き換え（例: Yahoo!ニュースITトピックス）
+  const rssUrls = loadRSSUrlsFromOPML('./rsslist.xml'); // 修正: rsslist.xmlから動的に読み込み
   let articles = [];
 
   for (const url of rssUrls) {
