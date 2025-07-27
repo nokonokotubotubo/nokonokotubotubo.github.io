@@ -181,7 +181,7 @@ async function extractKeywordsWithMecab(text) {
   ]);
 
   try {
-    const parsed = await mecabParsePromise(text);
+    const parsed = await mecabParsePromise(text); // MeCabで形態素解析 (非同期)
     
     console.log(`[DEBUG] MeCab parsed tokens count: ${parsed.length}`); // デバッグログ
     
