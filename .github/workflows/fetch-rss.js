@@ -173,17 +173,15 @@ function parseDate(dateString) {
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
-  const TARGET_POS = new Set(['名詞', '固有名詞', '動詞']); // 抽出対象拡張 (ニュース向け)
-  const stopWords = new Set([ // ニュース向け最適化 (英語削除、一般語削減)
+  const TARGET_POS = new Set(['名詞', '固有名詞', '動詞', '形容詞']); // 拡張 (ニュース向け)
+  const stopWords = new Set([ // 最小限に最適化
     'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
     'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
-    'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
-    'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
-    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'として', 'しています'
-  ]); // 保守性向上
+    'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで'
+  ]);
 
   try {
-    const parsed = await mecabParsePromise(text); // MeCabで形態素解析 (非同期)
+    const parsed = await mecabParsePromise(text);
     
     console.log(`[DEBUG] MeCab parsed tokens count: ${parsed.length}`); // デバッグログ
     
@@ -192,7 +190,7 @@ async function extractKeywordsWithMecab(text) {
       return [];
     }
 
-    const keywords = new Set(); // 重複除去
+    const keywords = new Set();
 
     parsed.forEach(token => {
       if (!Array.isArray(token) || token.length < 2) return;
@@ -203,10 +201,21 @@ async function extractKeywordsWithMecab(text) {
       }
     });
 
-    return Array.from(keywords).slice(0, MAX_KEYWORDS); // 最大8件に制限
+    let result = Array.from(keywords).slice(0, MAX_KEYWORDS);
+    if (result.length === 0) { // 空時フォールバック: 基本名詞抽出
+      parsed.forEach(token => {
+        if (token[1][0] === '名詞' && token[0].length >= MIN_KEYWORD_LENGTH) {
+          keywords.add(token[0]);
+        }
+      });
+      result = Array.from(keywords).slice(0, MAX_KEYWORDS);
+      console.log('[DEBUG] Fallback keywords used');
+    }
+
+    return result;
   } catch (error) {
     console.error('MeCab解析エラー:', error.message, '- テキスト:', text);
-    return []; // 空配列を返す
+    return [];
   }
 }
 
