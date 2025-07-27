@@ -1,93 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<opml version="1.0">
-  <head>
-    <title>Feeds of 2000nopi from Inoreader [https://www.inoreader.com]</title>
-  </head>
-  <body>
-    <outline text="Android Authority" title="Android Authority" type="rss" xmlUrl="https://www.androidauthority.com/feed" htmlUrl="https://www.androidauthority.com/"/>
-    <outline text="市況かぶ全力２階建" title="市況かぶ全力２階建" type="rss" xmlUrl="https://kabumatome.doorblog.jp/index.rdf" htmlUrl="https://kabumatome.doorblog.jp/"/>
-    <outline text="生成AI" title="生成AI">
-      <outline text="生成AIタグが付けられた新着記事 - Qiita" title="生成AIタグが付けられた新着記事 - Qiita" type="rss" xmlUrl="https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://qiita.com/"/>
-      <outline text="Zennの「生成 AI」のフィード" title="Zennの「生成 AI」のフィード" type="rss" xmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai"/>
-    </outline>
-    <outline text="仕事" title="仕事">
-      <outline text="ブルームバーグ トップニュース" title="ブルームバーグ トップニュース" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/bloomberg/top.rdf" htmlUrl="https://www.bloomberg.co.jp/"/>
-      <outline text="ロイター テクノロジー" title="ロイター テクノロジー" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/reuters/technology.rdf" htmlUrl="https://jp.reuters.com/news/archive/technologyNews?view=page&amp;page=1&amp;pageSize=10"/>
-      <outline text="ロイター ビジネス" title="ロイター ビジネス" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/reuters/business.rdf" htmlUrl="https://jp.reuters.com/news/archive/businessNews?view=page&amp;page=1&amp;pageSize=10"/>
-      <outline text="日経新聞 テクノロジー" title="日経新聞 テクノロジー" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/nikkei/technology.rdf" htmlUrl="https://www.nikkei.com/news/category/technology/"/>
-      <outline text="日経新聞 ビジネス" title="日経新聞 ビジネス" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/nikkei/business.rdf" htmlUrl="https://www.nikkei.com/news/category/business/"/>
-      <outline text="日経ビジネスPLUS 最新記事" title="日経ビジネスPLUS 最新記事" type="rss" xmlUrl="https://business.nikkei.com/rss/sns/nb-plus.rdf" htmlUrl="https://business.nikkei.com/"/>
-      <outline text="日経ビジネスX 最新記事" title="日経ビジネスX 最新記事" type="rss" xmlUrl="https://business.nikkei.com/rss/sns/nb-x.rdf" htmlUrl="https://business.nikkei.com/"/>
-      <outline text="日経ビジネス電子版　最新記事" title="日経ビジネス電子版　最新記事" type="rss" xmlUrl="https://business.nikkei.com/rss/sns/nb.rdf" htmlUrl="https://business.nikkei.com/"/>
-      <outline text="グローバルマクロ・リサーチ・インスティテュート" title="グローバルマクロ・リサーチ・インスティテュート" type="rss" xmlUrl="https://www.globalmacroresearch.org/jp/feed" htmlUrl="https://www.globalmacroresearch.org/jp"/>
-      <outline text="ロイター コラム" title="ロイター コラム" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/reuters/column.rdf" htmlUrl="https://jp.reuters.com/news/archive/jp_column?view=page&amp;page=1&amp;pageSize=10"/>
-    </outline>
-    <outline text="システム" title="システム">
-      <outline text="IT・システム – 流通ニュース" title="IT・システム – 流通ニュース" type="rss" xmlUrl="https://www.ryutsuu.biz/it/feed" htmlUrl="https://www.ryutsuu.biz/"/>
-      <outline text="マイナビニュース 企業IT" title="マイナビニュース 企業IT" type="rss" xmlUrl="https://news.mynavi.jp/rss/business/enterprise" htmlUrl="https://news.mynavi.jp/top/business/enterprise/"/>
-      <outline text="＠IT 全フォーラム 最新記事一覧" title="＠IT 全フォーラム 最新記事一覧" type="rss" xmlUrl="https://rss.itmedia.co.jp/rss/0.91/ait.xml" htmlUrl="https://www.atmarkit.co.jp/"/>
-      <outline text="IT（情報技術） - 日経 xTECH（クロステック）" title="IT（情報技術） - 日経 xTECH（クロステック）" type="rss" xmlUrl="https://tech.nikkeibp.co.jp/rss/xtech-it.rdf" htmlUrl="https://tech.nikkeibp.co.jp/top/it/"/>
-    </outline>
-    <outline text="IT" title="IT">
-      <outline text="ミ田の備忘録" title="ミ田の備忘録" type="rss" xmlUrl="https://mitanyan98.hatenablog.com/feed" htmlUrl="https://mitanyan98.hatenablog.com/"/>
-      <outline text="Dream Seed" title="Dream Seed" type="rss" xmlUrl="http://feeds.feedburner.com/Dream-seed" htmlUrl="http://www.dream-seed.com/weblog"/>
-      <outline text="気になる、記になる…" title="気になる、記になる…" type="rss" xmlUrl="https://taisy0.com/feed" htmlUrl="https://taisy0.com/"/>
-      <outline text="CNET Japan 最新情報　総合" title="CNET Japan 最新情報　総合" type="rss" xmlUrl="http://feeds.japan.cnet.com/cnet/rss" htmlUrl="http://japan.cnet.com/"/>
-      <outline text="8796.jp管理日誌" title="8796.jp管理日誌" type="rss" xmlUrl="https://blog.8796.jp/8796kanri/feed" htmlUrl="https://blog.8796.jp/8796kanri"/>
-      <outline text="9to5Google" title="9to5Google" type="rss" xmlUrl="https://9to5google.com/feed/" htmlUrl="https://9to5google.com/"/>
-      <outline text="Gadget Gate" title="Gadget Gate" type="rss" xmlUrl="https://gadget.phileweb.com/feed/" htmlUrl="https://gadget.phileweb.com/"/>
-      <outline text="ReaMEIZU" title="ReaMEIZU" type="rss" xmlUrl="https://reameizu.com/feed/" htmlUrl="https://reameizu.com/"/>
-      <outline text="はやぽんログ！" title="はやぽんログ！" type="rss" xmlUrl="https://www.hayaponlog.site/feed" htmlUrl="https://www.hayaponlog.site/"/>
-      <outline text="Techable（テッカブル） -海外・国内のネットベンチャー系ニュースサイト" title="Techable（テッカブル） -海外・国内のネットベンチャー系ニュースサイト" type="rss" xmlUrl="https://techable.jp/feed" htmlUrl="https://techable.jp/"/>
-      <outline text="ZDNet Japan 最新情報　総合" title="ZDNet Japan 最新情報　総合" type="rss" xmlUrl="http://feed.japan.zdnet.com/rss/index.rdf" htmlUrl="http://japan.zdnet.com/"/>
-      <outline text="家電 Watch" title="家電 Watch" type="rss" xmlUrl="https://kaden.watch.impress.co.jp/cda/rss/kaden.rdf" htmlUrl="https://kaden.watch.impress.co.jp/"/>
-      <outline text="8vivid" title="8vivid" type="rss" xmlUrl="https://mupon.net/feed/" htmlUrl="https://mupon.net/"/>
-      <outline text="juggly.cn" title="juggly.cn" type="rss" xmlUrl="https://juggly.cn/feed" htmlUrl="https://juggly.cn/"/>
-      <outline text="ケータイ Watch" title="ケータイ Watch" type="rss" xmlUrl="https://k-tai.watch.impress.co.jp/data/rss/1.0/ktw/feed.rdf" htmlUrl="https://k-tai.watch.impress.co.jp/"/>
-      <outline text="AKIBA PC Hotline!" title="AKIBA PC Hotline!" type="rss" xmlUrl="https://akiba-pc.watch.impress.co.jp/data/rss/1.0/ah/feed.rdf" htmlUrl="https://akiba-pc.watch.impress.co.jp/"/>
-      <outline text="マイナビニュース スマホとデジタル家電" title="マイナビニュース スマホとデジタル家電" type="rss" xmlUrl="https://news.mynavi.jp/rss/digital/kaden" htmlUrl="https://news.mynavi.jp/top/digital/kaden/"/>
-      <outline text="マイナビニュース パソコン" title="マイナビニュース パソコン" type="rss" xmlUrl="https://news.mynavi.jp/rss/digital/pc" htmlUrl="https://news.mynavi.jp/top/digital/pc/"/>
-      <outline text="代助のブログ" title="代助のブログ" type="rss" xmlUrl="https://daisukeblog.com/?feed=rss2" htmlUrl="https://daisukeblog.com/"/>
-      <outline text="HelenTech.net" title="HelenTech.net" type="rss" xmlUrl="https://www.helentech.net/feed/" htmlUrl="https://www.helentech.net/"/>
-      <outline text="fabcross" title="fabcross" type="rss" xmlUrl="https://fabcross.jp/rss.xml" htmlUrl="https://fabcross.jp/"/>
-      <outline text="telektlist" title="telektlist" type="rss" xmlUrl="https://telektlist.com/feed/" htmlUrl="https://telektlist.com/"/>
-      <outline text="HANPEN-BLOG" title="HANPEN-BLOG" type="rss" xmlUrl="https://hanpenblog.com/feed" htmlUrl="http://hanpenblog.com/"/>
-      <outline text="SIMフリー遊び" title="SIMフリー遊び" type="rss" xmlUrl="https://sim-free-fun.com/feed" htmlUrl="https://sim-free-fun.com/"/>
-      <outline text="PC Watch" title="PC Watch" type="rss" xmlUrl="https://pc.watch.impress.co.jp/sublink/pc.rdf" htmlUrl="https://pc.watch.impress.co.jp/"/>
-      <outline text="ヲチモノ" title="ヲチモノ" type="rss" xmlUrl="http://watchmonoblog.blog71.fc2.com/?xml" htmlUrl="http://watchmono.com/"/>
-      <outline text="携帯総合研究所" title="携帯総合研究所" type="rss" xmlUrl="http://xenonews.blog50.fc2.com/?xml" htmlUrl="http://mobilelaby.com/"/>
-      <outline text="ITmedia Mobile 最新記事一覧" title="ITmedia Mobile 最新記事一覧" type="rss" xmlUrl="https://rss.itmedia.co.jp/rss/1.0/mobile.xml" htmlUrl="https://www.itmedia.co.jp/mobile/"/>
-      <outline text="ひとりぶろぐ" title="ひとりぶろぐ" type="rss" xmlUrl="http://hitoriblog.com/?feed=rss2" htmlUrl="http://hitoriblog.com/"/>
-      <outline text="情報科学屋さんを目指す人のメモ" title="情報科学屋さんを目指す人のメモ" type="rss" xmlUrl="https://did2memo.net/feed/" htmlUrl="https://did2memo.net/"/>
-      <outline text="ITmedia エンタープライズ 最新記事一覧" title="ITmedia エンタープライズ 最新記事一覧" type="rss" xmlUrl="https://rss.itmedia.co.jp/rss/1.0/enterprise.xml" htmlUrl="https://www.itmedia.co.jp/enterprise/"/>
-      <outline text="INTERNET Watch" title="INTERNET Watch" type="rss" xmlUrl="https://internet.watch.impress.co.jp/data/rss/1.0/iw/feed.rdf" htmlUrl="https://internet.watch.impress.co.jp/"/>
-      <outline text="道具眼日誌：古田-私的記録" title="道具眼日誌：古田-私的記録" type="rss" xmlUrl="https://do-gugan.com/~furuta/feed" htmlUrl="https://do-gugan.com/~furuta"/>
-      <outline text="寝る子ブログ" title="寝る子ブログ" type="rss" xmlUrl="https://nerukoblog.com/feed/" htmlUrl="https://nerukoblog.com"/>
-      <outline text="価格.comマガジン" title="価格.comマガジン" type="rss" xmlUrl="https://kakakumag.com/rss/" htmlUrl="https://kakakumag.com/"/>
-      <outline text="パソコン 【価格.com　新製品ニュース】" title="パソコン 【価格.com　新製品ニュース】" type="rss" xmlUrl="https://news.kakaku.com/prdnews/rss.asp?cd=pc&amp;v=2" htmlUrl="https://news.kakaku.com/prdnews/"/>
-      <outline text="家電 【価格.com　新製品ニュース】" title="家電 【価格.com　新製品ニュース】" type="rss" xmlUrl="https://news.kakaku.com/prdnews/rss.asp?cd=kaden&amp;v=2" htmlUrl="https://news.kakaku.com/prdnews/"/>
-      <outline text="携帯電話・スマートフォン 【価格.com　新製品ニュース】" title="携帯電話・スマートフォン 【価格.com　新製品ニュース】" type="rss" xmlUrl="https://news.kakaku.com/prdnews/rss.asp?cd=keitai&amp;v=2" htmlUrl="https://news.kakaku.com/prdnews/"/>
-      <outline text="CHASUKE.com" title="CHASUKE.com" type="rss" xmlUrl="https://chasuke.com/feed/" htmlUrl="https://chasuke.com/"/>
-      <outline text="orefolder.net" title="orefolder.net" type="rss" xmlUrl="https://www.orefolder.net/feed/" htmlUrl="https://www.orefolder.net/"/>
-      <outline text="ロボスタ" title="ロボスタ" type="rss" xmlUrl="https://robotstart.info/feed" htmlUrl="https://robotstart.info/"/>
-      <outline text="そうすけブログ.com" title="そうすけブログ.com" type="rss" xmlUrl="https://sosukeblog.com/feed/" htmlUrl="https://sosukeblog.com/"/>
-      <outline text="AndroPlus" title="AndroPlus" type="rss" xmlUrl="https://androplus.org/feed/" htmlUrl="https://androplus.org"/>
-    </outline>
-    <outline text="価格" title="価格">
-      <outline text="激安特価マンBlog" title="激安特価マンBlog" type="rss" xmlUrl="https://tokka.shop/feed/" htmlUrl="https://tokka.shop/"/>
-      <outline text="白ロム転売法" title="白ロム転売法" type="rss" xmlUrl="https://shiromcom.exblog.jp/index.xml" htmlUrl="https://shiromcom.exblog.jp/"/>
-      <outline text="ヤフオク落札価格より安い超特価品情報blog" title="ヤフオク落札価格より安い超特価品情報blog" type="rss" xmlUrl="https://gekiyasutoka.com/index.rdf" htmlUrl="https://gekiyasutoka.com/"/>
-      <outline text="激安特価品調査ブログ" title="激安特価品調査ブログ" type="rss" xmlUrl="https://tokasaiyasune.blog.fc2.com/?xml" htmlUrl="https://tokasaiyasune.blog.fc2.com/"/>
-      <outline text="こまめブログ" title="こまめブログ" type="rss" xmlUrl="https://little-beans.net/feed/" htmlUrl="http://little-beans.net"/>
-      <outline text="特価blog919!!" title="特価blog919!!" type="rss" xmlUrl="https://blog.919.bz/index.rdf" htmlUrl="https://blog.919.bz/"/>
-      <outline text="激安★超特価商店街" title="激安★超特価商店街" type="rss" xmlUrl="https://buy.livedoor.biz/index.rdf" htmlUrl="https://buy.livedoor.biz/"/>
-      <outline text="カードレビューズ" title="カードレビューズ" type="rss" xmlUrl="https://www.card-reviews.com/feed" htmlUrl="https://www.card-reviews.com/"/>
-      <outline text="安いぞ!激安特価ニュース速報" title="安いぞ!激安特価ニュース速報" type="rss" xmlUrl="https://specialprice777.blog.fc2.com/?xml" htmlUrl="https://specialprice777.blog.fc2.com/"/>
-      <outline text="激安速報 特価品伝道者" title="激安速報 特価品伝道者" type="rss" xmlUrl="https://gekiyasu-gekiyasu.doorblog.jp/index.rdf" htmlUrl="https://gekiyasu-gekiyasu.doorblog.jp/"/>
-    </outline>
-    <outline text="2軍" title="2軍">
-      <outline text="GIGAZINE" title="GIGAZINE" type="rss" xmlUrl="https://gigazine.net/news/rss_atom/" htmlUrl="http://gigazine.net/"/>
-      <outline text="phablet.jp (ファブレット.jp)" title="phablet.jp (ファブレット.jp)" type="rss" xmlUrl="https://phablet.jp/?feed=rss2" htmlUrl="https://phablet.jp/"/>
-    </outline>
-  </body>
+<opml version="2.0">
+    <head>
+        <title>Minews RSS Feeds</title>
+        <dateCreated>Wed, 23 Jul 2025 21:30:04 GMT</dateCreated>
+        <dateModified>Wed, 23 Jul 2025 21:30:04 GMT</dateModified>
+    </head>
+    <body>
+        <outline text="ニュース" title="ニュース">
+            <outline text="NHKニュース" title="NHKニュース" type="rss" xmlUrl="https://www3.nhk.or.jp/rss/news/cat0.xml" />
+            <outline text="ブルームバーグ トップニュース" title="ブルームバーグ トップニュース" type="rss" xmlUrl="https://assets.wor.jp/rss/rdf/bloomberg/top.rdf" />
+        </outline>
+        <outline text="テック" title="テック">
+            <outline text="ITmedia NEWS 最新記事一覧" title="ITmedia NEWS 最新記事一覧" type="rss" xmlUrl="https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml" />
+            <outline text="Zennの「生成 AI」のフィード" title="Zennの「生成 AI」のフィード" type="rss" xmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed" />
+        </outline>
+        <outline text="特価" title="特価">
+            <outline text="ゲッキーのお買い得商店街" title="ゲッキーのお買い得商店街" type="rss" xmlUrl="https://buy.livedoor.biz/index.rdf" />
+            <outline text="激安速報 特価品伝道者" title="激安速報 特価品伝道者" type="rss" xmlUrl="https://gekiyasu-gekiyasu.doorblog.jp/index.rdf" />
+        </outline>
+    </body>
 </opml>
