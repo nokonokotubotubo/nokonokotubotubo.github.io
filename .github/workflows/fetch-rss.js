@@ -167,7 +167,7 @@ function parseDate(dateString) {
   }
 }
 
-// キーワード抽出関数（RakutenMA使用版に変更）
+// キーワード抽出関数（RakutenMA使用版に変更、フォールバック追加）
 function extractKeywords(text) {
   const MAX_KEYWORDS = 8;
   const stopWords = new Set([
@@ -178,8 +178,10 @@ function extractKeywords(text) {
   ]);
 
   try {
-    // RakutenMAで形態素解析を実行
+    // RakutenMAで形態素解析を実行（詳細ログ追加）
+    console.log(`形態素解析開始: テキスト長=${text.length}`);
     const tokens = rma.tokenize(text);
+    console.log(`形態素解析完了: トークン数=${tokens.length}`);
 
     // 名詞・固有名詞を抽出（軽量化: Setで重複除去）
     const keywordSet = new Set();
@@ -193,11 +195,59 @@ function extractKeywords(text) {
     });
 
     // 最大8個に制限して配列化
-    return Array.from(keywordSet).slice(0, MAX_KEYWORDS);
+    const keywords = Array.from(keywordSet).slice(0, MAX_KEYWORDS);
+    console.log(`抽出キーワード: ${keywords.join(', ')}`);
+    return keywords;
   } catch (error) {
-    console.error('RakutenMAキーワード抽出エラー:', error);
-    return [];  // エラーハンドリング: 空配列を返す
+    console.error('RakutenMAキーワード抽出エラー (詳細):', error.message, error.stack);
+    console.error('エラー発生テキスト:', text.substring(0, 100));  // テキストの先頭100文字をログ出力
+    // フォールバック: 簡易版抽出を使用
+    return fallbackExtractKeywords(text);
   }
+}
+
+// フォールバック: 簡易版キーワード抽出関数
+function fallbackExtractKeywords(text) {
+  console.log('フォールバック: 簡易版キーワード抽出を使用');
+  const MAX_KEYWORDS = 8;
+  const MIN_KEYWORD_LENGTH = 2;
+  const MAX_KEYWORD_LENGTH = 10;
+  const NGRAM_MIN = 2;
+  const NGRAM_MAX = 4;
+
+  const stopWords = new Set([
+    'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
+    'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
+    'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
+    'より', 'まで', 'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
+    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'にて', 'として', 'しています',
+    '企業', '改革', '模索', 'ベクトル', 'フロントランナー', '旗手', '保有', '現金', 
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
+    'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 
+    'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could'
+  ]);
+  
+  let words = text.replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ').split(/\s+/);
+  
+  const ngramSet = new Set();
+  words.forEach(word => {
+    if (word.length > NGRAM_MAX) {
+      for (let len = NGRAM_MIN; len <= NGRAM_MAX; len++) {
+        for (let i = 0; i <= word.length - len; i++) {
+          ngramSet.add(word.substring(i, i + len));
+        }
+      }
+    } else {
+      ngramSet.add(word);
+    }
+  });
+  
+  const filtered = Array.from(ngramSet).filter(word => word.length >= MIN_KEYWORD_LENGTH 
+                                                      && word.length <= MAX_KEYWORD_LENGTH
+                                                      && !stopWords.has(word.toLowerCase()))
+                                      .slice(0, MAX_KEYWORDS);
+  
+  return filtered;
 }
 
 // メイン処理（変更なし）
