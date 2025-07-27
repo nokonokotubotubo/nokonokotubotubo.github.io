@@ -127,7 +127,7 @@ async function parseRSSItem(item, sourceUrl) {
 
 // メイン処理
 async function main() {
-  const rssUrls = ['https://example.com/rss']; // RSS URLのリスト（実際のURLに置き換え）
+  const rssUrls = ['https://news.yahoo.co.jp/rss/topics/it.xml']; // 修正: 有効なRSS URLに置き換え（例: Yahoo!ニュースITトピックス）
   let articles = [];
 
   for (const url of rssUrls) {
