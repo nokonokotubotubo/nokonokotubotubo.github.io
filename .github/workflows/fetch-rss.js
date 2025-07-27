@@ -179,9 +179,10 @@ function extractKeywords(text) {
 
   try {
     // RakutenMAで形態素解析を実行（詳細ログ追加）
-    console.log(`形態素解析開始: テキスト長=${text.length}`);
+    console.log(`形態素解析開始: テキスト長=${text.length}, テキストサンプル=${text.substring(0, 50)}`);
+    console.log(`モデル状態確認: model=${!!model}, featset=${rma.featset ? 'set' : 'unset'}`);
     const tokens = rma.tokenize(text);
-    console.log(`形態素解析完了: トークン数=${tokens.length}`);
+    console.log(`形態素解析完了: トークン数=${tokens.length}, サンプルトークン=${tokens.slice(0, 3).map(t => t[0]).join(', ')}`);
 
     // 名詞・固有名詞を抽出（軽量化: Setで重複除去）
     const keywordSet = new Set();
@@ -201,6 +202,7 @@ function extractKeywords(text) {
   } catch (error) {
     console.error('RakutenMAキーワード抽出エラー (詳細):', error.message, error.stack);
     console.error('エラー発生テキスト:', text.substring(0, 100));  // テキストの先頭100文字をログ出力
+    console.error('エラー時モデル状態:', !!model, 'featset:', rma.featset ? 'set' : 'unset');
     // フォールバック: 簡易版抽出を使用
     return fallbackExtractKeywords(text);
   }
