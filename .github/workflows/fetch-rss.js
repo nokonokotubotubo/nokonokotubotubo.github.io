@@ -3,16 +3,66 @@ const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const Mecab = require('mecab-async');
 
-// MeCabセットアップ (GitHub ActionsのUbuntuパス調整)
+// MeCabセットアップ (複数パターンを試行)
 const mecab = new Mecab();
-mecab.command = 'mecab -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd';
 
-// MeCab parseをPromiseでラップ
+// 辞書パスの自動検出と設定
+async function setupMecab() {
+  const possiblePaths = [
+    '/usr/lib/mecab/dic/mecab-ipadic-neologd',
+    '/usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd',
+    '/var/lib/mecab/dic/mecab-ipadic-neologd',
+    '/usr/share/mecab/dic/mecab-ipadic-neologd'
+  ];
+  
+  for (const path of possiblePaths) {
+    try {
+      mecab.command = `mecab -d ${path}`;
+      const testResult = await mecabParsePromise('テスト');
+      if (testResult && testResult.length > 0) {
+        console.log(`MeCab辞書パス確定: ${path}`);
+        return true;
+      }
+    } catch (error) {
+      console.log(`辞書パス ${path} は無効: ${error.message}`);
+    }
+  }
+  
+  // デフォルト辞書を試行
+  try {
+    mecab.command = 'mecab';
+    const testResult = await mecabParsePromise('テスト');
+    if (testResult && testResult.length > 0) {
+      console.log('MeCab標準辞書で動作確認');
+      return true;
+    }
+  } catch (error) {
+    console.error('MeCab標準辞書も失敗:', error);
+  }
+  
+  return false;
+}
+
+// MeCab parseをPromiseでラップ (エラーハンドリング強化)
 function mecabParsePromise(text) {
   return new Promise((resolve, reject) => {
+    if (!text || text.trim().length === 0) {
+      resolve([]);
+      return;
+    }
+    
     mecab.parse(text, (err, result) => {
-      if (err) return reject(err);
-      resolve(result);
+      if (err) {
+        console.error('MeCab parseエラー:', err);
+        reject(err);
+        return;
+      }
+      
+      // 結果の詳細ログ
+      console.log(`[DEBUG] MeCab生出力タイプ: ${typeof result}, 長さ: ${result ? result.length : 'undefined'}`);
+      console.log(`[DEBUG] MeCab生出力内容: ${JSON.stringify(result).substring(0, 200)}...`);
+      
+      resolve(result || []);
     });
   });
 }
@@ -155,51 +205,74 @@ function parseDate(dateString) {
   }
 }
 
-// **原因特定用** MeCab詳細出力版
+// 強化されたキーワード抽出関数
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
   const TARGET_POS = new Set(['名詞', '固有名詞', '動詞', '形容詞']);
-  const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'です', 'である', 'の', 'が', 'は', 'を', 'に', 'と', 'で']);
+  const stopWords = new Set(['これ', 'それ', 'この', 'その', 'です', 'である', 'の', 'が', 'は', 'を', 'に', 'と', 'で']);
 
   try {
-    const parsed = await mecabParsePromise(text.substring(0, 100)); // テスト用に短縮
+    // テキストの前処理
+    const processedText = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, '').trim();
     
-    // **詳細ログ出力 - 実際のMeCab出力を確認**
-    console.log(`[DEBUG] MeCab詳細出力（最初の5トークン）:`);
-    for (let i = 0; i < Math.min(5, parsed.length); i++) {
-      const token = parsed[i];
-      console.log(`  Token[${i}]: ${JSON.stringify(token)}`);
-      if (Array.isArray(token) && token.length >= 2) {
-        console.log(`    表層形: "${token[0]}", 品詞情報: ${JSON.stringify(token[1])}`);
-      }
+    if (!processedText) {
+      console.log('[DEBUG] 処理可能なテキストがありません');
+      return [];
     }
-
-    if (!Array.isArray(parsed) || parsed.length === 0) return [];
+    
+    console.log(`[DEBUG] 処理対象テキスト: "${processedText.substring(0, 50)}..."`);
+    
+    const parsed = await mecabParsePromise(processedText);
+    
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.log('[DEBUG] MeCab解析結果が空です');
+      return [];
+    }
+    
+    console.log(`[DEBUG] MeCab解析成功: ${parsed.length}個のトークン`);
     
     const keywords = new Set();
-
+    
+    // 様々なトークン形式に対応
     parsed.forEach((token, index) => {
-      if (!Array.isArray(token) || token.length < 2) {
-        console.log(`[DEBUG] 無効トークン[${index}]: ${JSON.stringify(token)}`);
+      if (index < 3) console.log(`[DEBUG] Token[${index}]: ${JSON.stringify(token)}`);
+      
+      let surface, pos;
+      
+      // 形式パターン1: [表層形, [品詞, ...]]
+      if (Array.isArray(token) && token.length >= 2 && Array.isArray(token[1])) {
+        surface = token[0];
+        pos = token[1][0];
+      }
+      // 形式パターン2: [表層形, 品詞]
+      else if (Array.isArray(token) && token.length >= 2) {
+        surface = token[0];
+        pos = token[1];
+      }
+      // 形式パターン3: {surface: '...', features: [...]}
+      else if (token && typeof token === 'object' && token.surface) {
+        surface = token.surface;
+        pos = Array.isArray(token.features) ? token.features[0] : token.features;
+      }
+      else {
         return;
       }
       
-      const [surface, features] = token;
-      console.log(`[DEBUG] 処理中 - 表層形:"${surface}", 品詞:"${features[0]}"`);
-      
-      const pos = features[0] || '';
-      if (TARGET_POS.has(pos) && surface.length >= MIN_KEYWORD_LENGTH && !stopWords.has(surface)) {
+      if (surface && pos && TARGET_POS.has(pos) && 
+          surface.length >= MIN_KEYWORD_LENGTH && 
+          !stopWords.has(surface)) {
         keywords.add(surface);
-        console.log(`[DEBUG] キーワード追加: "${surface}"`);
+        console.log(`[DEBUG] キーワード追加: "${surface}" (${pos})`);
       }
     });
 
     const result = Array.from(keywords).slice(0, MAX_KEYWORDS);
     console.log(`[DEBUG] 最終キーワード: ${JSON.stringify(result)}`);
+    
     return result;
   } catch (error) {
-    console.error('MeCabエラー:', error);
+    console.error('MeCab解析エラー:', error.message);
     return [];
   }
 }
@@ -208,11 +281,10 @@ async function extractKeywordsWithMecab(text) {
 async function main() {
   console.log('RSS記事取得開始...');
   
-  try {
-    await mecabParsePromise('テスト');
-    console.log('MeCabセットアップ成功');
-  } catch (error) {
-    console.error('MeCabセットアップエラー:', error);
+  // MeCab設定の自動検出
+  const mecabReady = await setupMecab();
+  if (!mecabReady) {
+    console.error('MeCabの設定に失敗しました');
     process.exit(1);
   }
   
