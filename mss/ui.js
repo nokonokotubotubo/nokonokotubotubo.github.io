@@ -112,7 +112,7 @@
 
     // XMLエスケープ関数
     window.escapeXml = (text) => {
-        return text.replace(/[<> &'"]/g, (char) => {
+        return text.replace(/[<>&'"]/g, (char) => {
             switch (char) {
                 case '<': return '&lt;';
                 case '>': return '&gt;';
@@ -694,41 +694,15 @@
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
 
-    // モデルロードを待機する関数を追加
-    const waitForModelLoad = () => {
-        return new Promise((resolve, reject) => {
-            const checkInterval = 100;  // 100ms間隔でチェック
-            const maxAttempts = 50;     // 最大5秒待機
-            let attempts = 0;
-
-            const checkModel = () => {
-                if (window.model_ja && window.RakutenMA) {
-                    resolve();
-                } else if (attempts >= maxAttempts) {
-                    console.warn('Model load timeout');
-                    resolve();  // タイムアウト時はフォールバックに頼る
-                } else {
-                    attempts++;
-                    setTimeout(checkModel, checkInterval);
-                }
-            };
-
-            checkModel();
-        });
-    };
-
-    // 初期化をasyncに変更
-    const initializeApp = async () => {
-        initializeData();
-        await waitForModelLoad();
-        window.render();
-    };
-
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeData();
+            window.render();
+        });
     } else {
-        initializeApp();
+        initializeData();
+        window.render();
     }
 
 })();
