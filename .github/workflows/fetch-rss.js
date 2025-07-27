@@ -148,53 +148,60 @@ function parseDate(dateString) {
   }
 }
 
-// キーワード抽出関数（簡易版）
+// キーワード抽出関数（RakutenMA版）
 function extractKeywords(text) {
+  // RakutenMAの初期化（Node.js環境用）
+  const RakutenMA = require('./rakutenma'); // 軽量化: 必要最小限のrequire
+  const rma = new RakutenMA(); // インスタンス生成
+  
+  // モデルのロード（信頼性向上: エラーハンドリング追加）
+  try {
+    const modelData = fs.readFileSync('./model_ja.min.json', 'utf8');
+    rma.set_model(JSON.parse(modelData)); // モデル設定
+  } catch (error) {
+    console.error('RakutenMAモデルロードエラー:', error);
+    return []; // エラーハンドリング: 空配列返却で処理継続
+  }
+  
+  // 形態素解析実行
+  const tokens = rma.tokenize(text);
+  
   // 定数化（調整しやすく保守性向上）
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
-  const MAX_KEYWORD_LENGTH = 10; // チューニング: 長いフレーズを除外（例: 10文字以上）
-  const NGRAM_MIN = 2; // チューニング: n-gramの最小長
-  const NGRAM_MAX = 4; // チューニング: 最大を4に調整（実用的な分割と重複低減のため）
-
+  const MAX_KEYWORD_LENGTH = 10;
+  
   const stopWords = new Set([
     'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
     'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
     'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
     'より', 'まで', 'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
     'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'にて', 'として', 'しています',
-    '企業', '改革', '模索', 'ベクトル', 'フロントランナー', '旗手', '保有', '現金', // チューニング: 頻出パターン追加（実用性向上）
+    '企業', '改革', '模索', 'ベクトル', 'フロントランナー', '旗手', '保有', '現金',
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
     'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 
     'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could'
   ]);
   
-  // スペース分割
-  let words = text.replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ').split(/\s+/);
-  
-  // 長い単語をn-gramで分割（実用的な分割のため、重複除去付き）
-  const ngramSet = new Set(); // 軽量化: Setで重複を防ぐ
-  words.forEach(word => {
-    if (word.length > NGRAM_MAX) {
-      for (let len = NGRAM_MIN; len <= NGRAM_MAX; len++) {
-        for (let i = 0; i <= word.length - len; i++) {
-          ngramSet.add(word.substring(i, i + len));
-        }
-      }
-    } else {
-      ngramSet.add(word);
+  // キーワード抽出（形態素から名詞/動詞を優先）
+  const keywordSet = new Set(); // 重複防止
+  tokens.forEach(token => {
+    const word = token[0]; // 形態素の単語部分
+    const pos = token[1];  // 品詞
+    
+    // 精度向上: 名詞・動詞のみを対象とし、ストップワード除去
+    if ((pos.startsWith('名詞') || pos.startsWith('動詞')) &&
+        word.length >= MIN_KEYWORD_LENGTH && 
+        word.length <= MAX_KEYWORD_LENGTH && 
+        !stopWords.has(word.toLowerCase())) {
+      keywordSet.add(word);
     }
   });
   
-  // フィルタリング
-  const filtered = Array.from(ngramSet).filter(word => word.length >= MIN_KEYWORD_LENGTH 
-                                                      && word.length <= MAX_KEYWORD_LENGTH
-                                                      && !stopWords.has(word.toLowerCase()) 
-                                                      && !word.endsWith(EXCLUDE_SUFFIX))
-                                      .slice(0, MAX_KEYWORDS);
-  
-  return filtered;
+  // 最大8個に制限
+  return Array.from(keywordSet).slice(0, MAX_KEYWORDS);
 }
+
 
 
 // メイン処理
