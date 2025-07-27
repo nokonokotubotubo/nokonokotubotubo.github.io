@@ -185,11 +185,12 @@ function extractKeywords(text) {
     console.log(`形態素解析完了: トークン数=${tokens.length}, サンプルトークン=${tokens.slice(0, 3).map(t => t[0]).join(', ')}`);
     console.log(`トークン詳細: ${JSON.stringify(tokens.slice(0, 10))}`);  // 先頭10トークンを出力
 
-    // 名詞・固有名詞を抽出（軽量化: Setで重複除去）
+    // 名詞・固有名詞を抽出（軽量化: Setで重複除去、pos空の場合のフォールバック追加）
     const keywordSet = new Set();
     let candidateCount = 0;
     tokens.forEach(token => {
-      if (token[1] === '名詞' || token[1] === '固有名詞') {  // 日本語の名詞系を対象
+      const pos = token[1] || '不明';  // posが空の場合を'不明'として扱う
+      if (pos === '名詞' || pos === '固有名詞' || pos === '不明') {  // フォールバックで不明も対象
         const word = token[0].trim();
         if (word.length >= 2 && !stopWords.has(word.toLowerCase())) {
           keywordSet.add(word);
