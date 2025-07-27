@@ -192,7 +192,7 @@ window.AIScoring = {
         // 6. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
-    // 修正: キーワード抽出関数を強化（RakutenMA使用を最適化、エラーハンドリング強化）
+   // 修正: キーワード抽出関数を強化（RakutenMA使用を最適化、エラーハンドリング強化）
 extractKeywords(text, maxKeywords = 8) {
     if (!text || typeof text !== 'string' || text.trim() === '') {
         console.warn('Invalid or empty text input for keyword extraction, returning empty array');
@@ -210,8 +210,14 @@ extractKeywords(text, maxKeywords = 8) {
         rma.chunk_size = 100;  // チャンクサイズを調整して精度向上（デフォルトより小さく）
         rma.phi = 1024;  // フィーチャー調整で複合語処理を強化
 
-        // 追加: tokenize前にテキストをサニタイズ（特殊文字除去）
-        const sanitizedText = text.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
+        // 追加: tokenize前にテキストをサニタイズ（特殊文字除去）と長さ制限
+        let sanitizedText = text.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
+        if (sanitizedText.length > 1000) {  // 長すぎるテキストを制限
+            sanitizedText = sanitizedText.substring(0, 1000);
+        }
+        if (sanitizedText.length === 0) {
+            throw new Error('Sanitized text is empty');
+        }
 
         // テキストをトークナイズ
         const tokens = rma.tokenize(sanitizedText);
@@ -220,8 +226,11 @@ extractKeywords(text, maxKeywords = 8) {
             throw new Error('Tokenization returned invalid or empty result');
         }
 
+        // 追加: 各トークンの有効性チェック
+        const validTokens = tokens.filter(token => Array.isArray(token) && token.length >= 2 && typeof token[0] === 'string' && typeof token[1] === 'string');
+
         // ストップワード除去と名詞・動詞のみ抽出
-        const keywords = tokens
+        const keywords = validTokens
             .filter(token => 
                 token[1] && (token[1].startsWith('N') || token[1].startsWith('V')) &&  // 名詞・動詞のみ
                 !this.STOP_WORDS.includes(token[0]) && token[0].length > 1  // ストップワード除去、長さ1以上
@@ -243,7 +252,7 @@ extractKeywords(text, maxKeywords = 8) {
         // エラー時フォールバック
         return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
     }
-    },
+},
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
         let weight = weights[rating] || 0;
