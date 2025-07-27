@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');  // 追加: パス結合のため
 const xml2js = require('xml2js');
 const fetch = require('node-fetch');
-const RakutenMA = require(path.join(process.env.GITHUB_WORKSPACE || '.', 'rakutenma.js'));  // RakutenMAをインポート（絶対パス使用）
+const RakutenMA = require(path.join(process.env.GITHUB_WORKSPACE || '.', 'mss', 'rakutenma.js'));  // RakutenMAをインポート（mss/を含む絶対パス使用）
 
-// モデル読み込み（model_ja.min.jsonを同期読み込み、エラーハンドリング強化）
+// モデル読み込み（mss/model_ja.min.jsonを同期読み込み、エラーハンドリング強化）
 let model;
 try {
-  const modelPath = path.join(process.env.GITHUB_WORKSPACE || '.', 'model_ja.min.json');  // 絶対パス使用
+  const modelPath = path.join(process.env.GITHUB_WORKSPACE || '.', 'mss', 'model_ja.min.json');  // mss/を含む絶対パス使用
   // GitHub Actionsの制限考慮: ファイル存在確認と詳細ログ追加
   if (!fs.existsSync(modelPath)) {
     throw new Error(`モデルファイルが存在しません: ${modelPath} (GitHub Actionsの仮想環境でパスが解決されない可能性があります)`);
