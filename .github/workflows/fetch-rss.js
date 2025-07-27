@@ -7,6 +7,16 @@ const Mecab = require('mecab-async'); // 新規追加: MeCabラッパー
 const mecab = new Mecab();
 mecab.command = 'mecab -d /usr/lib/mecab/dic/mecab-ipadic-neologd'; // 辞書パスを環境に合わせて設定 (GitHub Actionsでインストール)
 
+// MeCab parseをPromiseでラップ (信頼性向上)
+function mecabParsePromise(text) {
+  return new Promise((resolve, reject) => {
+    mecab.parse(text, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+  });
+}
+
 // OPML読み込み関数 (変更なし)
 async function loadOPML() {
   try {
@@ -168,7 +178,7 @@ async function extractKeywordsWithMecab(text) {
   ]); // 明示的に定義 (保守性向上)
 
   try {
-    const parsed = await mecab.parse(text); // MeCabで形態素解析 (非同期)
+    const parsed = await mecabParsePromise(text); // MeCabで形態素解析 (非同期)
     
     // parsedが配列でない場合のハンドリング (信頼性強化)
     if (!Array.isArray(parsed) || parsed.length === 0) {
@@ -200,7 +210,7 @@ async function main() {
   
   // MeCabセットアップ検証 (信頼性向上、async関数内に移動)
   try {
-    await mecab.parse('テスト'); // テスト解析でセットアップを確認
+    await mecabParsePromise('テスト'); // テスト解析でセットアップを確認
     console.log('MeCabセットアップ成功');
   } catch (error) {
     console.error('MeCabセットアップエラー:', error);
