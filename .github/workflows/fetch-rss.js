@@ -5,7 +5,7 @@ const Mecab = require('mecab-async');
 
 // MeCabセットアップ (GitHub ActionsのUbuntuパス調整)
 const mecab = new Mecab();
-mecab.command = 'mecab -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd'; // 修正パス
+mecab.command = 'mecab -d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd';
 
 // MeCab parseをPromiseでラップ
 function mecabParsePromise(text) {
@@ -17,7 +17,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// OPML読み込み関数 (変更なし)
+// OPML読み込み関数
 async function loadOPML() {
   try {
     const opmlContent = fs.readFileSync('./.github/workflows/rsslist.xml', 'utf8');
@@ -50,7 +50,7 @@ async function loadOPML() {
   }
 }
 
-// RSS取得・解析関数 (変更なし)
+// RSS取得・解析関数
 async function fetchAndParseRSS(url, title) {
   try {
     console.log(`Fetching RSS: ${title} (${url})`);
@@ -95,7 +95,7 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// RSS項目解析関数 (変更なし)
+// RSS項目解析関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     const title = cleanText(item.title || '');
@@ -130,7 +130,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
   }
 }
 
-// テキストクリーン関数 (変更なし)
+// テキストクリーン関数
 function cleanText(text) {
   if (typeof text !== 'string' || !text) return '';
   return text.replace(/<[^>]*>/g, '')
@@ -144,7 +144,7 @@ function cleanText(text) {
              .trim();
 }
 
-// 日付解析関数 (変更なし)
+// 日付解析関数
 function parseDate(dateString) {
   if (!dateString) return new Date().toISOString();
   try {
@@ -155,7 +155,7 @@ function parseDate(dateString) {
   }
 }
 
-// MeCabを使ったキーワード抽出関数 (条件緩和 + デバッグ強化)
+// **原因特定用** MeCab詳細出力版
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
@@ -163,31 +163,48 @@ async function extractKeywordsWithMecab(text) {
   const stopWords = new Set(['これ', 'それ', 'あれ', 'この', 'その', 'あの', 'です', 'である', 'の', 'が', 'は', 'を', 'に', 'と', 'で']);
 
   try {
-    const parsed = await mecabParsePromise(text);
+    const parsed = await mecabParsePromise(text.substring(0, 100)); // テスト用に短縮
     
-    console.log(`[DEBUG] MeCab output sample: ${JSON.stringify(parsed.slice(0, 5))}`); // 出力確認ログ
+    // **詳細ログ出力 - 実際のMeCab出力を確認**
+    console.log(`[DEBUG] MeCab詳細出力（最初の5トークン）:`);
+    for (let i = 0; i < Math.min(5, parsed.length); i++) {
+      const token = parsed[i];
+      console.log(`  Token[${i}]: ${JSON.stringify(token)}`);
+      if (Array.isArray(token) && token.length >= 2) {
+        console.log(`    表層形: "${token[0]}", 品詞情報: ${JSON.stringify(token[1])}`);
+      }
+    }
 
     if (!Array.isArray(parsed) || parsed.length === 0) return [];
     
     const keywords = new Set();
 
-    parsed.forEach(token => {
-      if (!Array.isArray(token) || token.length < 2) return;
+    parsed.forEach((token, index) => {
+      if (!Array.isArray(token) || token.length < 2) {
+        console.log(`[DEBUG] 無効トークン[${index}]: ${JSON.stringify(token)}`);
+        return;
+      }
+      
       const [surface, features] = token;
+      console.log(`[DEBUG] 処理中 - 表層形:"${surface}", 品詞:"${features[0]}"`);
+      
       const pos = features[0] || '';
       if (TARGET_POS.has(pos) && surface.length >= MIN_KEYWORD_LENGTH && !stopWords.has(surface)) {
         keywords.add(surface);
+        console.log(`[DEBUG] キーワード追加: "${surface}"`);
       }
     });
 
-    return Array.from(keywords).slice(0, MAX_KEYWORDS);
+    const result = Array.from(keywords).slice(0, MAX_KEYWORDS);
+    console.log(`[DEBUG] 最終キーワード: ${JSON.stringify(result)}`);
+    return result;
   } catch (error) {
     console.error('MeCabエラー:', error);
     return [];
   }
 }
 
-// メイン処理 (変更なし)
+// メイン処理
 async function main() {
   console.log('RSS記事取得開始...');
   
