@@ -169,29 +169,24 @@ function parseDate(dateString) {
   }
 }
 
-// 新規: MeCabを使ったキーワード抽出関数 (フォールバック完全削除)
+// 新規: MeCabを使ったキーワード抽出関数 (抽出条件最適化)
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
-  const TARGET_POS = new Set(['名詞', '固有名詞']); // 抽出対象の品詞 (保守性向上のためSet使用)
-  const stopWords = new Set([
+  const TARGET_POS = new Set(['名詞', '固有名詞', '動詞']); // 抽出対象拡張 (ニュース向け)
+  const stopWords = new Set([ // ニュース向け最適化 (英語削除、一般語削減)
     'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
     'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
     'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
-    'より', 'まで', 'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
-    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'にて', 'として', 'しています',
-    '企業', '改革', '模索', 'ベクトル', 'フロントランナー', '旗手', '保有', '現金',
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
-    'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 
-    'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could'
-  ]); // 明示的に定義 (保守性向上)
+    'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
+    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'として', 'しています'
+  ]); // 保守性向上
 
   try {
     const parsed = await mecabParsePromise(text); // MeCabで形態素解析 (非同期)
     
-    console.log(`[DEBUG] MeCab parsed tokens count: ${parsed.length}`); // デバッグログ: parsed確認
+    console.log(`[DEBUG] MeCab parsed tokens count: ${parsed.length}`); // デバッグログ
     
-    // parsedが配列でない場合のハンドリング (信頼性強化)
     if (!Array.isArray(parsed) || parsed.length === 0) {
       console.warn('MeCab parse returned invalid or empty result - テキスト:', text);
       return [];
@@ -200,9 +195,9 @@ async function extractKeywordsWithMecab(text) {
     const keywords = new Set(); // 重複除去
 
     parsed.forEach(token => {
-      if (!Array.isArray(token) || token.length < 2) return; // 無効トークンスキップ (信頼性向上)
-      const [surface, features] = token; // MeCab出力: [表層形, [品詞,...]]
-      const pos = features[0] || ''; // 品詞 (null安全)
+      if (!Array.isArray(token) || token.length < 2) return;
+      const [surface, features] = token;
+      const pos = features[0] || '';
       if (TARGET_POS.has(pos) && surface.length >= MIN_KEYWORD_LENGTH && !stopWords.has(surface)) {
         keywords.add(surface);
       }
@@ -210,8 +205,8 @@ async function extractKeywordsWithMecab(text) {
 
     return Array.from(keywords).slice(0, MAX_KEYWORDS); // 最大8件に制限
   } catch (error) {
-    console.error('MeCab解析エラー:', error.message, '- テキスト:', text); // 詳細ログ (保守性向上)
-    return []; // 空配列を返す (信頼性確保)
+    console.error('MeCab解析エラー:', error.message, '- テキスト:', text);
+    return []; // 空配列を返す
   }
 }
 
@@ -243,7 +238,7 @@ async function main() {
     }
   }
   
-  console.log(`[DEBUG] All articles count before unique: ${allArticles.length}`); // デバッグログ: allArticles確認
+  console.log(`[DEBUG] All articles count before unique: ${allArticles.length}`); // デバッグログ
   
   // 重複記事の除去
   const uniqueArticles = [];
@@ -257,7 +252,7 @@ async function main() {
     }
   });
   
-  console.log(`[DEBUG] Unique articles count: ${uniqueArticles.length}`); // デバッグログ: uniqueArticles確認
+  console.log(`[DEBUG] Unique articles count: ${uniqueArticles.length}`); // デバッグログ
   
   // AIスコア追加（簡易版）
   uniqueArticles.forEach(article => {
@@ -272,7 +267,7 @@ async function main() {
   // 最大1000件に制限
   const limitedArticles = uniqueArticles.slice(0, 1000);
   
-  console.log(`[DEBUG] Limited articles count: ${limitedArticles.length}`); // デバッグログ: limitedArticles確認
+  console.log(`[DEBUG] Limited articles count: ${limitedArticles.length}`); // デバッグログ
   
   // mss/ディレクトリが存在しない場合は作成
   if (!fs.existsSync('./mss')) {
