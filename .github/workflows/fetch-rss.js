@@ -146,10 +146,17 @@ function parseDate(dateString) {
 
 // キーワード抽出関数（簡易版）
 function extractKeywords(text) {
+  // 定数化（調整しやすく保守性向上）
+  const MAX_KEYWORDS = 8;
+  const MIN_KEYWORD_LENGTH = 2;
+  const EXCLUDE_SUFFIX = 'の'; // チューニング: 助詞終わりを除去（例: 「キーエンスの」）
+  
   const stopWords = new Set([
     'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
     'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
     'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
+    'より', 'まで', 'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
+    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'にて', 'として', 'しています',
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
     'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 
     'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could'
@@ -157,8 +164,10 @@ function extractKeywords(text) {
   
   const words = text.replace(/[^\w\sぁ-んァ-ン一-龯ー]/g, ' ')
                    .split(/\s+/)
-                   .filter(word => word.length > 1 && !stopWords.has(word.toLowerCase()))
-                   .slice(0, 8);
+                   .filter(word => word.length >= MIN_KEYWORD_LENGTH 
+                                   && !stopWords.has(word.toLowerCase()) 
+                                   && !word.endsWith(EXCLUDE_SUFFIX))
+                   .slice(0, MAX_KEYWORDS);
   
   return [...new Set(words)];
 }
