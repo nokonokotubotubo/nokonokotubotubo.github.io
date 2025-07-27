@@ -99,12 +99,12 @@ min-width: 120px;
 }
 
 .filter-select:hover {
-background: rgba(255, 255, 255, 0.3);
+background: rgba(255, 255, 255, 0.3) !important;
 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filter-select:focus {
-background: rgba(255, 255, 255, 0.3);
+background: rgba(255, 255, 255, 0.3) !important;
 outline: none;
 box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
