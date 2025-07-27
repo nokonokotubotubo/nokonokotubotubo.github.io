@@ -193,53 +193,56 @@ window.AIScoring = {
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
     // 修正: キーワード抽出関数を強化（RakutenMA使用を最適化、エラーハンドリング強化）
-    extractKeywords(text, maxKeywords = 8) {
-        if (!text || typeof text !== 'string' || text.trim() === '') {
-            console.warn('Invalid or empty text input for keyword extraction, returning empty array');
-            return [];
+extractKeywords(text, maxKeywords = 8) {
+    if (!text || typeof text !== 'string' || text.trim() === '') {
+        console.warn('Invalid or empty text input for keyword extraction, returning empty array');
+        return [];
+    }
+
+    if (!window.model_ja || !window.RakutenMA) {
+        console.warn('RakutenMA model not loaded, falling back to simple keyword extraction');
+        // フォールバック: シンプルなスペース分割（元の簡易版に近づけ精度低下を最小限に）
+        return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
+    }
+
+    try {
+        const rma = new RakutenMA(window.model_ja);
+        rma.chunk_size = 100;  // チャンクサイズを調整して精度向上（デフォルトより小さく）
+        rma.phi = 1024;  // フィーチャー調整で複合語処理を強化
+
+        // 追加: tokenize前にテキストをサニタイズ（特殊文字除去）
+        const sanitizedText = text.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
+
+        // テキストをトークナイズ
+        const tokens = rma.tokenize(sanitizedText);
+
+        if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+            throw new Error('Tokenization returned invalid or empty result');
         }
 
-        if (!window.model_ja || !window.RakutenMA) {
-            console.warn('RakutenMA model not loaded, falling back to simple keyword extraction');
-            // フォールバック: シンプルなスペース分割（元の簡易版に近づけ精度低下を最小限に）
-            return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
-        }
+        // ストップワード除去と名詞・動詞のみ抽出
+        const keywords = tokens
+            .filter(token => 
+                token[1] && (token[1].startsWith('N') || token[1].startsWith('V')) &&  // 名詞・動詞のみ
+                !this.STOP_WORDS.includes(token[0]) && token[0].length > 1  // ストップワード除去、長さ1以上
+            )
+            .map(token => token[0]);
 
-        try {
-            const rma = new RakutenMA(window.model_ja);
-            rma.chunk_size = 100;  // チャンクサイズを調整して精度向上（デフォルトより小さく）
-            rma.phi = 1024;  // フィーチャー調整で複合語処理を強化
+        // 頻度ベースでソート（簡易TF: 出現回数）
+        const freqMap = keywords.reduce((acc, word) => {
+            acc[word] = (acc[word] || 0) + 1;
+            return acc;
+        }, {});
 
-            // テキストをトークナイズ
-            const tokens = rma.tokenize(text);
-
-            if (!tokens || !Array.isArray(tokens)) {
-                throw new Error('Tokenization returned invalid result');
-            }
-
-            // ストップワード除去と名詞・動詞のみ抽出
-            const keywords = tokens
-                .filter(token => 
-                    token[1] && (token[1].startsWith('N') || token[1].startsWith('V')) &&  // 名詞・動詞のみ
-                    !this.STOP_WORDS.includes(token[0]) && token[0].length > 1  // ストップワード除去、長さ1以上
-                )
-                .map(token => token[0]);
-
-            // 頻度ベースでソート（簡易TF: 出現回数）
-            const freqMap = keywords.reduce((acc, word) => {
-                acc[word] = (acc[word] || 0) + 1;
-                return acc;
-            }, {});
-
-            // 頻度降順でソートし、上位maxKeywordsを取得
-            return Object.keys(freqMap)
-                .sort((a, b) => freqMap[b] - freqMap[a])
-                .slice(0, maxKeywords);
-        } catch (error) {
-            console.error('Keyword extraction error:', error);
-            // エラー時フォールバック
-            return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
-        }
+        // 頻度降順でソートし、上位maxKeywordsを取得
+        return Object.keys(freqMap)
+            .sort((a, b) => freqMap[b] - freqMap[a])
+            .slice(0, maxKeywords);
+    } catch (error) {
+        console.error('Keyword extraction error:', error);
+        // エラー時フォールバック
+        return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
+    }
     },
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
