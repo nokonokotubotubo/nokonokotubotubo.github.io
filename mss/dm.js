@@ -143,11 +143,56 @@ window.ArticleLoader = {
 // ===========================================
 // AI学習システム
 // ===========================================
+// window.AIScoring = { ... } 部分を修正
 
 window.AIScoring = {
-    // 追加: 日本語ストップワードリスト（軽量で追加）
-    STOP_WORDS: ['の', 'は', 'に', 'を', 'が', 'で', 'と', 'です', 'ます', 'から', 'へ', 'や', 'など', 'する', 'した'],
-
+    // ... (既存のコード)
+    calculateScore(article, aiLearning, wordFilters) {
+        let score = 0;
+        
+        // 1. 鮮度スコア: 0-20点（指数減衰、72時間基準）
+        const hours = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60);
+        const freshness = Math.exp(-hours / 72) * 20;
+        score += freshness;
+        
+        // チューニング: キーワードを再抽出・フィルタリング（分離性能向上）
+        article.keywords = this.extractKeywords(article.title + ' ' + article.content);
+        
+        // 2. キーワード学習重み: -20～+20点（学習データベース）
+        if (article.keywords && aiLearning.wordWeights) {
+            article.keywords.forEach(keyword => {
+                const weight = aiLearning.wordWeights[keyword] || 0;
+                score += Math.max(-20, Math.min(20, weight));
+            });
+        }
+        // ... (残りのコード)
+    },
+    
+    // 新規追加: キーワード抽出関数（RakutenMA使用、チューニング版）
+    extractKeywords(text) {
+        // 定数化（調整しやすく保守性向上）
+        const MAX_KEYWORDS = 8; // 仕様書通り
+        const MIN_KEYWORD_LENGTH = 2; // チューニング: 短いノイズを除去
+        const TARGET_POS = ['名詞']; // チューニング: 名詞優先で分離性能向上（RakutenMAの品詞出力に基づく）
+        
+        // RakutenMAインスタンス（現在の構成維持）
+        const rma = new RakutenMA(window.model_ja); // index.htmlでロード済み
+        
+        // 形態素解析
+        const tokens = rma.tokenize(text);
+        
+        // キーワード抽出・フィルタリング（重複除去と最小長）
+        const keywordsSet = new Set(); // 軽量化: Setで重複除去（実行速度向上）
+        tokens.forEach(token => {
+            if (TARGET_POS.includes(token[1]) && token[0].length >= MIN_KEYWORD_LENGTH) {
+                keywordsSet.add(token[0]);
+            }
+        });
+        
+        // 最大8個に制限（仕様維持）
+        return Array.from(keywordsSet).slice(0, MAX_KEYWORDS);
+    },
+    // ... (他の関数)
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords || wordFilters.ngWords.length === 0) return articles;
         return articles.filter(article => {
@@ -192,67 +237,6 @@ window.AIScoring = {
         // 6. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
-   // 修正: キーワード抽出関数を強化（RakutenMA使用を最適化、エラーハンドリング強化）
-extractKeywords(text, maxKeywords = 8) {
-    if (!text || typeof text !== 'string' || text.trim() === '') {
-        console.warn('Invalid or empty text input for keyword extraction, returning empty array');
-        return [];
-    }
-
-    if (!window.model_ja || !window.RakutenMA) {
-        console.warn('RakutenMA model not loaded, falling back to simple keyword extraction');
-        // フォールバック: シンプルなスペース分割（元の簡易版に近づけ精度低下を最小限に）
-        return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
-    }
-
-    try {
-        const rma = new RakutenMA(window.model_ja);
-        rma.chunk_size = 100;  // チャンクサイズを調整して精度向上（デフォルトより小さく）
-        rma.phi = 1024;  // フィーチャー調整で複合語処理を強化
-
-        // 追加: tokenize前にテキストをサニタイズ（特殊文字除去）と長さ制限
-        let sanitizedText = text.replace(/[^\p{L}\p{N}\s]+/gu, ' ').trim();
-        if (sanitizedText.length > 1000) {  // 長すぎるテキストを制限
-            sanitizedText = sanitizedText.substring(0, 1000);
-        }
-        if (sanitizedText.length === 0) {
-            throw new Error('Sanitized text is empty');
-        }
-
-        // テキストをトークナイズ
-        const tokens = rma.tokenize(sanitizedText);
-
-        if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-            throw new Error('Tokenization returned invalid or empty result');
-        }
-
-        // 追加: 各トークンの有効性チェック
-        const validTokens = tokens.filter(token => Array.isArray(token) && token.length >= 2 && typeof token[0] === 'string' && typeof token[1] === 'string');
-
-        // ストップワード除去と名詞・動詞のみ抽出
-        const keywords = validTokens
-            .filter(token => 
-                token[1] && (token[1].startsWith('N') || token[1].startsWith('V')) &&  // 名詞・動詞のみ
-                !this.STOP_WORDS.includes(token[0]) && token[0].length > 1  // ストップワード除去、長さ1以上
-            )
-            .map(token => token[0]);
-
-        // 頻度ベースでソート（簡易TF: 出現回数）
-        const freqMap = keywords.reduce((acc, word) => {
-            acc[word] = (acc[word] || 0) + 1;
-            return acc;
-        }, {});
-
-        // 頻度降順でソートし、上位maxKeywordsを取得
-        return Object.keys(freqMap)
-            .sort((a, b) => freqMap[b] - freqMap[a])
-            .slice(0, maxKeywords);
-    } catch (error) {
-        console.error('Keyword extraction error:', error);
-        // エラー時フォールバック
-        return text.split(/\s+/).filter(word => word.length > 1).slice(0, maxKeywords);
-    }
-},
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
         let weight = weights[rating] || 0;
@@ -276,14 +260,10 @@ extractKeywords(text, maxKeywords = 8) {
         return aiLearning;
     },
     sortArticlesByScore(articles, aiLearning, wordFilters) {
-        return articles.map(article => {
-            // 修正: キーワード抽出を強化版に変更
-            article.keywords = this.extractKeywords(article.title + ' ' + article.content);
-            return {
-                ...article,
-                aiScore: this.calculateScore(article, aiLearning, wordFilters)
-            };
-        }).sort((a, b) => {
+        return articles.map(article => ({
+            ...article,
+            aiScore: this.calculateScore(article, aiLearning, wordFilters)
+        })).sort((a, b) => {
             if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
             return new Date(b.publishDate) - new Date(a.publishDate);
@@ -714,4 +694,3 @@ window.DataHooks = {
 };
 
 })();
-
