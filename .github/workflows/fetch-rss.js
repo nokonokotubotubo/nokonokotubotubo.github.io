@@ -1,18 +1,20 @@
 const fs = require('fs');
+const path = require('path');  // 追加: パス結合のため
 const xml2js = require('xml2js');
 const fetch = require('node-fetch');
-const RakutenMA = require('./rakutenma.js');  // RakutenMAをインポート（GitHub Actionsで使用）
+const RakutenMA = require(path.join(process.env.GITHUB_WORKSPACE || '.', 'rakutenma.js'));  // RakutenMAをインポート（絶対パス使用）
 
 // モデル読み込み（model_ja.min.jsonを同期読み込み、エラーハンドリング強化）
 let model;
 try {
+  const modelPath = path.join(process.env.GITHUB_WORKSPACE || '.', 'model_ja.min.json');  // 絶対パス使用
   // GitHub Actionsの制限考慮: ファイル存在確認と詳細ログ追加
-  if (!fs.existsSync('./model_ja.min.json')) {
-    throw new Error('モデルファイルが存在しません: ./model_ja.min.json (GitHub Actionsの仮想環境でパスが解決されない可能性があります)');
+  if (!fs.existsSync(modelPath)) {
+    throw new Error(`モデルファイルが存在しません: ${modelPath} (GitHub Actionsの仮想環境でパスが解決されない可能性があります)`);
   }
-  const modelData = fs.readFileSync('./model_ja.min.json', 'utf8');
+  const modelData = fs.readFileSync(modelPath, 'utf8');
   model = JSON.parse(modelData);
-  console.log('モデル読み込み成功: ./model_ja.min.json');
+  console.log(`モデル読み込み成功: ${modelPath}`);
 } catch (error) {
   console.error('モデル読み込みエラー (GitHub Actionsのファイルアクセス制限の可能性あり):', error);
   model = {};  // フォールバック: 空モデルでエラーを回避
