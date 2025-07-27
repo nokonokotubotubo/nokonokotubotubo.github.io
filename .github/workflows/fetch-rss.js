@@ -7,6 +7,15 @@ const Mecab = require('mecab-async'); // 新規追加: MeCabラッパー
 const mecab = new Mecab();
 mecab.command = 'mecab -d /usr/lib/mecab/dic/mecab-ipadic-neologd'; // 辞書パスを環境に合わせて設定 (GitHub Actionsでインストール)
 
+// MeCabセットアップ検証 (信頼性向上)
+try {
+  await mecab.parse('テスト'); // テスト解析でセットアップを確認
+  console.log('MeCabセットアップ成功');
+} catch (error) {
+  console.error('MeCabセットアップエラー:', error);
+  process.exit(1); // セットアップ失敗時は終了
+}
+
 // OPML読み込み関数 (変更なし)
 async function loadOPML() {
   try {
@@ -103,7 +112,7 @@ function parseRSSItem(item, sourceUrl, feedTitle) {
     if (!title || !link) return null;
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
-    const keywords = extractKeywordsWithMecab(title + ' ' + cleanDescription); // MeCabに置き換え
+    const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription); // MeCabに置き換え (非同期対応)
     
     return {
       id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -150,20 +159,38 @@ function parseDate(dateString) {
   }
 }
 
-// 新規: MeCabを使ったキーワード抽出関数
+// 新規: MeCabを使ったキーワード抽出関数 (フォールバック完全削除)
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_KEYWORD_LENGTH = 2;
   const TARGET_POS = new Set(['名詞', '固有名詞']); // 抽出対象の品詞 (保守性向上のためSet使用)
-  const stopWords = new Set([ /* 既存のstopWordsリストをコピー */ ]); // 既存のstopWordsを再利用
+  const stopWords = new Set([
+    'これ', 'それ', 'あれ', 'この', 'その', 'あの', 'する', 'なる', 'ある', 'いる', 
+    'です', 'である', 'について', 'という', 'など', 'もの', 'こと', 'ため', 'よう',
+    'の', 'が', 'は', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'まで',
+    'より', 'まで', 'ます', 'です', 'か', 'よ', 'ね', 'や', 'も', 'ばかり', 'だけ', 
+    'でも', 'しかし', 'また', 'そして', 'にて', 'により', 'にて', 'として', 'しています',
+    '企業', '改革', '模索', 'ベクトル', 'フロントランナー', '旗手', '保有', '現金',
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
+    'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'has', 
+    'have', 'had', 'do', 'does', 'did', 'will', 'would', 'can', 'could'
+  ]); // 明示的に定義 (保守性向上)
 
   try {
     const parsed = await mecab.parse(text); // MeCabで形態素解析 (非同期)
+    
+    // parsedが配列でない場合のハンドリング (信頼性強化)
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.warn('MeCab parse returned invalid or empty result - テキスト:', text);
+      return [];
+    }
+
     const keywords = new Set(); // 重複除去
 
     parsed.forEach(token => {
+      if (!Array.isArray(token) || token.length < 2) return; // 無効トークンスキップ (信頼性向上)
       const [surface, features] = token; // MeCab出力: [表層形, [品詞,...]]
-      const pos = features[0]; // 品詞
+      const pos = features[0] || ''; // 品詞 (null安全)
       if (TARGET_POS.has(pos) && surface.length >= MIN_KEYWORD_LENGTH && !stopWords.has(surface)) {
         keywords.add(surface);
       }
@@ -171,9 +198,8 @@ async function extractKeywordsWithMecab(text) {
 
     return Array.from(keywords).slice(0, MAX_KEYWORDS); // 最大8件に制限
   } catch (error) {
-    console.error('MeCab解析エラー:', error);
-    // フォールバック: 簡易分割 (信頼性確保)
-    return extractKeywords(text); // 元の簡易関数を呼び出し (指示外変更なし)
+    console.error('MeCab解析エラー:', error.message, '- テキスト:', text); // 詳細ログ (保守性向上)
+    return []; // 空配列を返す (信頼性確保)
   }
 }
 
