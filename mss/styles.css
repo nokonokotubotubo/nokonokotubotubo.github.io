@@ -103,8 +103,8 @@ background: rgba(255, 255, 255, 0.3);
 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-
 .filter-select:focus {
+background: rgba(255, 255, 255, 0.3);
 outline: none;
 box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
