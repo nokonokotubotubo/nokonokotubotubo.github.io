@@ -50,7 +50,7 @@ async function loadOPML() {
   }
 }
 
-// RSS取得・解析関数 (変更なし)
+// RSS取得・解析関数 (parseRSSItem呼び出しをawaitで同期化)
 async function fetchAndParseRSS(url, title) {
   try {
     console.log(`Fetching RSS: ${title} (${url})`);
@@ -85,12 +85,18 @@ async function fetchAndParseRSS(url, title) {
       items = Array.isArray(result.feed.entry) ? result.feed.entry : [result.feed.entry];
     }
     
-    items.slice(0, 20).forEach(item => {
-      const article = parseRSSItem(item, url, title);
+    console.log(`[DEBUG] Parsed items count: ${items.length}`); // デバッグログ: itemsの数確認
+    
+    // 非同期parseRSSItemをawaitで処理 (信頼性向上)
+    for (const item of items.slice(0, 20)) {
+      const article = await parseRSSItem(item, url, title); // await追加
+      console.log(`[DEBUG] Parsed article: ${article ? JSON.stringify(article.id) : 'null'}`); // デバッグログ: articleの値確認
       if (article) {
         articles.push(article);
+      } else {
+        console.warn(`記事解析失敗: ${title} - 項目スキップ`); // ログ追加 (保守性向上)
       }
-    });
+    }
     
     console.log(`取得完了: ${title} - ${articles.length}件`);
     return articles;
@@ -110,10 +116,13 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
+    console.log(`[DEBUG] Parsed title: ${title}, link: ${link}`); // デバッグログ: title/link確認
+    
     if (!title || !link) return null;
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
     const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription); // MeCabに置き換え (非同期対応)
+    console.log(`[DEBUG] Extracted keywords: ${keywords.length}`); // デバッグログ: keywords確認
     
     return {
       id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -180,6 +189,8 @@ async function extractKeywordsWithMecab(text) {
   try {
     const parsed = await mecabParsePromise(text); // MeCabで形態素解析 (非同期)
     
+    console.log(`[DEBUG] MeCab parsed tokens count: ${parsed.length}`); // デバッグログ: parsed確認
+    
     // parsedが配列でない場合のハンドリング (信頼性強化)
     if (!Array.isArray(parsed) || parsed.length === 0) {
       console.warn('MeCab parse returned invalid or empty result - テキスト:', text);
@@ -232,6 +243,8 @@ async function main() {
     }
   }
   
+  console.log(`[DEBUG] All articles count before unique: ${allArticles.length}`); // デバッグログ: allArticles確認
+  
   // 重複記事の除去
   const uniqueArticles = [];
   const seen = new Set();
@@ -243,6 +256,8 @@ async function main() {
       uniqueArticles.push(article);
     }
   });
+  
+  console.log(`[DEBUG] Unique articles count: ${uniqueArticles.length}`); // デバッグログ: uniqueArticles確認
   
   // AIスコア追加（簡易版）
   uniqueArticles.forEach(article => {
@@ -256,6 +271,8 @@ async function main() {
   
   // 最大1000件に制限
   const limitedArticles = uniqueArticles.slice(0, 1000);
+  
+  console.log(`[DEBUG] Limited articles count: ${limitedArticles.length}`); // デバッグログ: limitedArticles確認
   
   // mss/ディレクトリが存在しない場合は作成
   if (!fs.existsSync('./mss')) {
