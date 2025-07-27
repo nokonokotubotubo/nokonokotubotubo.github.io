@@ -7,15 +7,6 @@ const Mecab = require('mecab-async'); // 新規追加: MeCabラッパー
 const mecab = new Mecab();
 mecab.command = 'mecab -d /usr/lib/mecab/dic/mecab-ipadic-neologd'; // 辞書パスを環境に合わせて設定 (GitHub Actionsでインストール)
 
-// MeCabセットアップ検証 (信頼性向上)
-try {
-  await mecab.parse('テスト'); // テスト解析でセットアップを確認
-  console.log('MeCabセットアップ成功');
-} catch (error) {
-  console.error('MeCabセットアップエラー:', error);
-  process.exit(1); // セットアップ失敗時は終了
-}
-
 // OPML読み込み関数 (変更なし)
 async function loadOPML() {
   try {
@@ -100,7 +91,7 @@ async function fetchAndParseRSS(url, title) {
 }
 
 // RSS項目解析関数 (keywords抽出をMeCabベースに変更)
-function parseRSSItem(item, sourceUrl, feedTitle) {
+async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     const title = cleanText(item.title || '');
     let link = item.link?.href || item.link || item.guid?.$?.text || item.guid || '';
@@ -206,6 +197,15 @@ async function extractKeywordsWithMecab(text) {
 // メイン処理 (変更なし、extractKeywordsが置き換わったため間接的に影響)
 async function main() {
   console.log('RSS記事取得開始...');
+  
+  // MeCabセットアップ検証 (信頼性向上、async関数内に移動)
+  try {
+    await mecab.parse('テスト'); // テスト解析でセットアップを確認
+    console.log('MeCabセットアップ成功');
+  } catch (error) {
+    console.error('MeCabセットアップエラー:', error);
+    process.exit(1); // セットアップ失敗時は終了
+  }
   
   const feeds = await loadOPML();
   console.log(`${feeds.length}個のRSSフィードを処理します`);
