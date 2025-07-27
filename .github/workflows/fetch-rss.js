@@ -1,6 +1,5 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
-const { DOMParser } = require('xmldom'); // GitHub ActionsのNode.js環境で利用可能なxmldomを使用（追加require）
 
 // ストップワードの定義
 const stopWords = new Set([
@@ -71,37 +70,44 @@ async function fetchRSS(url) {
   }
 }
 
-// カスタムRSSパース関数（rss-parserの代替）
+// カスタムRSSパース関数（外部依存なし、文字列操作で実装）
 async function parseRSSString(rssContent) {
-  const domParser = new DOMParser();
-  const doc = domParser.parseFromString(rssContent, 'text/xml');
-  const items = doc.getElementsByTagName('item');
-  const feedItems = [];
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const getText = (tag) => {
-      const elem = item.getElementsByTagName(tag)[0];
-      return elem ? elem.textContent : '';
+  while ((match = itemRegex.exec(rssContent)) !== null) {
+    const itemContent = match[1];
+    const getTagValue = (tag) => {
+      const tagRegex = new RegExp(`<${tag}>([\s\S]*?)</${tag}>`);
+      const tagMatch = itemContent.match(tagRegex);
+      return tagMatch ? tagMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim() : '';
     };
 
-    feedItems.push({
-      title: getText('title'),
-      link: getText('link'),
-      description: getText('description'),
-      pubDate: getText('pubDate'),
-      categories: Array.from(item.getElementsByTagName('category')).map(cat => cat.textContent)
+    const categories = [];
+    const categoryRegex = /<category>([\s\S]*?)<\/category>/g;
+    let catMatch;
+    while ((catMatch = categoryRegex.exec(itemContent)) !== null) {
+      categories.push(catMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim());
+    }
+
+    items.push({
+      title: getTagValue('title'),
+      link: getTagValue('link'),
+      description: getTagValue('description'),
+      pubDate: getTagValue('pubDate'),
+      categories: categories
     });
   }
 
-  return { items: feedItems };
+  return { items };
 }
 
 // 記事解析関数
 async function parseRSSItem(item, sourceUrl) {
   const title = item.title || '';
   const link = item.link || '';
-  const description = item.description || ''; // contentSnippetはカスタムで対応不要
+  const description = item.description || '';
   const pubDate = item.pubDate || '';
   const category = item.categories ? item.categories.join(', ') : '';
 
@@ -128,7 +134,7 @@ async function main() {
     const rssContent = await fetchRSS(url);
     if (rssContent) {
       try {
-        const feed = await parseRSSString(rssContent); // カスタム関数に置き換え
+        const feed = await parseRSSString(rssContent);
         for (const item of feed.items) {
           const article = await parseRSSItem(item, url);
           if (article) articles.push(article);
