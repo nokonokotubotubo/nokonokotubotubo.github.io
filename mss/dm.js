@@ -165,33 +165,33 @@ window.AIScoring = {
                 score += Math.max(-20, Math.min(20, weight));
             });
         }
-        // ... (残りのコード)
     },
     
-    // 新規追加: キーワード抽出関数（RakutenMA使用、チューニング版）
     extractKeywords(text) {
-        // 定数化（調整しやすく保守性向上）
-        const MAX_KEYWORDS = 8; // 仕様書通り
-        const MIN_KEYWORD_LENGTH = 2; // チューニング: 短いノイズを除去
-        const TARGET_POS = ['名詞']; // チューニング: 名詞優先で分離性能向上（RakutenMAの品詞出力に基づく）
-        
-        // RakutenMAインスタンス（現在の構成維持）
-        const rma = new RakutenMA(window.model_ja); // index.htmlでロード済み
-        
-        // 形態素解析
-        const tokens = rma.tokenize(text);
-        
-        // キーワード抽出・フィルタリング（重複除去と最小長）
-        const keywordsSet = new Set(); // 軽量化: Setで重複除去（実行速度向上）
-        tokens.forEach(token => {
-            if (TARGET_POS.includes(token[1]) && token[0].length >= MIN_KEYWORD_LENGTH) {
-                keywordsSet.add(token[0]);
-            }
-        });
-        
-        // 最大8個に制限（仕様維持）
-        return Array.from(keywordsSet).slice(0, MAX_KEYWORDS);
-    },
+    // 定数化（調整しやすく保守性向上）
+    const MAX_KEYWORDS = 8; // 仕様書通り
+    const MIN_KEYWORD_LENGTH = 2; // チューニング: 短いノイズを除去
+    const TARGET_POS = ['名詞-普通名詞', '名詞-固有名詞', '名詞-名詞的']; // チューニング: 名詞サブタイプ指定で精度向上（RakutenMAの品詞出力に基づく）
+    const EXCLUDE_SUFFIX = 'の'; // チューニング: 助詞終わりを除去（例: 「キーエンスの」）
+    
+    // RakutenMAインスタンス（現在の構成維持）
+    const rma = new RakutenMA(window.model_ja); // index.htmlでロード済み
+    
+    // 形態素解析
+    const tokens = rma.tokenize(text);
+    
+    // キーワード抽出・フィルタリング（重複除去と最小長）
+    const keywordsSet = new Set(); // 軽量化: Setで重複除去（実行速度向上）
+    tokens.forEach(token => {
+        if (TARGET_POS.includes(token[1]) && token[0].length >= MIN_KEYWORD_LENGTH && !token[0].endsWith(EXCLUDE_SUFFIX)) {
+            keywordsSet.add(token[0]);
+        }
+    });
+    
+    // 最大8個に制限（仕様維持）
+    return Array.from(keywordsSet).slice(0, MAX_KEYWORDS);
+},
+
     // ... (他の関数)
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords || wordFilters.ngWords.length === 0) return articles;
