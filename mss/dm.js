@@ -145,6 +145,9 @@ window.ArticleLoader = {
 // ===========================================
 
 window.AIScoring = {
+    // 追加: 日本語ストップワードリスト（軽量で追加）
+    STOP_WORDS: ['の', 'は', 'に', 'を', 'が', 'で', 'と', 'です', 'ます', 'から', 'へ', 'や', 'など', 'する', 'した'],
+
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords || wordFilters.ngWords.length === 0) return articles;
         return articles.filter(article => {
@@ -189,6 +192,36 @@ window.AIScoring = {
         // 6. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
+    // 修正: キーワード抽出関数を強化（RakutenMA使用を最適化）
+    extractKeywords(text, maxKeywords = 8) {
+        if (!window.model_ja || !window.RakutenMA) return [];  // モデル未ロード時は空配列
+
+        const rma = new RakutenMA(window.model_ja);
+        rma.chunk_size = 100;  // チャンクサイズを調整して精度向上（デフォルトより小さく）
+        rma.phi = 1024;  // フィーチャー調整で複合語処理を強化
+
+        // テキストをトークナイズ
+        const tokens = rma.tokenize(text);
+
+        // ストップワード除去と名詞・動詞のみ抽出
+        const keywords = tokens
+            .filter(token => 
+                token[1] && (token[1].startsWith('N') || token[1].startsWith('V')) &&  // 名詞・動詞のみ
+                !this.STOP_WORDS.includes(token[0]) && token[0].length > 1  // ストップワード除去、長さ1以上
+            )
+            .map(token => token[0]);
+
+        // 頻度ベースでソート（簡易TF: 出現回数）
+        const freqMap = keywords.reduce((acc, word) => {
+            acc[word] = (acc[word] || 0) + 1;
+            return acc;
+        }, {});
+
+        // 頻度降順でソートし、上位maxKeywordsを取得
+        return Object.keys(freqMap)
+            .sort((a, b) => freqMap[b] - freqMap[a])
+            .slice(0, maxKeywords);
+    },
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
         let weight = weights[rating] || 0;
@@ -212,10 +245,14 @@ window.AIScoring = {
         return aiLearning;
     },
     sortArticlesByScore(articles, aiLearning, wordFilters) {
-        return articles.map(article => ({
-            ...article,
-            aiScore: this.calculateScore(article, aiLearning, wordFilters)
-        })).sort((a, b) => {
+        return articles.map(article => {
+            // 修正: キーワード抽出を強化版に変更
+            article.keywords = this.extractKeywords(article.title + ' ' + article.content);
+            return {
+                ...article,
+                aiScore: this.calculateScore(article, aiLearning, wordFilters)
+            };
+        }).sort((a, b) => {
             if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
             return new Date(b.publishDate) - new Date(a.publishDate);
