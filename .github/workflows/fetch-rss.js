@@ -3,9 +3,15 @@ const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const RakutenMA = require('./rakutenma.js');  // RakutenMAをインポート（GitHub Actionsで使用）
 
-// モデル読み込み（model_ja.min.jsonを同期読み込み）
-const modelData = fs.readFileSync('./model_ja.min.json', 'utf8');
-const model = JSON.parse(modelData);
+// モデル読み込み（model_ja.min.jsonを同期読み込み、エラーハンドリング追加）
+let model;
+try {
+  const modelData = fs.readFileSync('./model_ja.min.json', 'utf8');
+  model = JSON.parse(modelData);
+} catch (error) {
+  console.error('モデル読み込みエラー:', error);
+  model = {};  // フォールバック: 空モデルでエラーを回避
+}
 
 // RakutenMAインスタンス作成（GitHub Actionsで使用）
 const rma = new RakutenMA(model);
