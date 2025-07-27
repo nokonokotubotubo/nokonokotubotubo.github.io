@@ -121,7 +121,7 @@ function parseRSSItem(item, sourceUrl, feedTitle) {
 
 // テキストクリーン関数
 function cleanText(text) {
-  if (!text) return '';
+  if (typeof text !== 'string' || !text) return '';
   return text.replace(/<[^>]*>/g, '')
              .replace(/&lt;/g, '<')
              .replace(/&gt;/g, '>')
@@ -132,6 +132,8 @@ function cleanText(text) {
              .replace(/\s+/g, ' ')
              .trim();
 }
+
+
 
 // 日付解析関数
 function parseDate(dateString) {
