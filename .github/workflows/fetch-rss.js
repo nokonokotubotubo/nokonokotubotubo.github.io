@@ -89,7 +89,8 @@ async function fetchAndParseRSS(url, title) {
 function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     const title = cleanText(item.title || '');
-    const link = item.link?.href || item.link || item.guid?.$?.text || item.guid || '';
+    let link = item.link?.href || item.link || item.guid?.$?.text || item.guid || '';
+    if (typeof link !== 'string') link = ''; // チューニング: 文字列でない場合を安全に扱う
     const description = cleanText(item.description || item.summary || item.content?._ || item.content || '');
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
@@ -118,6 +119,7 @@ function parseRSSItem(item, sourceUrl, feedTitle) {
     return null;
   }
 }
+
 
 // テキストクリーン関数
 function cleanText(text) {
