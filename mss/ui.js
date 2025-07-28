@@ -305,20 +305,30 @@
 
         return `
             <nav class="nav">
-                <div class="nav-left">
-                    <h1>Minews</h1>
-                    ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
+                <div class="nav-top-row">
+                    <div class="nav-left-mobile">
+                        <h1>Minews</h1>
+                        ${window.state.lastUpdate ? `<span class="last-update-mobile">最終更新: ${window.formatDate(window.state.lastUpdate)}</span>` : ''}
+                    </div>
+                    <div class="nav-actions-mobile">
+                        <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
+                                onclick="handleRefresh()" 
+                                ${window.state.isLoading ? 'disabled' : ''}>
+                            ${window.state.isLoading ? '更新中...' : '記事更新'}
+                        </button>
+                        <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
+                    </div>
                 </div>
                 
-                <div class="nav-filters">
-                    <div class="filter-group">
+                <div class="nav-filters-mobile">
+                    <div class="filter-row">
                         <label for="sourceFilter">提供元:</label>
                         <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
                             ${sourceOptions}
                         </select>
                     </div>
                     
-                    <div class="filter-group">
+                    <div class="filter-row">
                         <label for="viewFilter">表示:</label>
                         <select id="viewFilter" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
@@ -329,7 +339,32 @@
                     </div>
                 </div>
 
-                <div class="nav-actions">
+                <!-- デスクトップ用の既存構造を保持 -->
+                <div class="nav-left desktop-only">
+                    <h1>Minews</h1>
+                    ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
+                </div>
+                
+                <div class="nav-filters desktop-only">
+                    <div class="filter-group">
+                        <label for="sourceFilter2">提供元:</label>
+                        <select id="sourceFilter2" class="filter-select" onchange="handleSourceChange(this.value)">
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="viewFilter2">表示:</label>
+                        <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
+                            <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
+                            <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
+                            <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
+                            <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="nav-actions desktop-only">
                     <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
                             onclick="handleRefresh()" 
                             ${window.state.isLoading ? 'disabled' : ''}>
