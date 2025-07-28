@@ -1,4 +1,4 @@
-/* Minews PWA - フォルダ機能対応完全版スタイル */
+/* Minews PWA - 軽量化版スタイル */
 
 :root {
 --primary-blue: #1e2a32;
@@ -33,7 +33,7 @@ min-height: 100vh;
 background: var(--primary-blue);
 }
 
-/* ────────────── ナビゲーション（ドロップダウン対応） ────────────── */
+/* ────────────── ナビゲーション ────────────── */
 .nav {
 background: rgba(30, 42, 50, 0.85);
 color: var(--text-color);
@@ -65,7 +65,6 @@ color: rgba(255, 255, 255, 0.8);
 font-size: 0.8rem;
 }
 
-/* ドロップダウンフィルター */
 .nav-filters {
 display: flex;
 gap: 1rem;
@@ -114,7 +113,6 @@ background: rgba(30, 42, 50, 0.95);
 color: #e0e6eb;
 }
 
-
 .nav-actions {
 display: flex;
 gap: 0.5rem;
@@ -149,7 +147,6 @@ cursor: not-allowed;
 opacity: 0.6;
 }
 
-/* 更新ボタンの特別スタイル */
 .refresh-btn {
 background: rgba(255, 255, 255, 0.3) !important;
 font-weight: 600;
@@ -278,7 +275,6 @@ font-size: 0.8rem;
 font-weight: 600;
 }
 
-/* ────────────── 記事本文の強調 ────────────── */
 .article-content {
 color: #f7fafc;
 line-height: 1.6;
@@ -287,7 +283,6 @@ font-size: 0.95rem;
 font-weight: 500;
 }
 
-/* ────────────── キーワード表示の調整 ────────────── */
 .article-keywords {
 margin-bottom: 1rem;
 display: flex;
@@ -313,7 +308,6 @@ margin-bottom: 1rem;
 flex-wrap: wrap;
 }
 
-/* シンプルで視認性の良いアクションボタン */
 .article-actions .simple-btn {
 background: #f8f9fa;
 color: #495057;
@@ -336,7 +330,6 @@ transform: translateY(-1px);
 box-shadow: 0 2px 4px rgba(74, 144, 164, 0.25);
 }
 
-/* 既読ボタンの状態別スタイル */
 .article-card[data-read-status="read"] .simple-btn.read-status {
 background: #e8f5e8;
 color: #2e7d32;
@@ -349,7 +342,6 @@ color: white;
 border-color: var(--accent-blue);
 }
 
-/* 後で読むボタンのアクティブ状態 */
 .article-actions .simple-btn.read-later[data-active="true"] {
 background: #fff3cd;
 color: #856404;
@@ -455,131 +447,6 @@ padding-bottom: 1rem;
 border-bottom: 1px solid #eee;
 }
 
-/* ────────────── RSS管理 ────────────── */
-.rss-list {
-margin-bottom: 1.5rem;
-}
-
-.rss-item {
-display: flex;
-justify-content: space-between;
-align-items: flex-start;
-background: var(--primary-blue);
-padding: 1rem;
-margin-bottom: 0.5rem;
-border-radius: 6px;
-border-left: 4px solid var(--accent-blue);
-}
-
-.rss-info {
-flex: 1;
-}
-
-.rss-info strong {
-display: block;
-margin-bottom: 0.3rem;
-color: var(--text-color);
-}
-
-.rss-url {
-display: block;
-color: #666;
-margin-bottom: 0.2rem;
-word-break: break-all;
-}
-
-.rss-updated {
-display: block;
-color: #888;
-font-size: 0.8rem;
-}
-
-.rss-status {
-display: inline-block;
-padding: 0.2rem 0.5rem;
-border-radius: 3px;
-font-size: 0.75rem;
-font-weight: 600;
-margin-top: 0.3rem;
-}
-
-.rss-status.active {
-background: var(--success-color);
-color: white;
-}
-
-.rss-status.inactive {
-background: #ccc;
-color: #666;
-}
-
-.rss-actions {
-margin-left: 1rem;
-}
-
-/* ────────────── ヘルプセクション改善 ────────────── */
-.rss-help, .word-help {
-margin-top: 1.5rem;
-padding: 1.2rem;
-background: #2d3748;
-border-radius: 8px;
-border-left: 4px solid var(--accent-blue);
-border: 1px solid #4a5568;
-}
-
-.rss-help h4, .word-help h4 {
-margin-bottom: 0.8rem;
-color: var(--accent-blue);
-font-size: 1rem;
-font-weight: 600;
-}
-
-.rss-help ul, .word-help ul {
-margin-left: 1.2rem;
-}
-
-.rss-help li, .word-help li {
-margin-bottom: 0.5rem;
-font-size: 0.95rem;
-line-height: 1.5;
-color: #e2e8f0;
-}
-
-.rss-help p, .word-help p {
-margin-bottom: 0.5rem;
-font-size: 0.95rem;
-line-height: 1.5;
-color: #e2e8f0;
-}
-
-/* ────────────── フォルダ・カラー選択モーダル ────────────── */
-.folder-selection-list,
-.color-selection-list {
-display: flex;
-flex-direction: column;
-gap: 0.5rem;
-max-height: 300px;
-overflow-y: auto;
-}
-
-.folder-selection-item,
-.color-selection-item {
-padding: 0.8rem;
-border: 2px solid #e9ecef;
-border-radius: 8px;
-cursor: pointer;
-transition: var(--transition);
-background: white;
-}
-
-.folder-selection-item:hover,
-.color-selection-item:hover {
-border-color: var(--accent-blue);
-background: var(--primary-blue);
-transform: translateY(-1px);
-box-shadow: 0 2px 4px rgba(74, 144, 164, 0.2);
-}
-
 /* ────────────── ワード管理 ────────────── */
 .word-section {
 margin-bottom: 2rem;
@@ -640,6 +507,40 @@ transition: var(--transition);
 
 .word-remove:hover {
 background: rgba(0, 0, 0, 0.1);
+}
+
+.word-help {
+margin-top: 1.5rem;
+padding: 1.2rem;
+background: #2d3748;
+border-radius: 8px;
+border-left: 4px solid var(--accent-blue);
+border: 1px solid #4a5568;
+}
+
+.word-help h4 {
+margin-bottom: 0.8rem;
+color: var(--accent-blue);
+font-size: 1rem;
+font-weight: 600;
+}
+
+.word-help ul {
+margin-left: 1.2rem;
+}
+
+.word-help li {
+margin-bottom: 0.5rem;
+font-size: 0.95rem;
+line-height: 1.5;
+color: #e2e8f0;
+}
+
+.word-help p {
+margin-bottom: 0.5rem;
+font-size: 0.95rem;
+line-height: 1.5;
+color: #e2e8f0;
 }
 
 /* ────────────── ボタンバリエーション ────────────── */
@@ -753,28 +654,12 @@ min-width: 90vw;
 margin: 1rem;
 }
 
-.rss-item {
-flex-direction: column;
-gap: 1rem;
-}
-
-.rss-actions {
-margin-left: 0;
-align-self: stretch;
-}
-
 .word-section-header {
 flex-direction: column;
 gap: 0.5rem;
 align-items: stretch;
 }
 
-.folder-selection-item,
-.color-selection-item {
-padding: 0.6rem;
-}
-
-/* モバイルでのアクションボタン調整 */
 .article-actions .simple-btn {
 font-size: 0.75rem;
 padding: 0.35rem 0.6rem;
@@ -887,29 +772,30 @@ padding-top: calc(1rem + env(safe-area-inset-top));
 }
 }
 
-/* ────────────── ユーティリティクラス ────────────── */
-.text-center {
-text-align: center;
+/* ────────────── セクショングループ ────────────── */
+.modal-section-group {
+background: #2d3748;
+padding: 1rem;
+border-radius: 8px;
+margin-bottom: 2rem;
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.group-title {
+color: var(--accent-blue);
+font-size: 1.2rem;
+margin-bottom: 1rem;
+border-bottom: 2px solid #eee;
+padding-bottom: 0.5rem;
 }
 
 .text-muted {
 color: #6c757d;
 }
 
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.d-flex { display: flex; }
-.d-none { display: none; }
-.d-block { display: block; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.align-center { align-items: center; }
+.mb-3 {
+margin-bottom: 1rem;
+}
 
 /* ────────────── 最終調整 ────────────── */
 * {
@@ -928,70 +814,3 @@ overflow-x: hidden;
 position: relative;
 width: 100%;
 }
-
-/* エラーメッセージ用スタイル */
-.error-message {
-color: var(--danger-color);
-background: #ffebee;
-padding: 0.8rem;
-border-radius: 6px;
-border-left: 4px solid var(--danger-color);
-margin: 1rem 0;
-}
-
-.success-message {
-color: var(--success-color);
-background: #e8f5e8;
-padding: 0.8rem;
-border-radius: 6px;
-border-left: 4px solid var(--success-color);
-margin: 1rem 0;
-}
-
-/* RSS編集可能要素のスタイル */
-.rss-editable-row {
-margin-bottom: 0.3rem;
-}
-
-.rss-editable-row:hover {
-background: rgba(74, 144, 164, 0.1);
-border-radius: 4px;
-padding: 0.2rem;
-margin: -0.2rem -0.2rem 0.1rem -0.2rem;
-}
-
-.rss-info strong[onclick],
-.rss-info .rss-url[onclick],
-.rss-info div[onclick] {
-transition: var(--transition);
-padding: 0.2rem;
-border-radius: 4px;
-}
-
-.rss-info strong[onclick]:hover {
-background: var(--primary-blue);
-color: var(--accent-blue);
-}
-
-.rss-info .rss-url[onclick]:hover {
-background: var(--primary-blue);
-color: var(--text-color);
-}
-
-/* ────────────── セクショングループ ────────────── */
-.modal-section-group {
-    background: #2d3748;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.group-title {
-    color: var(--accent-blue);
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 0.5rem;
-}
-
