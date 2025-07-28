@@ -20,27 +20,11 @@ window.CONFIG = {
     DATA_VERSION: '1.0',
     REQUEST_TIMEOUT: 15000,
     MAX_RETRIES: 2,
-    RETRY_DELAY: 3000,
-    FOLDER_COLORS: [
-        { name: 'ブルー', value: '#4A90A4' },
-        { name: 'グリーン', value: '#28a745' },
-        { name: 'オレンジ', value: '#fd7e14' },
-        { name: 'パープル', value: '#6f42c1' },
-        { name: 'レッド', value: '#dc3545' },
-        { name: 'グレー', value: '#6c757d' }
-    ]
+    RETRY_DELAY: 3000
 };
 
 window.DEFAULT_DATA = {
-    folders: [
-        { id: 'default-general', name: 'ニュース', color: '#4A90A4', createdAt: new Date().toISOString() },
-        { id: 'default-tech', name: 'テック', color: '#28a745', createdAt: new Date().toISOString() }
-    ],
     articles: [],
-    rssFeeds: [
-        { id: 'default-nhk', url: 'https://www3.nhk.or.jp/rss/news/cat0.xml', title: 'NHKニュース', folderId: 'default-general', lastUpdated: new Date().toISOString(), isActive: true },
-        { id: 'default-itmedia', url: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml', title: 'ITmedia', folderId: 'default-tech', lastUpdated: new Date().toISOString(), isActive: true }
-    ],
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
@@ -77,37 +61,6 @@ window.DataHooksCache = {
         } else {
             Object.keys(this).forEach(k => k !== 'clear' && k !== 'lastUpdate' && (this[k] = null));
             this.lastUpdate = { articles: null, rssFeeds: null, folders: null, aiLearning: null, wordFilters: null };
-        }
-    }
-};
-
-// ===========================================
-// フォルダ管理
-// ===========================================
-
-window.FolderManager = {
-    createFolder: (name, color = '#4A90A4') => ({
-        id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: name.trim(),
-        color,
-        createdAt: new Date().toISOString()
-    }),
-    validateFolder: folder => folder && typeof folder.name === 'string' && folder.name.trim().length > 0 && folder.name.trim().length <= 50,
-    getColorName: colorValue => window.CONFIG.FOLDER_COLORS.find(c => c.value === colorValue)?.name || 'カスタム',
-    matchArticleToFeed(article, feeds) {
-        return feeds.find(feed =>
-            feed.title === article.rssSource ||
-            article.rssSource.includes(feed.title) ||
-            feed.title.includes(article.rssSource) ||
-            this.extractDomainFromSource(article.rssSource) === this.extractDomainFromUrl(feed.url)
-        ) || null;
-    },
-    extractDomainFromSource: source => source.includes('.') ? source.toLowerCase().replace(/^www\./, '') : source.toLowerCase(),
-    extractDomainFromUrl(url) {
-        try {
-            return new URL(url).hostname.replace(/^www\./, '');
-        } catch {
-            return '';
         }
     }
 };
@@ -358,12 +311,10 @@ window.DataHooks = {
                     (article.title === newArticle.title && article.rssSource === newArticle.rssSource)
                 );
                 
-                // 既存記事が見つかった場合は何もせずに false を返す
                 if (exists) {
                     return false; // 重複のため追加せず
                 }
                 
-                // 新規記事の場合のみ追加処理を実行
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
                     updatedArticles.sort((a, b) => {
                         const aScore = (a.readStatus === 'read' && a.userRating === 0) ? 1 : 0;
@@ -382,7 +333,7 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
-                return true; // 新規追加成功
+                return true;
             },
             updateArticle(articleId, updates) {
                 const updatedArticles = window.DataHooksCache.articles.map(article =>
@@ -421,41 +372,12 @@ window.DataHooks = {
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
         
         if (!window.DataHooksCache.rssFeeds || window.DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
-            window.DataHooksCache.rssFeeds = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.rssFeeds);
+            window.DataHooksCache.rssFeeds = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, []);
             window.DataHooksCache.lastUpdate.rssFeeds = timestamp;
         }
         
         return {
             rssFeeds: window.DataHooksCache.rssFeeds,
-            addRSSFeed(url, title, folderId = 'uncategorized') {
-                const newFeed = {
-                    id: `rss_${Date.now()}`,
-                    url,
-                    title: title || 'Unknown Feed',
-                    folderId,
-                    lastUpdated: new Date().toISOString(),
-                    isActive: true
-                };
-                const updatedFeeds = [...window.DataHooksCache.rssFeeds, newFeed];
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                window.DataHooksCache.rssFeeds = updatedFeeds;
-                window.DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-                return newFeed;
-            },
-            removeRSSFeed(feedId) {
-                const updatedFeeds = window.DataHooksCache.rssFeeds.filter(feed => feed.id !== feedId);
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                window.DataHooksCache.rssFeeds = updatedFeeds;
-                window.DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-            },
-            updateRSSFeed(feedId, updates) {
-                const updatedFeeds = window.DataHooksCache.rssFeeds.map(feed =>
-                    feed.id === feedId ? { ...feed, ...updates } : feed
-                );
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, updatedFeeds);
-                window.DataHooksCache.rssFeeds = updatedFeeds;
-                window.DataHooksCache.lastUpdate.rssFeeds = new Date().toISOString();
-            },
             async fetchAllFeeds() {
                 const articlesHook = window.DataHooks.useArticles();
                 
@@ -464,12 +386,11 @@ window.DataHooks = {
                     let addedCount = 0;
                     let skippedCount = 0;
                     
-                    // 新規記事のみを追加、既存記事は完全に保持
                     data.articles.forEach(article => {
                         if (articlesHook.addArticle(article)) {
                             addedCount++;
                         } else {
-                            skippedCount++; // 既存記事はスキップ
+                            skippedCount++;
                         }
                     });
                     
@@ -504,55 +425,6 @@ window.DataHooks = {
             }
         };
     },
-    useFolders() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.folders || window.DataHooksCache.lastUpdate.folders !== timestamp) {
-            window.DataHooksCache.folders = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders);
-            window.DataHooksCache.lastUpdate.folders = timestamp;
-        }
-        
-        return {
-            folders: window.DataHooksCache.folders,
-            addFolder(name, color) {
-                const newFolder = window.FolderManager.createFolder(name, color);
-                if (!window.FolderManager.validateFolder(newFolder)) return null;
-                
-                const updatedFolders = [...window.DataHooksCache.folders, newFolder];
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, updatedFolders);
-                window.DataHooksCache.folders = updatedFolders;
-                window.DataHooksCache.lastUpdate.folders = new Date().toISOString();
-                return newFolder;
-            },
-            removeFolder(folderId) {
-                const rssHook = window.DataHooks.useRSSManager();
-                const feedsInFolder = rssHook.rssFeeds.filter(feed => feed.folderId === folderId);
-                
-                if (feedsInFolder.length > 0) {
-                    return {
-                        success: false,
-                        reason: 'FEEDS_EXIST',
-                        feedCount: feedsInFolder.length
-                    };
-                }
-                
-                const updatedFolders = window.DataHooksCache.folders.filter(folder => folder.id !== folderId);
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, updatedFolders);
-                window.DataHooksCache.folders = updatedFolders;
-                window.DataHooksCache.lastUpdate.folders = new Date().toISOString();
-                return { success: true };
-            },
-            updateFolder(folderId, updates) {
-                const updatedFolders = window.DataHooksCache.folders.map(folder =>
-                    folder.id === folderId ? { ...folder, ...updates } : folder
-                );
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, updatedFolders);
-                window.DataHooksCache.folders = updatedFolders;
-                window.DataHooksCache.lastUpdate.folders = new Date().toISOString();
-            }
-        };
-    },
     useAILearning() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -564,32 +436,6 @@ window.DataHooks = {
         
         return {
             aiLearning: window.DataHooksCache.aiLearning,
-            updateWordWeight(word, weight) {
-                const updatedLearning = {
-                    ...window.DataHooksCache.aiLearning,
-                    wordWeights: {
-                        ...window.DataHooksCache.aiLearning.wordWeights,
-                        [word]: (window.DataHooksCache.aiLearning.wordWeights[word] || 0) + weight
-                    },
-                    lastUpdated: new Date().toISOString()
-                };
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                window.DataHooksCache.aiLearning = updatedLearning;
-                window.DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-            },
-            updateCategoryWeight(category, weight) {
-                const updatedLearning = {
-                    ...window.DataHooksCache.aiLearning,
-                    categoryWeights: {
-                        ...window.DataHooksCache.aiLearning.categoryWeights,
-                        [category]: (window.DataHooksCache.aiLearning.categoryWeights[category] || 0) + weight
-                    },
-                    lastUpdated: new Date().toISOString()
-                };
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
-                window.DataHooksCache.aiLearning = updatedLearning;
-                window.DataHooksCache.lastUpdate.aiLearning = new Date().toISOString();
-            },
             updateLearningData(article, rating, isRevert = false) {
                 const updatedLearning = window.AIScoring.updateLearning(article, rating, window.DataHooksCache.aiLearning, isRevert);
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, updatedLearning);
