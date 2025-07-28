@@ -995,21 +995,3 @@ color: var(--text-color);
     padding-bottom: 0.5rem;
 }
 
-/* タイトルリンクスタイル */
-.title-link {
-    cursor: pointer;
-    transition: var(--transition);
-    display: block;
-    color: inherit;
-}
-
-.title-link:hover {
-    color: var(--accent-blue);
-    text-decoration: underline;
-}
-
-.title-link:active {
-    color: var(--accent-blue);
-    opacity: 0.8;
-}
-
