@@ -186,8 +186,11 @@
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
-        event.preventDefault();
-        event.stopPropagation();
+        // タイトルクリック（read）以外の場合のみイベントを阻止
+        if (actionType !== 'read') {
+            event.preventDefault();
+            event.stopPropagation();
+        }
 
         const articlesHook = window.DataHooks.useArticles();
         const article = articlesHook.articles.find(a => a.id === articleId);
@@ -196,15 +199,21 @@
 
         switch (actionType) {
             case 'read':
-                const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
-                articlesHook.updateArticle(articleId, { readStatus: newReadStatus });
+                // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
+                if (article.readStatus !== 'read') {
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                }
                 break;
 
             case 'readLater':
+                event.preventDefault();
+                event.stopPropagation();
                 articlesHook.updateArticle(articleId, { readLater: !article.readLater });
                 break;
 
             case 'rating':
+                event.preventDefault();
+                event.stopPropagation();
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
                     if (article.userRating === rating) {
@@ -360,12 +369,11 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-    <a href="${article.url}" target="_blank" rel="noopener noreferrer" 
-       onclick="handleArticleClick(event, '${article.id}', 'read'); return true;">
-        ${article.title}
-    </a>
-</h3>
-
+                        <a href="${article.url}" target="_blank" rel="noopener noreferrer" 
+                           onclick="handleArticleClick(event, '${article.id}', 'read'); return true;">
+                            ${article.title}
+                        </a>
+                    </h3>
                     
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
