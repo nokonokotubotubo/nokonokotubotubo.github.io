@@ -143,56 +143,8 @@ window.ArticleLoader = {
 // ===========================================
 // AI学習システム
 // ===========================================
-// window.AIScoring = { ... } 部分を修正
 
 window.AIScoring = {
-    // ... (既存のコード)
-    calculateScore(article, aiLearning, wordFilters) {
-        let score = 0;
-        
-        // 1. 鮮度スコア: 0-20点（指数減衰、72時間基準）
-        const hours = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60);
-        const freshness = Math.exp(-hours / 72) * 20;
-        score += freshness;
-        
-        // チューニング: キーワードを再抽出・フィルタリング（分離性能向上）
-        article.keywords = this.extractKeywords(article.title + ' ' + article.content);
-        
-        // 2. キーワード学習重み: -20～+20点（学習データベース）
-        if (article.keywords && aiLearning.wordWeights) {
-            article.keywords.forEach(keyword => {
-                const weight = aiLearning.wordWeights[keyword] || 0;
-                score += Math.max(-20, Math.min(20, weight));
-            });
-        }
-    },
-    
-    extractKeywords(text) {
-    // 定数化（調整しやすく保守性向上）
-    const MAX_KEYWORDS = 8; // 仕様書通り
-    const MIN_KEYWORD_LENGTH = 2; // チューニング: 短いノイズを除去
-    const TARGET_POS = ['名詞-普通名詞', '名詞-固有名詞', '名詞-名詞的']; // チューニング: 名詞サブタイプ指定で精度向上（RakutenMAの品詞出力に基づく）
-    const EXCLUDE_SUFFIX = 'の'; // チューニング: 助詞終わりを除去（例: 「キーエンスの」）
-    
-    // RakutenMAインスタンス（現在の構成維持）
-    const rma = new RakutenMA(window.model_ja); // index.htmlでロード済み
-    
-    // 形態素解析
-    const tokens = rma.tokenize(text);
-    
-    // キーワード抽出・フィルタリング（重複除去と最小長）
-    const keywordsSet = new Set(); // 軽量化: Setで重複除去（実行速度向上）
-    tokens.forEach(token => {
-        if (TARGET_POS.includes(token[1]) && token[0].length >= MIN_KEYWORD_LENGTH && !token[0].endsWith(EXCLUDE_SUFFIX)) {
-            keywordsSet.add(token[0]);
-        }
-    });
-    
-    // 最大8個に制限（仕様維持）
-    return Array.from(keywordsSet).slice(0, MAX_KEYWORDS);
-},
-
-    // ... (他の関数)
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords || wordFilters.ngWords.length === 0) return articles;
         return articles.filter(article => {
@@ -398,14 +350,20 @@ window.DataHooks = {
             articles: window.DataHooksCache.articles,
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
+                
+                // 重複判定
                 const exists = updatedArticles.find(article =>
                     article.id === newArticle.id ||
                     article.url === newArticle.url ||
                     (article.title === newArticle.title && article.rssSource === newArticle.rssSource)
                 );
                 
-                if (exists) return false;
+                // 既存記事が見つかった場合は何もせずに false を返す
+                if (exists) {
+                    return false; // 重複のため追加せず
+                }
                 
+                // 新規記事の場合のみ追加処理を実行
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
                     updatedArticles.sort((a, b) => {
                         const aScore = (a.readStatus === 'read' && a.userRating === 0) ? 1 : 0;
@@ -424,7 +382,7 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
-                return true;
+                return true; // 新規追加成功
             },
             updateArticle(articleId, updates) {
                 const updatedArticles = window.DataHooksCache.articles.map(article =>
@@ -504,25 +462,27 @@ window.DataHooks = {
                 try {
                     const data = await window.ArticleLoader.loadArticlesFromJSON();
                     let addedCount = 0;
+                    let skippedCount = 0;
                     
-                    // 既存記事をクリアして新しい記事で置き換え
-                    window.DataHooksCache.articles = [];
-                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
-                    
+                    // 新規記事のみを追加、既存記事は完全に保持
                     data.articles.forEach(article => {
                         if (articlesHook.addArticle(article)) {
                             addedCount++;
+                        } else {
+                            skippedCount++; // 既存記事はスキップ
                         }
                     });
                     
                     return {
                         totalAdded: addedCount,
+                        totalSkipped: skippedCount,
                         totalErrors: 0,
                         totalFeeds: 1,
                         feedResults: [{
                             name: 'GitHub Actions RSS',
                             success: true,
                             added: addedCount,
+                            skipped: skippedCount,
                             total: data.articles.length
                         }],
                         lastUpdated: data.lastUpdated
@@ -531,6 +491,7 @@ window.DataHooks = {
                     console.error('記事読み込みエラー:', error);
                     return {
                         totalAdded: 0,
+                        totalSkipped: 0,
                         totalErrors: 1,
                         totalFeeds: 1,
                         feedResults: [{
