@@ -198,6 +198,14 @@
         if (!article) return;
 
         switch (actionType) {
+            case 'toggleRead':
+                event.preventDefault();
+                event.stopPropagation();
+                // 既読・未読の切り替えのみ実行（リンクは開かない）
+                const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
+                articlesHook.updateArticle(articleId, { readStatus: newReadStatus });
+                break;
+
             case 'read':
                 // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
                 if (article.readStatus !== 'read') {
@@ -439,8 +447,8 @@
 
                 <div class="article-actions">
                     <button class="simple-btn read-status" 
-                            onclick="handleArticleClick(event, '${article.id}', 'read')">
-                        ${article.readStatus === 'read' ? '未読' : '既読'}
+                            onclick="handleArticleClick(event, '${article.id}', 'toggleRead')">
+                        ${article.readStatus === 'read' ? '既読' : '未読'}
                     </button>
                     <button class="simple-btn read-later" 
                             data-active="${article.readLater}"
