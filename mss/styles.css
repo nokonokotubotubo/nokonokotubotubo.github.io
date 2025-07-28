@@ -35,7 +35,7 @@ background: var(--primary-blue);
 
 /* ────────────── ナビゲーション ────────────── */
 .nav {
-background: rgba(30, 42, 50);
+background: rgb(30, 42, 50);
 color: var(--text-color);
 display: flex;
 justify-content: space-between;
@@ -165,6 +165,18 @@ box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 
 .refresh-btn.loading {
 animation: pulse 1.5s infinite;
+}
+
+/* ────────────── デスクトップ・モバイル制御 ────────────── */
+/* デスクトップのみ表示 */
+.desktop-only {
+display: flex;
+}
+
+/* モバイル専用要素を非表示（デスクトップ） */
+.nav-top-row,
+.nav-filters-mobile {
+display: none;
 }
 
 /* ────────────── メインコンテンツ ────────────── */
@@ -605,36 +617,92 @@ animation: pulse 1.5s infinite;
 
 /* ────────────── レスポンシブデザイン ────────────── */
 @media (max-width: 768px) {
-.nav {
-flex-direction: column;
-text-align: center;
-padding: 1rem;
+/* デスクトップ要素を非表示 */
+.desktop-only {
+display: none !important;
 }
 
-.nav-left {
+/* モバイル専用要素を表示 */
+.nav-top-row,
+.nav-filters-mobile {
+display: block;
+}
+
+.nav {
 flex-direction: column;
+padding: 0.8rem 1rem;
+gap: 0.8rem;
+}
+
+/* 1行目: タイトル+更新時刻（左）とボタン（右） */
+.nav-top-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+width: 100%;
+}
+
+.nav-left-mobile {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+gap: 0.2rem;
+flex: 1;
+}
+
+.nav-left-mobile h1 {
+font-size: 1.4rem;
+margin: 0;
+}
+
+.last-update-mobile {
+font-size: 0.75rem;
+color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-actions-mobile {
+display: flex;
+gap: 0.4rem;
+align-items: center;
+}
+
+.nav-actions-mobile .action-btn {
+padding: 0.4rem 0.8rem;
+font-size: 0.8rem;
+white-space: nowrap;
+}
+
+.nav-actions-mobile .refresh-btn {
+padding: 0.5rem 0.9rem;
+font-size: 0.85rem;
+}
+
+/* フィルターセクション */
+.nav-filters-mobile {
+display: flex;
+flex-direction: column;
+gap: 0.6rem;
+width: 100%;
+}
+
+.filter-row {
+display: flex;
+align-items: center;
 gap: 0.5rem;
 }
 
-.nav-filters {
-width: 100%;
-justify-content: center;
+.filter-row label {
+font-size: 0.9rem;
+font-weight: 600;
+color: rgba(255, 255, 255, 0.9);
+min-width: 60px;
+text-align: left;
 }
 
-.filter-group {
-flex-direction: column;
-align-items: stretch;
-gap: 0.3rem;
-}
-
-.filter-select {
-width: 100%;
-text-align: center;
-}
-
-.nav-actions {
-flex-wrap: wrap;
-justify-content: center;
+.filter-row .filter-select {
+flex: 1;
+font-size: 0.85rem;
+padding: 0.4rem 0.6rem;
 }
 
 .main-content {
