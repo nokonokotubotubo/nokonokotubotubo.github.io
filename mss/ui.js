@@ -203,6 +203,9 @@
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                 }
+                
+                // バックグラウンドタブで記事を開く
+                window.open(article.url, '_blank');
                 break;
 
             case 'readLater':
@@ -369,10 +372,10 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-                        <a href="${article.url}" target="_blank" rel="noopener noreferrer" 
-                           onclick="handleArticleClick(event, '${article.id}', 'read'); return true;">
+                        <span class="title-link" 
+                              onclick="handleArticleClick(event, '${article.id}', 'read')">
                             ${article.title}
-                        </a>
+                        </span>
                     </h3>
                     
                     <div class="article-meta">
