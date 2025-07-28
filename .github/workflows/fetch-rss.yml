@@ -39,4 +39,5 @@ jobs:
         git config --local user.name "GitHub Action"
         git add mss/articles.json
         git diff --staged --quiet || git commit -m "Update RSS articles $(date)"
-        git push
+        git pull --rebase origin main || true
+        git push || (git pull --rebase origin main && git push)
