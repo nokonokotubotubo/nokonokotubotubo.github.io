@@ -35,7 +35,7 @@ background: var(--primary-blue);
 
 /* ────────────── ナビゲーション ────────────── */
 .nav {
-background: rgba(30, 42, 50, 0.85);
+background: rgba(30, 42, 50);
 color: var(--text-color);
 display: flex;
 justify-content: space-between;
