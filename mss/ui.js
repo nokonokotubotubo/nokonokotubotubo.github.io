@@ -199,14 +199,16 @@
 
         switch (actionType) {
             case 'read':
-                // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
-                if (article.readStatus !== 'read') {
-                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
-                }
-                
-                // バックグラウンドタブで記事を開く
-                window.open(article.url, '_blank');
-                // 新しいタブが正常に開かれた場合、元のタブにフォーカスを戻す
+                case 'read':
+    // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
+    if (article.readStatus !== 'read') {
+        articlesHook.updateArticle(articleId, { readStatus: 'read' });
+    }
+    
+    // バックグラウンドタブで記事を開く（フォーカス制御付き）
+    const newTab = window.open(article.url, '_blank');
+    
+    // 新しいタブが正常に開かれた場合、元のタブにフォーカスを戻す
     if (newTab) {
         // 少し遅延させてからフォーカスを戻す（ブラウザの処理を待つ）
         setTimeout(() => {
@@ -214,6 +216,7 @@
         }, 100);
     }
     break;
+
 
             case 'readLater':
                 event.preventDefault();
