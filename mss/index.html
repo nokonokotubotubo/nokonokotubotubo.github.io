@@ -3,28 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minews PWA</title>
+    <title>Minews</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4A90A4">
 </head>
 <body>
     <div id="app"></div>
-<!-- RakutenMA形態素解析ライブラリ -->
-<script src="./rakutenma.js"></script>
-<script>
-// model_ja.min.jsonを正しく読み込み
-fetch('./model_ja.min.json')
-  .then(response => response.json())
-  .then(data => {
-    window.model_ja = data;
-    console.log('RakutenMA model loaded successfully');
-  })
-  .catch(error => {
-    console.error('Failed to load RakutenMA model:', error);
-  });
-</script>
-
 <script src="./dm.js"></script>
 <script src="./ui.js"></script>
 </body>
