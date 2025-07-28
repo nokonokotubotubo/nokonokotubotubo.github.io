@@ -382,11 +382,13 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-                        <span class="title-link" 
-                              onclick="handleArticleClick(event, '${article.id}', 'read')">
-                            ${article.title}
-                        </span>
-                    </h3>
+    <a href="${article.url}" target="_blank" rel="noopener noreferrer"
+       onclick="handleArticleClick(event, '${article.id}', 'read')"
+       onauxclick="handleArticleClick(event, '${article.id}', 'read')">
+        ${article.title}
+    </a>
+</h3>
+
                     
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
