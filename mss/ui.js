@@ -199,24 +199,22 @@
 
         switch (actionType) {
             case 'read':
-                case 'read':
-    // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
-    if (article.readStatus !== 'read') {
-        articlesHook.updateArticle(articleId, { readStatus: 'read' });
-    }
-    
-    // バックグラウンドタブで記事を開く（フォーカス制御付き）
-    const newTab = window.open(article.url, '_blank');
-    
-    // 新しいタブが正常に開かれた場合、元のタブにフォーカスを戻す
-    if (newTab) {
-        // 少し遅延させてからフォーカスを戻す（ブラウザの処理を待つ）
-        setTimeout(() => {
-            window.focus();
-        }, 100);
-    }
-    break;
-
+                // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
+                if (article.readStatus !== 'read') {
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                }
+                
+                // バックグラウンドタブで記事を開く（フォーカス制御付き）
+                const newTab = window.open(article.url, '_blank');
+                
+                // 新しいタブが正常に開かれた場合、元のタブにフォーカスを戻す
+                if (newTab) {
+                    // 少し遅延させてからフォーカスを戻す（ブラウザの処理を待つ）
+                    setTimeout(() => {
+                        window.focus();
+                    }, 100);
+                }
+                break;
 
             case 'readLater':
                 event.preventDefault();
@@ -314,19 +312,19 @@
                 
                 <div class="nav-filters">
                     <div class="filter-group">
+                        <label for="sourceFilter">提供元:</label>
+                        <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
                         <label for="viewFilter">表示:</label>
                         <select id="viewFilter" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
                             <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label for="sourceFilter">提供元:</label>
-                        <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
-                            ${sourceOptions}
                         </select>
                     </div>
                 </div>
@@ -382,13 +380,12 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-    <a href="${article.url}" target="_blank" rel="noopener noreferrer"
-       onclick="handleArticleClick(event, '${article.id}', 'read')"
-       onauxclick="handleArticleClick(event, '${article.id}', 'read')">
-        ${article.title}
-    </a>
-</h3>
-
+                        <a href="${article.url}" target="_blank" rel="noopener noreferrer"
+                           onclick="handleArticleClick(event, '${article.id}', 'read')"
+                           onauxclick="handleArticleClick(event, '${article.id}', 'read')">
+                            ${article.title}
+                        </a>
+                    </h3>
                     
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
