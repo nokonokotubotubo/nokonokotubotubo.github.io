@@ -1,11 +1,83 @@
 {
   "articles": [
     {
-      "id": "rss_1753695017277_uj3fzkc17",
+      "id": "rss_1753698394104_szrijmihs",
+      "title": "路上で刃物で切りつけか 4人けが 殺人未遂の疑いで男逮捕 水戸",
+      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014877081000.html",
+      "content": "警察によりますと、28日午後6時10分ごろ、水戸市中心部の南町2丁目で「刃物のようなものを持った男がいる。血だらけの人がいる」と通報がありました。",
+      "publishDate": "2025-07-28T10:17:01.000Z",
+      "rssSource": "NHKニュース",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "路上",
+        "刃物",
+        "切りつけ",
+        "4人",
+        "けが",
+        "殺人未遂",
+        "疑い",
+        "逮捕"
+      ],
+      "fetchedAt": "2025-07-28T10:26:34.104Z",
+      "aiScore": 70
+    },
+    {
+      "id": "rss_1753698394129_a16q8oem6",
+      "title": "台風9号 小笠原諸島に29日にかけ最接近の見込み 高波に警戒",
+      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876581000.html",
+      "content": "大型で強い台風9号は強い勢力を維持したまま、29日にかけて小笠原諸島に最も接近する見込みです。暴風や高波に警戒し、土砂災害や低い土地の浸水、川の増水に十分注意が必要です。",
+      "publishDate": "2025-07-28T10:12:17.000Z",
+      "rssSource": "NHKニュース",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "台風9号",
+        "小笠原諸島",
+        "29日",
+        "接近",
+        "見込み",
+        "高波",
+        "警戒",
+        "大型"
+      ],
+      "fetchedAt": "2025-07-28T10:26:34.129Z",
+      "aiScore": 70
+    },
+    {
+      "id": "rss_1753698394117_zk7kwiisj",
+      "title": "東京メトロ副都心線 全線で運転見合わせ",
+      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876861000.html",
+      "content": "東京メトロによりますと、副都心線は東新宿駅で発生したポイント故障による復旧作業のため、午後7時ごろから全線での運転を見合わせています。現時点で運転再開の見通しは立っていないということで、東京メトロは「本日中の運転再開」を目指すとしています。",
+      "publishDate": "2025-07-28T10:09:58.000Z",
+      "rssSource": "NHKニュース",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "東京メトロ",
+        "副都心線",
+        "全線",
+        "運転見合わせ",
+        "より",
+        "東新宿駅",
+        "発生",
+        "ポイント"
+      ],
+      "fetchedAt": "2025-07-28T10:26:34.117Z",
+      "aiScore": 70
+    },
+    {
+      "id": "rss_1753698394123_tdk0umutt",
       "title": "【随時更新】石破首相 続投理解求める 一方で退陣迫る声相次ぐ",
       "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876601000.html",
       "content": "参議院選挙の敗北を受けた自民党の両院議員懇談会で、石破総理大臣は、アメリカの関税措置をめぐる日米合意を着実に実行していくことなどを説明し続投に理解を求めました。一方、森山幹事長は、選挙の総括が終わり次第、自身の責任のあり方を明らかにする考えを示しました。",
-      "publishDate": "2025-07-28T09:23:06.000Z",
+      "publishDate": "2025-07-28T10:07:50.000Z",
       "rssSource": "NHKニュース",
       "category": "General",
       "readStatus": "unread",
@@ -21,11 +93,35 @@
         "求める",
         "一方"
       ],
-      "fetchedAt": "2025-07-28T09:30:17.277Z",
+      "fetchedAt": "2025-07-28T10:26:34.123Z",
       "aiScore": 70
     },
     {
-      "id": "rss_1753695017290_quhhk7alb",
+      "id": "rss_1753698394110_ug4ot4jgj",
+      "title": "タイとカンボジア 無条件で停戦に入ることで合意",
+      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876911000.html",
+      "content": "国境地帯での武力衝突が続くタイとカンボジアとの停戦に向けた協議がマレーシアで行われ、協議を仲介してきたASEAN＝東南アジア諸国連合の議長国、マレーシアのアンワル首相は、記者会見で、タイとカンボジアの両国が無条件で停戦に入ることで合意したと発表しました。",
+      "publishDate": "2025-07-28T09:58:02.000Z",
+      "rssSource": "NHKニュース",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "タイ",
+        "カンボジア",
+        "無条件",
+        "停戦",
+        "入る",
+        "こと",
+        "合意",
+        "国境"
+      ],
+      "fetchedAt": "2025-07-28T10:26:34.110Z",
+      "aiScore": 70
+    },
+    {
+      "id": "rss_1753698394135_200brzv1f",
       "title": "スーパーのコメ平均価格 5キロ3585円 9週連続で値下がり",
       "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876681000.html",
       "content": "全国のスーパーで7月20日までの1週間に販売されたコメの平均価格は、5キロあたり税込みで3585円と、9週連続の値下がりとなりました。ただ、前の週からは値下がり幅は4円と徐々に小さくなっていて、農林水産省は、随意契約の備蓄米の販売ペースが落ち着いてきていることが背景にあるとみています。",
@@ -45,59 +141,11 @@
         "連続",
         "値下がり"
       ],
-      "fetchedAt": "2025-07-28T09:30:17.290Z",
+      "fetchedAt": "2025-07-28T10:26:34.135Z",
       "aiScore": 70
     },
     {
-      "id": "rss_1753695017303_1sa2k8nkz",
-      "title": "タイ カンボジア両首脳ら 停戦へ向け協議開始",
-      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876911000.html",
-      "content": "国境地帯での武力衝突が続くタイとカンボジアの停戦協議が、マレーシアの首都クアラルンプール近郊で日本時間の28日午後4時すぎから始まりました。協議にはタイのプームタム首相代行とカンボジアのフン・マネット首相らが出席し、両国が停戦で合意ができるかどうかが焦点です。",
-      "publishDate": "2025-07-28T09:10:49.000Z",
-      "rssSource": "NHKニュース",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "タイ",
-        "カンボジア",
-        "首脳",
-        "停戦",
-        "向け",
-        "協議",
-        "開始",
-        "国境"
-      ],
-      "fetchedAt": "2025-07-28T09:30:17.303Z",
-      "aiScore": 70
-    },
-    {
-      "id": "rss_1753695017283_hi13abmsx",
-      "title": "台風9号 小笠原諸島に29日にかけ最接近の見込み 高波に警戒",
-      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876581000.html",
-      "content": "大型で強い台風9号は強い勢力を維持したまま、29日にかけて小笠原諸島に最も接近する見込みで、高波に警戒するとともに、土砂災害や低い土地の浸水、川の増水、強風に十分注意が必要です。",
-      "publishDate": "2025-07-28T09:01:42.000Z",
-      "rssSource": "NHKニュース",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "台風9号",
-        "小笠原諸島",
-        "29日",
-        "接近",
-        "見込み",
-        "高波",
-        "警戒",
-        "大型"
-      ],
-      "fetchedAt": "2025-07-28T09:30:17.283Z",
-      "aiScore": 70
-    },
-    {
-      "id": "rss_1753695020205_fi3xdmedo",
+      "id": "rss_1753698397150_fyjnp47hx",
       "title": "「ジャングリア沖縄」のGoogle マップの口コミが消えた？ “印象操作”疑う声も 「確認中」と運営声明",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news100.html",
       "content": "「Google社に状況・原因を確認中」──テーマパーク「ジャングリア沖縄」は、Google マップ上のレビューについて、こんな声明を発表した。同施設のGoogle マップ上のレビューが消えているとSNSなどで話題になっていた。",
@@ -117,35 +165,11 @@
         "疑う",
         "確認"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.205Z",
+      "fetchedAt": "2025-07-28T10:26:37.150Z",
       "aiScore": 70
     },
     {
-      "id": "rss_1753695017309_0mtubbdh6",
-      "title": "iPS細胞から作った細胞など重ね 心臓病患者に移植する初手術",
-      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876971000.html",
-      "content": "iPS細胞から作った心臓の細胞などをシート状にして重ね、重い心臓病の患者に移植する初めての手術を行ったと、開発を進める京都市のベンチャー企業などが発表しました。",
-      "publishDate": "2025-07-28T08:54:54.000Z",
-      "rssSource": "NHKニュース",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "iPS細胞",
-        "作っ",
-        "細胞",
-        "重ね",
-        "心臓病",
-        "患者",
-        "移植",
-        "する"
-      ],
-      "fetchedAt": "2025-07-28T09:30:17.309Z",
-      "aiScore": 70
-    },
-    {
-      "id": "rss_1753695020211_sybz0vrjg",
+      "id": "rss_1753698397156_e6osc2ix5",
       "title": "「ナスカの地上絵」、新たに248点発見 山形大が発表 「人身供儀」「野生の鳥」「家畜」など表現か",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news099.html",
       "content": "山形大学は、南米ペルーにある「ナスカの地上絵」を新たに248点発見したと発表した。今回の発見によって具象的な地上絵の総数は計893点に達した。",
@@ -165,11 +189,11 @@
         "人身",
         "野生"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.211Z",
-      "aiScore": 70
+      "fetchedAt": "2025-07-28T10:26:37.156Z",
+      "aiScore": 69
     },
     {
-      "id": "rss_1753695017297_owwkx6tus",
+      "id": "rss_1753698394142_5rklotqfj",
       "title": "国分太一氏のコンプラ違反 外部有識者委の意見書を公表",
       "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876961000.html",
       "content": "解散した人気グループ「TOKIO」の国分太一氏のコンプライアンス上の問題行為について、日本テレビホールディングスは外部の有識者でつくる委員会による意見書を公表しました。会社側が国分氏の問題行為を明らかにしなかったことについてプライバシー保護の観点から「やむを得ないものと思われる」としています。",
@@ -189,35 +213,35 @@
         "公表",
         "解散"
       ],
-      "fetchedAt": "2025-07-28T09:30:17.297Z",
-      "aiScore": 70
+      "fetchedAt": "2025-07-28T10:26:34.142Z",
+      "aiScore": 69
     },
     {
-      "id": "rss_1753695017315_pkupsa5yb",
-      "title": "パナマ運河売却 新たに中国の投資家を参加させる意向 香港企業",
-      "url": "http://www3.nhk.or.jp/news/html/20250728/k10014876891000.html",
-      "content": "アメリカのトランプ大統領が返還を求める中米のパナマ運河をめぐって、周辺の港の運営権を持つ香港の企業はアメリカなどの企業連合に事業を売却することで合意していましたが、新たに中国の投資家を参加させる意向を明らかにしました。中国政府の同意を取り付ける思惑があるものとみられます。",
-      "publishDate": "2025-07-28T07:47:56.000Z",
-      "rssSource": "NHKニュース",
+      "id": "rss_1753698398417_u0cg4zxls",
+      "title": "はじめてのGemini CLI入門",
+      "url": "https://zenn.dev/n_san/articles/d5985b6785dff4",
+      "content": "はじめに 本記事では、Gemini CLIの環境をゼロから構築し、簡単なコマンド操作を試すまでの手順を解説します。 Gemini CLIとは？ Gemini CLIは、Googleの生成AIモデル「Gemini」をコマンドラインからサクッと利用するための公式ツールです。テキストベースでAIと対話しながら、コード生成、技術調査、ドキュメント作成など、様々なタスクを効率化できます。 利用上限 プレビュー期間中はGemini 2.5 Proを1分あたり最大60件、1日あたり最大1,000件のモデルリクエストが無料で利用できます。 前提条件 Node.js: v20以上 その他:...",
+      "publishDate": "2025-07-28T07:39:51.000Z",
+      "rssSource": "Zennの「生成 AI」のフィード",
       "category": "General",
       "readStatus": "unread",
       "readLater": false,
       "userRating": 0,
       "keywords": [
-        "パナマ運河",
-        "売却",
-        "新た",
-        "中国",
-        "投資家",
-        "参加",
-        "せる",
-        "意向"
+        "Gemini",
+        "CLI",
+        "入門",
+        "はじめ",
+        "記事",
+        "環境",
+        "ゼロ",
+        "構築"
       ],
-      "fetchedAt": "2025-07-28T09:30:17.315Z",
-      "aiScore": 70
+      "fetchedAt": "2025-07-28T10:26:38.417Z",
+      "aiScore": 69
     },
     {
-      "id": "rss_1753695020216_4mp767p10",
+      "id": "rss_1753698397162_0iz1r1y70",
       "title": "ブラウザ上でPDFをPNGに一括変換 初めて同人誌を作った人のニーズに応え、個人開発者が公開",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news093.html",
       "content": "「人生で初めて同人誌を作った時の話」を読んだ個人開発者のhokuさんが、PDFをPNGに一括変換するツールを公開した。",
@@ -237,11 +261,11 @@
         "作っ",
         "ニーズ"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.216Z",
+      "fetchedAt": "2025-07-28T10:26:37.162Z",
       "aiScore": 69
     },
     {
-      "id": "rss_1753695020222_gie8ypp01",
+      "id": "rss_1753698397168_kyj3wpak9",
       "title": "KDDI、契約時の本人確認を強化 マイナカードや免許のICチップ読み取り開始",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news091.html",
       "content": "KDDIと沖縄セルラーは8月1日から、マイナンバーカードや運転免許証のICチップを読み取る本人確認の仕組みを順次導入する。不正契約の防止や、店頭業務の効率化を図る。",
@@ -261,11 +285,11 @@
         "ICチップ",
         "読み取り"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.222Z",
+      "fetchedAt": "2025-07-28T10:26:37.168Z",
       "aiScore": 69
     },
     {
-      "id": "rss_1753695020229_fmnyicwvk",
+      "id": "rss_1753698397174_qpmuvs947",
       "title": "ミセスのライブ騒音で周辺住民が悲鳴 被害地域を可視化したのは“次に来るSNS”だった",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news086.html",
       "content": "人気アーティストのMrs.GREEN APPLEが開催した野外ライブから漏れた音が広い範囲に届いていたとしてSNSで苦情が相次いでいる。その被害地域を可視化したのが、最近「次来るSNS」などと話題になっていた「Yahoo!天気」アプリの「みんなの投稿」機能だ。",
@@ -285,11 +309,11 @@
         "被害",
         "地域"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.229Z",
+      "fetchedAt": "2025-07-28T10:26:37.174Z",
       "aiScore": 69
     },
     {
-      "id": "rss_1753695020234_7ijlp6kk8",
+      "id": "rss_1753698397180_9svt3shwl",
       "title": "「SNSで性的画像を送らないで」 Instagram、10代や保護者に「セクストーション」啓発キャンペーン",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news076.html",
       "content": "Metaは7月28日、子どものセクストーション（性的脅迫）被害を防ぐ啓発キャンペーン「STOP！セクストーション」を始めた。",
@@ -309,11 +333,11 @@
         "保護者",
         "セクストーション"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.234Z",
-      "aiScore": 69
+      "fetchedAt": "2025-07-28T10:26:37.180Z",
+      "aiScore": 68
     },
     {
-      "id": "rss_1753695020241_wz4hsi29e",
+      "id": "rss_1753698397186_uwuei5ht8",
       "title": "昭和の母困惑、令和キッズの自由研究を支える「YouTubeとショート動画」",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news069.html",
       "content": "子ども達の夏休みが始まった。小学生の親には、夏休みの宿題のサポートは、面倒なタスクの一つだ。ただ、工作が好きな1年生の娘は「あれが作りたい」「これも作りたい」とどんどんアイデアを出し、7月から作り始めている。YouTubeのおかげだ。",
@@ -333,11 +357,11 @@
         "YouTube",
         "ショート"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.241Z",
-      "aiScore": 69
+      "fetchedAt": "2025-07-28T10:26:37.186Z",
+      "aiScore": 68
     },
     {
-      "id": "rss_1753695020246_c4dwsa64m",
+      "id": "rss_1753698397191_tesucatu6",
       "title": "「『鬼滅の刃』無限城編」公開10日で興収128億円を超える",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news072.html",
       "content": "「劇場版『鬼滅の刃』無限城編 第一章 猗窩座再来」は、7月18日の公開から10日間の興行収入が128億7217万6700円に。",
@@ -357,11 +381,11 @@
         "超える",
         "劇場版"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.246Z",
+      "fetchedAt": "2025-07-28T10:26:37.191Z",
       "aiScore": 68
     },
     {
-      "id": "rss_1753695020252_35joi9hzt",
+      "id": "rss_1753698397197_d5sz8q7dx",
       "title": "“最大9割の売上”を過大計上──「AI GIJIROKU」のオルツ、循環取引発覚 売上高119億円、広告宣伝費115億円を虚偽申告",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news068.html",
       "content": "議事録ソフト「AI GIJIROKU」などを提供するAIスタートアップ企業のオルツは、同社製品の売り上げについて過大計上していた事実を確認したと発表した。",
@@ -381,11 +405,35 @@
         "GIJIROKU",
         "オルツ"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.252Z",
+      "fetchedAt": "2025-07-28T10:26:37.197Z",
       "aiScore": 68
     },
     {
-      "id": "rss_1753695020259_pxzqfquoa",
+      "id": "rss_1753698398426_kakfgdrb3",
+      "title": "マルチエージェント活用術：Google ADKで変わるキャッチコピー生成",
+      "url": "https://zenn.dev/mkj/articles/ad09e127e72b6d",
+      "content": "こんにちは、松尾研究所 シニアデータサイエンティストの浮田です。 生成AI界隈がLLM、AIエージェント、マルチエージェントと複雑化する中、Googleが公開した Agent Development Kit（ADK） が注目を集めています。ADKはマルチエージェントや本番運用 (デプロイやObservabilityなど) にも対応したAIエージェント開発フレームワークで、AIエージェントの活用をさらに広げるツールとなっています。 この記事では、ADKを使ってキャッチコピーを自動生成するマルチエージェントを構築した過程を紹介します。複数の役割を持つエージェントをどのように設計し、連携したか...",
+      "publishDate": "2025-07-28T02:50:06.000Z",
+      "rssSource": "Zennの「生成 AI」のフィード",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "マルチ",
+        "エージェント",
+        "活用",
+        "Google",
+        "ADK",
+        "変わる",
+        "キャッチコピー",
+        "生成"
+      ],
+      "fetchedAt": "2025-07-28T10:26:38.426Z",
+      "aiScore": 68
+    },
+    {
+      "id": "rss_1753698397204_9z5ejd5hm",
       "title": "小中生が検索「死にたい」「オーバードーズ」「リスカ」……1人1台の学校の端末で浮かぶSOSワード",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news056.html",
       "content": "全国の小中学校の児童生徒1人に1台が配られている端末で、「死にたい」などの深刻な言葉が検索されていることが分かった。他にも「助けて」「リスカ（リストカット）」といった言葉もあった。小中高生の令和6年の自殺者数は529人と最多を更新しており、子供のSOSの声をキャッチし、自殺を防ぐ多方面の取り組みが急がれる。",
@@ -405,11 +453,11 @@
         "端末",
         "浮かぶ"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.259Z",
+      "fetchedAt": "2025-07-28T10:26:37.204Z",
       "aiScore": 68
     },
     {
-      "id": "rss_1753695020266_xmnvb7plg",
+      "id": "rss_1753698397211_cqipol4bs",
       "title": "原発「空」の防衛に限界 法規制も「強制力」なし 玄海原発“ドローン”侵入",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news055.html",
       "content": "佐賀県の九州電力玄海原発上空にドローンとみられる光る物体が侵入した。物体は飛び去り、操縦者や意図などは不明だが、テロ攻撃や偵察の意図があった可能性も捨てきれない。テロの標的になりかねない原発は陸海空で厳重な警備が敷かれ、原発と周辺地域上空のドローンの飛行は法律で原則禁止されている。ただ、「強制力」はなく、侵入を事前に防ぐことは難しいため、対応には限界があるのが現状だ。",
@@ -429,11 +477,11 @@
         "玄海原発",
         "ドローン"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.266Z",
+      "fetchedAt": "2025-07-28T10:26:37.211Z",
       "aiScore": 68
     },
     {
-      "id": "rss_1753695020272_ynejw48ki",
+      "id": "rss_1753698397217_cz0oayv6f",
       "title": "Microsoft、カイルくんのような「Copilot Appearance」のテスト開始",
       "url": "https://www.itmedia.co.jp/news/articles/2507/28/news052.html",
       "content": "Microsoftは、対話に応じてキャラクターが表情豊かに反応する新機能「Copilot Appearance」のテストを開始。AIがユーザーの表情や音声を認識する。過去のアシスタント「カイルくん（Clippy）」などと異なり、生成AIによる自然な反応が特徴。",
@@ -453,11 +501,35 @@
         "テスト",
         "開始"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.272Z",
+      "fetchedAt": "2025-07-28T10:26:37.217Z",
       "aiScore": 68
     },
     {
-      "id": "rss_1753695021433_99c1vu4z7",
+      "id": "rss_1753698398434_pgwt9h3v4",
+      "title": "生成AI時代の今、10年前に作ったミニゲームを復刻させた",
+      "url": "https://zenn.dev/kondroid00/articles/48d1b3c5376e55",
+      "content": "10年前に作ったスマホミニゲームをWebゲームとして復刻させました。 https://ikatako.kondroid.com ※ 音が出るので注意！！ 10年前の生成AIがなかった時代に作ったものとほぼ同じものを、生成AIの力を借りつつ再度作ったので、生成AIの有無による開発の違いを比べることができました。なお、過去に作ったコードを全てを生成AIに読み込ませて作り直させたという話ではなく、あくまで人間が０から作った時に生成AIがどのように貢献したかという考察になります。 なぜ復刻させたのか https://www.oreilly.co.jp/books/9784873113395/...",
+      "publishDate": "2025-07-28T01:05:22.000Z",
+      "rssSource": "Zennの「生成 AI」のフィード",
+      "category": "General",
+      "readStatus": "unread",
+      "readLater": false,
+      "userRating": 0,
+      "keywords": [
+        "生成",
+        "AI",
+        "時代",
+        "10年前",
+        "作っ",
+        "ミニゲーム",
+        "復刻",
+        "スマホミニゲーム"
+      ],
+      "fetchedAt": "2025-07-28T10:26:38.434Z",
+      "aiScore": 68
+    },
+    {
+      "id": "rss_1753698398442_cztx4x7rt",
       "title": "【1: 極めて危険】HuggingFace の安全性調査レポート - 西側AIコミュニティへの組織的裏切りと面従腹背戦術の完全解剖",
       "url": "https://zenn.dev/n_hiraoka/articles/zenn-huggingface",
       "content": "【1: 極めて危険】HuggingFace の安全性調査レポート 対象AIサービス: HuggingFace Hub（AIモデル・データセット共有プラットフォーム） 公式URL: https://huggingface.co 安全性レベル: 1: 極めて危険 エグゼクティブ・サマリー 法務判定：導入不可 - 西側AIコミュニティに対する組織的裏切り行為と面従腹背戦術の確認 技術判定：優秀だが、中国への技術流出システムとして悪用される構造 厚黒学的リスク評価：16項目/18項目該当 - 現代版「面従腹背」戦術の完璧な実装 地政学的リスク評価：最高レベル - 表向き中国警戒、...",
@@ -477,11 +549,11 @@
         "西側",
         "AI"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.433Z",
-      "aiScore": 64
+      "fetchedAt": "2025-07-28T10:26:38.442Z",
+      "aiScore": 63
     },
     {
-      "id": "rss_1753695021441_okrg5h0gc",
+      "id": "rss_1753698398450_mezba1syk",
       "title": "Amazon Q Developerで始めるシステム開発：CloudFormationのエラー解決",
       "url": "https://zenn.dev/takahasuma/articles/ce8010faceec2d",
       "content": "はじめに 「Amazon Q Developerで始めるシステム開発」の第3弾です。 AWS上に環境構築する際、CloudFormationテンプレートを使用することでインフラストラクチャをコードとして管理できますが、複雑なテンプレートでは予期しないエラーに遭遇することがあります。 従来であればAWSドキュメントを調べたり、インターネットで調べたりする必要がありましたが、Amazon Q Developerを活用することで効率的に問題を解決できるかを検証します。 ※Amazon Q Developerへの質問とそれに対する回答を、ほぼ無加工でまとめています。Amazon Q Deve...",
@@ -501,11 +573,11 @@
         "解決",
         "はじめ"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.441Z",
+      "fetchedAt": "2025-07-28T10:26:38.450Z",
       "aiScore": 63
     },
     {
-      "id": "rss_1753695020278_mzk27jeuh",
+      "id": "rss_1753698397224_c7hvhj7mf",
       "title": "iPad Proがモバイルゲームマシンに変身！？ 11インチまで対応するRazerのゲーミングコントローラーを試した",
       "url": "https://www.itmedia.co.jp/news/articles/2507/27/news014.html",
       "content": "ゲーム周辺機器メーカーのRazerから、新しいモバイルゲーミングコントローラー「Kishi V3 Pro XL」が登場しました。スマートフォンやタブレットに装着するコントローラーで、11インチ以上の大型タブレットまで対応できるのが特長です。",
@@ -525,11 +597,11 @@
         "する",
         "Razer"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.278Z",
+      "fetchedAt": "2025-07-28T10:26:37.224Z",
       "aiScore": 63
     },
     {
-      "id": "rss_1753695021449_4xqcjzic8",
+      "id": "rss_1753698398458_6s78quksk",
       "title": "Google AI Studio徹底解説 Gemini 2.5 Proを無料で操る開発者向けAI統合環境",
       "url": "https://zenn.dev/kail/articles/756a31c5dea870",
       "content": "Google AI Studio徹底解説：Gemini 2.5 Proを無料で操る開発者向け簡易AI統合環境 本記事は2025年7月27日時点で執筆した内容です。 生成AIの導入は、いまや技術責任者にとって「検討課題」ではなく「運用戦略」の中核です。 特にAIのDevOps（開発〜本番環境活用）を視野に入れる場合、プロトタイピングからアプリケーション生成、長文処理、API統合まで包括的に担えるプラットフォームは限られます。 本記事では、Googleが提供する開発者向けのAIツール「Google AI Studio」を、技術的および経営視点で徹底的にレビューします。 🧭 Goog...",
@@ -549,11 +621,11 @@
         "25",
         "Pro"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.449Z",
+      "fetchedAt": "2025-07-28T10:26:38.458Z",
       "aiScore": 63
     },
     {
-      "id": "rss_1753695021457_14oirp2vh",
+      "id": "rss_1753698398465_tq7tgp7r9",
       "title": "GitHubのissueをCopilotに割り当ててDockerイメージのビルド時間を短縮してもらった話",
       "url": "https://zenn.dev/jnxjez/articles/d40cc548d993a9",
       "content": "概要 Dockerfileの更新時、GitHub ActionsでDockerイメージをビルドし、SyftでSBOMを作成、Grypeで脆弱性をスキャンしています。 しかし、Dockerイメージのビルドに時間がかかるという課題がありました。 GitHub Copilot Proを契約して、GitHubのissueをCopilotに割り当てて対応してもらえるようになったので、Dockerイメージのビルド時間短縮の対応をしてもらいました。 issueの内容 問題点と対策を記載したissueを作成し、Copilotにアサインしました。 Copilotによる修正内容 従来はdock...",
@@ -573,11 +645,11 @@
         "ビルド",
         "時間"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.457Z",
+      "fetchedAt": "2025-07-28T10:26:38.465Z",
       "aiScore": 62
     },
     {
-      "id": "rss_1753695020284_97xb782gp",
+      "id": "rss_1753698397230_kj8fh8hum",
       "title": "Meta、新AI部門トップに元OpenAIのジャオ氏を任命",
       "url": "https://www.itmedia.co.jp/news/articles/2507/27/news019.html",
       "content": "Metaは、新設のAI部門「Meta Superintelligence Labs」のトップに元OpenAIのシェンジア・ジャオ氏を任命した。ジャオ氏は、6月にCAIOとして迎えた元Scale AIのCEO、アレクサンドル・ワン氏の直属となる。MetaはAI人材の獲得を加速させている。",
@@ -597,11 +669,11 @@
         "任命",
         "新設"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.284Z",
+      "fetchedAt": "2025-07-28T10:26:37.230Z",
       "aiScore": 62
     },
     {
-      "id": "rss_1753695021465_8ssw3gj71",
+      "id": "rss_1753698398475_ge4wjcjj8",
       "title": "テキストエディタを生成AIクライアントにすると便利だった",
       "url": "https://zenn.dev/sta/articles/2025-07-27-seamless_llm_call",
       "content": "はじめに OpenAI API + Python を使います Windows を使います OpenAI API 自体の解説はしません 成果物のインストール等に関する親切丁寧な解説もしません まとめ テキストエディタを生成AIクライアントにするとは？ 1: テキストファイルに書いたプロンプトで問い合わせて、結果も追記させる 2: 1を行うシンプルなスクリプトをつくり、テキストエディタ（IDEでも可）からすぐに呼び出せるようにする 3: テキストエディタは、外から更新されたファイルを自動でリロードするので、2 によりあたかもテキストエディタ上でシームレスに生成AIを呼び出した...",
@@ -621,11 +693,11 @@
         "はじめ",
         "OpenAI"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.465Z",
+      "fetchedAt": "2025-07-28T10:26:38.475Z",
       "aiScore": 62
     },
     {
-      "id": "rss_1753695020290_4zn4qmv6h",
+      "id": "rss_1753698397236_d6tj6epob",
       "title": "世界中で物議のクレカ表現規制にマンガ家も懸念、Steamの一件で急浮上した団体とは？",
       "url": "https://www.itmedia.co.jp/news/articles/2507/27/news018.html",
       "content": "先日、Steamでアダルト作品の一部が販売停止となりました。でもアダルト作品の排除が、別の目的のための“前例”や“足がかり”を作るためだったとしたら？ そんな気にな出来事がありました。",
@@ -645,11 +717,11 @@
         "Steam",
         "一件"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.290Z",
+      "fetchedAt": "2025-07-28T10:26:37.236Z",
       "aiScore": 62
     },
     {
-      "id": "rss_1753695021473_fead38s33",
+      "id": "rss_1753698398483_cki5my06z",
       "title": "【CTOはどう見る？】アンドドット開発組織のこれから ──生成AI時代の開発組織を、どう設計するか？",
       "url": "https://zenn.dev/and_dot/articles/92e56838b39a30",
       "content": "こんにちは!アンドドット技術広報です。 社内Podcast「Dot talks」では、アンドドットで働くメンバー同士の会話を中心に、日々の取り組みや考え方をリアルにお届けしています。今回のテーマは「これからの開発組織」。 登場するのは、CTOの高根沢、CEOの茨木、そしてファシリーテーターとして共同創業者の東川。生成AIとともに進化する開発の現場で、どんなことが起きているのか。そしてこれから、どんなチームをつくろうとしているのか。本記事では、日常の温度感そのままに語り合った会話を、音声の書き起こしをもとに一部編集・再構成してお届けします。 👉 Podcast本編を聴く AIが1週間...",
@@ -669,11 +741,11 @@
         "生成",
         "AI"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.473Z",
+      "fetchedAt": "2025-07-28T10:26:38.483Z",
       "aiScore": 61
     },
     {
-      "id": "rss_1753695021481_oyj46o5oe",
+      "id": "rss_1753698398490_qws3lwtaq",
       "title": "“AI活用”で終わらせない─Dify＆Devinと進める開発体制のアップデート術 登壇レポート",
       "url": "https://zenn.dev/and_dot/articles/6556a5897f8743",
       "content": "はじめに 2024年4月24日、ギークス株式会社様が主催するセミナー「“AI活用”で終わらせない──Dify＆Devinと進める開発体制のアップデート術」にて、弊社CTOの高根沢が講師として登壇しました。 生成AIの実用化が進むなかで、単にAIツールを導入するだけでなく、それを組織的・構造的に活用し、開発体制そのものを進化させることが求められています。本記事では、登壇テーマに込めた想いや、当日の様子をまとめます。 登壇テーマに込めた想いと狙い テーマは「“AI活用”で終わらせない」こと。生成AIはもはや一過性のブームではなく、開発現場に根付いていく存在です。だからこそ、継続的に...",
@@ -693,11 +765,11 @@
         "体制",
         "アップデート"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.481Z",
+      "fetchedAt": "2025-07-28T10:26:38.491Z",
       "aiScore": 61
     },
     {
-      "id": "rss_1753695020296_98kfy962s",
+      "id": "rss_1753698397242_of6ae3cjn",
       "title": "「ワールド」はなぜ過去最大のヒット作となったか──辻本Pが振り返る「モンハン」21年の歴史 MHXから最新作ワイルズまで【後編】",
       "url": "https://www.itmedia.co.jp/news/articles/2507/26/news026.html",
       "content": "カプコンは、ゲーム開発者向けカンファレンス「CEDEC 2025」で人気ゲームシリーズ「モンスターハンター」の歴史をひもとく、基調講演「『モンスターハンターシリーズ』 21年の継続と仕掛け」を行った。",
@@ -717,11 +789,11 @@
         "モンハン",
         "21年"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.296Z",
+      "fetchedAt": "2025-07-28T10:26:37.242Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695021489_ovetc07vk",
+      "id": "rss_1753698398498_ac11jiqcu",
       "title": "Amazon Bedrock プロンプトキャッシュについて PHPで試してみた",
       "url": "https://zenn.dev/fusic/articles/92e246f8fc12c3",
       "content": "はじめに Fusicのレオナです。前回のブログではAmazon BedrockとPHP, Laravelを組み合わせてPDFの文字起こしを試しました。 https://zenn.dev/fusic/articles/81e0a78a5aec67 本ブログはその続きとして、Amazon Bedrockのプロンプトキャッシュ機能について解説とPHPで試してみた内容をまとめます。プロンプトキャッシュは推論レスポンスのレイテンシーとコストを削減できる便利な仕組みです。繰り返し利用するコンテキストをキャッシュとして保存し、後続のリクエストではキャッシュ済みの部分を再計算せずに回答して...",
@@ -741,11 +813,11 @@
         "はじめ",
         "Fusic"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.489Z",
+      "fetchedAt": "2025-07-28T10:26:38.498Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695020302_vpvpmeg3v",
+      "id": "rss_1753698397248_3k337infg",
       "title": "ペットボトルが“振るだけ”で瞬時に凍る シャープの「アイススラリー冷蔵庫」、猛暑の現場で引き合い続々",
       "url": "https://www.itmedia.co.jp/news/articles/2507/26/news025.html",
       "content": "ペットボトルを振るだけで飲料が瞬時に凍る──。シャープが5月にレンタル提供を開始した、「アイススラリー冷蔵庫」が好調だ。",
@@ -765,11 +837,11 @@
         "冷蔵庫",
         "猛暑"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.302Z",
+      "fetchedAt": "2025-07-28T10:26:37.248Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695020307_4wzjeqko0",
+      "id": "rss_1753698397254_kj44tb30l",
       "title": "これが“本来のOM-5”だっ 新色もうれしい「OM-5 Mark II」で実感したマイクロフォーサーズの軽快さ",
       "url": "https://www.itmedia.co.jp/news/articles/2507/26/news027.html",
       "content": "OMデジタルソリューションズから「OM-5 MarkII」が登場した。OM-1シリーズに比べると、グリップが浅くてより小型軽量なボディで、気軽に扱えるカメラだ。",
@@ -789,11 +861,11 @@
         "マイクロフォーサーズ",
         "軽快"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.307Z",
+      "fetchedAt": "2025-07-28T10:26:37.254Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695021496_1ptgde4pe",
+      "id": "rss_1753698398504_5krf0tbep",
       "title": "PHPでAmazon Bedrock Converse APIを使ってPDF解析してみた",
       "url": "https://zenn.dev/fusic/articles/81e0a78a5aec67",
       "content": "はじめに Fusicのレオナです。本ブログは、PHP, Laravelを使ってAmazon Bedrock Converse APIでPDFを解析してみました。Amazon Bedrockが提供するConverse APIは、テキストだけでなくPDFや画像ファイルなども、モデルとの間でメッセージとして送受信できるAPIです。 環境構築 PHP 8.3 / Laravel 12 AWS SDK for PHP Laravelプロジェクトのcomposer.jsonは以下のように設定 composer.json { \"r...",
@@ -813,11 +885,11 @@
         "PDF",
         "解析"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.496Z",
+      "fetchedAt": "2025-07-28T10:26:38.504Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695021503_8sxy6ps5w",
+      "id": "rss_1753698398512_65xonw214",
       "title": "ChatGPTやGeminiのWeb検索で最新ニュース分析、それをすべて自動化した話",
       "url": "https://zenn.dev/okuma/articles/5096f8572148ba",
       "content": "はじめに ChatGPTやGeminiには、Webをリアルタイムに検索して回答を生成する機能が搭載されています。 以前までのLLMは、学習データのカットオフがあり、最新の情報を反映できませんでしたが、これらの機能により、最新のニュースや情報をリアルタイムで取得し、分析・要約することが可能になりました。 この機能を使えば、最新のニュースを自分向けに分析・要約させる、といった使い方が簡単にできてしまいます。 LLMで最新のニュースをWeb検索して分析・要約する方法（というかプロンプト） 例えば、ChatGPTにこんな風にお願いしてみたとします。モデルは「GPT-4o」を選択し、Web...",
@@ -837,11 +909,11 @@
         "分析",
         "すべて"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.503Z",
+      "fetchedAt": "2025-07-28T10:26:38.512Z",
       "aiScore": 59
     },
     {
-      "id": "rss_1753695021511_qahqf6gje",
+      "id": "rss_1753698398520_v785eyqw6",
       "title": "【4: 安全】Lovable.dev の安全性調査レポート",
       "url": "https://zenn.dev/n_hiraoka/articles/zenn-lovable-250725",
       "content": "【4: 安全】Lovable.dev の安全性調査レポート 対象AIサービス: Lovable.dev 公式URL: https://lovable.dev 安全性レベル: 4: 安全 エグゼクティブ・サマリー 法務判定：導入可 - 透明性が高く、プライバシー保護も適切 技術判定：アーキテクチャ安全性良好 - GitHub連携、オープンソース志向 厚黒学的リスク評価結果：低リスク（18項目中わずか2項目該当） 地政学的リスク評価：極めて低 - スウェーデン発、西側投資家中心 最終判定理由：全て西側諸国の技術・投資家・インフラで構成され、透明性の高い運営体制 ...",
@@ -861,11 +933,11 @@
         "AI",
         "サービス"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.511Z",
+      "fetchedAt": "2025-07-28T10:26:38.520Z",
       "aiScore": 58
     },
     {
-      "id": "rss_1753695021518_5suhm25ku",
+      "id": "rss_1753698398527_ajz969s2c",
       "title": "Google Prompting Essentials（全4回シリーズ｜#4）",
       "url": "https://zenn.dev/purple_matsu1/articles/e439a116f5d31f",
       "content": "この記事は Coursera × Google の無料講座 \"Google Prompting Essentials\" を完走したアウトプットです。 https://www.coursera.org/specializations/prompting-essentials-google 全4回シリーズの 第4回（最終回） として、AIを クリエイティブパートナー として活用するための高度なプロンプト技術を解説します。 シリーズ構成 プロフェッショナルなプロンプトを書くには https://zenn.dev/purple_matsu1/articles/3cc6cd45285b09 ...",
@@ -885,11 +957,11 @@
         "Coursera",
         "無料"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.518Z",
+      "fetchedAt": "2025-07-28T10:26:38.527Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695020313_rsrg8xvam",
+      "id": "rss_1753698397259_kw6mb6g3g",
       "title": "初の“カラーKindle”発売 3万9980円から",
       "url": "https://www.itmedia.co.jp/news/articles/2507/25/news123.html",
       "content": "アマゾンジャパンは24日、初めてカラー電子ペーパーを搭載した電子書籍リーダー「Kindle Colorsoft」シリーズを発売した。",
@@ -909,11 +981,11 @@
         "電子ペーパー",
         "搭載"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.313Z",
+      "fetchedAt": "2025-07-28T10:26:37.259Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695020320_plkrk3v3u",
+      "id": "rss_1753698397267_kwap61z77",
       "title": "「全焼するぞ」……京都の芸能神社がXで大炎上 警察沙汰に発展した生成AIイラストの賛否",
       "url": "https://www.itmedia.co.jp/news/articles/2507/25/news118.html",
       "content": "芸能の神社として知られる京都市右京区の車折（くるまざき）神社が3月、生成AIで作られた女性キャラクターをX（旧ツイッター）のアイコンに採用したところ、SNSで誹謗中傷にさらされた。アイコンは、巫女（みこ）の服装をした女性キャラクターが桜の舞う中でポーズを取る構図。神社のXには「生成AIを擁護するのか」など批判が殺到し、即日アカウント削除に追い込まれたほか、脅迫容疑などでの逮捕者も出た。なぜここまでの炎上に発展したのか。",
@@ -933,11 +1005,11 @@
         "発展",
         "生成"
       ],
-      "fetchedAt": "2025-07-28T09:30:20.320Z",
+      "fetchedAt": "2025-07-28T10:26:37.267Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695021525_318n6mofc",
+      "id": "rss_1753698398534_tygi9lcd3",
       "title": "【Gen AI Technical Expert Badge】「Intelligent Search」を獲得したよ",
       "url": "https://zenn.dev/densan_techblog/articles/e749937e511fa6",
       "content": "Google Cloudのパートナー向け学習プログラム「Gen AI Journey」の一環である「Gen AI Technical Expert: Intelligent Search」というテクニカルエキスパートバッジを獲得したので、その感想です。 https://www.credly.com/badges/f27b0951-c0f7-408b-859a-6ace4a2a375d/public_url 学習内容と感想 このラーニングパスでは、Google Cloudの生成AIサービス、特にエンタープライズサーチの構築に焦点を当てた内容を学びました。 具体的には、AIアプリケーショ...",
@@ -957,11 +1029,11 @@
         "獲得",
         "Google"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.525Z",
+      "fetchedAt": "2025-07-28T10:26:38.534Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695021533_bfmpdlrgf",
+      "id": "rss_1753698398542_fvlubj92w",
       "title": "GENDAにおける生成AI活用のご紹介 & イベント開催のお知らせ",
       "url": "https://zenn.dev/genda_jp/articles/0ec6330f245da5",
       "content": "昨今、生成AIの活用は、開発のスタイルそのものを根本から変えつつあります。 GENDAにおいても開発組織の立ち上げ以降、さまざまなツールの導入とトライアルを重ねてきました。現在では、それがエンジニアに深く根付き、各チームの意思決定や開発プロセスにまで影響を及ぼすようになっています。 本記事では、GENDAにおける生成AI活用の取り組み、社内の雰囲気や事例、そして8/5にイベントを実施し、より詳しい話をお伝えする場をご用意したので、そのイベント情報をお届けします。 https://genda.connpass.com/event/362130/ 多様な生成AIツールの導入と「実運用」と...",
@@ -981,11 +1053,11 @@
         "開催",
         "お知らせ"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.533Z",
+      "fetchedAt": "2025-07-28T10:26:38.542Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695021540_po4clpgj8",
+      "id": "rss_1753698398550_fbijisz04",
       "title": "AI に codemod を書かせて大規模リファクタリングに立ち向かう",
       "url": "https://zenn.dev/socialplus/articles/ai-powered-codemod-refactoring",
       "content": "リファクタリングをしていて、ガッと数十ファイルにわたって一括で書き換えたいような場面、みなさんもありますよね？ 場合によっては数百かもしれません。 （「そんなに広範囲に影響する時点で設計が悪いのでは？」という指摘はあるかもしれませんが、この記事では横に置いておきます。） この記事は、「AI に codemod を書かせて、それを実行すると書き換えが楽ですよ」というお話です。codemod のことを全く知らなくても、AI に書いてもらえば今日から使っていけるはずです。やることは簡単で、要は以下の手順を回すだけです。 「これをこう書き換える codemod を作って」と AI にお願いする...",
@@ -1005,11 +1077,11 @@
         "ガッ",
         "ファイル"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.540Z",
+      "fetchedAt": "2025-07-28T10:26:38.550Z",
       "aiScore": 57
     },
     {
-      "id": "rss_1753695021548_avj2n5zrj",
+      "id": "rss_1753698398559_wrk6sec25",
       "title": "AIコーディングを活用したレガシーコード適応への道2",
       "url": "https://zenn.dev/tonbi_attack/articles/c1352dcc5f335b",
       "content": "はじめに 数週間前から業務でコーディングエージェント系の生成AIを使い始めました。これまではChatGPTなどのチャット系のAIを使用していましたが、本格的な開発支援ツールの導入により、レガシーシステムの移行に取り組んでいます。 プロジェクト概要 現在の技術環境 Java 8 jQuery Glassfish VB.net 2010 抱えている課題 現状のシステムは以下の課題を抱えています： VB.net側で型定義が存在せず、全てがObjectマッピングで処理されている APIのエンドポイントすら共通化されておらず、各機能で個別実装となっている レガシーな技術スタッ...",
@@ -1029,11 +1101,11 @@
         "はじめ",
         "週間"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.548Z",
+      "fetchedAt": "2025-07-28T10:26:38.559Z",
       "aiScore": 55
     },
     {
-      "id": "rss_1753695021556_9b4fejnqg",
+      "id": "rss_1753698398567_8jt1o9ylk",
       "title": "「あのやり取りどこでやったっけ？」を AI で解決！ Slack 擬似 Deep Research を作ってみる",
       "url": "https://zenn.dev/ubie_dev/articles/173954712858ce",
       "content": "Slackのようなチャットツールでのコミュニケーションが日々活発に行われる組織は多いかと思います。しかし、その高頻度なやりとりの中で、「あの情報、どのチャンネルで話したっけ？」「誰が担当だったかな？」と、過去の重要なやりとりを見失ってしまうことはないでしょうか。 この記事では、この課題を解決するための一つのアプローチとして、 Ubie で Slackの過去の会話をAIが深く検索・要約してくれる「擬似 Slack Deep Research」 を開発した事例についてご紹介します。 Slack Deep Research のイメージ Slack を Deep Research するという...",
@@ -1053,83 +1125,11 @@
         "擬似",
         "Deep"
       ],
-      "fetchedAt": "2025-07-28T09:30:21.556Z",
+      "fetchedAt": "2025-07-28T10:26:38.567Z",
       "aiScore": 55
-    },
-    {
-      "id": "rss_1753695021563_y8ubh7hnu",
-      "title": "生成AIを活用した効率的プロジェクト参画",
-      "url": "https://zenn.dev/deltax/articles/dc0ab6b27132c4",
-      "content": "はじめに こんにちは。 開発部でエンジニアをしている西尾です。 今年5月にDeltaXに入社しました。 入社してすぐの課題といえば、新しい会社やプロジェクトに参画する際の技術習得です。 技術習得は多くのエンジニアが異動や転職の度に直面する課題です。 今までは積み重ねてきた経験や知識を基盤として技術習得を進めていくことがほとんどでした。 しかし、ChatGPTやClaude、GitHub Copilotなどに代表される生成AIツールが普及しつつある中、この状況は大きく改善されつつあります。 本記事では生成AIを活用した効率的な技術習得について、実際の経験をもとに書かせていただければと...",
-      "publishDate": "2025-07-24T03:00:06.000Z",
-      "rssSource": "Zennの「生成 AI」のフィード",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "生成",
-        "AI",
-        "活用",
-        "効率的",
-        "プロジェクト",
-        "参画",
-        "はじめ",
-        "開発"
-      ],
-      "fetchedAt": "2025-07-28T09:30:21.563Z",
-      "aiScore": 55
-    },
-    {
-      "id": "rss_1753695021571_whn9ru0ws",
-      "title": "生成AIworkerは安く見られてるなぁと感じる昨今",
-      "url": "https://zenn.dev/teshio/articles/03ad628992c31b",
-      "content": "ク「あっ、天汐ちゃん、今度めっちゃ大きい仕事入ったから手伝ってね！」 「はーい」 数日後 ク「今度セミナーするから教材作って欲しいんよ。一本1000円で」 「はい」 ク「AIでちょいちょいだから」 「はい（AI使用料月7000円かぁ）」 稼働ーーー 「AIぶん回して、そのとおりにツール動かしてスクショして、レイアウト整えて半日……半日1000円……」 ク「あ、あと特典、すごいの作って」 「へーい」",
-      "publishDate": "2025-07-23T23:26:37.000Z",
-      "rssSource": "Zennの「生成 AI」のフィード",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "生成",
-        "AIworker",
-        "安く",
-        "られ",
-        "てる",
-        "感じる",
-        "昨今",
-        "ちゃん"
-      ],
-      "fetchedAt": "2025-07-28T09:30:21.571Z",
-      "aiScore": 55
-    },
-    {
-      "id": "rss_1753695021581_ovay7x114",
-      "title": "社内 Generative AI LT & Cursor で爆速開発ハンズオン大会：AIと共に働く未来を、肌で感じた一日",
-      "url": "https://zenn.dev/hacarus_blog/articles/ea16cd48e917ea",
-      "content": "はじめに Good morning, and in case I don't see ya, good afternoon, good evening, and good night! 株式会社HACARUSのエンジニアの郭です。 2025年7月15日、社内イベント「生成AI LT＆Cursorで爆速開発ハンズオン大会」に参加しました。 生成AIが一気に浸透し、日常業務に欠かせない存在になりつつある今。その最新動向や活用ノウハウを共有する目的で、イベントは「生成AIに関するライトニングトーク（LT）」と「Cursorハンズオン」の二部構成で実施されました。 背景には、社内エンジニア...",
-      "publishDate": "2025-07-23T06:00:02.000Z",
-      "rssSource": "Zennの「生成 AI」のフィード",
-      "category": "General",
-      "readStatus": "unread",
-      "readLater": false,
-      "userRating": 0,
-      "keywords": [
-        "社内",
-        "Generative",
-        "AI",
-        "LT",
-        "Cursor",
-        "爆速",
-        "開発",
-        "ハンズオン"
-      ],
-      "fetchedAt": "2025-07-28T09:30:21.581Z",
-      "aiScore": 54
     }
   ],
-  "lastUpdated": "2025-07-28T09:30:25.718Z",
+  "lastUpdated": "2025-07-28T10:26:42.771Z",
   "totalCount": 47,
   "processedFeeds": 6,
   "successfulFeeds": 6
