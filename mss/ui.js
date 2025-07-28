@@ -32,41 +32,6 @@
         });
 
         window.state.articles = articlesData;
-
-        if (window.state.articles.length === 0) {
-            const sampleArticles = [
-                {
-                    id: 'sample_1',
-                    title: 'Minews PWA：フォルダ機能追加完了',
-                    url: '#',
-                    content: 'RSSフィードをフォルダで分類管理し、記事表示もフォルダでフィルタリングできる機能を追加しました。リスト選択モーダルによりユーザビリティも向上。',
-                    publishDate: new Date().toISOString(),
-                    rssSource: 'NHKニュース',
-                    category: 'Design',
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords: ['フォルダ', 'RSS', 'リスト選択', '機能追加']
-                },
-                {
-                    id: 'sample_2',
-                    title: 'フォルダ管理で記事整理が便利に',
-                    url: '#',
-                    content: 'ニュース、テック、ブログなど用途別にRSSフィードを分類。記事表示もフォルダ単位でフィルタリングでき、情報収集効率が大幅向上。',
-                    publishDate: new Date(Date.now() - 3600000).toISOString(),
-                    rssSource: 'ITmedia',
-                    category: 'UX',
-                    readStatus: 'unread',
-                    readLater: false,
-                    userRating: 0,
-                    keywords: ['フォルダ管理', '記事整理', '分類', 'フィルタリング', '効率化']
-                }
-            ];
-
-            const articlesHook = window.DataHooks.useArticles();
-            sampleArticles.forEach(article => articlesHook.addArticle(article));
-            window.state.articles = window.DataHooksCache.articles;
-        }
     };
 
     // ===========================================
