@@ -3,10 +3,9 @@ const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const Mecab = require('mecab-async');
 
-// MeCabセットアップ (複数パターンを試行)
+// MeCabセットアップ
 const mecab = new Mecab();
 
-// 辞書パスの自動検出と設定
 async function setupMecab() {
   const possiblePaths = [
     '/usr/lib/mecab/dic/mecab-ipadic-neologd',
@@ -24,11 +23,10 @@ async function setupMecab() {
         return true;
       }
     } catch (error) {
-      console.log(`辞書パス ${path} は無効: ${error.message}`);
+      console.log(`辞書パス ${path} は無効`);
     }
   }
   
-  // デフォルト辞書を試行
   try {
     mecab.command = 'mecab';
     const testResult = await mecabParsePromise('テスト');
@@ -43,7 +41,6 @@ async function setupMecab() {
   return false;
 }
 
-// MeCab parseをPromiseでラップ (エラーハンドリング強化)
 function mecabParsePromise(text) {
   return new Promise((resolve, reject) => {
     if (!text || text.trim().length === 0) {
@@ -53,21 +50,14 @@ function mecabParsePromise(text) {
     
     mecab.parse(text, (err, result) => {
       if (err) {
-        console.error('MeCab parseエラー:', err);
         reject(err);
         return;
       }
-      
-      // 結果の詳細ログ
-      console.log(`[DEBUG] MeCab生出力タイプ: ${typeof result}, 長さ: ${result ? result.length : 'undefined'}`);
-      console.log(`[DEBUG] MeCab生出力内容: ${JSON.stringify(result).substring(0, 200)}...`);
-      
       resolve(result || []);
     });
   });
 }
 
-// OPML読み込み関数
 async function loadOPML() {
   try {
     const opmlContent = fs.readFileSync('./.github/workflows/rsslist.xml', 'utf8');
@@ -100,7 +90,6 @@ async function loadOPML() {
   }
 }
 
-// RSS取得・解析関数
 async function fetchAndParseRSS(url, title) {
   try {
     console.log(`Fetching RSS: ${title} (${url})`);
@@ -145,7 +134,6 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// RSS項目解析関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     const title = cleanText(item.title || '');
@@ -180,7 +168,6 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
   }
 }
 
-// テキストクリーン関数
 function cleanText(text) {
   if (typeof text !== 'string' || !text) return '';
   return text.replace(/<[^>]*>/g, '')
@@ -194,7 +181,6 @@ function cleanText(text) {
              .trim();
 }
 
-// 日付解析関数
 function parseDate(dateString) {
   if (!dateString) return new Date().toISOString();
   try {
@@ -205,83 +191,73 @@ function parseDate(dateString) {
   }
 }
 
-// 強化されたキーワード抽出関数
+// シンプル・最効率キーワード抽出関数
 async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
-  const MIN_KEYWORD_LENGTH = 2;
-  const TARGET_POS = new Set(['名詞', '固有名詞', '動詞', '形容詞']);
-  const stopWords = new Set(['これ', 'それ', 'この', 'その', 'です', 'である', 'の', 'が', 'は', 'を', 'に', 'と', 'で']);
+  const MIN_LENGTH = 2;
+  
+  // 最小限のストップワード（本当に不要なもののみ）
+  const stopWords = new Set([
+    'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
+    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう'
+  ]);
 
   try {
-    // テキストの前処理
-    const processedText = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, '').trim();
+    // テキスト前処理（最小限）
+    const cleanText = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim();
     
-    if (!processedText) {
-      console.log('[DEBUG] 処理可能なテキストがありません');
-      return [];
-    }
+    if (!cleanText) return [];
     
-    console.log(`[DEBUG] 処理対象テキスト: "${processedText.substring(0, 50)}..."`);
+    const parsed = await mecabParsePromise(cleanText);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
     
-    const parsed = await mecabParsePromise(processedText);
+    const keywords = new Map(); // 重複排除と出現頻度管理
     
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      console.log('[DEBUG] MeCab解析結果が空です');
-      return [];
-    }
-    
-    console.log(`[DEBUG] MeCab解析成功: ${parsed.length}個のトークン`);
-    
-    const keywords = new Set();
-    
-    // 様々なトークン形式に対応
-    parsed.forEach((token, index) => {
-      if (index < 3) console.log(`[DEBUG] Token[${index}]: ${JSON.stringify(token)}`);
+    parsed.forEach((token) => {
+      if (!Array.isArray(token) || token.length < 2) return;
       
-      let surface, pos;
+      const surface = token[0];
+      const features = Array.isArray(token[1]) ? token[1] : [token[1]];
+      const pos = features[0];
+      const baseForm = features[6] || surface;
       
-      // 形式パターン1: [表層形, [品詞, ...]]
-      if (Array.isArray(token) && token.length >= 2 && Array.isArray(token[1])) {
-        surface = token[0];
-        pos = token[1][0];
-      }
-      // 形式パターン2: [表層形, 品詞]
-      else if (Array.isArray(token) && token.length >= 2) {
-        surface = token[0];
-        pos = token[1];
-      }
-      // 形式パターン3: {surface: '...', features: [...]}
-      else if (token && typeof token === 'object' && token.surface) {
-        surface = token.surface;
-        pos = Array.isArray(token.features) ? token.features[0] : token.features;
-      }
-      else {
-        return;
-      }
+      // シンプルな品詞判定
+      const isValidPOS = pos === '名詞' || pos === '固有名詞' || 
+                        (pos === '動詞' && features[1] === '自立') ||
+                        (pos === '形容詞' && features[1] === '自立');
       
-      if (surface && pos && TARGET_POS.has(pos) && 
-          surface.length >= MIN_KEYWORD_LENGTH && 
-          !stopWords.has(surface)) {
-        keywords.add(surface);
-        console.log(`[DEBUG] キーワード追加: "${surface}" (${pos})`);
+      if (!isValidPOS) return;
+      
+      // キーワード決定：基本形があり、表層形と異なる場合は基本形を使用
+      const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
+      
+      // 基本的なフィルタリング
+      if (keyword.length >= MIN_LENGTH && 
+          !stopWords.has(keyword) && 
+          !/^[0-9]+$/.test(keyword)) { // 数字のみは除外
+        
+        const count = keywords.get(keyword) || 0;
+        keywords.set(keyword, count + 1);
       }
     });
 
-    const result = Array.from(keywords).slice(0, MAX_KEYWORDS);
-    console.log(`[DEBUG] 最終キーワード: ${JSON.stringify(result)}`);
-    
-    return result;
+    // 出現頻度でソートしてトップ取得
+    return Array.from(keywords.entries())
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, MAX_KEYWORDS)
+                .map(([keyword]) => keyword);
+                
   } catch (error) {
     console.error('MeCab解析エラー:', error.message);
     return [];
   }
 }
 
-// メイン処理
 async function main() {
   console.log('RSS記事取得開始...');
   
-  // MeCab設定の自動検出
   const mecabReady = await setupMecab();
   if (!mecabReady) {
     console.error('MeCabの設定に失敗しました');
