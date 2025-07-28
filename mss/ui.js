@@ -206,7 +206,14 @@
                 
                 // バックグラウンドタブで記事を開く
                 window.open(article.url, '_blank');
-                break;
+                // 新しいタブが正常に開かれた場合、元のタブにフォーカスを戻す
+    if (newTab) {
+        // 少し遅延させてからフォーカスを戻す（ブラウザの処理を待つ）
+        setTimeout(() => {
+            window.focus();
+        }, 100);
+    }
+    break;
 
             case 'readLater':
                 event.preventDefault();
