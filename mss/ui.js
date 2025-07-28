@@ -360,10 +360,12 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-                        <a href="${article.url}" target="_blank" rel="noopener noreferrer">
-                            ${article.title}
-                        </a>
-                    </h3>
+    <a href="${article.url}" target="_blank" rel="noopener noreferrer" 
+       onclick="handleArticleClick(event, '${article.id}', 'read'); return true;">
+        ${article.title}
+    </a>
+</h3>
+
                     
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
