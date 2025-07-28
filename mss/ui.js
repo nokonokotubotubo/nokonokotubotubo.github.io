@@ -330,7 +330,12 @@
 
             case 'rating':
                 const rating = parseInt(event.target.getAttribute('data-rating'));
-                if (rating) {
+                if (rating && rating >= 1 && rating <= 5) {
+                    // 同じ評価の重複を防ぐ
+                    if (article.userRating === rating) {
+                        return; // 同じ評価なら何もしない
+                    }
+
                     // 既存の評価を取り消す場合のAI学習データ更新
                     if (article.userRating > 0) {
                         const aiHook = window.DataHooks.useAILearning();
@@ -338,10 +343,8 @@
                     }
 
                     // 新しい評価でAI学習データ更新
-                    if (rating > 0) {
-                        const aiHook = window.DataHooks.useAILearning();
-                        aiHook.updateLearningData(article, rating, false);
-                    }
+                    const aiHook = window.DataHooks.useAILearning();
+                    aiHook.updateLearningData(article, rating, false);
 
                     articlesHook.updateArticle(articleId, { userRating: rating });
                 }
@@ -672,11 +675,16 @@
             </div>
         `;
 
-        // 星評価のイベントリスナー設定
+        // 星評価のイベントリスナー設定（重複防止）
         document.querySelectorAll('.star').forEach(star => {
-            star.addEventListener('click', (e) => {
+            // 既存のイベントリスナーを削除
+            star.removeEventListener('click', window._starClickHandler);
+            
+            // 新しいイベントリスナーを設定
+            window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
-            });
+            };
+            star.addEventListener('click', window._starClickHandler);
         });
     };
 
