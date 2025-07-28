@@ -22,28 +22,16 @@
 
     const initializeData = () => {
         const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles);
-        const rssData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.rssFeeds);
-        const foldersData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders);
         const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
         const wordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
-        
-        // フィルタ設定の読み込み
-        const viewSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
-            viewMode: 'all',
-            selectedSource: 'all'
-        });
 
         Object.assign(window.DataHooksCache, {
             articles: articlesData,
-            rssFeeds: rssData,
-            folders: foldersData,
             aiLearning: aiData,
             wordFilters: wordData
         });
 
         window.state.articles = articlesData;
-        window.state.viewMode = viewSettings.viewMode;
-        window.state.selectedSource = viewSettings.selectedSource;
 
         if (window.state.articles.length === 0) {
             const sampleArticles = [
@@ -170,12 +158,16 @@
                 // AI学習データのマージ
                 Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
                     const weight = importData.aiLearning.wordWeights[word];
-                    aiHook.updateWordWeight(word, weight);
+                    const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
+                    const newWeight = Math.max(-60, Math.min(60, currentWeight + weight));
+                    aiHook.aiLearning.wordWeights[word] = newWeight;
                 });
 
                 Object.keys(importData.aiLearning.categoryWeights || {}).forEach(category => {
                     const weight = importData.aiLearning.categoryWeights[category];
-                    aiHook.updateCategoryWeight(category, weight);
+                    const currentWeight = aiHook.aiLearning.categoryWeights[category] || 0;
+                    const newWeight = Math.max(-42, Math.min(42, currentWeight + weight));
+                    aiHook.aiLearning.categoryWeights[category] = newWeight;
                 });
 
                 // ワードフィルターのマージ
@@ -195,62 +187,7 @@
         };
 
         reader.readAsText(file);
-        // ファイル選択をリセット
         event.target.value = '';
-    };
-
-    // RSSデータエクスポート（OPML形式）
-    window.handleExportRSSData = () => {
-        const rssHook = window.DataHooks.useRSSManager();
-        const foldersHook = window.DataHooks.useFolders();
-
-        let opmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<opml version="2.0">
-    <head>
-        <title>Minews RSS Feeds Export</title>
-        <dateCreated>${new Date().toISOString()}</dateCreated>
-    </head>
-    <body>`;
-
-        // フォルダごとにグループ化
-        const folderGroups = {};
-        rssHook.rssFeeds.forEach(feed => {
-            const folder = foldersHook.folders.find(f => f.id === feed.folderId);
-            const folderName = folder ? folder.name : 'uncategorized';
-            
-            if (!folderGroups[folderName]) {
-                folderGroups[folderName] = [];
-            }
-            folderGroups[folderName].push(feed);
-        });
-
-        Object.keys(folderGroups).forEach(folderName => {
-            opmlContent += `
-        <outline text="${window.escapeXml(folderName)}" title="${window.escapeXml(folderName)}">`;
-            
-            folderGroups[folderName].forEach(feed => {
-                opmlContent += `
-            <outline text="${window.escapeXml(feed.title)}" 
-                     title="${window.escapeXml(feed.title)}" 
-                     xmlUrl="${window.escapeXml(feed.url)}" 
-                     type="rss" />`;
-            });
-            
-            opmlContent += `
-        </outline>`;
-        });
-
-        opmlContent += `
-    </body>
-</opml>`;
-
-        const dataBlob = new Blob([opmlContent], { type: 'application/xml' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = `minews_rss_feeds_${new Date().toISOString().split('T')[0]}.opml`;
-        link.click();
-
-        alert('RSSフィードをOPML形式でエクスポートしました');
     };
 
     // ===========================================
@@ -259,44 +196,18 @@
 
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
-        
-        // フィルタ設定をLocalStorageに保存
-        const currentSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
-            viewMode: 'all',
-            selectedSource: 'all'
-        });
-        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
-            ...currentSettings,
-            viewMode: mode
-        });
     };
 
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
-        
-        // フィルタ設定をLocalStorageに保存
-        const currentSettings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
-            viewMode: 'all',
-            selectedSource: 'all'
-        });
-        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.VIEW_SETTINGS, {
-            ...currentSettings,
-            selectedSource: sourceId
-        });
     };
 
     const handleRefresh = async () => {
         setState({ isLoading: true });
         try {
-            // GitHub Pages版では外部JSON読み込み
-            if (typeof window.loadArticlesFromJSON === 'function') {
-                await window.loadArticlesFromJSON();
-            } else {
-                // フォールバック: RSS再取得
-                const rssHook = window.DataHooks.useRSSManager();
-                const result = await rssHook.fetchAllFeeds();
-                alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
-            }
+            const rssHook = window.DataHooks.useRSSManager();
+            const result = await rssHook.fetchAllFeeds();
+            alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
             setState({ lastUpdate: new Date() });
         } catch (error) {
             alert('記事の更新に失敗しました: ' + error.message);
@@ -331,18 +242,15 @@
             case 'rating':
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
-                    // 同じ評価の重複を防ぐ
                     if (article.userRating === rating) {
-                        return; // 同じ評価なら何もしない
+                        return;
                     }
 
-                    // 既存の評価を取り消す場合のAI学習データ更新
                     if (article.userRating > 0) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                     }
 
-                    // 新しい評価でAI学習データ更新
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
@@ -402,7 +310,6 @@
     // ===========================================
 
     const renderNavigation = () => {
-        // 記事から提供元リストを取得
         const sources = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
         const sourceOptions = [
             '<option value="all">全提供元</option>',
@@ -675,12 +582,10 @@
             </div>
         `;
 
-        // 星評価のイベントリスナー設定（重複防止）
+        // 星評価のイベントリスナー設定
         document.querySelectorAll('.star').forEach(star => {
-            // 既存のイベントリスナーを削除
             star.removeEventListener('click', window._starClickHandler);
             
-            // 新しいイベントリスナーを設定
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
             };
