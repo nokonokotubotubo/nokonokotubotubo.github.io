@@ -489,11 +489,14 @@
             return articlesWithScores; // 現在の順序を維持
         }
 
-        // 通常のソート処理
+        // 通常のソート処理（安定ソート保証 + ID基準）
         return articlesWithScores.sort((a, b) => {
             if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
-            return new Date(b.publishDate) - new Date(a.publishDate);
+            const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
+            if (dateCompare !== 0) return dateCompare;
+            // 最終的に記事IDで決定的な順序を保証（安定ソート）
+            return a.id.localeCompare(b.id);
         });
     };
 
