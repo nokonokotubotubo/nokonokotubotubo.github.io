@@ -252,16 +252,24 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
-    // 🔥 2週間制限フィルター追加
-    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const publishDate = parseDate(pubDate);
-    const articleDate = new Date(publishDate);
+    // 🔥 2週間制限フィルター＋未来日付除外
+const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+const now = new Date();
+const publishDate = parseDate(pubDate);
+const articleDate = new Date(publishDate);
 
-    // 2週間を超えて古い記事は除外
-    if (articleDate < twoWeeksAgo) {
-      console.log(`❌ [${feedTitle}] 記事除外（2週間超過）: "${title.substring(0, 30)}..."`);
-      return null;
-    }
+// 2週間を超えて古い記事は除外
+if (articleDate < twoWeeksAgo) {
+  console.log(`❌ [${feedTitle}] 記事除外（2週間超過）: "${title.substring(0, 30)}..."`);
+  return null;
+}
+
+// 未来の日付の記事は除外
+if (articleDate > now) {
+  console.log(`❌ [${feedTitle}] 記事除外（未来日付）: "${title.substring(0, 30)}..."`);
+  return null;
+}
+
     
     console.log(`   タイトル: "${title}" (長さ: ${title.length})`);
     console.log(`   リンク: "${link}" (型: ${typeof link}, 長さ: ${link ? link.length : 0})`);
