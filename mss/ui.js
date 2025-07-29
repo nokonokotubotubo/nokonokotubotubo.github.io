@@ -3,20 +3,66 @@
     'use strict';
 
     // ===========================================
+    // フィルター状態永続化機能
+    // ===========================================
+
+    // フィルター状態をLocalStorageから復元
+    const getStoredFilterState = () => {
+        try {
+            const stored = localStorage.getItem('minews_filterState');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return {
+                    viewMode: parsed.viewMode || 'all',
+                    selectedSource: parsed.selectedSource || 'all'
+                };
+            }
+        } catch (error) {
+            console.warn('フィルター状態の復元に失敗:', error);
+        }
+        return {
+            viewMode: 'all',
+            selectedSource: 'all'
+        };
+    };
+
+    // フィルター状態をLocalStorageに保存
+    const saveFilterState = (viewMode, selectedSource) => {
+        try {
+            const filterState = { viewMode, selectedSource };
+            localStorage.setItem('minews_filterState', JSON.stringify(filterState));
+        } catch (error) {
+            console.warn('フィルター状態の保存に失敗:', error);
+        }
+    };
+
+    // ===========================================
     // アプリケーション状態管理
     // ===========================================
 
+    // 初期状態でLocalStorageから復元
+    const initialFilterState = getStoredFilterState();
     window.state = {
-        viewMode: 'all',
-        selectedSource: 'all',
+        viewMode: initialFilterState.viewMode,
+        selectedSource: initialFilterState.selectedSource,
         showModal: null,
         articles: [],
         isLoading: false,
         lastUpdate: null
     };
 
+    // setState統合版（自動保存機能付き）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
+        
+        // フィルター関連の状態変更時は自動保存
+        if (newState.viewMode !== undefined || newState.selectedSource !== undefined) {
+            saveFilterState(
+                newState.viewMode || window.state.viewMode,
+                newState.selectedSource || window.state.selectedSource
+            );
+        }
+        
         window.render();
     };
 
@@ -161,19 +207,29 @@
 
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
+        // 保存処理はsetState内で自動実行される
     };
 
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
+        // 保存処理はsetState内で自動実行される
     };
 
     const handleRefresh = async () => {
         setState({ isLoading: true });
+        
         try {
             const rssHook = window.DataHooks.useRSSManager();
             const result = await rssHook.fetchAllFeeds();
             alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
-            setState({ lastUpdate: new Date() });
+            
+            // フィルター状態は既にLocalStorageに保存済みなので、
+            // 単純に現在の状態を維持するだけ
+            setState({ 
+                lastUpdate: new Date()
+                // viewModeとselectedSourceは現在の値を保持（変更なし）
+            });
+            
         } catch (error) {
             alert('記事の更新に失敗しました: ' + error.message);
         } finally {
