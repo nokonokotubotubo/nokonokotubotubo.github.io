@@ -261,7 +261,7 @@
         }
 
         const articlesHook = window.DataHooks.useArticles();
-        const article = articlesHook.articles.find(a => a.id === articleId);
+        const article =articlesHook.articles.find(a => a.id === articleId);
         
         if (!article) return;
 
@@ -304,7 +304,8 @@
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
-                    articlesHook.updateArticle(articleId, { userRating: rating });
+                    // ソートをスキップして更新
+                    articlesHook.updateArticle(articleId, { userRating: rating }, { skipSort: true });
                 }
                 break;
         }
@@ -466,9 +467,25 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // AIスコア計算とソート
+        // AIスコア計算
         const aiHook = window.DataHooks.useAILearning();
-        return window.AIScoring.sortArticlesByScore(filtered, aiHook.aiLearning, wordHook.wordFilters);
+        const articlesWithScores = filtered.map(article => ({
+            ...article,
+            aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
+        }));
+
+        // ソートスキップフラグを確認
+        if (window.state.skipNextSort) {
+            window.state.skipNextSort = false; // フラグをリセット
+            return articlesWithScores; // 現在の順序を維持
+        }
+
+        // 通常のソート処理
+        return articlesWithScores.sort((a, b) => {
+            if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
+            if (a.userRating !== b.userRating) return b.userRating - a.userRating;
+            return new Date(b.publishDate) - new Date(a.publishDate);
+        });
     };
 
     const renderArticleCard = (article) => {
