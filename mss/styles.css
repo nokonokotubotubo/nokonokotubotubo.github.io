@@ -368,7 +368,7 @@ border-color: #ffeaa7;
 /* ────────────── 星評価 ────────────── */
 .star-rating {
 display: flex;
-gap: 0.75rem; /* 0.25rem → 0.5rem に拡大 */
+gap: 0.5rem; /* 0.25rem → 0.5rem に拡大 */
 margin-top: 0.5rem;
 }
 
@@ -377,7 +377,7 @@ cursor: pointer;
 color: #ddd;
 transition: var(--transition);
 user-select: none;
-font-size: 2.4rem; /* 1.2rem → 1.4rem に拡大 */
+font-size: 2.8rem; /* 1.2rem → 1.4rem に拡大 */
 padding: 0.5rem; /* タップ領域を拡大 */
 border-radius: 6px; /* 見た目を整える */
 }
