@@ -192,7 +192,7 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// 追加：全型網羅の安全URL抽出関数
+// 🔧 修正: 配列内$.href構造に完全対応
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
@@ -200,23 +200,35 @@ function looksLikeUrl(v) {
 function extractUrlFromItem(item) {
   // link: string
   if (typeof item.link === 'string' && looksLikeUrl(item.link)) return item.link;
-  // link: object
-  if (typeof item.link === 'object' && item.link) {
+  
+  // link: object (非配列)
+  if (typeof item.link === 'object' && item.link && !Array.isArray(item.link)) {
     if (item.link.$ && item.link.$.href && looksLikeUrl(item.link.$.href)) return item.link.$.href;
     if (item.link.href && looksLikeUrl(item.link.href)) return item.link.href;
     if (item.link._ && looksLikeUrl(item.link._)) return item.link._;
   }
+  
   // link: array
   if (Array.isArray(item.link)) {
+    // 優先順位1: rel="alternate" (標準Atom)
     for (const l of item.link) {
       if (l && l.$ && l.$.rel === 'alternate' && looksLikeUrl(l.$.href)) return l.$.href;
     }
+    
+    // 優先順位2: l.$.href (rel属性なしまたは他の値、ただしenclosureは除外)
+    for (const l of item.link) {
+      if (l && l.$ && l.$.href && l.$.rel !== 'enclosure' && looksLikeUrl(l.$.href)) return l.$.href;
+    }
+    
+    // 優先順位3: その他のパターン
     for (const l of item.link) {
       if (l && l.href && looksLikeUrl(l.href)) return l.href;
       if (l && l._ && looksLikeUrl(l._)) return l._;
       if (typeof l === 'string' && looksLikeUrl(l)) return l;
     }
   }
+  
+  // その他のフォールバック
   if (item['rdf:about'] && looksLikeUrl(item['rdf:about'])) return item['rdf:about'];
   if (item.guid) {
     if (typeof item.guid === 'object') {
@@ -225,12 +237,12 @@ function extractUrlFromItem(item) {
   }
   if (item.url && looksLikeUrl(item.url)) return item.url;
   if (item.id && looksLikeUrl(item.id)) return item.id;
+  
   return null;
 }
 
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
-    // 元データの詳細ログ出力
     console.log(`🔍 [${feedTitle}] 記事解析開始`);
     console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
     const title = cleanText(item.title || '');
@@ -441,7 +453,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.1-すべて網羅型'
+        debugVersion: 'v1.2-配列構造完全対応版'
       }
     };
     fs.writeFileSync('./mss/articles.json', JSON.stringify(output, null, 2));
