@@ -448,13 +448,6 @@ async function main() {
       }
     });
     console.log(`📊 重複除去結果: ${allArticles.length}件 → ${uniqueArticles.length}件`);
-    // AIスコア計算
-    console.log('🧠 AIスコア計算開始...');
-    uniqueArticles.forEach(article => {
-      const hours = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60);
-      const freshness = Math.exp(-hours / 72) * 20;
-      article.aiScore = Math.max(0, Math.min(100, Math.round(freshness + 50)));
-    });
     // ソートと制限
     uniqueArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
     const limitedArticles = uniqueArticles.slice(0, 1000);
