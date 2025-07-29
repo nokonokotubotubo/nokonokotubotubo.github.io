@@ -28,10 +28,6 @@ window.DEFAULT_DATA = {
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
-        categoryWeights: {
-            'Technology': 0, 'Development': 0, 'Business': 0, 'Science': 0,
-            'Design': 0, 'AI': 0, 'Web': 0, 'Mobile': 0
-        },
         lastUpdated: new Date().toISOString()
     },
     wordFilters: {
@@ -121,25 +117,19 @@ window.AIScoring = {
             });
         }
         
-        // 3. カテゴリ学習重み（-15～+15点にクリッピング）
-        if (article.category && aiLearning.categoryWeights) {
-            const weight = aiLearning.categoryWeights[article.category] || 0;
-            score += Math.max(-15, Math.min(15, weight));
-        }
-        
-        // 4. 興味ワードマッチ（+10点、重複なし）
+        // 3. 興味ワードマッチ（+10点、重複なし）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
             if (hasInterestWord) score += 10;
         }
         
-        // 5. ユーザー評価（-20～+20点）
+        // 4. ユーザー評価（-20～+20点）
         if (article.userRating > 0) {
             score += (article.userRating - 3) * 10;
         }
         
-        // 6. 最終スコアを0-100に正規化
+        // 5. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
     updateLearning(article, rating, aiLearning, isRevert = false) {
@@ -153,12 +143,6 @@ window.AIScoring = {
                 const newWeight = (aiLearning.wordWeights[keyword] || 0) + weight;
                 aiLearning.wordWeights[keyword] = Math.max(-60, Math.min(60, newWeight));
             });
-        }
-        
-        // カテゴリ重み更新（±42でクリッピング）
-        if (article.category) {
-            const newWeight = (aiLearning.categoryWeights[article.category] || 0) + weight;
-            aiLearning.categoryWeights[article.category] = Math.max(-42, Math.min(42, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
