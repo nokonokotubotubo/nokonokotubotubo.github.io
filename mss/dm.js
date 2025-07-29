@@ -338,7 +338,8 @@ window.DataHooks = {
                 }
                 return true;
             },
-            updateArticle(articleId, updates) {
+            updateArticle(articleId, updates, options = {}) {
+                const { skipSort = false } = options;
                 const updatedArticles = window.DataHooksCache.articles.map(article =>
                     article.id === articleId ? { ...article, ...updates } : article
                 );
@@ -348,6 +349,8 @@ window.DataHooks = {
                 
                 if (window.state) {
                     window.state.articles = updatedArticles;
+                    // ソートスキップフラグを状態に保存
+                    window.state.skipNextSort = skipSort;
                 }
                 if (window.render) {
                     window.render();
