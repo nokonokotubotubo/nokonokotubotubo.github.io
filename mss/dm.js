@@ -32,7 +32,7 @@ window.DEFAULT_DATA = {
         lastUpdated: new Date().toISOString()
     },
     wordFilters: {
-        interestWords: ['AI', 'React', 'JavaScript', 'PWA', '機械学習'],
+        interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
     }
