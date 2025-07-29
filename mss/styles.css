@@ -924,3 +924,13 @@ overflow-x: hidden;
 position: relative;
 width: 100%;
 }
+
+/* ────────────── タイトル部分のスタイル ────────────── */
+.nav h1 .title-mine {
+    color: var(--accent-blue);
+}
+
+.nav h1 .title-ws {
+    color: var(--text-color);
+}
+
