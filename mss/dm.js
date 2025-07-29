@@ -28,6 +28,7 @@ window.DEFAULT_DATA = {
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
+        sourceWeights: {},
         lastUpdated: new Date().toISOString()
     },
     wordFilters: {
@@ -117,19 +118,25 @@ window.AIScoring = {
             });
         }
         
-        // 3. 興味ワードマッチ（+10点、重複なし）
+        // 3. 配信元重み（-5～+5点にクリッピング、軽量化）
+        if (article.rssSource && aiLearning.sourceWeights) {
+            const weight = aiLearning.sourceWeights[article.rssSource] || 0;
+            score += Math.max(-5, Math.min(5, weight));
+        }
+        
+        // 4. 興味ワードマッチ（+10点、重複なし）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
             if (hasInterestWord) score += 10;
         }
         
-        // 4. ユーザー評価（-20～+20点）
+        // 5. ユーザー評価（-20～+20点）
         if (article.userRating > 0) {
             score += (article.userRating - 3) * 10;
         }
         
-        // 5. 最終スコアを0-100に正規化
+        // 6. 最終スコアを0-100に正規化
         return Math.max(0, Math.min(100, Math.round(score + 50)));
     },
     updateLearning(article, rating, aiLearning, isRevert = false) {
@@ -143,6 +150,13 @@ window.AIScoring = {
                 const newWeight = (aiLearning.wordWeights[keyword] || 0) + weight;
                 aiLearning.wordWeights[keyword] = Math.max(-60, Math.min(60, newWeight));
             });
+        }
+        
+        // 配信元重み更新（±20でクリッピング、軽量化）
+        if (article.rssSource) {
+            const sourceWeight = Math.round(weight * 0.5); // 軽量化：重みを半分に
+            const newWeight = (aiLearning.sourceWeights[article.rssSource] || 0) + sourceWeight;
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-20, Math.min(20, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
@@ -247,6 +261,15 @@ window.LocalStorageManager = {
     },
     migrateData(key, oldData, defaultValue) {
         if (oldData.data) {
+            // categoryWeightsが含まれる旧データの場合はsourceWeightsに初期化
+            if (key === window.CONFIG.STORAGE_KEYS.AI_LEARNING && oldData.data.categoryWeights) {
+                oldData.data = {
+                    ...oldData.data,
+                    sourceWeights: {},
+                    categoryWeights: undefined // 削除
+                };
+                delete oldData.data.categoryWeights;
+            }
             this.setItem(key, oldData.data);
             return oldData.data;
         }
