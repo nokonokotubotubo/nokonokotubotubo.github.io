@@ -148,7 +148,7 @@ async function loadOPML() {
 
 async function fetchAndParseRSS(url, title) {
   try {
-    console.log(`Fetching RSS: ${title} (${url})`);
+    console.log(`🔍 [${title}] RSS取得開始: ${url}`);
     const response = await fetch(url, {
       timeout: 15000,
       headers: {
@@ -161,6 +161,8 @@ async function fetchAndParseRSS(url, title) {
     }
     
     const xmlContent = await response.text();
+    console.log(`📄 [${title}] XML読み込み成功: ${xmlContent.length}文字`);
+    
     const parser = new xml2js.Parser({ 
       explicitArray: false,
       ignoreAttrs: false,
@@ -168,30 +170,58 @@ async function fetchAndParseRSS(url, title) {
     });
     const result = await parser.parseStringPromise(xmlContent);
     
+    console.log(`🔍 [${title}] XML解析結果の構造確認:`);
+    console.log(`   トップレベルキー: ${Object.keys(result).join(', ')}`);
+    
     const articles = [];
     let items = [];
     
     if (result.rss && result.rss.channel && result.rss.channel.item) {
       items = Array.isArray(result.rss.channel.item) ? result.rss.channel.item : [result.rss.channel.item];
+      console.log(`📊 [${title}] RSS形式検出: ${items.length}件のアイテム`);
     } else if (result.feed && result.feed.entry) {
       items = Array.isArray(result.feed.entry) ? result.feed.entry : [result.feed.entry];
+      console.log(`📊 [${title}] Atom形式検出: ${items.length}件のエントリ`);
+    } else {
+      console.log(`❓ [${title}] 不明なXML構造:`);
+      console.log(`   結果オブジェクト: ${JSON.stringify(result, null, 2).substring(0, 300)}...`);
     }
+    
+    console.log(`🔄 [${title}] アイテム解析開始: ${items.length}件を処理`);
+    
+    let validArticles = 0;
+    let invalidArticles = 0;
     
     for (const item of items.slice(0, 20)) {
       const article = await parseRSSItem(item, url, title);
-      if (article) articles.push(article);
+      if (article) {
+        articles.push(article);
+        validArticles++;
+        console.log(`✅ [${title}] 記事解析成功: "${article.title.substring(0, 50)}..."`);
+      } else {
+        invalidArticles++;
+      }
     }
     
-    console.log(`取得完了: ${title} - ${articles.length}件`);
+    console.log(`📈 [${title}] 解析完了: 有効記事${validArticles}件, 無効記事${invalidArticles}件`);
+    console.log(`🎉 [${title}] 取得完了: ${articles.length}件`);
+    
     return articles;
   } catch (error) {
-    console.error(`RSS取得エラー: ${title} - ${error.message}`);
+    console.error(`❌ [${title}] RSS取得エラー: ${error.message}`);
+    console.error(`   URL: ${url}`);
+    console.error(`   エラータイプ: ${error.name}`);
+    console.error(`   スタックトレース: ${error.stack}`);
     return [];
   }
 }
 
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
+    // 元データの詳細ログ出力
+    console.log(`🔍 [${feedTitle}] 記事解析開始`);
+    console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
+    
     const title = cleanText(item.title || '');
     let link = item.link?.href || item.link || item.guid?.$?.text || item.guid || '';
     if (typeof link !== 'string') link = '';
@@ -199,7 +229,34 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
-    if (!title || !link) return null;
+    // 詳細な除外理由ログ
+    console.log(`   タイトル: "${title}" (長さ: ${title.length})`);
+    console.log(`   リンク: "${link}" (型: ${typeof link}, 長さ: ${link.length})`);
+    console.log(`   説明: "${description.substring(0, 50)}..." (長さ: ${description.length})`);
+    
+    if (!title || !link) {
+      console.log(`❌ [${feedTitle}] 記事除外: タイトル="${title || 'なし'}", リンク="${link || 'なし'}"`);
+      
+      // より詳細な原因分析
+      if (!title) {
+        console.log(`   タイトル候補を再確認:`);
+        console.log(`     item.title: ${JSON.stringify(item.title)}`);
+        console.log(`     item['title']: ${JSON.stringify(item['title'])}`);
+        console.log(`     item.name: ${JSON.stringify(item.name)}`);
+      }
+      
+      if (!link) {
+        console.log(`   リンク候補を再確認:`);
+        console.log(`     item.link: ${JSON.stringify(item.link)}`);
+        console.log(`     item.url: ${JSON.stringify(item.url)}`);
+        console.log(`     item.guid: ${JSON.stringify(item.guid)}`);
+        console.log(`     item.id: ${JSON.stringify(item.id)}`);
+      }
+      
+      return null;
+    }
+    
+    console.log(`✅ [${feedTitle}] 記事解析成功: "${title}"`);
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
     const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
@@ -219,7 +276,8 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error('記事解析エラー:', error);
+    console.error(`❌ [${feedTitle}] 記事解析エラー:`, error);
+    console.error(`   エラー発生時のアイテムデータ:`, JSON.stringify(item, null, 2).substring(0, 500));
     return null;
   }
 }
@@ -306,7 +364,7 @@ async function extractKeywordsWithMecab(text) {
                 .map(([keyword]) => keyword);
                 
   } catch (error) {
-    console.error('MeCab解析エラー:', error.message);
+    console.error('❌ MeCab解析エラー:', error.message);
     return [];
   }
 }
@@ -315,7 +373,7 @@ async function extractKeywordsWithMecab(text) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (堅牢化デバッグ版)');
+    console.log('🚀 RSS記事取得開始 (超詳細デバッグ版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -337,33 +395,51 @@ async function main() {
       console.error('⭕ システム確認: .github/workflows/rsslist.xmlが存在するか確認してください');
       process.exit(1);
     }
-    console.log(`${feeds.length}個のRSSフィードを処理します`);
+    console.log(`📊 フィード情報: ${feeds.length}個のRSSフィードを処理します`);
     
     // RSS取得処理
     console.log('🌐 RSS取得処理開始...');
     const allArticles = [];
+    let processedCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
     
     for (const feed of feeds) {
       if (feed.isActive) {
+        processedCount++;
+        console.log(`\n🔄 [${processedCount}/${feeds.length}] 処理中: ${feed.title}`);
+        
         try {
           const articles = await fetchAndParseRSS(feed.url, feed.title);
           allArticles.push(...articles);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          successCount++;
+          
+          console.log(`✅ [${feed.title}] 処理成功: ${articles.length}件の記事を取得`);
         } catch (error) {
-          console.error(`❌ フィード処理エラー [${feed.title}]:`, error);
+          errorCount++;
+          console.error(`❌ [${feed.title}] 処理失敗:`, error.message);
         }
+        
+        // 待機時間
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
     const processingTime = (Date.now() - startTime) / 1000;
-    console.log(`⏱️  フィード処理完了: ${processingTime.toFixed(1)}秒`);
-    console.log(`📊 取得記事数: ${allArticles.length}件`);
+    console.log(`\n⏱️  フィード処理完了: ${processingTime.toFixed(1)}秒`);
+    console.log(`📊 処理統計:`);
+    console.log(`   処理フィード数: ${processedCount}`);
+    console.log(`   成功: ${successCount}件`);
+    console.log(`   失敗: ${errorCount}件`);
+    console.log(`   取得記事数: ${allArticles.length}件`);
     
     // データ処理の続行...
     if (allArticles.length === 0) {
       console.warn('⚠️  記事が取得できませんでしたが、処理を続行します');
     }
     
+    // 重複除去処理
+    console.log('🔄 重複除去処理開始...');
     const uniqueArticles = [];
     const seen = new Set();
     
@@ -375,18 +451,26 @@ async function main() {
       }
     });
     
+    console.log(`📊 重複除去結果: ${allArticles.length}件 → ${uniqueArticles.length}件`);
+    
+    // AIスコア計算
+    console.log('🧠 AIスコア計算開始...');
     uniqueArticles.forEach(article => {
       const hours = (Date.now() - new Date(article.publishDate).getTime()) / (1000 * 60 * 60);
       const freshness = Math.exp(-hours / 72) * 20;
       article.aiScore = Math.max(0, Math.min(100, Math.round(freshness + 50)));
     });
     
+    // ソートと制限
     uniqueArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
-    
     const limitedArticles = uniqueArticles.slice(0, 1000);
     
+    console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1000件）`);
+    
+    // ファイル出力
     if (!fs.existsSync('./mss')) {
       fs.mkdirSync('./mss');
+      console.log('📁 mssディレクトリを作成しました');
     }
     
     const output = {
@@ -394,17 +478,30 @@ async function main() {
       lastUpdated: new Date().toISOString(),
       totalCount: limitedArticles.length,
       processedFeeds: feeds.length,
-      successfulFeeds: feeds.filter(f => f.isActive).length
+      successfulFeeds: successCount,
+      debugInfo: {
+        processingTime: processingTime,
+        errorCount: errorCount,
+        debugVersion: 'v1.0-超詳細版'
+      }
     };
     
     fs.writeFileSync('./mss/articles.json', JSON.stringify(output, null, 2));
     
     const totalTime = (Date.now() - startTime) / 1000;
-    console.log('🎉 RSS記事取得完了!');
-    console.log(`記事取得完了: ${limitedArticles.length}件の記事を保存しました`);
-    console.log(`最終更新: ${output.lastUpdated}`);
-    console.log(`⏱️  総実行時間: ${totalTime.toFixed(1)}秒`);
-    console.log(`🏆 処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
+    console.log('\n🎉 RSS記事取得完了!');
+    console.log(`📊 最終結果:`);
+    console.log(`   保存記事数: ${limitedArticles.length}件`);
+    console.log(`   最終更新: ${output.lastUpdated}`);
+    console.log(`   総実行時間: ${totalTime.toFixed(1)}秒`);
+    console.log(`   処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
+    console.log(`💾 ファイル: ./mss/articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
+    
+    // デバッグサマリー
+    console.log(`\n🔍 デバッグサマリー:`);
+    console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
+    console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
+    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
     
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
