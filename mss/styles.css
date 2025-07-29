@@ -377,7 +377,7 @@ cursor: pointer;
 color: #ddd;
 transition: var(--transition);
 user-select: none;
-font-size: 2.8rem; /* 1.2rem → 1.4rem に拡大 */
+font-size: 5.0rem; /* 1.2rem → 1.4rem に拡大 */
 padding: 0.5rem; /* タップ領域を拡大 */
 border-radius: 6px; /* 見た目を整える */
 }
