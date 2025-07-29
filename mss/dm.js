@@ -104,9 +104,6 @@ window.AIScoring = {
     },
     calculateScore(article, aiLearning, wordFilters) {
         let score = 0;
-        
-       calculateScore(article, aiLearning, wordFilters) {
-    let score = 0;
     
     // 2. キーワード学習重み（-20～+20点にクリッピング）
     if (article.keywords && aiLearning.wordWeights) {
