@@ -127,23 +127,21 @@
     // データ管理機能
     // ===========================================
 
-    // 学習データエクスポート（バックアップ統合版）
+    // 学習データエクスポート（配信元重み対応版）
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
-
-        // 既存のcategoryWeightsがあればバックアップに含める
-        const existingCategoryWeights = window.LocalStorageManager.getItem('minews_aiLearning_backup_categoryWeights', {});
 
         const exportData = {
             version: window.CONFIG.DATA_VERSION,
             exportDate: new Date().toISOString(),
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
-            // バックアップデータとして既存のカテゴリ重みを保存
-            backup: {
-                categoryWeights: existingCategoryWeights,
-                note: 'v1.1でカテゴリ機能を削除。このデータは参考用です。'
+            // 配信元重み機能を含むことを明記
+            features: {
+                sourceWeights: true,
+                categoryWeights: false,
+                note: 'v1.1配信元重み対応版'
             }
         };
 
@@ -154,10 +152,10 @@
         link.download = `minews_learning_data_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
 
-        alert('学習データをエクスポートしました（カテゴリデータのバックアップを含む）');
+        alert('学習データをエクスポートしました（配信元重み機能付き）');
     };
 
-    // 学習データインポート
+    // 学習データインポート（配信元重み対応版）
     window.handleImportLearningData = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -174,7 +172,7 @@
                 const aiHook = window.DataHooks.useAILearning();
                 const wordHook = window.DataHooks.useWordFilters();
 
-                // AI学習データのマージ（キーワードのみ）
+                // AI学習データのマージ（キーワード重み）
                 Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
                     const weight = importData.aiLearning.wordWeights[word];
                     const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
@@ -182,7 +180,18 @@
                     aiHook.aiLearning.wordWeights[word] = newWeight;
                 });
 
-                // カテゴリ重みは無視（後方互換性のため、エラーは出さない）
+                // 配信元重みのマージ
+                Object.keys(importData.aiLearning.sourceWeights || {}).forEach(source => {
+                    const weight = importData.aiLearning.sourceWeights[source];
+                    const currentWeight = aiHook.aiLearning.sourceWeights[source] || 0;
+                    const newWeight = Math.max(-20, Math.min(20, currentWeight + weight));
+                    aiHook.aiLearning.sourceWeights[source] = newWeight;
+                });
+
+                // 旧categoryWeightsの移行処理（初回のみ）
+                if (importData.aiLearning.categoryWeights && Object.keys(importData.aiLearning.categoryWeights).length > 0) {
+                    console.log('旧categoryWeightsを検出しました。データ移行をスキップします。');
+                }
 
                 // ワードフィルターのマージ
                 (importData.wordFilters.interestWords || []).forEach(word => {
@@ -193,7 +202,7 @@
                     wordHook.addNGWord(word);
                 });
 
-                alert('学習データをインポートしました');
+                alert('学習データをインポートしました（配信元重み対応）');
                 window.render();
             } catch (error) {
                 alert('インポートに失敗しました: ' + error.message);
@@ -599,7 +608,8 @@
                                 <div class="word-section-header">
                                     <h3>学習データ管理</h3>
                                 </div>
-                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
+                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます<br>
+                                <span style="color: var(--accent-blue); font-weight: bold;">配信元重み機能対応版</span></p>
                                 
                                 <div class="modal-actions">
                                     <button class="action-btn success" onclick="handleExportLearningData()">
@@ -635,7 +645,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版
+                                        GitHub Actions対応版（配信元重み機能付き）
                                     </p>
                                 </div>
                             </div>
