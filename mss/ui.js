@@ -127,16 +127,24 @@
     // データ管理機能
     // ===========================================
 
-    // 学習データエクスポート
+    // 学習データエクスポート（バックアップ統合版）
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
+
+        // 既存のcategoryWeightsがあればバックアップに含める
+        const existingCategoryWeights = window.LocalStorageManager.getItem('minews_aiLearning_backup_categoryWeights', {});
 
         const exportData = {
             version: window.CONFIG.DATA_VERSION,
             exportDate: new Date().toISOString(),
             aiLearning: aiHook.aiLearning,
-            wordFilters: wordHook.wordFilters
+            wordFilters: wordHook.wordFilters,
+            // バックアップデータとして既存のカテゴリ重みを保存
+            backup: {
+                categoryWeights: existingCategoryWeights,
+                note: 'v1.1でカテゴリ機能を削除。このデータは参考用です。'
+            }
         };
 
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -146,7 +154,7 @@
         link.download = `minews_learning_data_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
 
-        alert('学習データをエクスポートしました');
+        alert('学習データをエクスポートしました（カテゴリデータのバックアップを含む）');
     };
 
     // 学習データインポート
@@ -166,7 +174,7 @@
                 const aiHook = window.DataHooks.useAILearning();
                 const wordHook = window.DataHooks.useWordFilters();
 
-                // AI学習データのマージ
+                // AI学習データのマージ（キーワードのみ）
                 Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
                     const weight = importData.aiLearning.wordWeights[word];
                     const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
@@ -174,12 +182,7 @@
                     aiHook.aiLearning.wordWeights[word] = newWeight;
                 });
 
-                Object.keys(importData.aiLearning.categoryWeights || {}).forEach(category => {
-                    const weight = importData.aiLearning.categoryWeights[category];
-                    const currentWeight = aiHook.aiLearning.categoryWeights[category] || 0;
-                    const newWeight = Math.max(-42, Math.min(42, currentWeight + weight));
-                    aiHook.aiLearning.categoryWeights[category] = newWeight;
-                });
+                // カテゴリ重みは無視（後方互換性のため、エラーは出さない）
 
                 // ワードフィルターのマージ
                 (importData.wordFilters.interestWords || []).forEach(word => {
@@ -489,7 +492,6 @@
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
                         <span class="source">${article.rssSource}</span>
-                        <span class="category">${article.category}</span>
                         <span class="ai-score">AI: ${article.aiScore || 0}</span>
                         ${article.userRating > 0 ? `<span class="rating-badge">★${article.userRating}</span>` : ''}
                     </div>
