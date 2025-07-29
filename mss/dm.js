@@ -104,55 +104,63 @@ window.AIScoring = {
     },
     calculateScore(article, aiLearning, wordFilters) {
         let score = 0;
-    
-    // キーワード学習重み（-20～+20点にクリッピング）
-    if (article.keywords && aiLearning.wordWeights) {
-        article.keywords.forEach(keyword => {
-            const weight = aiLearning.wordWeights[keyword] || 0;
-            score += Math.max(-20, Math.min(20, weight));
-        });
-    }
-    
-    // 配信元重み（-5～+5点にクリッピング、軽量化）
-    if (article.rssSource && aiLearning.sourceWeights) {
-        const weight = aiLearning.sourceWeights[article.rssSource] || 0;
-        score += Math.max(-5, Math.min(5, weight));
-    }
-    
-    // 興味ワードマッチ（+10点、重複なし）
-    if (wordFilters.interestWords && article.title) {
-        const content = (article.title + ' ' + article.content).toLowerCase();
-        const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
-        if (hasInterestWord) score += 10;
-    }
-    
-    // ユーザー評価（-20～+20点）
-    if (article.userRating > 0) {
-        score += (article.userRating - 3) * 10;
-    }
-    
-    // 最終スコアを0-100に正規化
-    return Math.max(0, Math.min(100, Math.round(score + 30)));
-},
+
+        // キーワード学習重み（-200～+200点にクリッピング）
+        if (article.keywords && aiLearning.wordWeights) {
+            article.keywords.forEach(keyword => {
+                const weight = aiLearning.wordWeights[keyword] || 0;
+                score += Math.max(-200, Math.min(200, weight));
+            });
+        }
+
+        // 配信元重み（-100～+100点にクリッピング）
+        if (article.rssSource && aiLearning.sourceWeights) {
+            const weight = aiLearning.sourceWeights[article.rssSource] || 0;
+            score += Math.max(-100, Math.min(100, weight));
+        }
+
+        // 興味ワードマッチ（+150点に増加）
+        if (wordFilters.interestWords && article.title) {
+            const content = (article.title + ' ' + article.content).toLowerCase();
+            const hasInterestWord = wordFilters.interestWords.some(word => 
+                content.includes(word.toLowerCase()));
+            if (hasInterestWord) score += 150;
+        }
+
+        // 後で読む行動（+120点、新規追加）
+        if (article.readLater) {
+            score += 120;
+        }
+
+        // ユーザー評価（-300～+300点に拡大）
+        if (article.userRating > 0) {
+            score += (article.userRating - 3) * 150;
+        }
+
+        // 最終スコアを0-9999に正規化（ベーススコア5000で中間値設定）
+        const finalScore = Math.round(score + 5000);
+        return Math.max(0, Math.min(9999, finalScore));
+    },
 
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        const weights = [0, -6, -2, 0, 2, 6];
+        // 0-9999スケール対応：学習重みを約100倍に調整
+        const weights = [0, -600, -200, 0, 200, 600];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
-        // キーワード重み更新（±60でクリッピング）
+        // キーワード重み更新（±6000でクリッピング、100倍に拡大）
         if (article.keywords) {
             article.keywords.forEach(keyword => {
                 const newWeight = (aiLearning.wordWeights[keyword] || 0) + weight;
-                aiLearning.wordWeights[keyword] = Math.max(-60, Math.min(60, newWeight));
+                aiLearning.wordWeights[keyword] = Math.max(-6000, Math.min(6000, newWeight));
             });
         }
         
-        // 配信元重み更新（±20でクリッピング、軽量化）
+        // 配信元重み更新（±2000でクリッピング、100倍に拡大）
         if (article.rssSource) {
-            const sourceWeight = Math.round(weight * 0.5);
+            const sourceWeight = Math.round(weight * 0.5); // 軽量化：重みを半分に
             const newWeight = (aiLearning.sourceWeights[article.rssSource] || 0) + sourceWeight;
-            aiLearning.sourceWeights[article.rssSource] = Math.max(-20, Math.min(20, newWeight));
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-2000, Math.min(2000, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
@@ -211,7 +219,7 @@ window.WordFilterManager = {
 };
 
 // ===========================================
-// ローカルストレージ管理（簡素化版）
+// ローカルストレージ管理
 // ===========================================
 
 window.LocalStorageManager = {
@@ -219,12 +227,12 @@ window.LocalStorageManager = {
         try {
             const serializedData = JSON.stringify({
                 data,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                version: window.CONFIG.DATA_VERSION
             });
             localStorage.setItem(key, serializedData);
             return true;
         } catch (error) {
-            console.error('LocalStorage保存エラー:', error);
             return false;
         }
     },
@@ -237,9 +245,12 @@ window.LocalStorageManager = {
             }
             
             const parsed = JSON.parse(stored);
-            return parsed.data || defaultValue;
+            if (parsed.version !== window.CONFIG.DATA_VERSION) {
+                return this.migrateData(key, parsed, defaultValue);
+            }
+            
+            return parsed.data;
         } catch (error) {
-            console.error('LocalStorage読み込みエラー:', error);
             if (defaultValue) this.setItem(key, defaultValue);
             return defaultValue;
         }
@@ -249,9 +260,24 @@ window.LocalStorageManager = {
             localStorage.removeItem(key);
             return true;
         } catch (error) {
-            console.error('LocalStorage削除エラー:', error);
             return false;
         }
+    },
+    migrateData(key, oldData, defaultValue) {
+        if (oldData.data) {
+            // categoryWeightsが含まれる旧データの場合はsourceWeightsに初期化
+            if (key === window.CONFIG.STORAGE_KEYS.AI_LEARNING && oldData.data.categoryWeights) {
+                oldData.data = {
+                    ...oldData.data,
+                    sourceWeights: {},
+                    categoryWeights: undefined // 削除
+                };
+                delete oldData.data.categoryWeights;
+            }
+            this.setItem(key, oldData.data);
+            return oldData.data;
+        }
+        return defaultValue;
     },
     getStorageInfo() {
         let totalSize = 0;
@@ -297,7 +323,7 @@ window.DataHooks = {
                 );
                 
                 if (exists) {
-                    return false;
+                    return false; // 重複のため追加せず
                 }
                 
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
@@ -332,6 +358,7 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
+                // レンダリングスキップの場合は render() を呼ばない
                 if (window.render && !skipRender) {
                     window.render();
                 }
