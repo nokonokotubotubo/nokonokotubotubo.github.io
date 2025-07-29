@@ -105,7 +105,7 @@ window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let score = 0;
     
-    // 2. キーワード学習重み（-20～+20点にクリッピング）
+    // キーワード学習重み（-20～+20点にクリッピング）
     if (article.keywords && aiLearning.wordWeights) {
         article.keywords.forEach(keyword => {
             const weight = aiLearning.wordWeights[keyword] || 0;
@@ -113,25 +113,25 @@ window.AIScoring = {
         });
     }
     
-    // 3. 配信元重み（-5～+5点にクリッピング、軽量化）
+    // 配信元重み（-5～+5点にクリッピング、軽量化）
     if (article.rssSource && aiLearning.sourceWeights) {
         const weight = aiLearning.sourceWeights[article.rssSource] || 0;
         score += Math.max(-5, Math.min(5, weight));
     }
     
-    // 4. 興味ワードマッチ（+10点、重複なし）
+    // 興味ワードマッチ（+10点、重複なし）
     if (wordFilters.interestWords && article.title) {
         const content = (article.title + ' ' + article.content).toLowerCase();
         const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
         if (hasInterestWord) score += 10;
     }
     
-    // 5. ユーザー評価（-20～+20点）
+    // ユーザー評価（-20～+20点）
     if (article.userRating > 0) {
         score += (article.userRating - 3) * 10;
     }
     
-    // 6. 最終スコアを0-100に正規化／★ベーススコアを+30へ
+    // 最終スコアを0-100に正規化
     return Math.max(0, Math.min(100, Math.round(score + 30)));
 },
 
@@ -150,7 +150,7 @@ window.AIScoring = {
         
         // 配信元重み更新（±20でクリッピング、軽量化）
         if (article.rssSource) {
-            const sourceWeight = Math.round(weight * 0.5); // 軽量化：重みを半分に
+            const sourceWeight = Math.round(weight * 0.5);
             const newWeight = (aiLearning.sourceWeights[article.rssSource] || 0) + sourceWeight;
             aiLearning.sourceWeights[article.rssSource] = Math.max(-20, Math.min(20, newWeight));
         }
@@ -211,7 +211,7 @@ window.WordFilterManager = {
 };
 
 // ===========================================
-// ローカルストレージ管理
+// ローカルストレージ管理（簡素化版）
 // ===========================================
 
 window.LocalStorageManager = {
@@ -219,12 +219,12 @@ window.LocalStorageManager = {
         try {
             const serializedData = JSON.stringify({
                 data,
-                timestamp: new Date().toISOString(),
-                version: window.CONFIG.DATA_VERSION
+                timestamp: new Date().toISOString()
             });
             localStorage.setItem(key, serializedData);
             return true;
         } catch (error) {
+            console.error('LocalStorage保存エラー:', error);
             return false;
         }
     },
@@ -237,12 +237,9 @@ window.LocalStorageManager = {
             }
             
             const parsed = JSON.parse(stored);
-            if (parsed.version !== window.CONFIG.DATA_VERSION) {
-                return this.migrateData(key, parsed, defaultValue);
-            }
-            
-            return parsed.data;
+            return parsed.data || defaultValue;
         } catch (error) {
+            console.error('LocalStorage読み込みエラー:', error);
             if (defaultValue) this.setItem(key, defaultValue);
             return defaultValue;
         }
@@ -252,24 +249,9 @@ window.LocalStorageManager = {
             localStorage.removeItem(key);
             return true;
         } catch (error) {
+            console.error('LocalStorage削除エラー:', error);
             return false;
         }
-    },
-    migrateData(key, oldData, defaultValue) {
-        if (oldData.data) {
-            // categoryWeightsが含まれる旧データの場合はsourceWeightsに初期化
-            if (key === window.CONFIG.STORAGE_KEYS.AI_LEARNING && oldData.data.categoryWeights) {
-                oldData.data = {
-                    ...oldData.data,
-                    sourceWeights: {},
-                    categoryWeights: undefined // 削除
-                };
-                delete oldData.data.categoryWeights;
-            }
-            this.setItem(key, oldData.data);
-            return oldData.data;
-        }
-        return defaultValue;
     },
     getStorageInfo() {
         let totalSize = 0;
@@ -315,7 +297,7 @@ window.DataHooks = {
                 );
                 
                 if (exists) {
-                    return false; // 重複のため追加せず
+                    return false;
                 }
                 
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
@@ -350,7 +332,6 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
-                // レンダリングスキップの場合は render() を呼ばない
                 if (window.render && !skipRender) {
                     window.render();
                 }
