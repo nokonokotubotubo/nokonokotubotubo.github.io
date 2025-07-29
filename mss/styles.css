@@ -382,6 +382,14 @@ padding: 0.3rem; /* タップ領域を拡大 */
 border-radius: 4px; /* 見た目を整える */
 }
 
+.star:hover,
+.star.filled {
+color: #ffc107;
+}
+
+.star:hover {
+transform: scale(1.1);
+}
 
 /* ────────────── モーダル ────────────── */
 .modal-overlay {
