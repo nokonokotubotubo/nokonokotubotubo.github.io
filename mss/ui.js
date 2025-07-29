@@ -294,12 +294,18 @@
                 if (rating && rating >= 1 && rating <= 5) {
                     // 評価キャンセル機能：同じ星をクリックした場合は評価をリセット
                     if (article.userRating === rating) {
-                        // 既存評価の学習データを取り消し
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                         
-                        // 評価を0にリセット（キャンセル時もソートスキップ適用）
-                        articlesHook.updateArticle(articleId, { userRating: 0 }, { skipSort: true });
+                        // データ更新のみ、レンダリングはスキップ
+                        articlesHook.updateArticle(articleId, { userRating: 0 }, { skipRender: true });
+                        
+                        // DOM直接更新：星表示をリセット
+                        const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
+                        if (starRating) {
+                            const stars = starRating.querySelectorAll('.star');
+                            stars.forEach(star => star.classList.remove('filled'));
+                        }
                         return;
                     }
 
@@ -313,8 +319,21 @@
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
-                    // ソートをスキップして更新
-                    articlesHook.updateArticle(articleId, { userRating: rating }, { skipSort: true });
+                    // データ更新のみ、レンダリングはスキップ
+                    articlesHook.updateArticle(articleId, { userRating: rating }, { skipRender: true });
+                    
+                    // DOM直接更新：星表示を更新
+                    const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
+                    if (starRating) {
+                        const stars = starRating.querySelectorAll('.star');
+                        stars.forEach((star, index) => {
+                            if (index < rating) {
+                                star.classList.add('filled');
+                            } else {
+                                star.classList.remove('filled');
+                            }
+                        });
+                    }
                 }
                 break;
         }
@@ -476,18 +495,12 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // AIスコア計算
+        // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
         const articlesWithScores = filtered.map(article => ({
             ...article,
             aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
         }));
-
-        // ソートスキップフラグを確認
-        if (window.state.skipNextSort) {
-            window.state.skipNextSort = false; // フラグをリセット
-            return articlesWithScores; // 現在の順序を維持
-        }
 
         // 通常のソート処理（安定ソート保証 + ID基準）
         return articlesWithScores.sort((a, b) => {
@@ -495,7 +508,6 @@
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
             const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
             if (dateCompare !== 0) return dateCompare;
-            // 最終的に記事IDで決定的な順序を保証（安定ソート）
             return a.id.localeCompare(b.id);
         });
     };
