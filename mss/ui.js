@@ -261,7 +261,7 @@
         }
 
         const articlesHook = window.DataHooks.useArticles();
-        const article =articlesHook.articles.find(a => a.id === articleId);
+        const article = articlesHook.articles.find(a => a.id === articleId);
         
         if (!article) return;
 
@@ -274,13 +274,13 @@
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus });
                 break;
 
-           case 'read':
-    // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
-    if (article.readStatus !== 'read') {
-        articlesHook.updateArticle(articleId, { readStatus: 'read' });
-    }
-
-    break;
+            case 'read':
+                // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
+                if (article.readStatus !== 'read') {
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                }
+                break;
+                
             case 'readLater':
                 event.preventDefault();
                 event.stopPropagation();
@@ -292,15 +292,24 @@
                 event.stopPropagation();
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
+                    // 評価キャンセル機能：同じ星をクリックした場合は評価をリセット
                     if (article.userRating === rating) {
+                        // 既存評価の学習データを取り消し
+                        const aiHook = window.DataHooks.useAILearning();
+                        aiHook.updateLearningData(article, article.userRating, true);
+                        
+                        // 評価を0にリセット（キャンセル時もソートスキップ適用）
+                        articlesHook.updateArticle(articleId, { userRating: 0 }, { skipSort: true });
                         return;
                     }
 
+                    // 既存評価がある場合は学習データを取り消し
                     if (article.userRating > 0) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                     }
 
+                    // 新しい評価で学習データを更新
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
