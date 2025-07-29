@@ -382,14 +382,43 @@ padding: 0.3rem; /* タップ領域を拡大 */
 border-radius: 4px; /* 見た目を整える */
 }
 
-.star:hover,
+.star {
+cursor: pointer;
+color: #ddd;
+transition: var(--transition);
+user-select: none;
+font-size: 1.2rem;
+padding: 0.3rem;
+border-radius: 4px;
+}
+
+/* filled状態は常に適用 */
 .star.filled {
 color: #ffc107;
 }
 
-.star:hover {
-transform: scale(1.1);
+/* ホバー対応デバイスでのみホバー効果を適用 */
+@media (hover: hover) and (pointer: fine) {
+  .star:hover {
+    color: #ffc107;
+    transform: scale(1.1);
+  }
 }
+
+/* タッチデバイス用の調整 */
+@media (hover: none) and (pointer: coarse) {
+  .star {
+    /* タッチデバイスでは変形効果を無効化 */
+    transform: none !important;
+  }
+  
+  .star:active {
+    /* タップ時のみ軽微なフィードバック */
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+}
+
 
 /* ────────────── モーダル ────────────── */
 .modal-overlay {
