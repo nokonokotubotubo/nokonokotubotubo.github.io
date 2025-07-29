@@ -223,8 +223,29 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
     
     const title = cleanText(item.title || '');
-    let link = item.link?.href || item.link || item.guid?.$?.text || item.guid || '';
+    
+    // 🔧 修正: Atom形式のリンク取得を完全対応
+    let link = '';
+    if (item.link) {
+      if (typeof item.link === 'string') {
+        link = item.link;
+      } else if (item.link.$ && item.link.$.href) {
+        link = item.link.$.href; // Atom形式: <link rel="alternate" href="URL"/>
+      } else if (item.link.href) {
+        link = item.link.href;
+      }
+    }
+    
+    // フォールバック候補を追加
+    if (!link) {
+      link = item.url || // Atom形式の直接URL
+             item.guid?.$?.text || 
+             item.guid || 
+             '';
+    }
+    
     if (typeof link !== 'string') link = '';
+    
     const description = cleanText(item.description || item.summary || item.content?._ || item.content || '');
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
@@ -482,7 +503,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.0-超詳細版'
+        debugVersion: 'v1.1-Atom対応版'
       }
     };
     
