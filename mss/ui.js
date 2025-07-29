@@ -371,7 +371,7 @@
             <nav class="nav">
                 <div class="nav-top-row">
                     <div class="nav-left-mobile">
-                        <h1>Minews</h1>
+                        <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
                         ${window.state.lastUpdate ? `<span class="last-update-mobile">最終更新: ${window.formatDate(window.state.lastUpdate)}</span>` : ''}
                     </div>
                     <div class="nav-actions-mobile">
@@ -405,7 +405,7 @@
 
                 <!-- デスクトップ用の既存構造を保持 -->
                 <div class="nav-left desktop-only">
-                    <h1>Minews</h1>
+                    <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
                     ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
                 </div>
                 
