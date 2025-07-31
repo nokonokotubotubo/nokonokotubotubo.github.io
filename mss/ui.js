@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist API完全統合版）
+// Minews PWA - UI・表示レイヤー（GitHub Gist API完全統合版 + ユーザー操作時自動同期対応）
 (function() {
     'use strict';
 
@@ -370,7 +370,7 @@
     };
 
     // ===========================================
-    // 記事操作（完全最適化版）
+    // 記事操作（完全最適化版 + ユーザー操作時自動同期対応）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -406,12 +406,22 @@
                     // 既読ボタンのテキストを更新
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
+
+                // 🔥 既読切替後の自動同期
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.autoSync('article_read_toggle');
+                }
                 break;
 
             case 'read':
                 // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                    
+                    // 🔥 タイトルクリック既読化後の自動同期
+                    if (window.GistSyncManager?.isEnabled) {
+                        window.GistSyncManager.autoSync('article_title_read');
+                    }
                 }
                 break;
                 
@@ -428,6 +438,11 @@
                 
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
+
+                // 🔥 後で読む切替後の自動同期
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.autoSync('article_read_later');
+                }
                 break;
 
             case 'rating':
@@ -448,6 +463,11 @@
                         if (starRating) {
                             const stars = starRating.querySelectorAll('.star');
                             stars.forEach(star => star.classList.remove('filled'));
+                        }
+
+                        // 🔥 評価キャンセル後の自動同期
+                        if (window.GistSyncManager?.isEnabled) {
+                            window.GistSyncManager.autoSync('article_rating');
                         }
                         return;
                     }
@@ -476,6 +496,11 @@
                                 star.classList.remove('filled');
                             }
                         });
+                    }
+
+                    // 🔥 評価設定後の自動同期
+                    if (window.GistSyncManager?.isEnabled) {
+                        window.GistSyncManager.autoSync('article_rating');
                     }
                 }
                 break;
@@ -751,8 +776,8 @@
                                     <h3>GitHub自動同期設定</h3>
                                 </div>
                                 <p class="text-muted mb-3">
-                                    GitHub Personal Access Tokenを設定すると、フィルター変更時と記事更新時に自動でデータがバックアップされます。<br>
-                                    <strong>自動同期対象:</strong> AI学習データ、ワードフィルター、フィルター状態
+                                    GitHub Personal Access Tokenを設定すると、すべてのユーザー操作時に自動でデータがバックアップされます。<br>
+                                    <strong>自動同期対象:</strong> AI学習データ、ワードフィルター、フィルター状態、記事操作（評価・既読・後で読む）
                                 </p>
                                 <div class="modal-actions">
                                     <input type="password" id="githubToken" placeholder="GitHub Personal Access Token" 
@@ -784,13 +809,15 @@
                                     </button>
                                 </div>
                                 <div class="word-help" style="margin-top: 1rem;">
-                                    <h4>自動同期について</h4>
+                                    <h4>完全自動同期について</h4>
                                     <ul>
-                                        <li><strong>フィルター変更時:</strong> 表示モードや配信元フィルターを変更した際に自動バックアップ</li>
-                                        <li><strong>記事更新時:</strong> 記事データを更新した際に自動バックアップ</li>
-                                        <li><strong>軽量設計:</strong> 同期は3秒程度で完了します</li>
-                                        <li><strong>プライベート:</strong> GitHubのプライベートGistに保存されます</li>
-                                        <li><strong>デバイス間共有:</strong> 同じGist IDを他のデバイスで設定すると、データが同期されます</li>
+                                        <li><strong>フィルター変更時:</strong> 表示モード・配信元フィルター変更</li>
+                                        <li><strong>記事更新時:</strong> articles.json再読み込み</li>
+                                        <li><strong>記事操作時:</strong> 評価・既読切替・後で読む切替・タイトルクリック</li>
+                                        <li><strong>リアルタイム同期:</strong> すべての操作が即座にクラウドに保存</li>
+                                        <li><strong>軽量設計:</strong> 同期は3秒程度で完了</li>
+                                        <li><strong>プライベート:</strong> GitHubのプライベートGistに保存</li>
+                                        <li><strong>デバイス間共有:</strong> 同じGist IDで複数デバイス間のデータ同期</li>
                                     </ul>
                                 </div>
                             </div>
@@ -872,7 +899,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（GitHub Gist同期機能付き）
+                                        GitHub Actions対応版（GitHub Gist完全自動同期機能付き）
                                     </p>
                                 </div>
                             </div>
