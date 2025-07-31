@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist API連携版）
+// Minews PWA - UI・表示レイヤー（GitHub Gist API完全統合版）
 (function() {
     'use strict';
 
@@ -149,15 +149,30 @@
     // 🔥 GitHub同期管理関数
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
+        const gistId = document.getElementById('gistIdInput').value.trim();
+        
         if (!token) {
             alert('GitHub Personal Access Tokenを入力してください');
             return;
         }
         
-        // トークンを暗号化してLocalStorageに保存
-        window.GistSyncManager.init(token, window.GistSyncManager.gistId);
+        // 🔥 GistIDの検証と設定
+        if (gistId) {
+            // GistID形式の簡易検証（英数字とハイフン、30文字程度）
+            if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
+                alert('Gist IDの形式が正しくありません。\n正しいGist IDを入力してください。');
+                return;
+            }
+            
+            // 既存のGist IDを使用
+            window.GistSyncManager.init(token, gistId);
+            alert(`GitHub同期設定を保存しました\n（既存のGist ID: ${gistId} を使用します）\n\n他のデバイスでも同じGist IDを設定してください。`);
+        } else {
+            // 新しいGistを作成する場合
+            window.GistSyncManager.init(token, null);
+            alert('GitHub同期設定を保存しました\n（新しいGistが作成されます）\n\n他のデバイスで同期する場合は、作成されたGist IDをメモしてください。');
+        }
         
-        alert('GitHub同期設定を保存しました\n（トークンは暗号化して保存され、自動同期が有効になります）');
         document.getElementById('githubToken').value = '';
         
         // 設定保存後に軽微な通知
@@ -742,6 +757,22 @@
                                 <div class="modal-actions">
                                     <input type="password" id="githubToken" placeholder="GitHub Personal Access Token" 
                                            class="filter-select" style="margin-bottom: 0.5rem;">
+                                    
+                                    <!-- 🔥 GistID表示・入力フィールドを追加 -->
+                                    <div style="margin: 0.5rem 0; padding: 0.5rem; background: #2d3748; border-radius: 4px; border-left: 3px solid var(--accent-blue);">
+                                        <label for="gistIdInput" style="font-size: 0.9rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">
+                                            Gist ID（デバイス間共有用）:
+                                        </label>
+                                        <input type="text" id="gistIdInput" placeholder="既存のGist IDを入力（他デバイスと共有する場合）" 
+                                               class="filter-select" style="margin-bottom: 0.3rem; font-family: monospace; font-size: 0.8rem;"
+                                               value="${window.GistSyncManager?.gistId || ''}">
+                                        <div style="font-size: 0.8rem; color: #9ca3af;">
+                                            ${window.GistSyncManager?.gistId ? 
+                                                `現在のGist ID: ${window.GistSyncManager.gistId}` : 
+                                                'Gist IDが設定されていません'}
+                                        </div>
+                                    </div>
+                                    
                                     <button class="action-btn success" onclick="handleSaveGitHubToken()">
                                         自動同期を有効化
                                     </button>
@@ -759,6 +790,7 @@
                                         <li><strong>記事更新時:</strong> 記事データを更新した際に自動バックアップ</li>
                                         <li><strong>軽量設計:</strong> 同期は3秒程度で完了します</li>
                                         <li><strong>プライベート:</strong> GitHubのプライベートGistに保存されます</li>
+                                        <li><strong>デバイス間共有:</strong> 同じGist IDを他のデバイスで設定すると、データが同期されます</li>
                                     </ul>
                                 </div>
                             </div>
