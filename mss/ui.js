@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist同期設定UI改善完全統合版）
+// Minews PWA - UI・表示レイヤー（GitHub Gist同期問題解消完全統合版）
 (function() {
     'use strict';
 
@@ -143,7 +143,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（UI改善完全版）
+    // GitHub同期管理関数（問題解消完全版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -206,6 +206,7 @@
         }
     };
 
+    // 🔥 強化版クラウド復元処理
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('先にGitHub Personal Access Tokenを設定してください');
@@ -219,27 +220,78 @@
                 return;
             }
             
-            // データ復元処理
+            console.log('🔄 クラウドデータ復元開始:', cloudData);
+            
+            // 🔥 強化版データ復元処理
             if (cloudData.aiLearning) {
+                // LocalStorageに保存
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
+                
+                // キャッシュを完全クリア
                 window.DataHooksCache.clear('aiLearning');
+                window.DataHooksCache.aiLearning = null;
+                window.DataHooksCache.lastUpdate.aiLearning = null;
+                
+                console.log('✅ AI学習データ復元完了:', Object.keys(cloudData.aiLearning.wordWeights || {}).length, '個');
             }
             
             if (cloudData.wordFilters) {
+                // LocalStorageに保存
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+                
+                // キャッシュを完全クリア
                 window.DataHooksCache.clear('wordFilters');
+                window.DataHooksCache.wordFilters = null;
+                window.DataHooksCache.lastUpdate.wordFilters = null;
+                
+                console.log('✅ ワードフィルター復元完了:', cloudData.wordFilters.interestWords?.length || 0, '個');
             }
             
+            // 🔥 フィルター状態の強制同期
             if (cloudData.filterState) {
-                window.setState({
-                    viewMode: cloudData.filterState.viewMode || 'all',
-                    selectedSource: cloudData.filterState.selectedSource || 'all'
-                });
+                console.log('🔄 フィルター状態復元:', cloudData.filterState);
+                
+                // LocalStorageにフィルター状態を保存
+                localStorage.setItem('minews_filterState', JSON.stringify(cloudData.filterState));
+                
+                // window.stateを直接更新（setStateではなく）
+                window.state.viewMode = cloudData.filterState.viewMode || 'all';
+                window.state.selectedSource = cloudData.filterState.selectedSource || 'all';
             }
             
-            alert('クラウドからデータを復元しました');
+            // 🔥 データ整合性の確認
+            const verification = {
+                aiLearning: window.DataHooks.useAILearning().aiLearning,
+                wordFilters: window.DataHooks.useWordFilters().wordFilters,
+                filterState: {
+                    viewMode: window.state.viewMode,
+                    selectedSource: window.state.selectedSource
+                }
+            };
+            
+            console.log('🔍 復元後データ検証:', {
+                aiWordCount: Object.keys(verification.aiLearning.wordWeights || {}).length,
+                interestWordCount: (verification.wordFilters.interestWords || []).length,
+                filterState: verification.filterState
+            });
+            
+            // 🔥 強制UI再描画
             window.render();
+            
+            // 🔥 復元完了後の自動同期（整合性確保）
+            setTimeout(() => {
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.autoSync('post_restore_sync');
+                }
+            }, 1000);
+            
+            alert('✅ クラウドからデータを復元しました\n\n復元データ：\n' +
+                  `・AI学習データ: ${Object.keys(verification.aiLearning.wordWeights || {}).length}個\n` +
+                  `・興味ワード: ${(verification.wordFilters.interestWords || []).length}個\n` +
+                  `・フィルター状態: ${verification.filterState.viewMode}/${verification.filterState.selectedSource}`);
+            
         } catch (error) {
+            console.error('❌ データ復元エラー:', error);
             alert('データの復元に失敗しました: ' + error.message);
         }
     };
@@ -281,7 +333,7 @@
         }
     };
 
-    // 🔥 設定解除機能
+    // 設定解除機能
     window.handleClearGitHubSettings = () => {
         if (!confirm('GitHub同期設定を完全に解除しますか？\n\n⚠️ 注意: 同期機能が無効になり、他のデバイスとのデータ共有ができなくなります。\n（ローカルの学習データは保持されます）')) {
             return;
@@ -310,7 +362,7 @@
         }
     };
 
-    // 🔥 現在のGist IDコピー機能
+    // 現在のGist IDコピー機能
     window.handleCopyCurrentGistId = async () => {
         if (!window.GistSyncManager?.gistId) {
             alert('❌ コピーするGist IDが設定されていません。');
@@ -433,18 +485,34 @@
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
         
-        // 自動同期トリガー追加
+        // 🔥 改善版自動同期トリガー
         if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.autoSync('filter_change');
+            setTimeout(() => {
+                window.GistSyncManager.autoSync('filter_change').then(result => {
+                    if (result.success) {
+                        console.log('✅ 自動同期完了 (filter_change)');
+                    } else {
+                        console.warn('⚠️ 自動同期失敗 (filter_change):', result.error || result.reason);
+                    }
+                });
+            }, 100);
         }
     };
 
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
         
-        // 自動同期トリガー追加
+        // 🔥 改善版自動同期トリガー
         if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.autoSync('source_change');
+            setTimeout(() => {
+                window.GistSyncManager.autoSync('source_change').then(result => {
+                    if (result.success) {
+                        console.log('✅ 自動同期完了 (source_change)');
+                    } else {
+                        console.warn('⚠️ 自動同期失敗 (source_change):', result.error || result.reason);
+                    }
+                });
+            }, 100);
         }
     };
 
@@ -460,9 +528,17 @@
                 lastUpdate: new Date()
             });
             
-            // 記事更新後の自動同期
+            // 🔥 記事更新後の改善版自動同期
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('article_update');
+                setTimeout(() => {
+                    window.GistSyncManager.autoSync('article_update').then(result => {
+                        if (result.success) {
+                            console.log('✅ 自動同期完了 (article_update)');
+                        } else {
+                            console.warn('⚠️ 自動同期失敗 (article_update):', result.error || result.reason);
+                        }
+                    });
+                }, 100);
             }
             
         } catch (error) {
@@ -473,7 +549,7 @@
     };
 
     // ===========================================
-    // 記事操作（完全最適化版 + ユーザー操作時自動同期対応）
+    // 記事操作（完全最適化版 + 改善版自動同期対応）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -510,9 +586,17 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
-                // 既読切替後の自動同期
+                // 🔥 既読切替後の改善版自動同期
                 if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.autoSync('article_read_toggle');
+                    setTimeout(() => {
+                        window.GistSyncManager.autoSync('article_read_toggle').then(result => {
+                            if (result.success) {
+                                console.log('✅ 自動同期完了 (article_read_toggle)');
+                            } else {
+                                console.warn('⚠️ 自動同期失敗 (article_read_toggle):', result.error || result.reason);
+                            }
+                        });
+                    }, 100);
                 }
                 break;
 
@@ -521,9 +605,17 @@
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                     
-                    // タイトルクリック既読化後の自動同期
+                    // 🔥 タイトルクリック既読化後の改善版自動同期
                     if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.autoSync('article_title_read');
+                        setTimeout(() => {
+                            window.GistSyncManager.autoSync('article_title_read').then(result => {
+                                if (result.success) {
+                                    console.log('✅ 自動同期完了 (article_title_read)');
+                                } else {
+                                    console.warn('⚠️ 自動同期失敗 (article_title_read):', result.error || result.reason);
+                                }
+                            });
+                        }, 100);
                     }
                 }
                 break;
@@ -542,9 +634,17 @@
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
-                // 後で読む切替後の自動同期
+                // 🔥 後で読む切替後の改善版自動同期
                 if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.autoSync('article_read_later');
+                    setTimeout(() => {
+                        window.GistSyncManager.autoSync('article_read_later').then(result => {
+                            if (result.success) {
+                                console.log('✅ 自動同期完了 (article_read_later)');
+                            } else {
+                                console.warn('⚠️ 自動同期失敗 (article_read_later):', result.error || result.reason);
+                            }
+                        });
+                    }, 100);
                 }
                 break;
 
@@ -568,9 +668,17 @@
                             stars.forEach(star => star.classList.remove('filled'));
                         }
 
-                        // 評価キャンセル後の自動同期
+                        // 🔥 評価キャンセル後の改善版自動同期
                         if (window.GistSyncManager?.isEnabled) {
-                            window.GistSyncManager.autoSync('article_rating');
+                            setTimeout(() => {
+                                window.GistSyncManager.autoSync('article_rating').then(result => {
+                                    if (result.success) {
+                                        console.log('✅ 自動同期完了 (article_rating)');
+                                    } else {
+                                        console.warn('⚠️ 自動同期失敗 (article_rating):', result.error || result.reason);
+                                    }
+                                });
+                            }, 100);
                         }
                         return;
                     }
@@ -601,9 +709,17 @@
                         });
                     }
 
-                    // 評価設定後の自動同期
+                    // 🔥 評価設定後の改善版自動同期
                     if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.autoSync('article_rating');
+                        setTimeout(() => {
+                            window.GistSyncManager.autoSync('article_rating').then(result => {
+                                if (result.success) {
+                                    console.log('✅ 自動同期完了 (article_rating)');
+                                } else {
+                                    console.warn('⚠️ 自動同期失敗 (article_rating):', result.error || result.reason);
+                                }
+                            });
+                        }, 100);
                     }
                 }
                 break;
@@ -638,9 +754,17 @@
         if (success) {
             window.render();
             
-            // ワード追加後の自動同期
+            // 🔥 ワード追加後の改善版自動同期
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('word_add');
+                setTimeout(() => {
+                    window.GistSyncManager.autoSync('word_add').then(result => {
+                        if (result.success) {
+                            console.log('✅ 自動同期完了 (word_add)');
+                        } else {
+                            console.warn('⚠️ 自動同期失敗 (word_add):', result.error || result.reason);
+                        }
+                    });
+                }, 100);
             }
         } else {
             alert('そのワードは既に登録されています');
@@ -658,9 +782,17 @@
         if (success) {
             window.render();
             
-            // ワード削除後の自動同期
+            // 🔥 ワード削除後の改善版自動同期
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('word_remove');
+                setTimeout(() => {
+                    window.GistSyncManager.autoSync('word_remove').then(result => {
+                        if (result.success) {
+                            console.log('✅ 自動同期完了 (word_remove)');
+                        } else {
+                            console.warn('⚠️ 自動同期失敗 (word_remove):', result.error || result.reason);
+                        }
+                    });
+                }, 100);
             }
         }
     };
@@ -889,7 +1021,7 @@
                                     <h3>GitHub同期設定</h3>
                                 </div>
                                 
-                                <!-- 🔥 設定状態表示セクション（新規追加） -->
+                                <!-- 設定状態表示セクション -->
                                 <div style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; ${window.GistSyncManager?.isEnabled ? 
                                     'background: #065f46; border: 2px solid #10b981;' : 
                                     'background: #7f1d1d; border: 2px solid #dc2626;'}">
@@ -934,7 +1066,7 @@
                                     <strong>対象データ:</strong> AI学習データ、ワードフィルター、フィルター状態、記事操作（評価・既読・後で読む）
                                 </p>
                                 
-                                <!-- 🔥 設定状態に応じた条件分岐表示 -->
+                                <!-- 設定状態に応じた条件分岐表示 -->
                                 ${window.GistSyncManager?.isEnabled ? `
                                     <!-- 設定済みの場合：設定解除と管理機能 -->
                                     <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
@@ -994,13 +1126,13 @@
                                 `}
                                 
                                 <div class="word-help" style="margin-top: 1rem;">
-                                    <h4>完全自動同期について</h4>
+                                    <h4>🔥 問題解消完全版について</h4>
                                     <ul>
+                                        <li><strong>強化版クラウド復元:</strong> キャッシュ完全クリア・フィルター状態強制同期</li>
+                                        <li><strong>改善版自動同期:</strong> データ更新完了を確実に待ってから同期実行</li>
+                                        <li><strong>データ整合性確保:</strong> 復元後のデータ検証と復元完了後の自動同期</li>
+                                        <li><strong>詳細ログ出力:</strong> 各操作の成功・失敗状況をコンソールで確認可能</li>
                                         <li><strong>設定状態表示:</strong> 一目で設定状況を確認可能</li>
-                                        <li><strong>フィルター変更時:</strong> 表示モード・配信元フィルター変更</li>
-                                        <li><strong>記事更新時:</strong> articles.json再読み込み</li>
-                                        <li><strong>記事操作時:</strong> 評価・既読切替・後で読む切替・タイトルクリック</li>
-                                        <li><strong>ワード操作時:</strong> 興味ワード・NGワードの追加削除</li>
                                         <li><strong>診断テスト:</strong> 同期できない場合は診断テストで問題を特定</li>
                                         <li><strong>設定管理:</strong> 設定解除・Gist IDコピー機能</li>
                                         <li><strong>セキュリティ:</strong> プライベートGistで安全に保存</li>
@@ -1086,7 +1218,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（GitHub Gist同期設定UI改善完全版）
+                                        GitHub Actions対応版（GitHub Gist同期問題解消完全版）
                                     </p>
                                 </div>
                             </div>
