@@ -250,7 +250,7 @@
     };
 
     // ===========================================
-    // 記事操作
+    // 記事操作（完全最適化版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -271,7 +271,21 @@
                 event.stopPropagation();
                 // 既読・未読の切り替えのみ実行（リンクは開かない）
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
-                articlesHook.updateArticle(articleId, { readStatus: newReadStatus });
+                
+                // データ更新のみ、レンダリングはスキップ
+                articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
+                
+                // DOM直接更新：既読ボタンのテキストと記事カードの状態を更新
+                const articleCard = document.querySelector(`[data-article-id="${articleId}"]`).closest('.article-card');
+                const readButton = event.target;
+                
+                if (articleCard) {
+                    // 記事カードの既読状態属性を更新
+                    articleCard.setAttribute('data-read-status', newReadStatus);
+                    
+                    // 既読ボタンのテキストを更新
+                    readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
+                }
                 break;
 
             case 'read':
@@ -284,7 +298,16 @@
             case 'readLater':
                 event.preventDefault();
                 event.stopPropagation();
-                articlesHook.updateArticle(articleId, { readLater: !article.readLater });
+                
+                // データ更新のみ、レンダリングはスキップ
+                articlesHook.updateArticle(articleId, { readLater: !article.readLater }, { skipRender: true });
+                
+                // DOM直接更新：後で読むボタンの状態を更新
+                const readLaterButton = event.target;
+                const newReadLater = !article.readLater;
+                
+                readLaterButton.setAttribute('data-active', newReadLater);
+                readLaterButton.textContent = newReadLater ? '解除' : '後で';
                 break;
 
             case 'rating':
@@ -544,12 +567,14 @@
 
                 <div class="article-actions">
                     <button class="simple-btn read-status" 
-                            onclick="handleArticleClick(event, '${article.id}', 'toggleRead')">
+                            onclick="handleArticleClick(event, '${article.id}', 'toggleRead')"
+                            data-article-id="${article.id}">
                         ${article.readStatus === 'read' ? '既読' : '未読'}
                     </button>
                     <button class="simple-btn read-later" 
                             data-active="${article.readLater}"
-                            onclick="handleArticleClick(event, '${article.id}', 'readLater')">
+                            onclick="handleArticleClick(event, '${article.id}', 'readLater')"
+                            data-article-id="${article.id}">
                         ${article.readLater ? '解除' : '後で'}
                     </button>
                 </div>
@@ -695,8 +720,10 @@
         }
     };
 
-    // 🔧 修正: 星評価のイベントリスナー設定（重複防止）
-    // メインレンダー関数
+    // ===========================================
+    // メインレンダー関数（最適化版）
+    // ===========================================
+
     window.render = () => {
         const app = document.getElementById('app');
         if (!app) return;
@@ -711,7 +738,7 @@
             </div>
         `;
 
-        // 🔧 修正: 星評価のイベントリスナー設定（重複防止）
+        // 🔧 修正済み: 星評価のイベントリスナー設定（重複防止）
         if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
