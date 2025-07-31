@@ -487,4 +487,26 @@ async function main() {
     console.log(`\n🔍 デバッグサマリー:`);
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
-    console.
+    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
+  } catch (error) {
+    console.error('💥 main関数内でエラーが発生しました:', error);
+    console.error('エラー詳細:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    process.exit(1);
+  }
+}
+
+// 実行開始
+console.log('🚀 スクリプト実行開始');
+main().catch(error => {
+  console.error('💥 トップレベルエラー:', error);
+  console.error('エラー詳細:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack
+  });
+  process.exit(1);
+});
