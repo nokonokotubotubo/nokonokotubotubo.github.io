@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー
+// Minews PWA - UI・表示レイヤー（GitHub Gist API連携版）
 (function() {
     'use strict';
 
@@ -80,6 +80,25 @@
         window.state.articles = articlesData;
     };
 
+    // 🔥 Gist同期初期化関数を追加
+    const initializeGistSync = () => {
+        if (window.GistSyncManager) {
+            const config = window.GistSyncManager.loadConfig();
+            if (config && config.hasToken) {
+                // 暗号化されたトークンが復号化され、自動的に有効化
+                console.log('GitHub同期設定を復元しました（自動同期が有効です）');
+                
+                // 初回読み込み時に軽微な通知
+                setTimeout(() => {
+                    window.GistSyncManager.showSyncNotification(
+                        'GitHub同期が有効です', 
+                        'info'
+                    );
+                }, 1000);
+            }
+        }
+    };
+
     // ===========================================
     // ユーティリティ関数
     // ===========================================
@@ -121,6 +140,80 @@
                 default: return char;
             }
         });
+    };
+
+    // ===========================================
+    // GitHub同期管理関数
+    // ===========================================
+
+    // 🔥 GitHub同期管理関数
+    window.handleSaveGitHubToken = () => {
+        const token = document.getElementById('githubToken').value.trim();
+        if (!token) {
+            alert('GitHub Personal Access Tokenを入力してください');
+            return;
+        }
+        
+        // トークンを暗号化してLocalStorageに保存
+        window.GistSyncManager.init(token, window.GistSyncManager.gistId);
+        
+        alert('GitHub同期設定を保存しました\n（トークンは暗号化して保存され、自動同期が有効になります）');
+        document.getElementById('githubToken').value = '';
+        
+        // 設定保存後に軽微な通知
+        window.GistSyncManager.showSyncNotification('GitHub同期が有効になりました', 'success');
+    };
+
+    window.handleSyncToCloud = async () => {
+        if (!window.GistSyncManager.isEnabled) {
+            alert('先にGitHub Personal Access Tokenを設定してください');
+            return;
+        }
+        
+        const result = await window.GistSyncManager.autoSync('manual');
+        if (result.success) {
+            alert('データをクラウドに保存しました');
+        } else {
+            alert('クラウドへの保存に失敗しました: ' + (result.error || result.reason));
+        }
+    };
+
+    window.handleSyncFromCloud = async () => {
+        if (!window.GistSyncManager.isEnabled) {
+            alert('先にGitHub Personal Access Tokenを設定してください');
+            return;
+        }
+        
+        try {
+            const cloudData = await window.GistSyncManager.syncFromCloud();
+            if (!cloudData) {
+                alert('クラウドからデータを取得できませんでした');
+                return;
+            }
+            
+            // データ復元処理
+            if (cloudData.aiLearning) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
+                window.DataHooksCache.clear('aiLearning');
+            }
+            
+            if (cloudData.wordFilters) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+                window.DataHooksCache.clear('wordFilters');
+            }
+            
+            if (cloudData.filterState) {
+                window.setState({
+                    viewMode: cloudData.filterState.viewMode || 'all',
+                    selectedSource: cloudData.filterState.selectedSource || 'all'
+                });
+            }
+            
+            alert('クラウドからデータを復元しました');
+            window.render();
+        } catch (error) {
+            alert('データの復元に失敗しました: ' + error.message);
+        }
     };
 
     // ===========================================
@@ -219,12 +312,22 @@
 
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
-        // 保存処理はsetState内で自動実行される
+        
+        // 🔥 自動同期トリガー追加（エラー通知なし、内部で処理）
+        if (window.GistSyncManager?.isEnabled) {
+            // autoSync内部でエラー通知を行うため、ここではcatchは不要
+            window.GistSyncManager.autoSync('filter_change');
+        }
     };
 
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
-        // 保存処理はsetState内で自動実行される
+        
+        // 🔥 自動同期トリガー追加（エラー通知なし、内部で処理）
+        if (window.GistSyncManager?.isEnabled) {
+            // autoSync内部でエラー通知を行うため、ここではcatchは不要
+            window.GistSyncManager.autoSync('source_change');
+        }
     };
 
     const handleRefresh = async () => {
@@ -235,12 +338,14 @@
             const result = await rssHook.fetchAllFeeds();
             alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
             
-            // フィルター状態は既にLocalStorageに保存済みなので、
-            // 単純に現在の状態を維持するだけ
             setState({ 
                 lastUpdate: new Date()
-                // viewModeとselectedSourceは現在の値を保持（変更なし）
             });
+            
+            // 🔥 記事更新後の自動同期
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.autoSync('article_update');
+            }
             
         } catch (error) {
             alert('記事の更新に失敗しました: ' + error.message);
@@ -625,6 +730,41 @@
                     </div>
                     <div class="modal-body">
                         <div class="modal-section-group">
+                            <h3 class="group-title">クラウド同期</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>GitHub自動同期設定</h3>
+                                </div>
+                                <p class="text-muted mb-3">
+                                    GitHub Personal Access Tokenを設定すると、フィルター変更時と記事更新時に自動でデータがバックアップされます。<br>
+                                    <strong>自動同期対象:</strong> AI学習データ、ワードフィルター、フィルター状態
+                                </p>
+                                <div class="modal-actions">
+                                    <input type="password" id="githubToken" placeholder="GitHub Personal Access Token" 
+                                           class="filter-select" style="margin-bottom: 0.5rem;">
+                                    <button class="action-btn success" onclick="handleSaveGitHubToken()">
+                                        自動同期を有効化
+                                    </button>
+                                    <button class="action-btn" onclick="handleSyncToCloud()">
+                                        手動バックアップ
+                                    </button>
+                                    <button class="action-btn" onclick="handleSyncFromCloud()">
+                                        クラウドから復元
+                                    </button>
+                                </div>
+                                <div class="word-help" style="margin-top: 1rem;">
+                                    <h4>自動同期について</h4>
+                                    <ul>
+                                        <li><strong>フィルター変更時:</strong> 表示モードや配信元フィルターを変更した際に自動バックアップ</li>
+                                        <li><strong>記事更新時:</strong> 記事データを更新した際に自動バックアップ</li>
+                                        <li><strong>軽量設計:</strong> 同期は3秒程度で完了します</li>
+                                        <li><strong>プライベート:</strong> GitHubのプライベートGistに保存されます</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-section-group">
                             <h3 class="group-title">ワード設定</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
@@ -700,7 +840,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（配信元重み機能付き）
+                                        GitHub Actions対応版（GitHub Gist同期機能付き）
                                     </p>
                                 </div>
                             </div>
@@ -769,10 +909,12 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
+            initializeGistSync(); // 🔥 追加
             window.render();
         });
     } else {
         initializeData();
+        initializeGistSync(); // 🔥 追加
         window.render();
     }
 
