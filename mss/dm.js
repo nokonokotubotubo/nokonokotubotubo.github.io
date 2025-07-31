@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（GitHub Gist API完全統合版）
+// Minews PWA - データ管理・処理レイヤー（GitHub Gist同期診断機能統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// GitHub Gist API連携システム
+// GitHub Gist API連携システム（診断機能強化版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -138,15 +138,12 @@ window.GistSyncManager = {
                 this.lastSyncTime = new Date().toISOString();
                 console.log(`✅ 自動同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
                 
-                // 🔥 同期成功の詳細通知（デバッグ情報付き）
+                // 同期成功の軽微な通知（必要に応じて）
                 if (triggerType === 'manual') {
                     this.showSyncNotification(
                         `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
                         'success'
                     );
-                } else {
-                    // 自動同期でもGist IDを含む軽微な通知
-                    console.log(`🔄 自動同期成功 - 使用Gist: ${this.gistId}`);
                 }
             }
             
@@ -183,19 +180,166 @@ window.GistSyncManager = {
         };
     },
     
-    // エラーメッセージの整理
-    getErrorMessage(error) {
-        if (error.message.includes('fetch')) {
-            return 'ネットワークエラー';
+    // 🔥 強化版エラーメッセージとデバッグ情報
+    getErrorMessage(error, includeDebugInfo = false) {
+        let message = '';
+        let debugInfo = {};
+        
+        if (error.message.includes('fetch') || error.name === 'TypeError') {
+            message = 'ネットワークエラー';
+            debugInfo = {
+                type: 'network',
+                suggestion: 'インターネット接続を確認してください',
+                originalError: error.message
+            };
         } else if (error.message.includes('401')) {
-            return 'トークンが無効です';
+            message = 'Personal Access Tokenが無効です';
+            debugInfo = {
+                type: 'authentication',
+                suggestion: 'Personal Access Tokenを再生成してください',
+                checkUrl: 'https://github.com/settings/tokens'
+            };
         } else if (error.message.includes('403')) {
-            return 'アクセス権限がありません';
+            message = 'アクセス権限がありません（Rate Limit制限の可能性）';
+            debugInfo = {
+                type: 'permission',
+                suggestion: 'gistスコープの権限があるか確認、またはRate Limit（60回/時間）を超過した可能性',
+                rateLimitInfo: 'GitHub API制限: 未認証60回/時間、認証済み5000回/時間'
+            };
         } else if (error.message.includes('404')) {
-            return 'Gistが見つかりません';
+            message = 'Gistが見つかりません';
+            debugInfo = {
+                type: 'not_found',
+                suggestion: 'Gist IDが正しいか確認してください',
+                gistId: this.gistId
+            };
+        } else if (error.message.includes('422')) {
+            message = 'リクエストデータが無効です';
+            debugInfo = {
+                type: 'validation',
+                suggestion: 'データ形式を確認してください'
+            };
         } else {
-            return '不明なエラー';
+            message = '不明なエラー';
+            debugInfo = {
+                type: 'unknown',
+                originalError: error.message,
+                errorStack: error.stack
+            };
         }
+        
+        if (includeDebugInfo) {
+            return { message, debugInfo };
+        }
+        return message;
+    },
+    
+    // 🔥 詳細同期テスト機能
+    async testSync() {
+        console.log('🔍 GitHub Gist同期テスト開始');
+        const testResults = {
+            timestamp: new Date().toISOString(),
+            config: {
+                hasToken: !!this.token,
+                hasGistId: !!this.gistId,
+                isEnabled: this.isEnabled
+            },
+            tests: []
+        };
+        
+        // テスト1: 基本設定確認
+        testResults.tests.push({
+            name: '基本設定確認',
+            status: (this.token && this.gistId) ? 'pass' : 'fail',
+            details: {
+                token: this.token ? '設定済み' : '未設定',
+                gistId: this.gistId ? `${this.gistId.substring(0, 8)}...` : '未設定'
+            }
+        });
+        
+        // テスト2: GitHub API接続テスト
+        try {
+            const response = await fetch('https://api.github.com/gists', {
+                headers: this.token ? {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                } : {}
+            });
+            
+            const rateLimitHeaders = {
+                limit: response.headers.get('X-RateLimit-Limit'),
+                remaining: response.headers.get('X-RateLimit-Remaining'),
+                reset: response.headers.get('X-RateLimit-Reset')
+            };
+            
+            testResults.tests.push({
+                name: 'GitHub API接続テスト',
+                status: response.ok ? 'pass' : 'fail',
+                details: {
+                    httpStatus: response.status,
+                    statusText: response.statusText,
+                    rateLimit: rateLimitHeaders,
+                    resetTime: rateLimitHeaders.reset ? 
+                        new Date(parseInt(rateLimitHeaders.reset) * 1000).toLocaleString('ja-JP') : null
+                }
+            });
+            
+        } catch (error) {
+            testResults.tests.push({
+                name: 'GitHub API接続テスト',
+                status: 'fail',
+                details: {
+                    error: error.message,
+                    errorType: error.name
+                }
+            });
+        }
+        
+        // テスト3: Gist存在確認テスト
+        if (this.token && this.gistId) {
+            try {
+                const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                    headers: {
+                        'Authorization': `token ${this.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const gistData = await response.json();
+                    testResults.tests.push({
+                        name: 'Gist存在確認',
+                        status: 'pass',
+                        details: {
+                            description: gistData.description,
+                            files: Object.keys(gistData.files),
+                            lastUpdated: gistData.updated_at,
+                            owner: gistData.owner.login
+                        }
+                    });
+                } else {
+                    testResults.tests.push({
+                        name: 'Gist存在確認',
+                        status: 'fail',
+                        details: {
+                            httpStatus: response.status,
+                            statusText: response.statusText
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                testResults.tests.push({
+                    name: 'Gist存在確認',
+                    status: 'fail',
+                    details: {
+                        error: error.message
+                    }
+                });
+            }
+        }
+        
+        return testResults;
     },
     
     // クラウド同期（アップロード）
@@ -314,7 +458,6 @@ window.GistSyncManager = {
 // キャッシュシステム
 // ===========================================
 
-// 🔧 修正: キャッシュクリア機能のメモリリーク対策
 window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
