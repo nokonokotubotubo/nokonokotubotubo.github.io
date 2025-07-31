@@ -6,6 +6,7 @@
     // フィルター状態永続化機能
     // ===========================================
 
+    // フィルター状態をLocalStorageから復元
     const getStoredFilterState = () => {
         try {
             const stored = localStorage.getItem('minews_filterState');
@@ -25,6 +26,7 @@
         };
     };
 
+    // フィルター状態をLocalStorageに保存
     const saveFilterState = (viewMode, selectedSource) => {
         try {
             const filterState = { viewMode, selectedSource };
@@ -38,6 +40,7 @@
     // アプリケーション状態管理
     // ===========================================
 
+    // 初期状態でLocalStorageから復元
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -48,9 +51,11 @@
         lastUpdate: null
     };
 
+    // setState統合版（自動保存機能付き）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
         
+        // フィルター関連の状態変更時は自動保存
         if (newState.viewMode !== undefined || newState.selectedSource !== undefined) {
             saveFilterState(
                 newState.viewMode || window.state.viewMode,
@@ -104,6 +109,7 @@
 
     window.truncateText = (text, maxLength = 200) => text.length <= maxLength ? text : text.substring(0, maxLength).trim() + '...';
 
+    // XMLエスケープ関数
     window.escapeXml = (text) => {
         return text.replace(/[<>&'"]/g, (char) => {
             switch (char) {
@@ -118,9 +124,10 @@
     };
 
     // ===========================================
-    // データ管理機能（クリーン版）
+    // データ管理機能
     // ===========================================
 
+    // 学習データエクスポート（配信元重み対応版）
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -130,9 +137,11 @@
             exportDate: new Date().toISOString(),
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
+            // 配信元重み機能を含むことを明記
             features: {
                 sourceWeights: true,
-                note: 'v1.1 クリーンバージョン'
+                categoryWeights: false,
+                note: 'v1.1配信元重み対応版'
             }
         };
 
@@ -143,9 +152,10 @@
         link.download = `minews_learning_data_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
 
-        alert('学習データをエクスポートしました');
+        alert('学習データをエクスポートしました（配信元重み機能付き）');
     };
 
+    // 学習データインポート（配信元重み対応版）
     window.handleImportLearningData = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -178,6 +188,11 @@
                     aiHook.aiLearning.sourceWeights[source] = newWeight;
                 });
 
+                // 旧categoryWeightsの移行処理（初回のみ）
+                if (importData.aiLearning.categoryWeights && Object.keys(importData.aiLearning.categoryWeights).length > 0) {
+                    console.log('旧categoryWeightsを検出しました。データ移行をスキップします。');
+                }
+
                 // ワードフィルターのマージ
                 (importData.wordFilters.interestWords || []).forEach(word => {
                     wordHook.addInterestWord(word);
@@ -187,7 +202,7 @@
                     wordHook.addNGWord(word);
                 });
 
-                alert('学習データをインポートしました');
+                alert('学習データをインポートしました（配信元重み対応）');
                 window.render();
             } catch (error) {
                 alert('インポートに失敗しました: ' + error.message);
@@ -204,10 +219,12 @@
 
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
+        // 保存処理はsetState内で自動実行される
     };
 
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
+        // 保存処理はsetState内で自動実行される
     };
 
     const handleRefresh = async () => {
@@ -218,8 +235,11 @@
             const result = await rssHook.fetchAllFeeds();
             alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
             
+            // フィルター状態は既にLocalStorageに保存済みなので、
+            // 単純に現在の状態を維持するだけ
             setState({ 
                 lastUpdate: new Date()
+                // viewModeとselectedSourceは現在の値を保持（変更なし）
             });
             
         } catch (error) {
@@ -234,6 +254,7 @@
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
+        // タイトルクリック（read）以外の場合のみイベントを阻止
         if (actionType !== 'read') {
             event.preventDefault();
             event.stopPropagation();
@@ -248,11 +269,13 @@
             case 'toggleRead':
                 event.preventDefault();
                 event.stopPropagation();
+                // 既読・未読の切り替えのみ実行（リンクは開かない）
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus });
                 break;
 
             case 'read':
+                // タイトルクリック時は常に既読状態にする（未読→既読のみ、既読→既読のまま）
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                 }
@@ -269,14 +292,15 @@
                 event.stopPropagation();
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
-                    // 評価キャンセル機能
+                    // 評価キャンセル機能：同じ星をクリックした場合は評価をリセット
                     if (article.userRating === rating) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                         
+                        // データ更新のみ、レンダリングはスキップ
                         articlesHook.updateArticle(articleId, { userRating: 0 }, { skipRender: true });
                         
-                        // DOM直接更新
+                        // DOM直接更新：星表示をリセット
                         const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                         if (starRating) {
                             const stars = starRating.querySelectorAll('.star');
@@ -295,9 +319,10 @@
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
+                    // データ更新のみ、レンダリングはスキップ
                     articlesHook.updateArticle(articleId, { userRating: rating }, { skipRender: true });
                     
-                    // DOM直接更新
+                    // DOM直接更新：星表示を更新
                     const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                     if (starRating) {
                         const stars = starRating.querySelectorAll('.star');
@@ -408,6 +433,7 @@
                     </div>
                 </div>
 
+                <!-- デスクトップ用の既存構造を保持 -->
                 <div class="nav-left desktop-only">
                     <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
                     ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
@@ -447,10 +473,12 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
+        // 提供元フィルター
         if (window.state.selectedSource !== 'all') {
             filtered = filtered.filter(article => article.rssSource === window.state.selectedSource);
         }
 
+        // 表示モードフィルター
         switch (window.state.viewMode) {
             case 'unread':
                 filtered = filtered.filter(article => article.readStatus === 'unread');
@@ -463,15 +491,18 @@
                 break;
         }
 
+        // NGワードフィルター
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
+        // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
         const articlesWithScores = filtered.map(article => ({
             ...article,
             aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
         }));
 
+        // 通常のソート処理（安定ソート保証 + ID基準）
         return articlesWithScores.sort((a, b) => {
             if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
@@ -607,7 +638,8 @@
                                 <div class="word-section-header">
                                     <h3>学習データ管理</h3>
                                 </div>
-                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
+                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます<br>
+                                <span style="color: var(--accent-blue); font-weight: bold;">配信元重み機能対応版</span></p>
                                 
                                 <div class="modal-actions">
                                     <button class="action-btn success" onclick="handleExportLearningData()">
@@ -643,7 +675,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（クリーンバージョン）
+                                        GitHub Actions対応版（配信元重み機能付き）
                                     </p>
                                 </div>
                             </div>
@@ -663,6 +695,8 @@
         }
     };
 
+    // 🔧 修正: 星評価のイベントリスナー設定（重複防止）
+    // メインレンダー関数
     window.render = () => {
         const app = document.getElementById('app');
         if (!app) return;
@@ -677,12 +711,15 @@
             </div>
         `;
 
-        document.querySelectorAll('.star').forEach(star => {
-            star.removeEventListener('click', window._starClickHandler);
-            
+        // 🔧 修正: 星評価のイベントリスナー設定（重複防止）
+        if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
             };
+        }
+
+        document.querySelectorAll('.star').forEach(star => {
+            star.removeEventListener('click', window._starClickHandler);
             star.addEventListener('click', window._starClickHandler);
         });
     };
@@ -691,6 +728,7 @@
     // 初期化
     // ===========================================
 
+    // グローバル関数をウィンドウに追加
     window.handleFilterChange = handleFilterChange;
     window.handleSourceChange = handleSourceChange;
     window.handleRefresh = handleRefresh;
@@ -700,6 +738,7 @@
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
 
+    // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
