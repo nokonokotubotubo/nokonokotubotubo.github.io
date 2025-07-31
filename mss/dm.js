@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー
+// Minews PWA - データ管理・処理レイヤー（GitHub Gist API連携版）
 
 (function() {
 
@@ -35,6 +35,272 @@ window.DEFAULT_DATA = {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
+    }
+};
+
+// ===========================================
+// GitHub Gist API連携システム
+// ===========================================
+
+window.GistSyncManager = {
+    token: null,
+    gistId: null,
+    isEnabled: false,
+    isSyncing: false,
+    lastSyncTime: null,
+    
+    // 簡易暗号化機能（XOR ベース）
+    _encrypt(text, key = 'minews_secret_key') {
+        if (!text) return '';
+        let result = '';
+        for (let i = 0; i < text.length; i++) {
+            result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return btoa(result); // Base64エンコード
+    },
+
+    _decrypt(encryptedText, key = 'minews_secret_key') {
+        if (!encryptedText) return '';
+        try {
+            const text = atob(encryptedText); // Base64デコード
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        } catch (error) {
+            console.error('トークン復号化エラー:', error);
+            return '';
+        }
+    },
+    
+    // 初期化（設定画面で呼び出し）
+    init(token, gistId = null) {
+        this.token = token;
+        this.gistId = gistId;
+        this.isEnabled = !!token;
+        
+        // 設定をLocalStorageに保存（トークンを暗号化）
+        try {
+            localStorage.setItem('minews_gist_config', JSON.stringify({
+                encryptedToken: token ? this._encrypt(token) : null,
+                gistId: gistId,
+                isEnabled: this.isEnabled
+            }));
+        } catch (error) {
+            console.warn('Gist設定の保存に失敗:', error);
+        }
+    },
+    
+    // 設定読み込み（トークン復号化機能付き）
+    loadConfig() {
+        try {
+            const config = localStorage.getItem('minews_gist_config');
+            if (config) {
+                const parsed = JSON.parse(config);
+                
+                // 暗号化されたトークンを復号化
+                if (parsed.encryptedToken) {
+                    this.token = this._decrypt(parsed.encryptedToken);
+                    this.isEnabled = !!this.token;
+                } else {
+                    this.isEnabled = false;
+                }
+                
+                this.gistId = parsed.gistId;
+                return {
+                    hasToken: !!this.token,
+                    gistId: parsed.gistId,
+                    isEnabled: this.isEnabled
+                };
+            }
+        } catch (error) {
+            console.warn('Gist設定の読み込みに失敗:', error);
+        }
+        return null;
+    },
+    
+    // 🔥 自動同期メイン関数
+    async autoSync(triggerType = 'manual') {
+        if (!this.isEnabled || this.isSyncing || !this.token) {
+            return { success: false, reason: 'disabled_or_syncing' };
+        }
+        
+        console.log(`🔄 自動同期開始 (${triggerType})`);
+        this.isSyncing = true;
+        
+        try {
+            // 同期対象データを収集
+            const syncData = this.collectSyncData();
+            const result = await this.syncToCloud(syncData);
+            
+            if (result) {
+                this.lastSyncTime = new Date().toISOString();
+                console.log(`✅ 自動同期完了 (${triggerType})`);
+                
+                // 同期成功の軽微な通知（必要に応じて）
+                if (triggerType === 'manual') {
+                    this.showSyncNotification('同期完了', 'success');
+                }
+            }
+            
+            return { success: result, triggerType };
+        } catch (error) {
+            console.error(`❌ 自動同期失敗 (${triggerType}):`, error);
+            
+            // 🔥 エラー通知を表示
+            this.showSyncNotification(
+                `同期エラー: ${this.getErrorMessage(error)}`, 
+                'error'
+            );
+            
+            return { success: false, error: error.message, triggerType };
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+    
+    // 同期対象データ収集
+    collectSyncData() {
+        const aiHook = window.DataHooks.useAILearning();
+        const wordHook = window.DataHooks.useWordFilters();
+        
+        return {
+            version: window.CONFIG.DATA_VERSION,
+            syncTime: new Date().toISOString(),
+            aiLearning: aiHook.aiLearning,
+            wordFilters: wordHook.wordFilters,
+            filterState: {
+                viewMode: window.state?.viewMode || 'all',
+                selectedSource: window.state?.selectedSource || 'all'
+            }
+        };
+    },
+    
+    // エラーメッセージの整理
+    getErrorMessage(error) {
+        if (error.message.includes('fetch')) {
+            return 'ネットワークエラー';
+        } else if (error.message.includes('401')) {
+            return 'トークンが無効です';
+        } else if (error.message.includes('403')) {
+            return 'アクセス権限がありません';
+        } else if (error.message.includes('404')) {
+            return 'Gistが見つかりません';
+        } else {
+            return '不明なエラー';
+        }
+    },
+    
+    // クラウド同期（アップロード）
+    async syncToCloud(data) {
+        if (!this.token) return false;
+        
+        const payload = {
+            description: "Minews User Data Backup (Auto Sync)",
+            public: false,
+            files: {
+                "minews_data.json": {
+                    content: JSON.stringify(data, null, 2)
+                }
+            }
+        };
+        
+        const url = this.gistId 
+            ? `https://api.github.com/gists/${this.gistId}`
+            : 'https://api.github.com/gists';
+            
+        const response = await fetch(url, {
+            method: this.gistId ? 'PATCH' : 'POST',
+            headers: {
+                'Authorization': `token ${this.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (!this.gistId) {
+                this.gistId = result.id;
+                // GistIDを設定に保存
+                this.saveGistId(result.id);
+            }
+            return true;
+        }
+        return false;
+    },
+    
+    // クラウド同期（ダウンロード）
+    async syncFromCloud() {
+        if (!this.token || !this.gistId) return null;
+        
+        const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            headers: {
+                'Authorization': `token ${this.token}`
+            }
+        });
+        
+        if (response.ok) {
+            const gist = await response.json();
+            const content = gist.files['minews_data.json'].content;
+            return JSON.parse(content);
+        }
+        return null;
+    },
+    
+    // GistID保存
+    saveGistId(gistId) {
+        try {
+            const config = this.loadConfig() || {};
+            config.gistId = gistId;
+            localStorage.setItem('minews_gist_config', JSON.stringify(config));
+            this.gistId = gistId;
+        } catch (error) {
+            console.warn('GistID保存に失敗:', error);
+        }
+    },
+    
+    // 軽微な通知表示（エラー対応強化版）
+    showSyncNotification(message, type = 'info') {
+        // 簡易通知（エラーは5秒、その他は3秒で消去）
+        const notification = document.createElement('div');
+        notification.className = `sync-notification ${type}`;
+        notification.textContent = message;
+        
+        const backgroundColor = {
+            'success': '#4caf50',
+            'info': '#2196f3',
+            'error': '#f44336',
+            'warning': '#ff9800'
+        }[type] || '#2196f3';
+        
+        notification.style.cssText = `
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            background: ${backgroundColor}; color: white;
+            padding: 0.75rem 1.25rem; border-radius: 6px;
+            font-size: 0.9rem; font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0.95; cursor: pointer;
+            max-width: 300px; word-wrap: break-word;
+        `;
+        
+        // クリックで消去機能
+        notification.addEventListener('click', () => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        });
+        
+        document.body.appendChild(notification);
+        
+        // 自動消去（エラーは長めに表示）
+        const duration = type === 'error' ? 5000 : 3000;
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, duration);
     }
 };
 
