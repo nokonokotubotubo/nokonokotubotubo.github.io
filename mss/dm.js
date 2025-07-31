@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（GitHub Gist API連携版）
+// Minews PWA - データ管理・処理レイヤー（GitHub Gist API完全統合版）
 
 (function() {
 
@@ -136,11 +136,17 @@ window.GistSyncManager = {
             
             if (result) {
                 this.lastSyncTime = new Date().toISOString();
-                console.log(`✅ 自動同期完了 (${triggerType})`);
+                console.log(`✅ 自動同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
                 
-                // 同期成功の軽微な通知（必要に応じて）
+                // 🔥 同期成功の詳細通知（デバッグ情報付き）
                 if (triggerType === 'manual') {
-                    this.showSyncNotification('同期完了', 'success');
+                    this.showSyncNotification(
+                        `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
+                        'success'
+                    );
+                } else {
+                    // 自動同期でもGist IDを含む軽微な通知
+                    console.log(`🔄 自動同期成功 - 使用Gist: ${this.gistId}`);
                 }
             }
             
