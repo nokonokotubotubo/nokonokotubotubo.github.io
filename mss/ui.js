@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist同期診断機能統合版）
+// Minews PWA - UI・表示レイヤー（GitHub Gist同期設定UI改善完全統合版）
 (function() {
     'use strict';
 
@@ -143,7 +143,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（診断機能付き）
+    // GitHub同期管理関数（UI改善完全版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -177,6 +177,9 @@
         
         // 設定保存後に軽微な通知
         window.GistSyncManager.showSyncNotification('GitHub同期が有効になりました', 'success');
+        
+        // 設定画面を再描画
+        window.render();
     };
 
     // 詳細診断機能付き手動同期
@@ -275,6 +278,61 @@
             
         } catch (error) {
             alert(`診断テストでエラーが発生しました: ${error.message}`);
+        }
+    };
+
+    // 🔥 設定解除機能
+    window.handleClearGitHubSettings = () => {
+        if (!confirm('GitHub同期設定を完全に解除しますか？\n\n⚠️ 注意: 同期機能が無効になり、他のデバイスとのデータ共有ができなくなります。\n（ローカルの学習データは保持されます）')) {
+            return;
+        }
+        
+        try {
+            // LocalStorageから設定を削除
+            localStorage.removeItem('minews_gist_config');
+            
+            // GistSyncManagerの状態をリセット
+            if (window.GistSyncManager) {
+                window.GistSyncManager.token = null;
+                window.GistSyncManager.gistId = null;
+                window.GistSyncManager.isEnabled = false;
+                window.GistSyncManager.lastSyncTime = null;
+            }
+            
+            alert('✅ GitHub同期設定を解除しました。\n\n同期機能を再び使用する場合は、Personal Access Tokenを再設定してください。');
+            
+            // 設定画面を再描画
+            window.render();
+            
+        } catch (error) {
+            alert('❌ 設定の解除に失敗しました: ' + error.message);
+            console.error('設定解除エラー:', error);
+        }
+    };
+
+    // 🔥 現在のGist IDコピー機能
+    window.handleCopyCurrentGistId = async () => {
+        if (!window.GistSyncManager?.gistId) {
+            alert('❌ コピーするGist IDが設定されていません。');
+            return;
+        }
+        
+        try {
+            await navigator.clipboard.writeText(window.GistSyncManager.gistId);
+            window.GistSyncManager.showSyncNotification(
+                `📋 Gist IDをコピーしました: ${window.GistSyncManager.gistId.substring(0, 8)}...`, 
+                'success'
+            );
+        } catch (error) {
+            // フォールバック: テキスト選択
+            const textArea = document.createElement('textarea');
+            textArea.value = window.GistSyncManager.gistId;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            window.GistSyncManager.showSyncNotification('📋 Gist IDをコピーしました', 'success');
         }
     };
 
@@ -830,51 +888,121 @@
                                 <div class="word-section-header">
                                     <h3>GitHub同期設定</h3>
                                 </div>
+                                
+                                <!-- 🔥 設定状態表示セクション（新規追加） -->
+                                <div style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; ${window.GistSyncManager?.isEnabled ? 
+                                    'background: #065f46; border: 2px solid #10b981;' : 
+                                    'background: #7f1d1d; border: 2px solid #dc2626;'}">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                        <div style="font-size: 1.5rem;">${window.GistSyncManager?.isEnabled ? '✅' : '❌'}</div>
+                                        <div style="font-weight: 600; font-size: 1.1rem; color: white;">
+                                            GitHub同期設定状況
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.9rem;">
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <strong>🔐 Personal Access Token:</strong> 
+                                            <span style="color: ${window.GistSyncManager?.isEnabled ? '#6ee7b7' : '#fca5a5'};">
+                                                ${window.GistSyncManager?.isEnabled ? '✓ 設定済み' : '× 未設定'}
+                                            </span>
+                                        </div>
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <strong>📁 Gist ID:</strong> 
+                                            <span style="color: ${window.GistSyncManager?.gistId ? '#6ee7b7' : '#fca5a5'};">
+                                                ${window.GistSyncManager?.gistId ? 
+                                                    `✓ ${window.GistSyncManager.gistId}` : 
+                                                    '× 未設定'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <strong>🔄 同期機能:</strong> 
+                                            <span style="color: ${window.GistSyncManager?.isEnabled ? '#6ee7b7' : '#fca5a5'};">
+                                                ${window.GistSyncManager?.isEnabled ? '✓ 有効' : '× 無効'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    ${window.GistSyncManager?.isEnabled ? 
+                                        '<div style="margin-top: 0.75rem; color: #d1fae5; font-size: 0.85rem;">✅ すべてのユーザー操作が自動的にクラウドに同期されます</div>' :
+                                        '<div style="margin-top: 0.75rem; color: #fecaca; font-size: 0.85rem;">⚠️ Personal Access Tokenを設定して同期を有効化してください</div>'
+                                    }
+                                </div>
+                                
                                 <p class="text-muted mb-3">
                                     GitHub Personal Access Tokenを設定すると、すべてのユーザー操作時に自動でデータがバックアップされます。<br>
                                     <strong>対象データ:</strong> AI学習データ、ワードフィルター、フィルター状態、記事操作（評価・既読・後で読む）
                                 </p>
-                                <div class="modal-actions">
-                                    <input type="password" id="githubToken" placeholder="GitHub Personal Access Token" 
-                                           class="filter-select" style="margin-bottom: 0.5rem;">
-                                    
-                                    <!-- GistID表示・入力フィールド -->
-                                    <div style="margin: 0.5rem 0; padding: 0.5rem; background: #2d3748; border-radius: 4px; border-left: 3px solid var(--accent-blue);">
-                                        <label for="gistIdInput" style="font-size: 0.9rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">
-                                            Gist ID（デバイス間共有用）:
-                                        </label>
-                                        <input type="text" id="gistIdInput" placeholder="既存のGist IDを入力（他デバイスと共有する場合）" 
-                                               class="filter-select" style="margin-bottom: 0.3rem; font-family: monospace; font-size: 0.8rem;"
-                                               value="${window.GistSyncManager?.gistId || ''}">
-                                        <div style="font-size: 0.8rem; color: #9ca3af;">
-                                            ${window.GistSyncManager?.gistId ? 
-                                                `現在のGist ID: ${window.GistSyncManager.gistId}` : 
-                                                'Gist IDが設定されていません'}
+                                
+                                <!-- 🔥 設定状態に応じた条件分岐表示 -->
+                                ${window.GistSyncManager?.isEnabled ? `
+                                    <!-- 設定済みの場合：設定解除と管理機能 -->
+                                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
+                                        <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">
+                                            GitHub同期は既に設定済みです。設定を変更する場合は、先に現在の設定を解除してください。
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">
+                                                🗑️ 設定を解除
+                                            </button>
+                                            <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">
+                                                📋 Gist IDコピー
+                                            </button>
                                         </div>
                                     </div>
                                     
-                                    <button class="action-btn success" onclick="handleSaveGitHubToken()">
-                                        GitHub同期を有効化
-                                    </button>
-                                    <button class="action-btn" onclick="handleSyncToCloud()">
-                                        手動バックアップ
-                                    </button>
-                                    <button class="action-btn" onclick="handleSyncFromCloud()">
-                                        クラウドから復元
-                                    </button>
-                                    <button class="action-btn" onclick="handleSyncDiagnostic()" style="background: #ff9800;">
-                                        🔍 同期診断テスト
-                                    </button>
-                                </div>
+                                    <div class="modal-actions">
+                                        <button class="action-btn" onclick="handleSyncToCloud()">
+                                            手動バックアップ
+                                        </button>
+                                        <button class="action-btn" onclick="handleSyncFromCloud()">
+                                            クラウドから復元
+                                        </button>
+                                        <button class="action-btn" onclick="handleSyncDiagnostic()" style="background: #ff9800;">
+                                            🔍 同期診断テスト
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <!-- 未設定の場合：新規設定フォーム -->
+                                    <div class="modal-actions">
+                                        <div style="margin-bottom: 1rem;">
+                                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
+                                                GitHub Personal Access Token
+                                            </label>
+                                            <input type="password" id="githubToken" placeholder="GitHub Personal Access Tokenを入力" 
+                                                   class="filter-select" style="width: 100%;">
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: #1e3a8a; border-radius: 6px; border-left: 4px solid #3b82f6;">
+                                            <div style="font-weight: 600; color: #93c5fd; margin-bottom: 0.5rem;">
+                                                📱 他のデバイスとの同期（任意）
+                                            </div>
+                                            <div style="color: #dbeafe; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                                他のデバイスで既にGitHub同期を設定済みの場合は、そのGist IDを入力してください。
+                                            </div>
+                                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #93c5fd; font-size: 0.9rem;">
+                                                既存のGist ID（任意）
+                                            </label>
+                                            <input type="text" id="gistIdInput" placeholder="既存のGist IDを入力（新規作成する場合は空欄）" 
+                                                   class="filter-select" style="width: 100%; font-family: monospace; font-size: 0.8rem;">
+                                        </div>
+                                        
+                                        <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">
+                                            🚀 GitHub同期を開始
+                                        </button>
+                                    </div>
+                                `}
+                                
                                 <div class="word-help" style="margin-top: 1rem;">
                                     <h4>完全自動同期について</h4>
                                     <ul>
+                                        <li><strong>設定状態表示:</strong> 一目で設定状況を確認可能</li>
                                         <li><strong>フィルター変更時:</strong> 表示モード・配信元フィルター変更</li>
                                         <li><strong>記事更新時:</strong> articles.json再読み込み</li>
                                         <li><strong>記事操作時:</strong> 評価・既読切替・後で読む切替・タイトルクリック</li>
                                         <li><strong>ワード操作時:</strong> 興味ワード・NGワードの追加削除</li>
                                         <li><strong>診断テスト:</strong> 同期できない場合は診断テストで問題を特定</li>
-                                        <li><strong>Rate Limit:</strong> GitHub API制限（認証済み5000回/時間）</li>
+                                        <li><strong>設定管理:</strong> 設定解除・Gist IDコピー機能</li>
                                         <li><strong>セキュリティ:</strong> プライベートGistで安全に保存</li>
                                         <li><strong>デバイス共有:</strong> 同じGist IDで複数デバイス同期</li>
                                     </ul>
@@ -958,7 +1086,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（GitHub Gist完全自動同期・診断機能付き）
+                                        GitHub Actions対応版（GitHub Gist同期設定UI改善完全版）
                                     </p>
                                 </div>
                             </div>
