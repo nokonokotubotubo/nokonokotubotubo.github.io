@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（GitHub Gist同期診断機能統合版）
+// Minews PWA - データ管理・処理レイヤー（詳細デバッグ機能付き完全統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// GitHub Gist API連携システム（診断機能強化版）
+// GitHub Gist API連携システム（詳細デバッグ機能付き）
 // ===========================================
 
 window.GistSyncManager = {
@@ -85,7 +85,8 @@ window.GistSyncManager = {
             localStorage.setItem('minews_gist_config', JSON.stringify({
                 encryptedToken: token ? this._encrypt(token) : null,
                 gistId: gistId,
-                isEnabled: this.isEnabled
+                isEnabled: this.isEnabled,
+                configuredAt: new Date().toISOString()
             }));
         } catch (error) {
             console.warn('Gist設定の保存に失敗:', error);
@@ -111,7 +112,8 @@ window.GistSyncManager = {
                 return {
                     hasToken: !!this.token,
                     gistId: parsed.gistId,
-                    isEnabled: this.isEnabled
+                    isEnabled: this.isEnabled,
+                    configuredAt: parsed.configuredAt
                 };
             }
         } catch (error) {
@@ -120,7 +122,70 @@ window.GistSyncManager = {
         return null;
     },
     
-    // 🔥 自動同期メイン関数
+    // 設定削除機能
+    clearConfig() {
+        try {
+            this.token = null;
+            this.gistId = null;
+            this.isEnabled = false;
+            this.lastSyncTime = null;
+            
+            localStorage.removeItem('minews_gist_config');
+            
+            console.log('GitHub同期設定を削除しました');
+            return true;
+        } catch (error) {
+            console.error('設定削除に失敗:', error);
+            return false;
+        }
+    },
+    
+    // 設定状態取得機能
+    getConfigStatus() {
+        const config = this.loadConfig();
+        if (!config) {
+            return {
+                isConfigured: false,
+                hasToken: false,
+                hasGistId: false,
+                configuredAt: null
+            };
+        }
+        
+        return {
+            isConfigured: config.hasToken,
+            hasToken: config.hasToken,
+            hasGistId: !!config.gistId,
+            gistId: config.gistId,
+            configuredAt: config.configuredAt || null,
+            lastSyncTime: this.lastSyncTime
+        };
+    },
+    
+    // Gist ID単体設定機能（2代目デバイス用）
+    setGistId(gistId) {
+        try {
+            if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
+                throw new Error('無効なGist ID形式です');
+            }
+            
+            this.gistId = gistId;
+            
+            // 既存設定を取得して更新
+            const config = this.loadConfig() || {};
+            config.gistId = gistId;
+            
+            localStorage.setItem('minews_gist_config', JSON.stringify(config));
+            
+            console.log('Gist IDを設定しました:', gistId);
+            return true;
+        } catch (error) {
+            console.error('Gist ID設定に失敗:', error);
+            return false;
+        }
+    },
+    
+    // 自動同期メイン関数
     async autoSync(triggerType = 'manual') {
         if (!this.isEnabled || this.isSyncing || !this.token) {
             return { success: false, reason: 'disabled_or_syncing' };
@@ -151,7 +216,7 @@ window.GistSyncManager = {
         } catch (error) {
             console.error(`❌ 自動同期失敗 (${triggerType}):`, error);
             
-            // 🔥 エラー通知を表示
+            // エラー通知を表示
             this.showSyncNotification(
                 `同期エラー: ${this.getErrorMessage(error)}`, 
                 'error'
@@ -180,7 +245,7 @@ window.GistSyncManager = {
         };
     },
     
-    // 🔥 強化版エラーメッセージとデバッグ情報
+    // 強化版エラーメッセージとデバッグ情報
     getErrorMessage(error, includeDebugInfo = false) {
         let message = '';
         let debugInfo = {};
@@ -234,7 +299,7 @@ window.GistSyncManager = {
         return message;
     },
     
-    // 🔥 詳細同期テスト機能
+    // 詳細同期テスト機能
     async testSync() {
         console.log('🔍 GitHub Gist同期テスト開始');
         const testResults = {
@@ -269,7 +334,9 @@ window.GistSyncManager = {
             const rateLimitHeaders = {
                 limit: response.headers.get('X-RateLimit-Limit'),
                 remaining: response.headers.get('X-RateLimit-Remaining'),
-                reset: response.headers.get('X-RateLimit-Reset')
+                reset: response.headers.get('X-RateLimit-Reset'),
+                resetTime: response.headers.get('X-RateLimit-Reset') ? 
+                    new Date(parseInt(response.headers.get('X-RateLimit-Reset')) * 1000).toLocaleString('ja-JP') : null
             };
             
             testResults.tests.push({
@@ -278,9 +345,7 @@ window.GistSyncManager = {
                 details: {
                     httpStatus: response.status,
                     statusText: response.statusText,
-                    rateLimit: rateLimitHeaders,
-                    resetTime: rateLimitHeaders.reset ? 
-                        new Date(parseInt(rateLimitHeaders.reset) * 1000).toLocaleString('ja-JP') : null
+                    rateLimit: rateLimitHeaders
                 }
             });
             
@@ -342,12 +407,19 @@ window.GistSyncManager = {
         return testResults;
     },
     
-    // クラウド同期（アップロード）
+    // 🔥 詳細デバッグ機能付きクラウド同期（アップロード）
     async syncToCloud(data) {
-        if (!this.token) return false;
+        if (!this.token) {
+            console.error('❌ syncToCloud: トークンが設定されていません');
+            return false;
+        }
+        
+        console.log('🔄 syncToCloud: 開始');
+        console.log(`📊 送信データサイズ: ${JSON.stringify(data).length}文字`);
+        console.log(`🎯 対象Gist ID: ${this.gistId || '新規作成'}`);
         
         const payload = {
-            description: "Minews User Data Backup (Auto Sync)",
+            description: `Minews User Data Backup - ${new Date().toLocaleString('ja-JP')}`,
             public: false,
             files: {
                 "minews_data.json": {
@@ -356,29 +428,105 @@ window.GistSyncManager = {
             }
         };
         
+        console.log('📦 送信ペイロード概要:', {
+            description: payload.description,
+            public: payload.public,
+            fileCount: Object.keys(payload.files).length,
+            contentLength: payload.files['minews_data.json'].content.length
+        });
+        
         const url = this.gistId 
             ? `https://api.github.com/gists/${this.gistId}`
             : 'https://api.github.com/gists';
             
-        const response = await fetch(url, {
-            method: this.gistId ? 'PATCH' : 'POST',
-            headers: {
-                'Authorization': `token ${this.token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
+        const method = this.gistId ? 'PATCH' : 'POST';
+        console.log(`🌐 HTTPリクエスト: ${method} ${url}`);
         
-        if (response.ok) {
-            const result = await response.json();
-            if (!this.gistId) {
-                this.gistId = result.id;
-                // GistIDを設定に保存
-                this.saveGistId(result.id);
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            console.log(`📡 レスポンス: ${response.status} ${response.statusText}`);
+            
+            // レスポンスヘッダーの詳細確認
+            const rateLimitHeaders = {
+                limit: response.headers.get('X-RateLimit-Limit'),
+                remaining: response.headers.get('X-RateLimit-Remaining'),
+                reset: response.headers.get('X-RateLimit-Reset')
+            };
+            console.log('📊 Rate Limit情報:', rateLimitHeaders);
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ syncToCloud: GitHub APIレスポンス成功');
+                console.log(`📁 Gist情報:`, {
+                    id: result.id,
+                    description: result.description,
+                    created_at: result.created_at,
+                    updated_at: result.updated_at,
+                    files: Object.keys(result.files)
+                });
+                
+                // 🔥 重要: Gist内容の実際の確認
+                if (result.files && result.files['minews_data.json']) {
+                    const actualContent = result.files['minews_data.json'].content;
+                    console.log(`📋 実際に保存されたデータサイズ: ${actualContent.length}文字`);
+                    
+                    try {
+                        const parsedContent = JSON.parse(actualContent);
+                        console.log('✅ 保存データ検証成功:', {
+                            version: parsedContent.version,
+                            syncTime: parsedContent.syncTime,
+                            hasAiLearning: !!parsedContent.aiLearning,
+                            hasWordFilters: !!parsedContent.wordFilters,
+                            aiLearningWordCount: parsedContent.aiLearning ? Object.keys(parsedContent.aiLearning.wordWeights || {}).length : 0
+                        });
+                    } catch (parseError) {
+                        console.error('❌ 保存データ解析エラー:', parseError);
+                        return false;
+                    }
+                } else {
+                    console.error('❌ minews_data.jsonファイルがレスポンスに含まれていません');
+                    return false;
+                }
+                
+                if (!this.gistId) {
+                    this.gistId = result.id;
+                    this.saveGistId(result.id);
+                    console.log(`🆕 新しいGist作成完了: ${result.id}`);
+                } else {
+                    console.log(`🔄 既存Gist更新完了: ${this.gistId}`);
+                }
+                
+                return true;
+            } else {
+                // エラーレスポンスの詳細取得
+                let errorDetails;
+                try {
+                    errorDetails = await response.json();
+                } catch {
+                    errorDetails = await response.text();
+                }
+                
+                console.error('❌ syncToCloud: GitHub APIエラー');
+                console.error(`   ステータス: ${response.status} ${response.statusText}`);
+                console.error(`   エラー詳細:`, errorDetails);
+                
+                return false;
             }
-            return true;
+        } catch (networkError) {
+            console.error('❌ syncToCloud: ネットワークエラー');
+            console.error(`   エラー: ${networkError.message}`);
+            console.error(`   スタック:`, networkError.stack);
+            return false;
         }
-        return false;
     },
     
     // クラウド同期（ダウンロード）
@@ -458,6 +606,7 @@ window.GistSyncManager = {
 // キャッシュシステム
 // ===========================================
 
+// キャッシュクリア機能のメモリリーク対策
 window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
