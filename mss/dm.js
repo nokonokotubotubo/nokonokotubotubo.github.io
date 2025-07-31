@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（詳細デバッグ機能付き完全統合版）
+// Minews PWA - データ管理・処理レイヤー（記事データ同期対応完全統合版）
 
 (function() {
 
@@ -232,16 +232,14 @@ window.GistSyncManager = {
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
+        const articlesHook = window.DataHooks.useArticles();
         
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: new Date().toISOString(),
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
-            filterState: {
-                viewMode: window.state?.viewMode || 'all',
-                selectedSource: window.state?.selectedSource || 'all'
-            }
+            articles: articlesHook.articles
         };
     },
     
@@ -486,6 +484,8 @@ window.GistSyncManager = {
                             syncTime: parsedContent.syncTime,
                             hasAiLearning: !!parsedContent.aiLearning,
                             hasWordFilters: !!parsedContent.wordFilters,
+                            hasArticles: !!parsedContent.articles,
+                            articlesCount: parsedContent.articles ? parsedContent.articles.length : 0,
                             aiLearningWordCount: parsedContent.aiLearning ? Object.keys(parsedContent.aiLearning.wordWeights || {}).length : 0
                         });
                     } catch (parseError) {
