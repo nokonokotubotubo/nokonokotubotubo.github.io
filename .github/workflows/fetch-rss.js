@@ -36,6 +36,11 @@ const Mecab = require('mecab-async');
 // MeCabセットアップ
 const mecab = new Mecab();
 
+// 🔧 修正: より安全なID生成関数を追加
+function generateUniqueId() {
+    return `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.random().toString(36).substr(2, 5)}`;
+}
+
 async function setupMecab() {
   console.log('🔍 MeCab辞書パス検索開始...');
   const possiblePaths = [
@@ -111,7 +116,7 @@ async function loadOPML() {
       if (folder.outline) {
         folder.outline.forEach(feed => {
           feeds.push({
-            id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: generateUniqueId(), // 🔧 修正: 安全なID生成を使用
             url: feed.$.xmlUrl,
             title: feed.$.title,
             folderId: feed.$.folderId || 'default-general',
@@ -293,7 +298,7 @@ if (articleDate > now) {
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
     const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
     return {
-      id: `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateUniqueId(), // 🔧 修正: 安全なID生成を使用
       title: title.trim(),
       url: link.trim(),
       content: cleanDescription,
@@ -482,26 +487,4 @@ async function main() {
     console.log(`\n🔍 デバッグサマリー:`);
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
-    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-  } catch (error) {
-    console.error('💥 main関数内でエラーが発生しました:', error);
-    console.error('エラー詳細:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    process.exit(1);
-  }
-}
-
-// 実行開始
-console.log('🚀 スクリプト実行開始');
-main().catch(error => {
-  console.error('💥 トップレベルエラー:', error);
-  console.error('エラー詳細:', {
-    name: error.name,
-    message: error.message,
-    stack: error.stack
-  });
-  process.exit(1);
-});
+    console.
