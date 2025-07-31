@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist API完全統合版 + ユーザー操作時自動同期対応）
+// Minews PWA - UI・表示レイヤー（GitHub Gist同期診断機能統合版）
 (function() {
     'use strict';
 
@@ -80,7 +80,7 @@
         window.state.articles = articlesData;
     };
 
-    // 🔥 Gist同期初期化関数を追加
+    // Gist同期初期化関数
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
@@ -143,10 +143,10 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数
+    // GitHub同期管理関数（診断機能付き）
     // ===========================================
 
-    // 🔥 GitHub同期管理関数
+    // GitHub同期管理関数
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -156,7 +156,7 @@
             return;
         }
         
-        // 🔥 GistIDの検証と設定
+        // GistIDの検証と設定
         if (gistId) {
             // GistID形式の簡易検証（英数字とハイフン、30文字程度）
             if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
@@ -179,6 +179,7 @@
         window.GistSyncManager.showSyncNotification('GitHub同期が有効になりました', 'success');
     };
 
+    // 詳細診断機能付き手動同期
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('先にGitHub Personal Access Tokenを設定してください');
@@ -189,7 +190,16 @@
         if (result.success) {
             alert('データをクラウドに保存しました');
         } else {
-            alert('クラウドへの保存に失敗しました: ' + (result.error || result.reason));
+            const errorDetails = window.GistSyncManager.getErrorMessage(result.error || new Error(result.reason), true);
+            let message = `クラウドへの保存に失敗しました\n\n`;
+            message += `エラー: ${errorDetails.message}\n`;
+            if (errorDetails.debugInfo.suggestion) {
+                message += `対処法: ${errorDetails.debugInfo.suggestion}\n`;
+            }
+            if (errorDetails.debugInfo.rateLimitInfo) {
+                message += `\n制限情報: ${errorDetails.debugInfo.rateLimitInfo}`;
+            }
+            alert(message);
         }
     };
 
@@ -228,6 +238,43 @@
             window.render();
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
+        }
+    };
+
+    // 同期診断テスト機能
+    window.handleSyncDiagnostic = async () => {
+        if (!window.GistSyncManager.isEnabled) {
+            alert('先にGitHub Personal Access Tokenを設定してください');
+            return;
+        }
+        
+        try {
+            const testResults = await window.GistSyncManager.testSync();
+            
+            let message = '📋 GitHub Gist同期診断結果\n\n';
+            testResults.tests.forEach((test, index) => {
+                const status = test.status === 'pass' ? '✅' : '❌';
+                message += `${index + 1}. ${status} ${test.name}\n`;
+                
+                if (test.details) {
+                    Object.entries(test.details).forEach(([key, value]) => {
+                        if (typeof value === 'object') {
+                            message += `   ${key}: ${JSON.stringify(value, null, 2)}\n`;
+                        } else {
+                            message += `   ${key}: ${value}\n`;
+                        }
+                    });
+                }
+                message += '\n';
+            });
+            
+            // 診断結果をコンソールにも出力
+            console.log('🔍 GitHub Gist同期診断結果:', testResults);
+            
+            alert(message);
+            
+        } catch (error) {
+            alert(`診断テストでエラーが発生しました: ${error.message}`);
         }
     };
 
@@ -328,9 +375,8 @@
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
         
-        // 🔥 自動同期トリガー追加（エラー通知なし、内部で処理）
+        // 自動同期トリガー追加
         if (window.GistSyncManager?.isEnabled) {
-            // autoSync内部でエラー通知を行うため、ここではcatchは不要
             window.GistSyncManager.autoSync('filter_change');
         }
     };
@@ -338,9 +384,8 @@
     const handleSourceChange = (sourceId) => {
         setState({ selectedSource: sourceId });
         
-        // 🔥 自動同期トリガー追加（エラー通知なし、内部で処理）
+        // 自動同期トリガー追加
         if (window.GistSyncManager?.isEnabled) {
-            // autoSync内部でエラー通知を行うため、ここではcatchは不要
             window.GistSyncManager.autoSync('source_change');
         }
     };
@@ -357,7 +402,7 @@
                 lastUpdate: new Date()
             });
             
-            // 🔥 記事更新後の自動同期
+            // 記事更新後の自動同期
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.autoSync('article_update');
             }
@@ -407,7 +452,7 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
-                // 🔥 既読切替後の自動同期
+                // 既読切替後の自動同期
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.autoSync('article_read_toggle');
                 }
@@ -418,7 +463,7 @@
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                     
-                    // 🔥 タイトルクリック既読化後の自動同期
+                    // タイトルクリック既読化後の自動同期
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.autoSync('article_title_read');
                     }
@@ -439,7 +484,7 @@
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
-                // 🔥 後で読む切替後の自動同期
+                // 後で読む切替後の自動同期
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.autoSync('article_read_later');
                 }
@@ -465,7 +510,7 @@
                             stars.forEach(star => star.classList.remove('filled'));
                         }
 
-                        // 🔥 評価キャンセル後の自動同期
+                        // 評価キャンセル後の自動同期
                         if (window.GistSyncManager?.isEnabled) {
                             window.GistSyncManager.autoSync('article_rating');
                         }
@@ -498,7 +543,7 @@
                         });
                     }
 
-                    // 🔥 評価設定後の自動同期
+                    // 評価設定後の自動同期
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.autoSync('article_rating');
                     }
@@ -534,6 +579,11 @@
 
         if (success) {
             window.render();
+            
+            // ワード追加後の自動同期
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.autoSync('word_add');
+            }
         } else {
             alert('そのワードは既に登録されています');
         }
@@ -549,6 +599,11 @@
 
         if (success) {
             window.render();
+            
+            // ワード削除後の自動同期
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.autoSync('word_remove');
+            }
         }
     };
 
@@ -773,17 +828,17 @@
                             <h3 class="group-title">クラウド同期</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
-                                    <h3>GitHub自動同期設定</h3>
+                                    <h3>GitHub同期設定</h3>
                                 </div>
                                 <p class="text-muted mb-3">
                                     GitHub Personal Access Tokenを設定すると、すべてのユーザー操作時に自動でデータがバックアップされます。<br>
-                                    <strong>自動同期対象:</strong> AI学習データ、ワードフィルター、フィルター状態、記事操作（評価・既読・後で読む）
+                                    <strong>対象データ:</strong> AI学習データ、ワードフィルター、フィルター状態、記事操作（評価・既読・後で読む）
                                 </p>
                                 <div class="modal-actions">
                                     <input type="password" id="githubToken" placeholder="GitHub Personal Access Token" 
                                            class="filter-select" style="margin-bottom: 0.5rem;">
                                     
-                                    <!-- 🔥 GistID表示・入力フィールドを追加 -->
+                                    <!-- GistID表示・入力フィールド -->
                                     <div style="margin: 0.5rem 0; padding: 0.5rem; background: #2d3748; border-radius: 4px; border-left: 3px solid var(--accent-blue);">
                                         <label for="gistIdInput" style="font-size: 0.9rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">
                                             Gist ID（デバイス間共有用）:
@@ -799,13 +854,16 @@
                                     </div>
                                     
                                     <button class="action-btn success" onclick="handleSaveGitHubToken()">
-                                        自動同期を有効化
+                                        GitHub同期を有効化
                                     </button>
                                     <button class="action-btn" onclick="handleSyncToCloud()">
                                         手動バックアップ
                                     </button>
                                     <button class="action-btn" onclick="handleSyncFromCloud()">
                                         クラウドから復元
+                                    </button>
+                                    <button class="action-btn" onclick="handleSyncDiagnostic()" style="background: #ff9800;">
+                                        🔍 同期診断テスト
                                     </button>
                                 </div>
                                 <div class="word-help" style="margin-top: 1rem;">
@@ -814,10 +872,11 @@
                                         <li><strong>フィルター変更時:</strong> 表示モード・配信元フィルター変更</li>
                                         <li><strong>記事更新時:</strong> articles.json再読み込み</li>
                                         <li><strong>記事操作時:</strong> 評価・既読切替・後で読む切替・タイトルクリック</li>
-                                        <li><strong>リアルタイム同期:</strong> すべての操作が即座にクラウドに保存</li>
-                                        <li><strong>軽量設計:</strong> 同期は3秒程度で完了</li>
-                                        <li><strong>プライベート:</strong> GitHubのプライベートGistに保存</li>
-                                        <li><strong>デバイス間共有:</strong> 同じGist IDで複数デバイス間のデータ同期</li>
+                                        <li><strong>ワード操作時:</strong> 興味ワード・NGワードの追加削除</li>
+                                        <li><strong>診断テスト:</strong> 同期できない場合は診断テストで問題を特定</li>
+                                        <li><strong>Rate Limit:</strong> GitHub API制限（認証済み5000回/時間）</li>
+                                        <li><strong>セキュリティ:</strong> プライベートGistで安全に保存</li>
+                                        <li><strong>デバイス共有:</strong> 同じGist IDで複数デバイス同期</li>
                                     </ul>
                                 </div>
                             </div>
@@ -899,7 +958,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Actions対応版（GitHub Gist完全自動同期機能付き）
+                                        GitHub Actions対応版（GitHub Gist完全自動同期・診断機能付き）
                                     </p>
                                 </div>
                             </div>
@@ -937,7 +996,7 @@
             </div>
         `;
 
-        // 🔧 修正済み: 星評価のイベントリスナー設定（重複防止）
+        // 星評価のイベントリスナー設定（重複防止）
         if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
@@ -968,12 +1027,12 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
-            initializeGistSync(); // 🔥 追加
+            initializeGistSync();
             window.render();
         });
     } else {
         initializeData();
-        initializeGistSync(); // 🔥 追加
+        initializeGistSync();
         window.render();
     }
 
