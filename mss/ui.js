@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（GitHub Gist同期シンプル化完全統合版）
+// Minews PWA - UI・表示レイヤー（記事状態情報同期対応完全統合版）
 (function() {
     'use strict';
 
@@ -134,7 +134,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（シンプル化版）
+    // GitHub同期管理関数（記事状態情報同期対応版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -180,7 +180,7 @@
         }
     };
 
-    // シンプル化されたクラウド復元処理
+    // 記事状態情報同期対応版クラウド復元処理
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -206,11 +206,31 @@
                 window.DataHooksCache.clear('wordFilters');
             }
             
-            // 記事データの復元（既読・評価・後で読む状態を含む）
-            if (cloudData.articles) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, cloudData.articles);
+            // 記事状態情報の復元（既読・評価・後で読む状態のみ）
+            if (cloudData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                // 現在の記事データに状態情報を適用
+                const updatedArticles = currentArticles.map(article => {
+                    const state = cloudData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus,
+                            userRating: state.userRating,
+                            readLater: state.readLater
+                        };
+                    }
+                    return article;
+                });
+                
+                // 更新された記事データを保存
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.clear('articles');
-                window.state.articles = cloudData.articles;
+                window.state.articles = updatedArticles;
+                
+                console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
             }
             
             alert('クラウドからデータを復元しました');
@@ -939,7 +959,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        GitHub Gist同期シンプル化版
+                                        記事状態情報同期対応版
                                     </p>
                                 </div>
                             </div>
