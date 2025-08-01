@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（記事状態情報同期対応完全統合版）
+// Minews PWA - データ管理・処理レイヤー（同期キュー・デバウンス機能完全統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// GitHub Gist API連携システム（詳細デバッグ機能付き）
+// GitHub Gist API連携システム（同期キュー・デバウンス機能付き）
 // ===========================================
 
 window.GistSyncManager = {
@@ -48,6 +48,11 @@ window.GistSyncManager = {
     isEnabled: false,
     isSyncing: false,
     lastSyncTime: null,
+    
+    // 同期キュー管理機能追加
+    syncQueue: [],
+    syncTimer: null,
+    lastSyncRequest: null,
     
     // 簡易暗号化機能（XOR ベース）
     _encrypt(text, key = 'minews_secret_key') {
@@ -185,44 +190,123 @@ window.GistSyncManager = {
         }
     },
     
-    // 自動同期メイン関数
+    // 強化版自動同期（キュー・デバウンス機能付き）
     async autoSync(triggerType = 'manual') {
-        if (!this.isEnabled || this.isSyncing || !this.token) {
-            return { success: false, reason: 'disabled_or_syncing' };
+        if (!this.isEnabled || !this.token) {
+            return { success: false, reason: 'disabled_or_not_configured' };
         }
         
-        console.log(`🔄 自動同期開始 (${triggerType})`);
+        // 手動同期の場合は即座に実行
+        if (triggerType === 'manual') {
+            return await this._executeSyncDirect(triggerType);
+        }
+        
+        // 自動同期の場合はキュー処理
+        return await this._enqueueSyncRequest(triggerType);
+    },
+
+    // 直接同期実行（手動同期用）
+    async _executeSyncDirect(triggerType) {
+        if (this.isSyncing) {
+            return { success: false, reason: 'already_syncing' };
+        }
+        
+        console.log(`🔄 直接同期開始 (${triggerType})`);
         this.isSyncing = true;
         
         try {
-            // 同期対象データを収集
             const syncData = this.collectSyncData();
             const result = await this.syncToCloud(syncData);
             
             if (result) {
                 this.lastSyncTime = new Date().toISOString();
-                console.log(`✅ 自動同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
+                console.log(`✅ 直接同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
                 
-                // 同期成功の軽微な通知（必要に応じて）
-                if (triggerType === 'manual') {
-                    this.showSyncNotification(
-                        `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
-                        'success'
-                    );
-                }
+                // 手動同期の通知
+                this.showSyncNotification(
+                    `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
+                    'success'
+                );
             }
             
             return { success: result, triggerType };
         } catch (error) {
-            console.error(`❌ 自動同期失敗 (${triggerType}):`, error);
+            console.error(`❌ 直接同期失敗 (${triggerType}):`, error);
             
-            // エラー通知を表示
             this.showSyncNotification(
                 `同期エラー: ${this.getErrorMessage(error)}`, 
                 'error'
             );
             
             return { success: false, error: error.message, triggerType };
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
+    // キュー処理機能（デバウンス付き）
+    async _enqueueSyncRequest(triggerType) {
+        // 同期要求をキューに追加
+        this.syncQueue.push({
+            triggerType,
+            timestamp: Date.now()
+        });
+        
+        this.lastSyncRequest = Date.now();
+        
+        // デバウンス処理：500ms以内の連続要求をまとめる
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+        
+        return new Promise((resolve) => {
+            this.syncTimer = setTimeout(async () => {
+                const result = await this._processSyncQueue();
+                resolve(result);
+            }, 500); // 500ms待機
+        });
+    },
+
+    // 同期キュー処理
+    async _processSyncQueue() {
+        if (this.syncQueue.length === 0 || this.isSyncing) {
+            return { success: false, reason: 'queue_empty_or_syncing' };
+        }
+        
+        // キューから同期種別を統合
+        const triggerTypes = [...new Set(this.syncQueue.map(q => q.triggerType))];
+        const queueCount = this.syncQueue.length;
+        
+        // キューをクリア
+        this.syncQueue = [];
+        this.syncTimer = null;
+        
+        console.log(`🔄 キュー同期開始 (${queueCount}件: ${triggerTypes.join(', ')})`);
+        
+        this.isSyncing = true;
+        
+        try {
+            const syncData = this.collectSyncData();
+            const result = await this.syncToCloud(syncData);
+            
+            if (result) {
+                this.lastSyncTime = new Date().toISOString();
+                console.log(`✅ キュー同期完了 (${triggerTypes.join(', ')}) - Gist ID: ${this.gistId}`);
+            }
+            
+            return { 
+                success: result, 
+                triggerType: triggerTypes.join(', '),
+                queueProcessed: queueCount
+            };
+        } catch (error) {
+            console.error(`❌ キュー同期失敗 (${triggerTypes.join(', ')}):`, error);
+            return { 
+                success: false, 
+                error: error.message, 
+                triggerType: triggerTypes.join(', '),
+                queueProcessed: queueCount
+            };
         } finally {
             this.isSyncing = false;
         }
@@ -415,7 +499,7 @@ window.GistSyncManager = {
         return testResults;
     },
     
-    // 🔥 詳細デバッグ機能付きクラウド同期（アップロード）
+    // 詳細デバッグ機能付きクラウド同期（アップロード）
     async syncToCloud(data) {
         if (!this.token) {
             console.error('❌ syncToCloud: トークンが設定されていません');
@@ -482,7 +566,7 @@ window.GistSyncManager = {
                     files: Object.keys(result.files)
                 });
                 
-                // 🔥 重要: Gist内容の実際の確認
+                // 重要: Gist内容の実際の確認
                 if (result.files && result.files['minews_data.json']) {
                     const actualContent = result.files['minews_data.json'].content;
                     console.log(`📋 実際に保存されたデータサイズ: ${actualContent.length}文字`);
