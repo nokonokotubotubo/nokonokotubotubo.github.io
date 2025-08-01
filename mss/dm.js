@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（記事データ同期対応完全統合版）
+// Minews PWA - データ管理・処理レイヤー（記事状態情報同期対応完全統合版）
 
 (function() {
 
@@ -228,18 +228,28 @@ window.GistSyncManager = {
         }
     },
     
-    // 同期対象データ収集
+    // 同期対象データ収集（記事状態情報のみ）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
+        
+        // 記事の状態情報のみを抽出
+        const articleStates = {};
+        articlesHook.articles.forEach(article => {
+            articleStates[article.id] = {
+                readStatus: article.readStatus,
+                userRating: article.userRating || 0,
+                readLater: article.readLater || false
+            };
+        });
         
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: new Date().toISOString(),
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
-            articles: articlesHook.articles
+            articleStates: articleStates
         };
     },
     
@@ -484,8 +494,8 @@ window.GistSyncManager = {
                             syncTime: parsedContent.syncTime,
                             hasAiLearning: !!parsedContent.aiLearning,
                             hasWordFilters: !!parsedContent.wordFilters,
-                            hasArticles: !!parsedContent.articles,
-                            articlesCount: parsedContent.articles ? parsedContent.articles.length : 0,
+                            hasArticleStates: !!parsedContent.articleStates,
+                            articleStatesCount: parsedContent.articleStates ? Object.keys(parsedContent.articleStates).length : 0,
                             aiLearningWordCount: parsedContent.aiLearning ? Object.keys(parsedContent.aiLearning.wordWeights || {}).length : 0
                         });
                     } catch (parseError) {
