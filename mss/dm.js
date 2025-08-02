@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（同期キュー・デバウンス機能完全統合版）
+// Minews PWA - データ管理・処理レイヤー（タイムスタンプ比較方式完全統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// GitHub Gist API連携システム（同期キュー・デバウンス機能付き）
+// GitHub Gist API連携システム（タイムスタンプ比較方式）
 // ===========================================
 
 window.GistSyncManager = {
@@ -49,10 +49,8 @@ window.GistSyncManager = {
     isSyncing: false,
     lastSyncTime: null,
     
-    // 同期キュー管理機能追加
-    syncQueue: [],
-    syncTimer: null,
-    lastSyncRequest: null,
+    // タイムスタンプ比較方式用プロパティ
+    lastCloudTimestamp: null,
     
     // 簡易暗号化機能（XOR ベース）
     _encrypt(text, key = 'minews_secret_key') {
@@ -114,11 +112,14 @@ window.GistSyncManager = {
                 }
                 
                 this.gistId = parsed.gistId;
+                this.lastCloudTimestamp = parsed.lastCloudTimestamp || null;
+                
                 return {
                     hasToken: !!this.token,
                     gistId: parsed.gistId,
                     isEnabled: this.isEnabled,
-                    configuredAt: parsed.configuredAt
+                    configuredAt: parsed.configuredAt,
+                    lastCloudTimestamp: this.lastCloudTimestamp
                 };
             }
         } catch (error) {
@@ -134,6 +135,7 @@ window.GistSyncManager = {
             this.gistId = null;
             this.isEnabled = false;
             this.lastSyncTime = null;
+            this.lastCloudTimestamp = null;
             
             localStorage.removeItem('minews_gist_config');
             
@@ -190,125 +192,153 @@ window.GistSyncManager = {
         }
     },
     
-    // 強化版自動同期（キュー・デバウンス機能付き）
+    // タイムスタンプ比較方式自動同期
     async autoSync(triggerType = 'manual') {
         if (!this.isEnabled || !this.token) {
             return { success: false, reason: 'disabled_or_not_configured' };
         }
         
-        // 手動同期の場合は即座に実行
-        if (triggerType === 'manual') {
-            return await this._executeSyncDirect(triggerType);
-        }
-        
-        // 自動同期の場合はキュー処理
-        return await this._enqueueSyncRequest(triggerType);
-    },
-
-    // 直接同期実行（手動同期用）
-    async _executeSyncDirect(triggerType) {
+        // 最小限の排他制御
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        console.log(`🔄 直接同期開始 (${triggerType})`);
+        console.log(`🔄 タイムスタンプ比較同期開始 (${triggerType})`);
         this.isSyncing = true;
         
         try {
+            // Step 1: クラウドタイムスタンプチェック
+            const cloudTimestamp = await this._getCloudTimestamp();
+            
+            // Step 2: 必要に応じてクラウドから取得
+            if (cloudTimestamp && cloudTimestamp > this.lastSyncTime) {
+                console.log('🔽 新しいクラウドデータを検出、取得・マージを実行');
+                await this._pullAndMergeFromCloud();
+            } else {
+                console.log('📅 ローカルデータが最新、クラウド取得をスキップ');
+            }
+            
+            // Step 3: クラウドに送信
             const syncData = this.collectSyncData();
             const result = await this.syncToCloud(syncData);
             
             if (result) {
                 this.lastSyncTime = new Date().toISOString();
-                console.log(`✅ 直接同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
+                this.lastCloudTimestamp = cloudTimestamp;
+                console.log(`✅ タイムスタンプ比較同期完了 (${triggerType}) - Gist ID: ${this.gistId}`);
                 
                 // 手動同期の通知
+                if (triggerType === 'manual') {
+                    this.showSyncNotification(
+                        `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
+                        'success'
+                    );
+                }
+            }
+            
+            return { success: result, triggerType, method: 'timestamp_comparison' };
+        } catch (error) {
+            console.error(`❌ タイムスタンプ比較同期失敗 (${triggerType}):`, error);
+            
+            if (triggerType === 'manual') {
                 this.showSyncNotification(
-                    `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
-                    'success'
+                    `同期エラー: ${this.getErrorMessage(error)}`, 
+                    'error'
                 );
             }
             
-            return { success: result, triggerType };
-        } catch (error) {
-            console.error(`❌ 直接同期失敗 (${triggerType}):`, error);
-            
-            this.showSyncNotification(
-                `同期エラー: ${this.getErrorMessage(error)}`, 
-                'error'
-            );
-            
-            return { success: false, error: error.message, triggerType };
+            return { success: false, error: error.message, triggerType, method: 'timestamp_comparison' };
         } finally {
             this.isSyncing = false;
         }
     },
 
-    // キュー処理機能（デバウンス付き）
-    async _enqueueSyncRequest(triggerType) {
-        // 同期要求をキューに追加
-        this.syncQueue.push({
-            triggerType,
-            timestamp: Date.now()
-        });
-        
-        this.lastSyncRequest = Date.now();
-        
-        // デバウンス処理：500ms以内の連続要求をまとめる
-        if (this.syncTimer) {
-            clearTimeout(this.syncTimer);
-        }
-        
-        return new Promise((resolve) => {
-            this.syncTimer = setTimeout(async () => {
-                const result = await this._processSyncQueue();
-                resolve(result);
-            }, 500); // 500ms待機
-        });
-    },
-
-    // 同期キュー処理
-    async _processSyncQueue() {
-        if (this.syncQueue.length === 0 || this.isSyncing) {
-            return { success: false, reason: 'queue_empty_or_syncing' };
-        }
-        
-        // キューから同期種別を統合
-        const triggerTypes = [...new Set(this.syncQueue.map(q => q.triggerType))];
-        const queueCount = this.syncQueue.length;
-        
-        // キューをクリア
-        this.syncQueue = [];
-        this.syncTimer = null;
-        
-        console.log(`🔄 キュー同期開始 (${queueCount}件: ${triggerTypes.join(', ')})`);
-        
-        this.isSyncing = true;
+    // クラウドタイムスタンプ取得（軽量なGETリクエスト）
+    async _getCloudTimestamp() {
+        if (!this.token || !this.gistId) return null;
         
         try {
-            const syncData = this.collectSyncData();
-            const result = await this.syncToCloud(syncData);
+            console.log('📡 クラウドタイムスタンプ取得中...');
             
-            if (result) {
-                this.lastSyncTime = new Date().toISOString();
-                console.log(`✅ キュー同期完了 (${triggerTypes.join(', ')}) - Gist ID: ${this.gistId}`);
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (response.ok) {
+                const gist = await response.json();
+                const updatedAt = gist.updated_at;
+                console.log(`📅 クラウドタイムスタンプ: ${updatedAt}`);
+                return updatedAt;
+            } else {
+                console.warn(`⚠️ タイムスタンプ取得失敗: ${response.status}`);
+                return null;
+            }
+        } catch (error) {
+            console.warn('⚠️ タイムスタンプ取得エラー:', error);
+            return null;
+        }
+    },
+
+    // クラウドデータ取得・マージ処理
+    async _pullAndMergeFromCloud() {
+        try {
+            console.log('🔽 クラウドデータ取得・マージ開始');
+            
+            const cloudData = await this.syncFromCloud();
+            if (!cloudData) {
+                console.log('📭 クラウドデータ取得失敗');
+                return false;
             }
             
-            return { 
-                success: result, 
-                triggerType: triggerTypes.join(', '),
-                queueProcessed: queueCount
-            };
+            // AI学習データのマージ
+            if (cloudData.aiLearning) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
+                window.DataHooksCache.clear('aiLearning');
+            }
+            
+            // ワードフィルターのマージ
+            if (cloudData.wordFilters) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+                window.DataHooksCache.clear('wordFilters');
+            }
+            
+            // 記事状態情報のマージ
+            if (cloudData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                const updatedArticles = currentArticles.map(article => {
+                    const state = cloudData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus,
+                            userRating: state.userRating,
+                            readLater: state.readLater
+                        };
+                    }
+                    return article;
+                });
+                
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+                window.DataHooksCache.clear('articles');
+                window.state.articles = updatedArticles;
+                
+                // UI更新が必要な場合
+                if (window.render && window.state.showModal !== 'settings') {
+                    window.render();
+                }
+            }
+            
+            console.log('✅ クラウドデータマージ完了');
+            return true;
         } catch (error) {
-            console.error(`❌ キュー同期失敗 (${triggerTypes.join(', ')}):`, error);
-            return { 
-                success: false, 
-                error: error.message, 
-                triggerType: triggerTypes.join(', '),
-                queueProcessed: queueCount
-            };
-        } finally {
-            this.isSyncing = false;
+            console.error('❌ クラウドデータ取得・マージ失敗:', error);
+            return false;
         }
     },
     
