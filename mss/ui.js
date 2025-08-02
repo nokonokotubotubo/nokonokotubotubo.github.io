@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（記事状態情報同期対応完全統合版）
+// Minews PWA - UI・表示レイヤー（タイムスタンプ比較方式対応シンプル化完全統合版）
 (function() {
     'use strict';
 
@@ -131,6 +131,22 @@
                 default: return char;
             }
         });
+    };
+
+    // 最終同期日時フォーマット関数（シンプル版）
+    const formatLastSyncTime = (isoString) => {
+        try {
+            const date = new Date(isoString);
+            return date.toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric'
+            });
+        } catch (error) {
+            return '日時不明';
+        }
     };
 
     // ===========================================
@@ -546,7 +562,7 @@
     };
 
     // ===========================================
-    // モーダル管理
+    // モーダル管理（シンプル化版）
     // ===========================================
 
     const handleCloseModal = () => {
@@ -826,6 +842,9 @@
                                 <p class="text-muted mb-3">
                                     同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
                                     ${window.GistSyncManager?.gistId ? `Gist ID: ${window.GistSyncManager.gistId}` : ''}
+                                    ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
+                                        `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
+                                        ''}
                                 </p>
                                 
                                 <p class="text-muted mb-3">
@@ -959,7 +978,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        記事状態情報同期対応版
+                                        タイムスタンプ比較方式対応版
                                     </p>
                                 </div>
                             </div>
