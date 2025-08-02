@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（定期同期対応完全統合版）
+// Minews PWA - UI・表示レイヤー（initializeGistSync関数スコープ修正完全統合版）
 (function() {
     'use strict';
 
@@ -80,7 +80,7 @@
         window.state.articles = articlesData;
     };
 
-    // Gist同期初期化関数（定期同期開始対応）
+    // Gist同期初期化関数（定期同期開始対応、グローバル登録修正版）
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
@@ -91,6 +91,9 @@
             }
         }
     };
+
+    // グローバル関数として明示的に登録
+    window.initializeGistSync = initializeGistSync;
 
     // ===========================================
     // ユーティリティ関数
@@ -986,7 +989,8 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        定期同期方式対応版（1分間隔）
+                                        定期同期方式対応版（1分間隔）<br>
+                                        initializeGistSync関数スコープ修正版
                                     </p>
                                 </div>
                             </div>
@@ -1041,7 +1045,7 @@
     // 初期化
     // ===========================================
 
-    // グローバル関数をウィンドウに追加
+    // グローバル関数をウィンドウに追加（initializeGistSync追加）
     window.handleFilterChange = handleFilterChange;
     window.handleSourceChange = handleSourceChange;
     window.handleRefresh = handleRefresh;
@@ -1050,6 +1054,7 @@
     window.handleOpenModal = handleOpenModal;
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
+    window.initializeGistSync = initializeGistSync; // 明示的追加
 
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
