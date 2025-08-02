@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（タイムスタンプ比較方式対応シンプル化完全統合版）
+// Minews PWA - UI・表示レイヤー（定期同期対応完全統合版）
 (function() {
     'use strict';
 
@@ -80,12 +80,14 @@
         window.state.articles = articlesData;
     };
 
-    // Gist同期初期化関数
+    // Gist同期初期化関数（定期同期開始対応）
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
             if (config && config.hasToken) {
                 console.log('GitHub同期設定を復元しました');
+                // 定期同期の開始（1分間隔）
+                window.GistSyncManager.startPeriodicSync(60);
             }
         }
     };
@@ -150,7 +152,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（記事状態情報同期対応版）
+    // GitHub同期管理関数（定期同期対応版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -171,10 +173,10 @@
             }
             
             window.GistSyncManager.init(token, gistId);
-            alert('GitHub同期設定を保存しました（既存のGist IDを使用）');
+            alert('GitHub同期設定を保存しました（既存のGist IDを使用）\n定期同期（1分間隔）が開始されました');
         } else {
             window.GistSyncManager.init(token, null);
-            alert('GitHub同期設定を保存しました（新しいGistを作成）');
+            alert('GitHub同期設定を保存しました（新しいGistを作成）\n定期同期（1分間隔）が開始されました');
         }
         
         document.getElementById('githubToken').value = '';
@@ -274,13 +276,18 @@
         }
     };
 
-    // 設定解除機能
+    // 設定解除機能（定期同期停止対応）
     window.handleClearGitHubSettings = () => {
-        if (!confirm('GitHub同期設定を解除しますか？')) {
+        if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) {
             return;
         }
         
         try {
+            // 定期同期を停止
+            if (window.GistSyncManager) {
+                window.GistSyncManager.stopPeriodicSync();
+            }
+            
             localStorage.removeItem('minews_gist_config');
             
             if (window.GistSyncManager) {
@@ -288,9 +295,10 @@
                 window.GistSyncManager.gistId = null;
                 window.GistSyncManager.isEnabled = false;
                 window.GistSyncManager.lastSyncTime = null;
+                window.GistSyncManager.pendingChanges = false;
             }
             
-            alert('GitHub同期設定を解除しました');
+            alert('GitHub同期設定を解除しました\n定期同期も停止されました');
             window.render();
         } catch (error) {
             alert('設定の解除に失敗しました: ' + error.message);
@@ -422,9 +430,9 @@
                 lastUpdate: new Date()
             });
             
-            // 記事更新後の自動同期
+            // 記事更新後の変更マーク設定（定期同期で処理される）
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('article_update');
+                window.GistSyncManager.markAsChanged();
             }
             
         } catch (error) {
@@ -435,7 +443,7 @@
     };
 
     // ===========================================
-    // 記事操作（自動同期対応）
+    // 記事操作（定期同期対応）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -467,9 +475,9 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
-                // 自動同期
+                // 変更マーク設定（定期同期で処理される）
                 if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.autoSync('user_action');
+                    window.GistSyncManager.markAsChanged();
                 }
                 break;
 
@@ -478,7 +486,7 @@
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                     
                     if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.autoSync('user_action');
+                        window.GistSyncManager.markAsChanged();
                     }
                 }
                 break;
@@ -496,9 +504,9 @@
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
-                // 自動同期
+                // 変更マーク設定（定期同期で処理される）
                 if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.autoSync('user_action');
+                    window.GistSyncManager.markAsChanged();
                 }
                 break;
 
@@ -522,7 +530,7 @@
                         }
 
                         if (window.GistSyncManager?.isEnabled) {
-                            window.GistSyncManager.autoSync('user_action');
+                            window.GistSyncManager.markAsChanged();
                         }
                         return;
                     }
@@ -552,9 +560,9 @@
                         });
                     }
 
-                    // 自動同期
+                    // 変更マーク設定（定期同期で処理される）
                     if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.autoSync('user_action');
+                        window.GistSyncManager.markAsChanged();
                     }
                 }
                 break;
@@ -574,7 +582,7 @@
     };
 
     // ===========================================
-    // ワード管理
+    // ワード管理（定期同期対応）
     // ===========================================
 
     const handleAddWord = (type) => {
@@ -589,9 +597,9 @@
         if (success) {
             window.render();
             
-            // 自動同期
+            // 変更マーク設定（定期同期で処理される）
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('user_action');
+                window.GistSyncManager.markAsChanged();
             }
         } else {
             alert('そのワードは既に登録されています');
@@ -609,9 +617,9 @@
         if (success) {
             window.render();
             
-            // 自動同期
+            // 変更マーク設定（定期同期で処理される）
             if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.autoSync('user_action');
+                window.GistSyncManager.markAsChanged();
             }
         }
     };
@@ -848,13 +856,13 @@
                                 </p>
                                 
                                 <p class="text-muted mb-3">
-                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが自動で同期されます。
+                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが定期的（1分間隔）に自動で同期されます。
                                 </p>
                                 
                                 ${window.GistSyncManager?.isEnabled ? `
                                     <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
                                         <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">
-                                            GitHub同期は設定済みです。
+                                            GitHub同期は設定済みです。定期同期（1分間隔）が実行中。
                                         </div>
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                             <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">
@@ -978,7 +986,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        タイムスタンプ比較方式対応版
+                                        定期同期方式対応版（1分間隔）
                                     </p>
                                 </div>
                             </div>
