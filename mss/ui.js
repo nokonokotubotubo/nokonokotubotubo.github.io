@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（完全修正統合版）
+// Minews PWA - UI・表示レイヤー（サイレント同期機能統合版）
 (function() {
     'use strict';
 
@@ -40,7 +40,7 @@
     // アプリケーション状態管理
     // ===========================================
 
-    // 【修正】初期状態でLocalStorageから復元（同期フラグ追加）
+    // 【修正】初期状態でLocalStorageから復元（サイレント同期フラグ追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -49,7 +49,8 @@
         articles: [],
         isLoading: false,
         lastUpdate: null,
-        isSyncUpdating: false  // 【NEW】同期中フラグ
+        isSyncUpdating: false,     // 同期中フラグ
+        isBackgroundSyncing: false // 【NEW】バックグラウンド同期フラグ
     };
 
     // setState統合版（自動保存機能付き）
@@ -154,7 +155,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（完全修正版）
+    // GitHub同期管理関数（サイレント同期対応版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -167,25 +168,31 @@
             return;
         }
         
-        // GistIDの検証と設定
-        if (gistId) {
-            if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
-                alert('Gist IDの形式が正しくありません');
-                return;
+        try {
+            // GistIDの検証と設定
+            if (gistId) {
+                if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
+                    alert('Gist IDの形式が正しくありません');
+                    return;
+                }
+                
+                window.GistSyncManager.init(token, gistId);
+                alert('GitHub同期設定を保存しました（既存のGist IDを使用）\n定期同期（1分間隔）が開始されました');
+            } else {
+                window.GistSyncManager.init(token, null);
+                alert('GitHub同期設定を保存しました（新しいGistを作成）\n定期同期（1分間隔）が開始されました');
             }
             
-            window.GistSyncManager.init(token, gistId);
-            alert('GitHub同期設定を保存しました（既存のGist IDを使用）\n定期同期（1分間隔）が開始されました');
-        } else {
-            window.GistSyncManager.init(token, null);
-            alert('GitHub同期設定を保存しました（新しいGistを作成）\n定期同期（1分間隔）が開始されました');
+            document.getElementById('githubToken').value = '';
+            document.getElementById('gistIdInput').value = '';
+            window.render();
+        } catch (error) {
+            console.error('GitHub設定保存エラー:', error);
+            alert('設定の保存に失敗しました: ' + error.message);
         }
-        
-        document.getElementById('githubToken').value = '';
-        window.render();
     };
 
-    // 【改良】手動同期関数（ソート抑制対応版）
+    // 【改良】手動同期関数（サイレント同期対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -205,15 +212,15 @@
         }
     };
 
-    // 【改良】クラウド復元処理（ソート抑制対応版）
+    // 【改良】クラウド復元処理（サイレント同期対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
             return;
         }
         
-        // 【NEW】同期開始前にソート抑制フラグを設定
-        window.setState({ isSyncUpdating: true });
+        // 手動復元は非サイレント（ユーザーが意図的に実行）
+        window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         
         try {
             const cloudData = await window.GistSyncManager.syncFromCloud();
@@ -234,12 +241,11 @@
                 window.DataHooksCache.clear('wordFilters');
             }
             
-            // 記事状態情報の復元（既読・評価・後で読む状態のみ）
+            // 記事状態情報の復元
             if (cloudData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
                 
-                // 現在の記事データに状態情報を適用
                 const updatedArticles = currentArticles.map(article => {
                     const state = cloudData.articleStates[article.id];
                     if (state) {
@@ -254,7 +260,6 @@
                     return article;
                 });
                 
-                // 更新された記事データを保存
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.clear('articles');
                 window.state.articles = updatedArticles;
@@ -263,12 +268,11 @@
             }
             
             alert('クラウドからデータを復元しました');
-            window.render();
+            // 【修正】setStateで画面更新（renderは不要）
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
-            // 【NEW】同期完了後にソート抑制フラグを解除
-            window.setState({ isSyncUpdating: false });
+            window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
         }
     };
 
@@ -727,7 +731,7 @@
         `;
     };
 
-    // 【修正】記事フィルタリング（同期時ソート抑制対応版）
+    // 【改良】記事フィルタリング（サイレント同期対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
@@ -753,8 +757,8 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // 【NEW】同期中の場合はソートをスキップ
-        if (window.state.isSyncUpdating) {
+        // 【改良】バックグラウンド同期中もソートを抑制
+        if (window.state.isSyncUpdating || window.state.isBackgroundSyncing) {
             console.log('同期中のためソートを抑制します');
             return filtered;
         }
@@ -766,7 +770,6 @@
             aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
         }));
 
-        // 通常のソート処理
         return articlesWithScores.sort((a, b) => {
             if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
             if (a.userRating !== b.userRating) return b.userRating - a.userRating;
@@ -1011,7 +1014,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        完全修正統合版
+                                        サイレント同期機能統合版
                                     </p>
                                 </div>
                             </div>
