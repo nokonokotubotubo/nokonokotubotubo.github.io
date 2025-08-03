@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（LocalStorage詳細トレース機能完全統合版）
+// Minews PWA - データ管理・処理レイヤー（無駄機能削除・簡素化完了版）
 
 (function() {
 
@@ -39,467 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// LocalStorage詳細トレースシステム
-// ===========================================
-
-window.LocalStorageTracer = {
-    isTracing: false,
-    originalStorage: null,
-    traceLog: [],
-    errorLog: [],
-    maxLogEntries: 100,
-    
-    // トレース開始
-    startTracing() {
-        if (this.isTracing) {
-            console.log('⚠️ LocalStorageトレースは既に開始されています');
-            return false;
-        }
-        
-        console.log('🔍 LocalStorage詳細トレース開始');
-        
-        // 元のLocalStorageメソッドを保存
-        this.originalStorage = {
-            setItem: localStorage.setItem,
-            getItem: localStorage.getItem,
-            removeItem: localStorage.removeItem,
-            clear: localStorage.clear,
-            key: localStorage.key
-        };
-        
-        // プロキシ化による監視開始
-        this._proxyLocalStorage();
-        this.isTracing = true;
-        
-        // 開始ログ
-        this._addTraceLog('TRACE_START', 'システム', {
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            storageLength: localStorage.length
-        });
-        
-        return true;
-    },
-    
-    // トレース停止
-    stopTracing() {
-        if (!this.isTracing) {
-            console.log('⚠️ LocalStorageトレースは開始されていません');
-            return false;
-        }
-        
-        console.log('⏹️ LocalStorage詳細トレース停止');
-        
-        // 終了ログ
-        this._addTraceLog('TRACE_STOP', 'システム', {
-            timestamp: new Date().toISOString(),
-            totalLogs: this.traceLog.length,
-            totalErrors: this.errorLog.length
-        });
-        
-        // 元のLocalStorageメソッドを復元
-        localStorage.setItem = this.originalStorage.setItem;
-        localStorage.getItem = this.originalStorage.getItem;
-        localStorage.removeItem = this.originalStorage.removeItem;
-        localStorage.clear = this.originalStorage.clear;
-        localStorage.key = this.originalStorage.key;
-        
-        this.isTracing = false;
-        
-        // トレース結果の永続化保存
-        this._saveTraceResults();
-        
-        return true;
-    },
-    
-    // LocalStorageのプロキシ化
-    _proxyLocalStorage() {
-        const tracer = this;
-        
-        // setItem監視
-        localStorage.setItem = function(key, value) {
-            const startTime = performance.now();
-            const stackTrace = tracer._getStackTrace();
-            
-            try {
-                const result = tracer.originalStorage.setItem.call(this, key, value);
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('SET_ITEM', key, {
-                    value: value,
-                    valueLength: value.length,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: true
-                });
-                
-                return result;
-            } catch (error) {
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('SET_ITEM', key, {
-                    value: value,
-                    valueLength: value.length,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: false,
-                    error: error.message
-                });
-                
-                tracer._addErrorLog('SET_ITEM_ERROR', key, error, stackTrace);
-                throw error;
-            }
-        };
-        
-        // getItem監視
-        localStorage.getItem = function(key) {
-            const startTime = performance.now();
-            const stackTrace = tracer._getStackTrace();
-            
-            try {
-                const result = tracer.originalStorage.getItem.call(this, key);
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('GET_ITEM', key, {
-                    valueExists: result !== null,
-                    valueLength: result ? result.length : 0,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: true
-                });
-                
-                return result;
-            } catch (error) {
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('GET_ITEM', key, {
-                    valueExists: false,
-                    valueLength: 0,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: false,
-                    error: error.message
-                });
-                
-                tracer._addErrorLog('GET_ITEM_ERROR', key, error, stackTrace);
-                throw error;
-            }
-        };
-        
-        // removeItem監視
-        localStorage.removeItem = function(key) {
-            const startTime = performance.now();
-            const stackTrace = tracer._getStackTrace();
-            
-            try {
-                const result = tracer.originalStorage.removeItem.call(this, key);
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('REMOVE_ITEM', key, {
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: true
-                });
-                
-                return result;
-            } catch (error) {
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('REMOVE_ITEM', key, {
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: false,
-                    error: error.message
-                });
-                
-                tracer._addErrorLog('REMOVE_ITEM_ERROR', key, error, stackTrace);
-                throw error;
-            }
-        };
-        
-        // clear監視
-        localStorage.clear = function() {
-            const startTime = performance.now();
-            const stackTrace = tracer._getStackTrace();
-            const beforeLength = localStorage.length;
-            
-            try {
-                const result = tracer.originalStorage.clear.call(this);
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('CLEAR', 'ALL', {
-                    clearedItems: beforeLength,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: true
-                });
-                
-                return result;
-            } catch (error) {
-                const endTime = performance.now();
-                
-                tracer._addTraceLog('CLEAR', 'ALL', {
-                    clearedItems: 0,
-                    executionTime: endTime - startTime,
-                    stackTrace: stackTrace,
-                    success: false,
-                    error: error.message
-                });
-                
-                tracer._addErrorLog('CLEAR_ERROR', 'ALL', error, stackTrace);
-                throw error;
-            }
-        };
-    },
-    
-    // スタックトレース取得
-    _getStackTrace() {
-        try {
-            throw new Error();
-        } catch (e) {
-            return e.stack.split('\n').slice(2, 8).map(line => line.trim()).join('\n');
-        }
-    },
-    
-    // トレースログ追加
-    _addTraceLog(operation, key, details) {
-        const logEntry = {
-            id: this.traceLog.length,
-            timestamp: new Date().toISOString(),
-            operation: operation,
-            key: key,
-            details: details
-        };
-        
-        this.traceLog.push(logEntry);
-        
-        // Minews関連のキーの場合は詳細ログ
-        if (key && key.startsWith('minews_')) {
-            console.log(`📝 LocalStorage操作: ${operation}(${key})`, logEntry);
-        }
-        
-        // ログサイズ制限
-        if (this.traceLog.length > this.maxLogEntries) {
-            this.traceLog.shift();
-        }
-    },
-    
-    // エラーログ追加
-    _addErrorLog(type, key, error, stackTrace) {
-        const errorEntry = {
-            id: this.errorLog.length,
-            timestamp: new Date().toISOString(),
-            type: type,
-            key: key,
-            error: {
-                name: error.name,
-                message: error.message,
-                stack: error.stack
-            },
-            stackTrace: stackTrace
-        };
-        
-        this.errorLog.push(errorEntry);
-        console.error(`❌ LocalStorageエラー: ${type}(${key})`, errorEntry);
-        
-        // エラーログサイズ制限
-        if (this.errorLog.length > 50) {
-            this.errorLog.shift();
-        }
-    },
-    
-    // トレース結果の保存
-    _saveTraceResults() {
-        try {
-            const traceResults = {
-                timestamp: new Date().toISOString(),
-                logs: this.traceLog,
-                errors: this.errorLog,
-                summary: this._generateSummary()
-            };
-            
-            // 一時的に元のsetItemを使用してトレース結果を保存
-            this.originalStorage.setItem.call(localStorage, 'minews_trace_results', JSON.stringify(traceResults));
-            console.log('💾 トレース結果を保存しました');
-        } catch (error) {
-            console.error('❌ トレース結果の保存に失敗:', error);
-        }
-    },
-    
-    // サマリー生成
-    _generateSummary() {
-        const minewsLogs = this.traceLog.filter(log => log.key && log.key.startsWith('minews_'));
-        const configLogs = this.traceLog.filter(log => log.key === 'minews_gist_config');
-        
-        return {
-            totalOperations: this.traceLog.length,
-            minewsOperations: minewsLogs.length,
-            configOperations: configLogs.length,
-            errors: this.errorLog.length,
-            operationBreakdown: {
-                setItem: this.traceLog.filter(log => log.operation === 'SET_ITEM').length,
-                getItem: this.traceLog.filter(log => log.operation === 'GET_ITEM').length,
-                removeItem: this.traceLog.filter(log => log.operation === 'REMOVE_ITEM').length,
-                clear: this.traceLog.filter(log => log.operation === 'CLEAR').length
-            },
-            suspiciousPatterns: this._detectSuspiciousPatterns()
-        };
-    },
-    
-    // 疑わしいパターンの検出
-    _detectSuspiciousPatterns() {
-        const patterns = [];
-        
-        // 設定削除の検出
-        const configRemovals = this.traceLog.filter(log => 
-            log.operation === 'REMOVE_ITEM' && log.key === 'minews_gist_config'
-        );
-        if (configRemovals.length > 0) {
-            patterns.push(`設定削除が${configRemovals.length}回検出されました`);
-        }
-        
-        // 短時間での重複操作
-        const configOperations = this.traceLog.filter(log => log.key === 'minews_gist_config');
-        if (configOperations.length > 5) {
-            patterns.push(`設定への操作が${configOperations.length}回実行されました（過多の可能性）`);
-        }
-        
-        // エラー発生パターン
-        if (this.errorLog.length > 0) {
-            patterns.push(`${this.errorLog.length}件のLocalStorageエラーが発生しました`);
-        }
-        
-        // clear操作の検出
-        const clearOperations = this.traceLog.filter(log => log.operation === 'CLEAR');
-        if (clearOperations.length > 0) {
-            patterns.push(`LocalStorage全消去が${clearOperations.length}回実行されました`);
-        }
-        
-        return patterns;
-    },
-    
-    // 保存されたトレース結果の読み込み
-    loadTraceResults() {
-        try {
-            const stored = localStorage.getItem('minews_trace_results');
-            if (stored) {
-                return JSON.parse(stored);
-            }
-        } catch (error) {
-            console.error('❌ トレース結果の読み込みに失敗:', error);
-        }
-        return null;
-    },
-    
-    // トレース結果のクリア
-    clearTraceResults() {
-        this.traceLog = [];
-        this.errorLog = [];
-        try {
-            localStorage.removeItem('minews_trace_results');
-            console.log('🗑️ トレース結果をクリアしました');
-        } catch (error) {
-            console.error('❌ トレース結果のクリアに失敗:', error);
-        }
-    },
-    
-    // 診断レポート生成
-    generateDiagnosticReport() {
-        const storedResults = this.loadTraceResults();
-        const currentLog = this.traceLog;
-        
-        return {
-            timestamp: new Date().toISOString(),
-            currentTrace: {
-                isActive: this.isTracing,
-                logCount: currentLog.length,
-                errorCount: this.errorLog.length
-            },
-            storedResults: storedResults,
-            analysis: this._analyzeTraceData(storedResults || { logs: currentLog, errors: this.errorLog }),
-            recommendations: this._generateRecommendations(storedResults || { logs: currentLog, errors: this.errorLog })
-        };
-    },
-    
-    // トレースデータ分析
-    _analyzeTraceData(data) {
-        const logs = data.logs || [];
-        const errors = data.errors || [];
-        
-        const analysis = {
-            configOperationPattern: [],
-            timingAnalysis: {},
-            errorAnalysis: {}
-        };
-        
-        // 設定操作パターン分析
-        const configLogs = logs.filter(log => log.key === 'minews_gist_config');
-        analysis.configOperationPattern = configLogs.map(log => ({
-            timestamp: log.timestamp,
-            operation: log.operation,
-            success: log.details.success,
-            stackTrace: log.details.stackTrace ? log.details.stackTrace.split('\n')[0] : 'unknown'
-        }));
-        
-        // タイミング分析
-        if (configLogs.length >= 2) {
-            const timeDiffs = [];
-            for (let i = 1; i < configLogs.length; i++) {
-                const prevTime = new Date(configLogs[i-1].timestamp).getTime();
-                const currTime = new Date(configLogs[i].timestamp).getTime();
-                timeDiffs.push(currTime - prevTime);
-            }
-            analysis.timingAnalysis = {
-                averageInterval: timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length,
-                minInterval: Math.min(...timeDiffs),
-                maxInterval: Math.max(...timeDiffs),
-                rapidOperations: timeDiffs.filter(diff => diff < 1000).length
-            };
-        }
-        
-        // エラー分析
-        analysis.errorAnalysis = {
-            totalErrors: errors.length,
-            errorTypes: [...new Set(errors.map(err => err.type))],
-            errorFrequency: errors.reduce((acc, err) => {
-                acc[err.type] = (acc[err.type] || 0) + 1;
-                return acc;
-            }, {})
-        };
-        
-        return analysis;
-    },
-    
-    // 推奨事項生成
-    _generateRecommendations(data) {
-        const recommendations = [];
-        const errors = data.errors || [];
-        const logs = data.logs || [];
-        
-        if (errors.length > 0) {
-            recommendations.push('LocalStorageエラーが検出されました。ブラウザの開発者ツールでエラー詳細を確認してください。');
-        }
-        
-        const configOperations = logs.filter(log => log.key === 'minews_gist_config');
-        if (configOperations.length > 10) {
-            recommendations.push('設定への操作が過多です。定期同期の間隔調整を検討してください。');
-        }
-        
-        const clearOperations = logs.filter(log => log.operation === 'CLEAR');
-        if (clearOperations.length > 0) {
-            recommendations.push('LocalStorage全消去が検出されました。他のスクリプトとの競合を確認してください。');
-        }
-        
-        if (recommendations.length === 0) {
-            recommendations.push('現在のところ、明確な問題は検出されていません。');
-        }
-        
-        return recommendations;
-    }
-};
-
-// ===========================================
-// GitHub Gist API連携システム（定期同期方式1分間隔版）
+// GitHub Gist API連携システム（シンプル版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -522,20 +62,19 @@ window.GistSyncManager = {
         for (let i = 0; i < text.length; i++) {
             result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
         }
-        return btoa(result); // Base64エンコード
+        return btoa(result);
     },
 
     _decrypt(encryptedText, key = 'minews_secret_key') {
         if (!encryptedText) return '';
         try {
-            const text = atob(encryptedText); // Base64デコード
+            const text = atob(encryptedText);
             let result = '';
             for (let i = 0; i < text.length; i++) {
                 result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
             }
             return result;
         } catch (error) {
-            console.error('トークン復号化エラー:', error);
             return '';
         }
     },
@@ -546,7 +85,6 @@ window.GistSyncManager = {
         this.gistId = gistId;
         this.isEnabled = !!token;
         
-        // 設定をLocalStorageに保存（トークンを暗号化、lastSyncTime保持）
         try {
             localStorage.setItem('minews_gist_config', JSON.stringify({
                 encryptedToken: token ? this._encrypt(token) : null,
@@ -556,23 +94,21 @@ window.GistSyncManager = {
                 lastSyncTime: this.lastSyncTime || null
             }));
             
-            // 初期化完了後、定期同期を開始
             if (this.isEnabled) {
-                this.startPeriodicSync(60); // 1分間隔
+                this.startPeriodicSync(60);
             }
         } catch (error) {
             console.warn('Gist設定の保存に失敗:', error);
         }
     },
     
-    // 設定読み込み（トークン復号化機能付き）
+    // 設定読み込み
     loadConfig() {
         try {
             const config = localStorage.getItem('minews_gist_config');
             if (config) {
                 const parsed = JSON.parse(config);
                 
-                // 暗号化されたトークンを復号化
                 if (parsed.encryptedToken) {
                     this.token = this._decrypt(parsed.encryptedToken);
                     this.isEnabled = !!this.token;
@@ -597,73 +133,6 @@ window.GistSyncManager = {
         return null;
     },
     
-    // 設定削除機能
-    clearConfig() {
-        try {
-            this.token = null;
-            this.gistId = null;
-            this.isEnabled = false;
-            this.lastSyncTime = null;
-            
-            // 定期同期を停止
-            this.stopPeriodicSync();
-            
-            localStorage.removeItem('minews_gist_config');
-            
-            console.log('GitHub同期設定を削除しました');
-            return true;
-        } catch (error) {
-            console.error('設定削除に失敗:', error);
-            return false;
-        }
-    },
-    
-    // 設定状態取得機能
-    getConfigStatus() {
-        const config = this.loadConfig();
-        if (!config) {
-            return {
-                isConfigured: false,
-                hasToken: false,
-                hasGistId: false,
-                configuredAt: null
-            };
-        }
-        
-        return {
-            isConfigured: config.hasToken,
-            hasToken: config.hasToken,
-            hasGistId: !!config.gistId,
-            gistId: config.gistId,
-            configuredAt: config.configuredAt || null,
-            lastSyncTime: this.lastSyncTime
-        };
-    },
-    
-    // Gist ID単体設定機能（2代目デバイス用、lastSyncTime保持対応）
-    setGistId(gistId) {
-        try {
-            if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
-                throw new Error('無効なGist ID形式です');
-            }
-            
-            this.gistId = gistId;
-            
-            // 既存設定を取得して更新
-            const config = this.loadConfig() || {};
-            config.gistId = gistId;
-            config.lastSyncTime = this.lastSyncTime || null; // 既存のlastSyncTimeを保持
-            
-            localStorage.setItem('minews_gist_config', JSON.stringify(config));
-            
-            console.log('Gist IDを設定しました:', gistId);
-            return true;
-        } catch (error) {
-            console.error('Gist ID設定に失敗:', error);
-            return false;
-        }
-    },
-    
     // 定期同期の開始
     startPeriodicSync(intervalSeconds = 60) {
         if (this.periodicSyncInterval) {
@@ -671,7 +140,6 @@ window.GistSyncManager = {
         }
         
         this.periodicSyncEnabled = true;
-        console.log(`🔄 定期同期開始（${intervalSeconds}秒間隔）`);
         
         this.periodicSyncInterval = setInterval(async () => {
             await this._executePeriodicSync();
@@ -685,80 +153,50 @@ window.GistSyncManager = {
             this.periodicSyncInterval = null;
         }
         this.periodicSyncEnabled = false;
-        console.log('⏸️ 定期同期停止');
     },
 
-    // 変更フラグの設定（操作時に呼び出し）
+    // 変更フラグの設定
     markAsChanged() {
         this.pendingChanges = true;
         this.lastChangeTime = new Date().toISOString();
-        console.log('📝 変更マーク設定');
     },
 
-    // 定期同期実行
+    // 定期同期実行（シンプル版）
     async _executePeriodicSync() {
-        if (!this.isEnabled || !this.token) {
+        if (!this.isEnabled || !this.token || !this.pendingChanges || this.isSyncing) {
             return;
         }
         
-        // 変更がない場合はスキップ
-        if (!this.pendingChanges) {
-            console.log('📅 定期同期: 変更なしのためスキップ');
-            return;
-        }
-        
-        // 同期中の場合はスキップ
-        if (this.isSyncing) {
-            console.log('⏳ 定期同期: 同期中のためスキップ');
-            return;
-        }
-        
-        console.log('🔄 定期同期実行開始');
         this.isSyncing = true;
         
         try {
-            // Step 1: クラウドタイムスタンプチェック
-            const cloudTimestamp = await this._getCloudTimestamp();
-            
-            // Step 2: 必要に応じてクラウドから取得
-            const shouldPullFromCloud = this._shouldPullFromCloud(cloudTimestamp);
-            if (shouldPullFromCloud) {
-                console.log('🔽 定期同期: クラウドデータを取得・マージ');
-                await this._pullAndMergeFromCloud();
-            }
-            
-            // Step 3: クラウドに送信
             const syncData = this.collectSyncData();
             const result = await this.syncToCloud(syncData);
             
             if (result) {
                 this.lastSyncTime = new Date().toISOString();
                 this._saveLastSyncTime(this.lastSyncTime);
-                this.pendingChanges = false; // 変更フラグリセット
-                console.log('✅ 定期同期完了');
+                this.pendingChanges = false;
             }
             
             return result;
         } catch (error) {
-            console.error('❌ 定期同期エラー:', error);
             return false;
         } finally {
             this.isSyncing = false;
         }
     },
     
-    // 手動同期（従来の autoSync を簡略化）
+    // 手動同期
     async autoSync(triggerType = 'manual') {
         if (!this.isEnabled || !this.token) {
             return { success: false, reason: 'disabled_or_not_configured' };
         }
         
-        // 手動同期の場合のみ即座に実行
         if (triggerType === 'manual') {
             return await this._executeManualSync();
         }
         
-        // 自動同期の場合は変更マークのみ設定（定期同期で処理される）
         this.markAsChanged();
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
@@ -769,219 +207,59 @@ window.GistSyncManager = {
             return { success: false, reason: 'already_syncing' };
         }
         
-        console.log('🔄 手動同期開始');
         this.isSyncing = true;
         
         try {
-            // Step 1: クラウドタイムスタンプチェック
-            const cloudTimestamp = await this._getCloudTimestamp();
-            
-            // Step 2: 必要に応じてクラウドから取得
-            const shouldPullFromCloud = this._shouldPullFromCloud(cloudTimestamp);
-            if (shouldPullFromCloud) {
-                console.log('🔽 新しいクラウドデータを検出、取得・マージを実行');
-                await this._pullAndMergeFromCloud();
-            } else {
-                console.log('📅 ローカルデータが最新、クラウド取得をスキップ');
-            }
-            
-            // Step 3: クラウドに送信
             const syncData = this.collectSyncData();
             const result = await this.syncToCloud(syncData);
             
             if (result) {
                 this.lastSyncTime = new Date().toISOString();
                 this._saveLastSyncTime(this.lastSyncTime);
-                this.pendingChanges = false; // 変更フラグリセット
-                console.log('✅ 手動同期完了');
-                
-                // 手動同期の通知
-                this.showSyncNotification(
-                    `同期完了 - Gist ID: ${this.gistId?.substring(0, 8)}...`, 
-                    'success'
-                );
+                this.pendingChanges = false;
             }
             
             return { success: result, triggerType: 'manual' };
         } catch (error) {
-            console.error('❌ 手動同期失敗:', error);
-            
-            this.showSyncNotification(
-                `同期エラー: ${this.getErrorMessage(error)}`, 
-                'error'
-            );
-            
             return { success: false, error: error.message, triggerType: 'manual' };
         } finally {
             this.isSyncing = false;
         }
     },
 
-    // クラウドタイムスタンプ取得（軽量なGETリクエスト）
-    async _getCloudTimestamp() {
-        if (!this.token || !this.gistId) return null;
-        
-        try {
-            console.log('📡 クラウドタイムスタンプ取得中...');
-            
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (response.ok) {
-                const gist = await response.json();
-                const updatedAt = gist.updated_at;
-                console.log(`📅 クラウドタイムスタンプ: ${updatedAt}`);
-                return updatedAt;
-            } else {
-                console.warn(`⚠️ タイムスタンプ取得失敗: ${response.status}`);
-                return null;
-            }
-        } catch (error) {
-            console.warn('⚠️ タイムスタンプ取得エラー:', error);
-            return null;
-        }
-    },
-
-    // タイムスタンプ比較判定（タイムゾーン・精度考慮版）
+    // タイムスタンプ比較判定（シンプル版）
     _shouldPullFromCloud(cloudTimestamp) {
         if (!cloudTimestamp || !this.lastSyncTime) {
-            console.log('⚠️ タイムスタンプ情報不足のため、クラウド取得をスキップ');
             return false;
         }
         
         try {
-            // Date オブジェクトに変換して数値比較
             const cloudTime = new Date(cloudTimestamp).getTime();
             const localTime = new Date(this.lastSyncTime).getTime();
-            
-            // 5秒のマージンを設けて無限ループを防止
-            const timeDifference = cloudTime - localTime;
-            const SYNC_MARGIN_MS = 5000; // 5秒
-            
-            console.log(`📊 タイムスタンプ比較詳細:`);
-            console.log(`   クラウド: ${cloudTimestamp} (${cloudTime})`);
-            console.log(`   ローカル: ${this.lastSyncTime} (${localTime})`);
-            console.log(`   時差: ${timeDifference}ms`);
-            console.log(`   判定: ${timeDifference > SYNC_MARGIN_MS ? '取得実行' : '取得スキップ'}`);
-            
-            return timeDifference > SYNC_MARGIN_MS;
-            
+            return cloudTime > localTime;
         } catch (error) {
-            console.error('❌ タイムスタンプ解析エラー:', error);
             return false;
         }
     },
 
-    // クラウドデータ取得・マージ処理
-    async _pullAndMergeFromCloud() {
-        try {
-            console.log('🔽 クラウドデータ取得・マージ開始');
-            
-            const cloudData = await this.syncFromCloud();
-            if (!cloudData) {
-                console.log('📭 クラウドデータ取得失敗');
-                return false;
-            }
-            
-            // AI学習データのマージ
-            if (cloudData.aiLearning) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
-                window.DataHooksCache.clear('aiLearning');
-            }
-            
-            // ワードフィルターのマージ
-            if (cloudData.wordFilters) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-            }
-            
-            // 記事状態情報のマージ
-            if (cloudData.articleStates) {
-                const articlesHook = window.DataHooks.useArticles();
-                const currentArticles = articlesHook.articles;
-                
-                const updatedArticles = currentArticles.map(article => {
-                    const state = cloudData.articleStates[article.id];
-                    if (state) {
-                        return {
-                            ...article,
-                            readStatus: state.readStatus,
-                            userRating: state.userRating,
-                            readLater: state.readLater
-                        };
-                    }
-                    return article;
-                });
-                
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-                window.DataHooksCache.clear('articles');
-                window.state.articles = updatedArticles;
-                
-                // UI更新が必要な場合
-                if (window.render && window.state.showModal !== 'settings') {
-                    window.render();
-                }
-            }
-            
-            console.log('✅ クラウドデータマージ完了');
-            return true;
-        } catch (error) {
-            console.error('❌ クラウドデータ取得・マージ失敗:', error);
-            return false;
-        }
-    },
-
-    // 最終同期時刻の保存（強化版）
+    // 最終同期時刻の保存
     _saveLastSyncTime(timestamp) {
         try {
             const config = this.loadConfig() || {};
             config.lastSyncTime = timestamp;
-            
-            // メモリ内のlastSyncTimeも更新
             this.lastSyncTime = timestamp;
-            
             localStorage.setItem('minews_gist_config', JSON.stringify(config));
-            
-            // 保存確認
-            const saved = localStorage.getItem('minews_gist_config');
-            const parsed = JSON.parse(saved);
-            
-            if (parsed.lastSyncTime !== timestamp) {
-                console.error('⚠️ lastSyncTime保存の検証に失敗しました');
-                throw new Error('LastSyncTime保存検証失敗');
-            }
-            
-            console.log(`📅 lastSyncTime保存成功: ${timestamp}`);
-            
         } catch (error) {
-            console.error('❌ 最終同期時刻の保存に失敗:', error);
-            console.error('   設定破損の可能性があります');
-        }
-    },
-
-    // 最終同期時刻の読み込み
-    _loadLastSyncTime() {
-        try {
-            const config = this.loadConfig();
-            return config?.lastSyncTime || null;
-        } catch (error) {
-            console.warn('最終同期時刻の読み込みに失敗:', error);
-            return null;
+            console.error('最終同期時刻の保存に失敗:', error);
         }
     },
     
-    // 同期対象データ収集（記事状態情報のみ）
+    // 同期対象データ収集
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
         
-        // 記事の状態情報のみを抽出
         const articleStates = {};
         articlesHook.articles.forEach(article => {
             articleStates[article.id] = {
@@ -1000,215 +278,11 @@ window.GistSyncManager = {
         };
     },
 
-    // 設定状況の診断情報取得（デバッグ用）
-    getDiagnosticInfo() {
-        try {
-            const configRaw = localStorage.getItem('minews_gist_config');
-            const configParsed = configRaw ? JSON.parse(configRaw) : null;
-            
-            return {
-                timestamp: new Date().toISOString(),
-                memory: {
-                    token: !!this.token,
-                    gistId: this.gistId,
-                    isEnabled: this.isEnabled,
-                    lastSyncTime: this.lastSyncTime,
-                    periodicSyncEnabled: this.periodicSyncEnabled,
-                    pendingChanges: this.pendingChanges,
-                    lastChangeTime: this.lastChangeTime
-                },
-                localStorage: {
-                    exists: !!configRaw,
-                    size: configRaw?.length || 0,
-                    parsed: configParsed ? {
-                        hasEncryptedToken: !!configParsed.encryptedToken,
-                        hasGistId: !!configParsed.gistId,
-                        isEnabled: configParsed.isEnabled,
-                        configuredAt: configParsed.configuredAt,
-                        lastSyncTime: configParsed.lastSyncTime
-                    } : null
-                }
-            };
-        } catch (error) {
-            return {
-                error: error.message,
-                timestamp: new Date().toISOString()
-            };
-        }
-    },
-    
-    // 強化版エラーメッセージとデバッグ情報
-    getErrorMessage(error, includeDebugInfo = false) {
-        let message = '';
-        let debugInfo = {};
-        
-        if (error.message.includes('fetch') || error.name === 'TypeError') {
-            message = 'ネットワークエラー';
-            debugInfo = {
-                type: 'network',
-                suggestion: 'インターネット接続を確認してください',
-                originalError: error.message
-            };
-        } else if (error.message.includes('401')) {
-            message = 'Personal Access Tokenが無効です';
-            debugInfo = {
-                type: 'authentication',
-                suggestion: 'Personal Access Tokenを再生成してください',
-                checkUrl: 'https://github.com/settings/tokens'
-            };
-        } else if (error.message.includes('403')) {
-            message = 'アクセス権限がありません（Rate Limit制限の可能性）';
-            debugInfo = {
-                type: 'permission',
-                suggestion: 'gistスコープの権限があるか確認、またはRate Limit（60回/時間）を超過した可能性',
-                rateLimitInfo: 'GitHub API制限: 未認証60回/時間、認証済み5000回/時間'
-            };
-        } else if (error.message.includes('404')) {
-            message = 'Gistが見つかりません';
-            debugInfo = {
-                type: 'not_found',
-                suggestion: 'Gist IDが正しいか確認してください',
-                gistId: this.gistId
-            };
-        } else if (error.message.includes('422')) {
-            message = 'リクエストデータが無効です';
-            debugInfo = {
-                type: 'validation',
-                suggestion: 'データ形式を確認してください'
-            };
-        } else {
-            message = '不明なエラー';
-            debugInfo = {
-                type: 'unknown',
-                originalError: error.message,
-                errorStack: error.stack
-            };
-        }
-        
-        if (includeDebugInfo) {
-            return { message, debugInfo };
-        }
-        return message;
-    },
-    
-    // 詳細同期テスト機能
-    async testSync() {
-        console.log('🔍 GitHub Gist同期テスト開始');
-        const testResults = {
-            timestamp: new Date().toISOString(),
-            config: {
-                hasToken: !!this.token,
-                hasGistId: !!this.gistId,
-                isEnabled: this.isEnabled
-            },
-            tests: []
-        };
-        
-        // テスト1: 基本設定確認
-        testResults.tests.push({
-            name: '基本設定確認',
-            status: (this.token && this.gistId) ? 'pass' : 'fail',
-            details: {
-                token: this.token ? '設定済み' : '未設定',
-                gistId: this.gistId ? `${this.gistId.substring(0, 8)}...` : '未設定'
-            }
-        });
-        
-        // テスト2: GitHub API接続テスト
-        try {
-            const response = await fetch('https://api.github.com/gists', {
-                headers: this.token ? {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                } : {}
-            });
-            
-            const rateLimitHeaders = {
-                limit: response.headers.get('X-RateLimit-Limit'),
-                remaining: response.headers.get('X-RateLimit-Remaining'),
-                reset: response.headers.get('X-RateLimit-Reset'),
-                resetTime: response.headers.get('X-RateLimit-Reset') ? 
-                    new Date(parseInt(response.headers.get('X-RateLimit-Reset')) * 1000).toLocaleString('ja-JP') : null
-            };
-            
-            testResults.tests.push({
-                name: 'GitHub API接続テスト',
-                status: response.ok ? 'pass' : 'fail',
-                details: {
-                    httpStatus: response.status,
-                    statusText: response.statusText,
-                    rateLimit: rateLimitHeaders
-                }
-            });
-            
-        } catch (error) {
-            testResults.tests.push({
-                name: 'GitHub API接続テスト',
-                status: 'fail',
-                details: {
-                    error: error.message,
-                    errorType: error.name
-                }
-            });
-        }
-        
-        // テスト3: Gist存在確認テスト
-        if (this.token && this.gistId) {
-            try {
-                const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                    headers: {
-                        'Authorization': `token ${this.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const gistData = await response.json();
-                    testResults.tests.push({
-                        name: 'Gist存在確認',
-                        status: 'pass',
-                        details: {
-                            description: gistData.description,
-                            files: Object.keys(gistData.files),
-                            lastUpdated: gistData.updated_at,
-                            owner: gistData.owner.login
-                        }
-                    });
-                } else {
-                    testResults.tests.push({
-                        name: 'Gist存在確認',
-                        status: 'fail',
-                        details: {
-                            httpStatus: response.status,
-                            statusText: response.statusText
-                        }
-                    });
-                }
-                
-            } catch (error) {
-                testResults.tests.push({
-                    name: 'Gist存在確認',
-                    status: 'fail',
-                    details: {
-                        error: error.message
-                    }
-                });
-            }
-        }
-        
-        return testResults;
-    },
-    
-    // 詳細デバッグ機能付きクラウド同期（アップロード）
+    // クラウド同期（アップロード）
     async syncToCloud(data) {
         if (!this.token) {
-            console.error('❌ syncToCloud: トークンが設定されていません');
             return false;
         }
-        
-        console.log('🔄 syncToCloud: 開始');
-        console.log(`📊 送信データサイズ: ${JSON.stringify(data).length}文字`);
-        console.log(`🎯 対象Gist ID: ${this.gistId || '新規作成'}`);
         
         const payload = {
             description: `Minews User Data Backup - ${new Date().toLocaleString('ja-JP')}`,
@@ -1220,19 +294,11 @@ window.GistSyncManager = {
             }
         };
         
-        console.log('📦 送信ペイロード概要:', {
-            description: payload.description,
-            public: payload.public,
-            fileCount: Object.keys(payload.files).length,
-            contentLength: payload.files['minews_data.json'].content.length
-        });
-        
         const url = this.gistId 
             ? `https://api.github.com/gists/${this.gistId}`
             : 'https://api.github.com/gists';
             
         const method = this.gistId ? 'PATCH' : 'POST';
-        console.log(`🌐 HTTPリクエスト: ${method} ${url}`);
         
         try {
             const response = await fetch(url, {
@@ -1245,80 +311,19 @@ window.GistSyncManager = {
                 body: JSON.stringify(payload)
             });
             
-            console.log(`📡 レスポンス: ${response.status} ${response.statusText}`);
-            
-            // レスポンスヘッダーの詳細確認
-            const rateLimitHeaders = {
-                limit: response.headers.get('X-RateLimit-Limit'),
-                remaining: response.headers.get('X-RateLimit-Remaining'),
-                reset: response.headers.get('X-RateLimit-Reset')
-            };
-            console.log('📊 Rate Limit情報:', rateLimitHeaders);
-            
             if (response.ok) {
                 const result = await response.json();
-                console.log('✅ syncToCloud: GitHub APIレスポンス成功');
-                console.log(`📁 Gist情報:`, {
-                    id: result.id,
-                    description: result.description,
-                    created_at: result.created_at,
-                    updated_at: result.updated_at,
-                    files: Object.keys(result.files)
-                });
-                
-                // 重要: Gist内容の実際の確認
-                if (result.files && result.files['minews_data.json']) {
-                    const actualContent = result.files['minews_data.json'].content;
-                    console.log(`📋 実際に保存されたデータサイズ: ${actualContent.length}文字`);
-                    
-                    try {
-                        const parsedContent = JSON.parse(actualContent);
-                        console.log('✅ 保存データ検証成功:', {
-                            version: parsedContent.version,
-                            syncTime: parsedContent.syncTime,
-                            hasAiLearning: !!parsedContent.aiLearning,
-                            hasWordFilters: !!parsedContent.wordFilters,
-                            hasArticleStates: !!parsedContent.articleStates,
-                            articleStatesCount: parsedContent.articleStates ? Object.keys(parsedContent.articleStates).length : 0,
-                            aiLearningWordCount: parsedContent.aiLearning ? Object.keys(parsedContent.aiLearning.wordWeights || {}).length : 0
-                        });
-                    } catch (parseError) {
-                        console.error('❌ 保存データ解析エラー:', parseError);
-                        return false;
-                    }
-                } else {
-                    console.error('❌ minews_data.jsonファイルがレスポンスに含まれていません');
-                    return false;
-                }
                 
                 if (!this.gistId) {
                     this.gistId = result.id;
                     this.saveGistId(result.id);
-                    console.log(`🆕 新しいGist作成完了: ${result.id}`);
-                } else {
-                    console.log(`🔄 既存Gist更新完了: ${this.gistId}`);
                 }
                 
                 return true;
-            } else {
-                // エラーレスポンスの詳細取得
-                let errorDetails;
-                try {
-                    errorDetails = await response.json();
-                } catch {
-                    errorDetails = await response.text();
-                }
-                
-                console.error('❌ syncToCloud: GitHub APIエラー');
-                console.error(`   ステータス: ${response.status} ${response.statusText}`);
-                console.error(`   エラー詳細:`, errorDetails);
-                
-                return false;
             }
-        } catch (networkError) {
-            console.error('❌ syncToCloud: ネットワークエラー');
-            console.error(`   エラー: ${networkError.message}`);
-            console.error(`   スタック:`, networkError.stack);
+            
+            return false;
+        } catch (error) {
             return false;
         }
     },
@@ -1341,59 +346,41 @@ window.GistSyncManager = {
         return null;
     },
     
-    // GistID保存（lastSyncTime保持対応）
+    // GistID保存
     saveGistId(gistId) {
         try {
             const config = this.loadConfig() || {};
             config.gistId = gistId;
-            config.lastSyncTime = this.lastSyncTime || null; // 既存のlastSyncTimeを保持
+            config.lastSyncTime = this.lastSyncTime || null;
             localStorage.setItem('minews_gist_config', JSON.stringify(config));
             this.gistId = gistId;
         } catch (error) {
             console.warn('GistID保存に失敗:', error);
         }
     },
-    
-    // 軽微な通知表示（エラー対応強化版）
-    showSyncNotification(message, type = 'info') {
-        // 簡易通知（エラーは5秒、その他は3秒で消去）
-        const notification = document.createElement('div');
-        notification.className = `sync-notification ${type}`;
-        notification.textContent = message;
+
+    // 同期テスト
+    async testSync() {
+        const testResults = {
+            timestamp: new Date().toISOString(),
+            config: {
+                hasToken: !!this.token,
+                hasGistId: !!this.gistId,
+                isEnabled: this.isEnabled
+            },
+            tests: []
+        };
         
-        const backgroundColor = {
-            'success': '#4caf50',
-            'info': '#2196f3',
-            'error': '#f44336',
-            'warning': '#ff9800'
-        }[type] || '#2196f3';
-        
-        notification.style.cssText = `
-            position: fixed; top: 20px; right: 20px; z-index: 9999;
-            background: ${backgroundColor}; color: white;
-            padding: 0.75rem 1.25rem; border-radius: 6px;
-            font-size: 0.9rem; font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            opacity: 0.95; cursor: pointer;
-            max-width: 300px; word-wrap: break-word;
-        `;
-        
-        // クリックで消去機能
-        notification.addEventListener('click', () => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
+        testResults.tests.push({
+            name: '基本設定確認',
+            status: (this.token && this.gistId) ? 'pass' : 'fail',
+            details: {
+                token: this.token ? '設定済み' : '未設定',
+                gistId: this.gistId ? `${this.gistId.substring(0, 8)}...` : '未設定'
             }
         });
         
-        document.body.appendChild(notification);
-        
-        // 自動消去（エラーは長めに表示）
-        const duration = type === 'error' ? 5000 : 3000;
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, duration);
+        return testResults;
     }
 };
 
@@ -1401,7 +388,6 @@ window.GistSyncManager = {
 // キャッシュシステム
 // ===========================================
 
-// キャッシュクリア機能のメモリリーク対策
 window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
@@ -1469,42 +455,36 @@ window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let score = 0;
     
-    // 2. キーワード学習重み（-20～+20点にクリッピング）
-    if (article.keywords && aiLearning.wordWeights) {
-        article.keywords.forEach(keyword => {
-            const weight = aiLearning.wordWeights[keyword] || 0;
-            score += Math.max(-20, Math.min(20, weight));
-        });
-    }
-    
-    // 3. 配信元重み（-5～+5点にクリッピング、軽量化）
-    if (article.rssSource && aiLearning.sourceWeights) {
-        const weight = aiLearning.sourceWeights[article.rssSource] || 0;
-        score += Math.max(-5, Math.min(5, weight));
-    }
-    
-    // 4. 興味ワードマッチ（+10点、重複なし）
-    if (wordFilters.interestWords && article.title) {
-        const content = (article.title + ' ' + article.content).toLowerCase();
-        const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
-        if (hasInterestWord) score += 10;
-    }
-    
-    // 5. ユーザー評価（-20～+20点）
-    if (article.userRating > 0) {
-        score += (article.userRating - 3) * 10;
-    }
-    
-    // 6. 最終スコアを0-100に正規化／★ベーススコアを+30へ
-    return Math.max(0, Math.min(100, Math.round(score + 30)));
-},
+        if (article.keywords && aiLearning.wordWeights) {
+            article.keywords.forEach(keyword => {
+                const weight = aiLearning.wordWeights[keyword] || 0;
+                score += Math.max(-20, Math.min(20, weight));
+            });
+        }
+        
+        if (article.rssSource && aiLearning.sourceWeights) {
+            const weight = aiLearning.sourceWeights[article.rssSource] || 0;
+            score += Math.max(-5, Math.min(5, weight));
+        }
+        
+        if (wordFilters.interestWords && article.title) {
+            const content = (article.title + ' ' + article.content).toLowerCase();
+            const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
+            if (hasInterestWord) score += 10;
+        }
+        
+        if (article.userRating > 0) {
+            score += (article.userRating - 3) * 10;
+        }
+        
+        return Math.max(0, Math.min(100, Math.round(score + 30)));
+    },
 
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
-        // キーワード重み更新（±60でクリッピング）
         if (article.keywords) {
             article.keywords.forEach(keyword => {
                 const newWeight = (aiLearning.wordWeights[keyword] || 0) + weight;
@@ -1512,25 +492,14 @@ window.AIScoring = {
             });
         }
         
-        // 配信元重み更新（±20でクリッピング、軽量化）
         if (article.rssSource) {
-            const sourceWeight = Math.round(weight * 0.5); // 軽量化：重みを半分に
+            const sourceWeight = Math.round(weight * 0.5);
             const newWeight = (aiLearning.sourceWeights[article.rssSource] || 0) + sourceWeight;
             aiLearning.sourceWeights[article.rssSource] = Math.max(-20, Math.min(20, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
         return aiLearning;
-    },
-    sortArticlesByScore(articles, aiLearning, wordFilters) {
-        return articles.map(article => ({
-            ...article,
-            aiScore: this.calculateScore(article, aiLearning, wordFilters)
-        })).sort((a, b) => {
-            if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
-            if (a.userRating !== b.userRating) return b.userRating - a.userRating;
-            return new Date(b.publishDate) - new Date(a.publishDate);
-        });
     }
 };
 
@@ -1621,12 +590,11 @@ window.LocalStorageManager = {
     },
     migrateData(key, oldData, defaultValue) {
         if (oldData.data) {
-            // categoryWeightsが含まれる旧データの場合はsourceWeightsに初期化
             if (key === window.CONFIG.STORAGE_KEYS.AI_LEARNING && oldData.data.categoryWeights) {
                 oldData.data = {
                     ...oldData.data,
                     sourceWeights: {},
-                    categoryWeights: undefined // 削除
+                    categoryWeights: undefined
                 };
                 delete oldData.data.categoryWeights;
             }
@@ -1671,7 +639,6 @@ window.DataHooks = {
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
                 
-                // 重複判定
                 const exists = updatedArticles.find(article =>
                     article.id === newArticle.id ||
                     article.url === newArticle.url ||
@@ -1679,7 +646,7 @@ window.DataHooks = {
                 );
                 
                 if (exists) {
-                    return false; // 重複のため追加せず
+                    return false;
                 }
                 
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
@@ -1714,23 +681,7 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
-                // レンダリングスキップの場合は render() を呼ばない
                 if (window.render && !skipRender) {
-                    window.render();
-                }
-            },
-            bulkUpdateArticles(articleIds, updates) {
-                const updatedArticles = window.DataHooksCache.articles.map(article =>
-                    articleIds.includes(article.id) ? { ...article, ...updates } : article
-                );
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-                window.DataHooksCache.articles = updatedArticles;
-                window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
-                
-                if (window.state) {
-                    window.state.articles = updatedArticles;
-                }
-                if (window.render) {
                     window.render();
                 }
             }
