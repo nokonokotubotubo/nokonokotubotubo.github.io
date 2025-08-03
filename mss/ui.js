@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（サイレント同期機能統合版）
+// Minews PWA - UI・表示レイヤー（完全サイレント同期機能統合版）
 (function() {
     'use strict';
 
@@ -40,7 +40,7 @@
     // アプリケーション状態管理
     // ===========================================
 
-    // 【修正】初期状態でLocalStorageから復元（サイレント同期フラグ追加）
+    // 【修正】初期状態でLocalStorageから復元（完全サイレント同期フラグ追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -49,7 +49,7 @@
         articles: [],
         isLoading: false,
         lastUpdate: null,
-        isSyncUpdating: false,     // 同期中フラグ
+        isSyncUpdating: false,     // 手動同期中フラグ
         isBackgroundSyncing: false // 【NEW】バックグラウンド同期フラグ
     };
 
@@ -155,7 +155,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（サイレント同期対応版）
+    // GitHub同期管理関数（完全サイレント同期対応版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -192,7 +192,7 @@
         }
     };
 
-    // 【改良】手動同期関数（サイレント同期対応版）
+    // 【改良】手動同期関数（完全サイレント同期対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -212,7 +212,7 @@
         }
     };
 
-    // 【改良】クラウド復元処理（サイレント同期対応版）
+    // 【改良】クラウド復元処理（完全サイレント同期対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -268,7 +268,7 @@
             }
             
             alert('クラウドからデータを復元しました');
-            // 【修正】setStateで画面更新（renderは不要）
+            // 【重要】手動復元は明示的に画面更新
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
@@ -731,7 +731,7 @@
         `;
     };
 
-    // 【改良】記事フィルタリング（サイレント同期対応版）
+    // 【改良】記事フィルタリング（完全サイレント対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
@@ -757,11 +757,14 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // 【改良】バックグラウンド同期中もソートを抑制
-        if (window.state.isSyncUpdating || window.state.isBackgroundSyncing) {
-            console.log('同期中のためソートを抑制します');
+        // 【改良】手動同期中のみソートを抑制（自動同期は関係なし）
+        if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
+            console.log('手動同期中のためソートを抑制します');
             return filtered;
         }
+
+        // 【重要】バックグラウンド同期中は通常通りソートを実行
+        // これにより、フィルター操作時などに最新データで正しくソートされる
 
         // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
@@ -1014,7 +1017,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        サイレント同期機能統合版
+                                        完全サイレント同期機能統合版
                                     </p>
                                 </div>
                             </div>
