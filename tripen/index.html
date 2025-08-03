@@ -937,9 +937,10 @@ const TrippenGistSync = {
             if (response.ok) {
                 const result = await response.json();
                 
-                if (!this.gistId) {
+                if (!this.gistId && result.id) {
                     this.gistId = result.id;
                     this.saveGistId(result.id);
+                    console.log('新しいGist IDを保存しました:', result.id);
                 }
                 
                 return true;
@@ -1040,16 +1041,28 @@ const TrippenGistSync = {
     saveGistId(gistId) {
         try {
             const currentConfigStr = localStorage.getItem('trippen_gist_config');
-            if (!currentConfigStr) return;
+            if (!currentConfigStr) {
+                console.error('設定が見つからないためGistID保存をスキップ');
+                return;
+            }
 
             const config = JSON.parse(currentConfigStr);
             config.gistId = gistId;
+            config.lastSyncTime = this.lastSyncTime;
+
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
             
             this.gistId = gistId;
+            console.log('Gist IDを正常に保存:', gistId);
+            
+            // Vue.jsの状態も更新
+            if (window.app && window.app.gistSync) {
+                window.app.gistSync.gistId = gistId;
+            }
+            
         } catch (error) {
             console.error('GistID保存エラー:', error);
-            this.gistId = gistId;
+            this.gistId = gistId; // エラーでも内部状態は更新
         }
     },
 
@@ -2296,7 +2309,7 @@ this.showSettingsModal = false;
 },
 
 // GitHub同期関数
-saveGitHubSync() {
+async saveGitHubSync() {
 const token = this.syncForm.token.trim();
 const gistId = this.syncForm.gistId.trim();
 
@@ -2306,16 +2319,27 @@ return;
 }
 
 try {
+// 初期化
 TrippenGistSync.init(token, gistId || null);
+
+// 【重要】初回同期を明示的に実行してGist IDを取得
+const syncResult = await TrippenGistSync.manualSync();
+
+if (syncResult) {
+// Vue.jsの状態を更新
 this.gistSync = {
 isEnabled: true,
-gistId: TrippenGistSync.gistId,
+gistId: TrippenGistSync.gistId, // 新しく作成されたGist ID
 lastSyncTime: TrippenGistSync.lastSyncTime,
 isSyncing: false,
 hasError: false
 };
+
 this.syncForm = { token: '', gistId: '' };
-alert('GitHub同期を開始しました');
+alert('GitHub同期を開始しました\nGist ID: ' + TrippenGistSync.gistId);
+} else {
+throw new Error('初回同期に失敗しました');
+}
 } catch (error) {
 console.error('GitHub同期設定エラー:', error);
 alert('設定に失敗しました: ' + error.message);
@@ -2477,18 +2501,19 @@ window.app = this;
 
 // GitHub同期の初期化
 const config = TrippenGistSync.loadConfig();
-if (config && config.hasToken) {
+if (config && config.isEnabled) {
 this.gistSync = {
 isEnabled: true,
-gistId: config.gistId,
-lastSyncTime: config.lastSyncTime,
+gistId: TrippenGistSync.gistId,
+lastSyncTime: TrippenGistSync.lastSyncTime,
 isSyncing: false,
 hasError: false
 };
+// 定期同期を開始
+TrippenGistSync.startPeriodicSync();
 }
 }
 }).mount('#app');
 </script>
 </body>
 </html>
-
