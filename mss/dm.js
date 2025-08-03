@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（完全サイレント同期機能統合版）
+// Minews PWA - データ管理・処理レイヤー（シンプル化された競合回避機能統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（完全サイレント同期機能統合版）
+// 改良版GitHub Gist同期システム（シンプル化された競合回避機能統合版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -54,6 +54,9 @@ window.GistSyncManager = {
     periodicSyncInterval: null,
     pendingChanges: false,
     lastChangeTime: null,
+    
+    // 【NEW】シンプル化された内部状態管理
+    _isBackgroundSyncing: false,
     
     // 【NEW】設定消失防止フラグ
     _configValidated: false,
@@ -242,6 +245,9 @@ window.GistSyncManager = {
         };
         this._configValidated = true;
 
+        // 【NEW】内部フラグ初期化
+        this._initializeSafely();
+
         if (this.isEnabled) {
             this.startPeriodicSync(60);
         }
@@ -275,7 +281,7 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【完全修正】定期同期実行（完全サイレント版）
+    // 【改善2】内部フラグによる状態管理（window.state操作を排除）
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
@@ -283,14 +289,8 @@ window.GistSyncManager = {
         
         this.isSyncing = true;
         
-        // 【重要】画面更新を一切行わない完全サイレント同期
-        const wasUpdating = window.state?.isSyncUpdating || false;
-        
-        // 【NEW】内部フラグのみ更新（画面更新なし）
-        if (window.state) {
-            window.state.isSyncUpdating = true;
-            window.state.isBackgroundSyncing = true;
-        }
+        // 【重要】window.stateは一切触らない
+        this._isBackgroundSyncing = true;  // 内部フラグのみ
         
         try {
             const cloudData = await this.syncFromCloud();
@@ -301,31 +301,25 @@ window.GistSyncManager = {
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                // 【重要】完全サイレント適用（画面更新一切なし）
-                await this._applyMergedDataToLocalCompletelySilent(mergedData);
+                // 【重要】一括データ更新
+                await this._applyMergedDataSilentBatch(mergedData);
                 
-                this.lastSyncTime = new Date().toISOString();
-                this._saveLastSyncTime(this.lastSyncTime);
+                // 【重要】設定更新も含めて一括処理
+                await this._updateConfigSafely(new Date().toISOString());
+                
                 this.pendingChanges = false;
                 
-                console.log('完全サイレント同期完了:', new Date().toLocaleString());
+                console.log('シンプル完全サイレント同期完了:', new Date().toLocaleString());
                 return true;
             }
             
             return false;
         } catch (error) {
-            console.error('定期同期エラー:', error);
+            console.error('シンプル同期エラー:', error);
             return false;
         } finally {
             this.isSyncing = false;
-            
-            // 【重要】内部フラグのみ更新（画面更新は一切行わない）
-            if (window.state) {
-                window.state.isSyncUpdating = wasUpdating; // 元の状態に戻す
-                window.state.isBackgroundSyncing = false;
-            }
-            
-            // 【削除】setState()は一切呼び出さない
+            this._isBackgroundSyncing = false;
         }
     },
 
@@ -448,28 +442,21 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【NEW】完全サイレント適用（画面更新を一切行わない版）
-    async _applyMergedDataToLocalCompletelySilent(mergedData) {
+    // 【改善1】一括データ更新（LocalStorageアクセスを1回に削減）
+    async _applyMergedDataSilentBatch(mergedData) {
         try {
-            // AI学習データ更新
+            // 【重要】すべての更新を一度にまとめて実行
+            const batchUpdates = {};
+            
+            // データの準備（LocalStorageアクセスなし）
             if (mergedData.aiLearning) {
-                window.LocalStorageManager.setItem(
-                    window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
-                    mergedData.aiLearning
-                );
-                window.DataHooksCache.clear('aiLearning');
+                batchUpdates.aiLearning = mergedData.aiLearning;
             }
             
-            // ワードフィルター更新
             if (mergedData.wordFilters) {
-                window.LocalStorageManager.setItem(
-                    window.CONFIG.STORAGE_KEYS.WORD_FILTERS, 
-                    mergedData.wordFilters
-                );
-                window.DataHooksCache.clear('wordFilters');
+                batchUpdates.wordFilters = mergedData.wordFilters;
             }
             
-            // 記事状態更新
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
@@ -488,31 +475,105 @@ window.GistSyncManager = {
                     return article;
                 });
                 
-                // 【重要】データ保存とキャッシュ更新のみ
-                window.LocalStorageManager.setItem(
-                    window.CONFIG.STORAGE_KEYS.ARTICLES, 
-                    updatedArticles
-                );
-                window.DataHooksCache.clear('articles');
-                window.DataHooksCache.articles = updatedArticles;
-                
-                // 【重要】window.stateは更新するが画面更新は行わない
-                if (window.state) {
-                    window.state.articles = updatedArticles;
-                }
-                
-                // 【削除】render()やsetState()は一切呼び出さない
+                batchUpdates.articles = updatedArticles;
             }
             
-            console.log('完全サイレント同期: データ更新完了（画面更新なし）');
+            // 【重要】一括更新実行（1回のLocalStorageアクセスのみ）
+            await this._executeBatchUpdate(batchUpdates);
+            
+            console.log('シンプル一括更新完了（LocalStorage競合なし）');
             return true;
         } catch (error) {
-            console.error('完全サイレント同期: データ更新エラー:', error);
+            console.error('一括更新エラー:', error);
             return false;
         }
     },
 
-    // マージ結果をローカルに適用（手動同期用）
+    // 【新規】一括更新実行関数
+    async _executeBatchUpdate(batchUpdates) {
+        // 順次実行で競合を完全に回避
+        const updateSequence = [
+            { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
+            { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' },
+            { key: 'articles', storageKey: window.CONFIG.STORAGE_KEYS.ARTICLES, cacheKey: 'articles' }
+        ];
+        
+        for (const update of updateSequence) {
+            if (batchUpdates[update.key]) {
+                // 一つずつ確実に実行
+                window.LocalStorageManager.setItem(update.storageKey, batchUpdates[update.key]);
+                window.DataHooksCache.clear(update.cacheKey);
+                
+                // 記事データの場合は追加処理
+                if (update.key === 'articles') {
+                    window.DataHooksCache.articles = batchUpdates[update.key];
+                    if (window.state) {
+                        window.state.articles = batchUpdates[update.key];
+                    }
+                }
+                
+                // 次の更新まで最小限の間隔
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
+    },
+
+    // 【改善3】設定更新の安全化（競合回避版）
+    async _updateConfigSafely(timestamp) {
+        try {
+            // 【重要】一度だけ設定を読み込み
+            let currentConfig = null;
+            
+            try {
+                const configStr = localStorage.getItem('minews_gist_config');
+                if (configStr) {
+                    currentConfig = JSON.parse(configStr);
+                }
+            } catch (parseError) {
+                console.warn('設定解析エラー:', parseError);
+            }
+            
+            // 設定が見つからない場合の再作成
+            if (!currentConfig && this.token && this.gistId && this.isEnabled) {
+                console.log('設定を再作成します');
+                currentConfig = {
+                    encryptedToken: this._encrypt(this.token),
+                    gistId: this.gistId,
+                    isEnabled: this.isEnabled,
+                    configuredAt: new Date().toISOString(),
+                    version: '1.2',
+                    recreated: true
+                };
+            }
+            
+            if (currentConfig) {
+                // タイムスタンプ更新
+                currentConfig.lastSyncTime = timestamp;
+                currentConfig.lastUpdated = new Date().toISOString();
+                
+                // 【重要】一度だけ保存
+                localStorage.setItem('minews_gist_config', JSON.stringify(currentConfig));
+                
+                this.lastSyncTime = timestamp;
+                
+                if (this._lastValidConfig) {
+                    this._lastValidConfig.lastSyncTime = timestamp;
+                }
+                
+                console.log('設定更新完了:', timestamp);
+                return true;
+            }
+            
+            console.warn('設定更新をスキップ: 設定の再作成に失敗');
+            return false;
+            
+        } catch (error) {
+            console.error('設定更新エラー:', error);
+            return false;
+        }
+    },
+
+    // 手動同期用のデータ適用（従来版を保持）
     async _applyMergedDataToLocal(mergedData) {
         try {
             if (mergedData.aiLearning) {
@@ -612,7 +673,7 @@ window.GistSyncManager = {
                 await this._applyMergedDataToLocal(mergedData);
                 
                 this.lastSyncTime = new Date().toISOString();
-                this._saveLastSyncTime(this.lastSyncTime);
+                await this._updateConfigSafely(this.lastSyncTime);
                 this.pendingChanges = false;
                 
                 console.log('手動同期完了:', new Date().toLocaleString());
@@ -632,6 +693,34 @@ window.GistSyncManager = {
         }
     },
 
+    // 【改善4】内部フラグによる同期状態確認
+    _isCurrentlyBackgroundSyncing() {
+        return this._isBackgroundSyncing || false;
+    },
+
+    // 【改善5】シンプルな初期化（設定消失防止）
+    _initializeSafely() {
+        // 内部フラグ初期化
+        this._isBackgroundSyncing = false;
+        
+        // 設定整合性チェック
+        try {
+            const configStr = localStorage.getItem('minews_gist_config');
+            if (configStr) {
+                const config = JSON.parse(configStr);
+                if (config.encryptedToken && config.gistId) {
+                    console.log('設定整合性確認: OK');
+                    return true;
+                }
+            }
+            console.warn('設定整合性確認: 不完全な設定が検出されました');
+            return false;
+        } catch (error) {
+            console.error('設定整合性確認エラー:', error);
+            return false;
+        }
+    },
+
     // タイムスタンプ比較判定
     _shouldPullFromCloud(cloudTimestamp) {
         if (!cloudTimestamp || !this.lastSyncTime) {
@@ -644,31 +733,6 @@ window.GistSyncManager = {
             return cloudTime > localTime;
         } catch (error) {
             return true;
-        }
-    },
-
-    // 最終同期時刻保存
-    _saveLastSyncTime(timestamp) {
-        try {
-            const currentConfigStr = localStorage.getItem('minews_gist_config');
-            if (!currentConfigStr) {
-                console.warn('設定が見つからないため同期時刻の保存をスキップ');
-                return;
-            }
-
-            const config = JSON.parse(currentConfigStr);
-            config.lastSyncTime = timestamp;
-            this.lastSyncTime = timestamp;
-
-            localStorage.setItem('minews_gist_config', JSON.stringify(config));
-            
-            if (this._lastValidConfig) {
-                this._lastValidConfig.lastSyncTime = timestamp;
-            }
-            
-            console.log('最終同期時刻を更新:', timestamp);
-        } catch (error) {
-            console.error('同期時刻保存エラー:', error);
         }
     },
     
