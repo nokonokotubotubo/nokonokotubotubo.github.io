@@ -17,6 +17,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:8px 0;text-align:center;box-shadow:var(--shadow);flex-shrink:0;position:relative}
 .header .container{position:relative}
 .header h1{margin:0;display:inline-block}
+.cloud-load-btn{position:absolute;left:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
+.cloud-load-btn:hover{background:rgba(255,255,255,0.2);color:white}
+.cloud-load-btn:disabled{opacity:0.5;cursor:not-allowed}
+.cloud-load-btn.loading{animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:translateY(-50%) rotate(0deg)}100%{transform:translateY(-50%) rotate(360deg)}}
 .settings-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
 .settings-btn:hover{background:rgba(255,255,255,0.2);color:white}
 .penguin-icon{font-size:2rem;margin-right:10px}
@@ -438,8 +443,86 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     outline: none;
 }
 
+/* 競合確認モーダル */
+.conflict-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+.conflict-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.conflict-content {
+    background: white;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 500px;
+    padding: 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.conflict-header {
+    background: #dc3545;
+    color: white;
+    padding: 20px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    text-align: center;
+}
+
+.conflict-body {
+    padding: 20px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.conflict-actions {
+    padding: 0 20px 20px 20px;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+}
+
+.conflict-btn {
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.conflict-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.conflict-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.conflict-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
 @media (max-width:768px){
 .header{padding:6px 0}
+.cloud-load-btn{left:10px;font-size:1.3rem}
+.settings-btn{right:10px;font-size:1.3rem}
 .timeline-header{padding:6px 15px}
 .timeline-header h5{font-size:0.9rem}
 .timeline-header h5 small{font-size:0.75rem;display:block;margin-left:0;margin-top:2px}
@@ -459,6 +542,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .settings-body{padding:15px}
 .sync-actions{flex-direction:column}
 .sync-btn{width:100%}
+.conflict-content{width:95%}
 }
 </style>
 </head>
@@ -466,6 +550,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div id="app">
 <header class="header">
 <div class="container">
+<button class="cloud-load-btn" @click="loadFromCloud" title="クラウドから読込" :disabled="!gistSync.isEnabled" :class="{ loading: gistSync.isLoading }">
+<i class="fas fa-cloud-download-alt"></i>
+</button>
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
 <button class="settings-btn" @click="openSettingsModal" title="設定">
 <i class="fas fa-cog"></i>
@@ -700,6 +787,28 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     </div>
 </div>
 
+<!-- 競合確認モーダル -->
+<div v-if="showConflictModal" class="conflict-modal" :class="{ show: showConflictModal }" @click="closeConflictModal">
+    <div class="conflict-content" @click.stop>
+        <div class="conflict-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> データ競合が発生</h3>
+        </div>
+        <div class="conflict-body">
+            <p>他の端末でデータが更新されています。</p>
+            <p><strong>クラウドから読み込んで最新データに更新しますか？</strong></p>
+            <small class="text-muted">※ローカルの変更は失われる可能性があります</small>
+        </div>
+        <div class="conflict-actions">
+            <button class="conflict-btn primary" @click="forceLoadFromCloud">
+                <i class="fas fa-cloud-download-alt"></i> クラウドデータで上書き
+            </button>
+            <button class="conflict-btn secondary" @click="closeConflictModal">
+                <i class="fas fa-times"></i> キャンセル（後で同期）
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- 設定モーダル -->
 <div v-if="showSettingsModal" class="settings-modal" :class="{ show: showSettingsModal }" @click="closeSettingsModal">
     <div class="settings-content" @click.stop>
@@ -712,13 +821,15 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
         <div class="settings-body">
             <div class="settings-section">
                 <h3><i class="fas fa-cloud-upload-alt"></i> GitHub同期設定</h3>
-                <p>GitHub Personal Access Tokenを設定すると、旅行データ（日程・予定・レイヤー順序）が定期的（1分間隔）に自動同期され、複数端末間で完全にマージされます。</p>
+                <p>GitHub Personal Access Tokenを設定すると、旅行データが自動同期されます。<br>
+                <strong>新方式:</strong> 初回・手動読み込み + 1分間隔自動書き込み + 競合チェック</p>
                 
                 <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
                     <div v-if="gistSync.isEnabled">
-                        <strong>同期状態:</strong> 有効（完全マージ方式）<br>
+                        <strong>同期状態:</strong> 有効（新方式）<br>
                         <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
-                        <span v-if="gistSync.lastSyncTime">最終同期: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
+                        <span v-if="gistSync.lastReadTime">最終読込: {{ formatSyncTime(gistSync.lastReadTime) }}</span><br>
+                        <span v-if="gistSync.lastSyncTime">最終書込: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
                     </div>
                     <div v-else>
                         <strong>同期状態:</strong> 無効<br>
@@ -742,7 +853,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 
                 <div v-else class="sync-actions">
                     <button class="sync-btn primary" @click="manualSync" :disabled="gistSync.isSyncing">
-                        {{ gistSync.isSyncing ? '同期中...' : '手動同期' }}
+                        {{ gistSync.isSyncing ? '書き込み中...' : '手動書き込み' }}
                     </button>
                     <button class="sync-btn secondary" @click="copyGistId">Gist IDコピー</button>
                     <button class="sync-btn danger" @click="clearGitHubSync">設定を解除</button>
@@ -752,7 +863,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
             <div class="settings-section">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
                 <p>とりっぺんちゃん - 旅行予定調整サイト<br>
-                GitHub完全マージ同期機能統合版</p>
+                GitHub新同期方式統合版</p>
             </div>
         </div>
     </div>
@@ -777,13 +888,14 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script>
 const { createApp } = Vue;
 
-// GitHub Gist同期システム（とりっぺんちゃん完全マージ対応版）
+// GitHub Gist同期システム（新同期方式対応版）
 const TrippenGistSync = {
     token: null,
     gistId: null,
     isEnabled: false,
     isSyncing: false,
     lastSyncTime: null,
+    lastReadTime: null,
     periodicSyncInterval: null,
     hasError: false,
 
@@ -817,6 +929,11 @@ const TrippenGistSync = {
         }
     },
 
+    // UTC時刻を生成（タイムゾーン対応）
+    getUTCTimestamp() {
+        return new Date().toISOString();
+    },
+
     // 設定の読み込み
     loadConfig() {
         try {
@@ -832,6 +949,7 @@ const TrippenGistSync = {
             
             this.gistId = config.gistId || null;
             this.lastSyncTime = config.lastSyncTime || null;
+            this.lastReadTime = config.lastReadTime || null;
             
             return config;
         } catch (error) {
@@ -858,50 +976,24 @@ const TrippenGistSync = {
             encryptedToken: encryptedToken,
             gistId: this.gistId,
             isEnabled: this.isEnabled,
-            configuredAt: new Date().toISOString(),
+            configuredAt: this.getUTCTimestamp(),
             lastSyncTime: this.lastSyncTime,
-            version: '1.0'
+            lastReadTime: this.lastReadTime,
+            version: '2.0'
         };
 
         localStorage.setItem('trippen_gist_config', JSON.stringify(configData));
         this.startPeriodicSync();
     },
 
-    // 強化された定期同期開始
+    // 1分間隔の定期同期開始
     startPeriodicSync() {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
         }
         
-        let errorCount = 0;
-        
         this.periodicSyncInterval = setInterval(async () => {
-            try {
-                const result = await this.autoSync();
-                if (result) {
-                    errorCount = 0; // 成功時はエラーカウントをリセット
-                } else {
-                    errorCount++;
-                }
-            } catch (error) {
-                errorCount++;
-                console.error('定期同期エラー:', error);
-            }
-            
-            // 連続エラーが5回続いた場合は同期間隔を延長
-            if (errorCount >= 5) {
-                console.log('連続エラーのため同期間隔を延長します');
-                clearInterval(this.periodicSyncInterval);
-                
-                // 5分間隔で再試行
-                this.periodicSyncInterval = setInterval(async () => {
-                    const retryResult = await this.autoSync();
-                    if (retryResult) {
-                        // 成功したら通常間隔に戻す
-                        this.startPeriodicSync();
-                    }
-                }, 300000); // 5分間隔
-            }
+            await this.autoWriteToCloud();
         }, 60000); // 1分間隔
     },
 
@@ -920,8 +1012,8 @@ const TrippenGistSync = {
         const layerOrder = JSON.parse(localStorage.getItem('trippenLayerOrder') || '[]');
 
         return {
-            version: '1.0',
-            syncTime: new Date().toISOString(),
+            version: '2.0',
+            syncTime: this.getUTCTimestamp(),
             data: {
                 events: events,
                 days: days,
@@ -930,7 +1022,7 @@ const TrippenGistSync = {
         };
     },
 
-    // クラウドへの同期
+    // クラウドへの書き込み
     async syncToCloud(data) {
         if (!this.token) return false;
         
@@ -975,14 +1067,14 @@ const TrippenGistSync = {
             
             return false;
         } catch (error) {
-            console.error('クラウド同期エラー:', error);
+            console.error('クラウド書き込みエラー:', error);
             this.hasError = true;
             return false;
         }
     },
 
-    // クラウドからの同期
-    async syncFromCloud() {
+    // クラウドからの読み込み
+    async loadFromCloud() {
         if (!this.token || !this.gistId) return null;
         
         try {
@@ -997,272 +1089,94 @@ const TrippenGistSync = {
                 const gist = await response.json();
                 if (gist.files && gist.files['trippen_data.json']) {
                     const content = gist.files['trippen_data.json'].content;
+                    
+                    // 読み込み時刻を記録
+                    this.lastReadTime = this.getUTCTimestamp();
+                    this.saveLastReadTime();
+                    
                     return JSON.parse(content);
                 }
             }
             return null;
         } catch (error) {
-            console.error('クラウドデータ取得エラー:', error);
+            console.error('クラウドデータ読み込みエラー:', error);
             this.hasError = true;
             return null;
         }
     },
 
-    // 双方向同期対応版 autoSync()
-    async autoSync() {
+    // 競合チェック（新しいデータがクラウドにあるかチェック）
+    async checkForNewerCloudData() {
+        if (!this.token || !this.gistId) return false;
+        
+        try {
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (response.ok) {
+                const gist = await response.json();
+                const cloudUpdatedAt = new Date(gist.updated_at);
+                
+                // 最後の読み込み時刻と最後の書き込み時刻と比較
+                const lastReadTime = new Date(this.lastReadTime || 0);
+                const lastWriteTime = new Date(this.lastSyncTime || 0);
+                
+                // クラウドの更新時刻が両方より新しい場合は競合
+                return cloudUpdatedAt > lastReadTime && cloudUpdatedAt > lastWriteTime;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('競合チェックエラー:', error);
+            return false;
+        }
+    },
+
+    // 自動書き込み（1分間隔）
+    async autoWriteToCloud() {
         if (!this.isEnabled || !this.token || this.isSyncing) return false;
         
         this.isSyncing = true;
         this.hasError = false;
         
         try {
-            // 1. まずクラウドからデータを取得
-            const cloudData = await this.syncFromCloud();
-            
-            if (cloudData && cloudData.data) {
-                // 2. 完全マージ処理を実行
-                const hasConflict = this.checkAndResolveConflicts(cloudData);
-                if (hasConflict) {
-                    console.log('データを完全マージしました（自動同期）');
+            // 1. 競合チェック
+            const hasNewerData = await this.checkForNewerCloudData();
+            if (hasNewerData) {
+                // Vue.jsアプリに競合を通知
+                if (window.app && window.app.handleSyncConflict) {
+                    window.app.handleSyncConflict();
                 }
+                return false; // 競合があるため書き込みを停止
             }
             
-            // 3. マージ後のローカルデータをクラウドにアップロード
+            // 2. ローカルデータをクラウドに書き込み
             const localData = this.collectSyncData();
             const uploadResult = await this.syncToCloud(localData);
             
             if (uploadResult) {
-                this.lastSyncTime = new Date().toISOString();
+                this.lastSyncTime = this.getUTCTimestamp();
                 this.saveLastSyncTime();
-                console.log('双方向同期完了（完全マージ）:', new Date().toLocaleString());
+                console.log('自動書き込み完了:', new Date().toLocaleString());
                 return true;
             }
             
             return false;
         } catch (error) {
-            console.error('自動同期エラー:', error);
+            console.error('自動書き込みエラー:', error);
             this.hasError = true;
-            
-            // エラー復旧処理
-            setTimeout(() => {
-                if (this.isEnabled && !this.isSyncing) {
-                    console.log('同期エラー後の復旧を試行します');
-                    this.autoSync();
-                }
-            }, 30000); // 30秒後に再試行
-            
             return false;
         } finally {
             this.isSyncing = false;
         }
     },
 
-    // 競合解決機能（完全マージ方式）
-    checkAndResolveConflicts(cloudData) {
-        try {
-            const localEvents = JSON.parse(localStorage.getItem('trippenEvents') || '[]');
-            const localDays = JSON.parse(localStorage.getItem('trippenDays') || '[]');
-            const localLayerOrder = JSON.parse(localStorage.getItem('trippenLayerOrder') || '[]');
-            
-            const cloudEvents = cloudData.data.events || [];
-            const cloudDays = cloudData.data.days || [];
-            const cloudLayerOrder = cloudData.data.layerOrder || [];
-            
-            let hasChanges = false;
-            
-            // 1. 日程データの完全マージ
-            const mergedDays = this.mergeDayData(localDays, cloudDays);
-            if (JSON.stringify(localDays) !== JSON.stringify(mergedDays)) {
-                localStorage.setItem('trippenDays', JSON.stringify(mergedDays));
-                if (window.app) {
-                    window.app.tripDays = mergedDays;
-                }
-                hasChanges = true;
-                console.log('日程データを完全マージしました');
-            }
-            
-            // 2. イベントデータの完全マージ
-            const mergedEvents = this.mergeEventDataComplete(localEvents, cloudEvents);
-            if (JSON.stringify(localEvents) !== JSON.stringify(mergedEvents)) {
-                localStorage.setItem('trippenEvents', JSON.stringify(mergedEvents));
-                if (window.app) {
-                    window.app.events = mergedEvents;
-                }
-                hasChanges = true;
-                console.log('イベントデータを完全マージしました');
-            }
-            
-            // 3. レイヤー順序の完全マージ
-            const mergedLayerOrder = this.mergeLayerOrder(localLayerOrder, cloudLayerOrder);
-            if (JSON.stringify(localLayerOrder) !== JSON.stringify(mergedLayerOrder)) {
-                localStorage.setItem('trippenLayerOrder', JSON.stringify(mergedLayerOrder));
-                if (window.app) {
-                    window.app.eventLayerOrder = mergedLayerOrder;
-                }
-                hasChanges = true;
-                console.log('レイヤー順序を完全マージしました');
-            }
-            
-            return hasChanges;
-        } catch (error) {
-            console.error('競合解決エラー:', error);
-            return false;
-        }
-    },
-
-    // 日程データの完全マージ
-    mergeDayData(localDays, cloudDays) {
-        const merged = new Map();
-        
-        // ローカル日程を追加
-        localDays.forEach(day => {
-            merged.set(day.fullDate || day.id, {
-                ...day,
-                source: 'local',
-                mergedAt: new Date().toISOString()
-            });
-        });
-        
-        // クラウド日程を追加・マージ
-        cloudDays.forEach(cloudDay => {
-            const key = cloudDay.fullDate || cloudDay.id;
-            if (merged.has(key)) {
-                // 既存データとマージ（より新しい情報を保持）
-                const existing = merged.get(key);
-                merged.set(key, {
-                    ...existing,
-                    ...cloudDay,
-                    source: 'merged',
-                    mergedAt: new Date().toISOString()
-                });
-            } else {
-                merged.set(key, {
-                    ...cloudDay,
-                    source: 'cloud',
-                    mergedAt: new Date().toISOString()
-                });
-            }
-        });
-        
-        // 日程順でソート
-        return Array.from(merged.values()).sort((a, b) => {
-            return new Date(a.fullDate) - new Date(b.fullDate);
-        });
-    },
-
-    // イベントデータの完全マージ
-    mergeEventDataComplete(localEvents, cloudEvents) {
-        const merged = new Map();
-        
-        // ローカルイベントを追加（メタデータ付き）
-        localEvents.forEach(event => {
-            merged.set(event.id, {
-                ...event,
-                source: 'local',
-                mergedAt: new Date().toISOString(),
-                lastModified: event.lastModified || new Date().toISOString()
-            });
-        });
-        
-        // クラウドイベントを追加・マージ
-        cloudEvents.forEach(cloudEvent => {
-            if (merged.has(cloudEvent.id)) {
-                const existing = merged.get(cloudEvent.id);
-                
-                // より詳細な情報を保持する統合ロジック
-                const mergedEvent = {
-                    ...existing,
-                    ...cloudEvent,
-                    
-                    // タイトル：より長い方を保持
-                    title: cloudEvent.title && cloudEvent.title.length > (existing.title || '').length 
-                        ? cloudEvent.title : existing.title,
-                    
-                    // 詳細：両方の情報を結合
-                    description: this.mergeDescriptions(existing.description, cloudEvent.description),
-                    
-                    // 座標：より正確な方を保持
-                    coordinates: cloudEvent.coordinates || existing.coordinates,
-                    
-                    // 時間：より最近の変更を保持
-                    startTime: this.selectBetterTime(existing.startTime, cloudEvent.startTime, existing.lastModified, cloudEvent.lastModified),
-                    endTime: this.selectBetterTime(existing.endTime, cloudEvent.endTime, existing.lastModified, cloudEvent.lastModified),
-                    
-                    source: 'merged',
-                    mergedAt: new Date().toISOString(),
-                    lastModified: new Date(Math.max(
-                        new Date(existing.lastModified || 0),
-                        new Date(cloudEvent.lastModified || 0)
-                    )).toISOString()
-                };
-                
-                merged.set(cloudEvent.id, mergedEvent);
-            } else {
-                merged.set(cloudEvent.id, {
-                    ...cloudEvent,
-                    source: 'cloud',
-                    mergedAt: new Date().toISOString(),
-                    lastModified: cloudEvent.lastModified || new Date().toISOString()
-                });
-            }
-        });
-        
-        return Array.from(merged.values());
-    },
-
-    // 詳細情報のマージ
-    mergeDescriptions(localDesc, cloudDesc) {
-        if (!localDesc && !cloudDesc) return '';
-        if (!localDesc) return cloudDesc;
-        if (!cloudDesc) return localDesc;
-        
-        if (localDesc === cloudDesc) return localDesc;
-        
-        // 両方が異なる場合は結合
-        return `${localDesc}\n\n[統合された情報]\n${cloudDesc}`;
-    },
-
-    // 時間情報の選択
-    selectBetterTime(localTime, cloudTime, localModified, cloudModified) {
-        if (!localTime && !cloudTime) return '';
-        if (!localTime) return cloudTime;
-        if (!cloudTime) return localTime;
-        
-        // 最終更新時刻が新しい方を採用
-        const localMod = new Date(localModified || 0);
-        const cloudMod = new Date(cloudModified || 0);
-        
-        return cloudMod >= localMod ? cloudTime : localTime;
-    },
-
-    // レイヤー順序の完全マージ
-    mergeLayerOrder(localOrder, cloudOrder) {
-        const merged = new Set();
-        
-        // ローカル順序を追加
-        localOrder.forEach(id => merged.add(id));
-        
-        // クラウド順序を追加
-        cloudOrder.forEach(id => merged.add(id));
-        
-        // より長いリストの順序を基準とし、不足分を補完
-        const baseOrder = localOrder.length >= cloudOrder.length ? localOrder : cloudOrder;
-        const supplementOrder = localOrder.length >= cloudOrder.length ? cloudOrder : localOrder;
-        
-        const result = [...baseOrder];
-        
-        // 基準にない要素を末尾に追加
-        supplementOrder.forEach(id => {
-            if (!result.includes(id)) {
-                result.push(id);
-            }
-        });
-        
-        return result;
-    },
-
-    // 手動同期も双方向対応に修正
-    async manualSync() {
+    // 手動書き込み
+    async manualWriteToCloud() {
         if (!this.isEnabled || !this.token) {
             throw new Error('GitHub同期が設定されていません');
         }
@@ -1271,32 +1185,39 @@ const TrippenGistSync = {
         this.hasError = false;
         
         try {
-            // 1. まずクラウドからデータを取得
-            const cloudData = await this.syncFromCloud();
-            
-            if (cloudData && cloudData.data) {
-                const hasChanges = this.checkAndResolveConflicts(cloudData);
-                if (hasChanges) {
-                    console.log('他の端末からの変更を完全マージしました');
-                }
-            }
-            
-            // 2. ローカルデータをクラウドにアップロード
             const localData = this.collectSyncData();
             const uploadResult = await this.syncToCloud(localData);
             
             if (uploadResult) {
-                this.lastSyncTime = new Date().toISOString();
+                this.lastSyncTime = this.getUTCTimestamp();
                 this.saveLastSyncTime();
                 return true;
             }
             
-            throw new Error('同期に失敗しました');
+            throw new Error('書き込みに失敗しました');
         } catch (error) {
             this.hasError = true;
             throw error;
         } finally {
             this.isSyncing = false;
+        }
+    },
+
+    // 初回自動読み込み
+    async initialAutoLoad() {
+        if (!this.isEnabled || !this.token || !this.gistId) return null;
+        
+        try {
+            const cloudData = await this.loadFromCloud();
+            if (cloudData && cloudData.data) {
+                console.log('初回自動読み込み完了:', new Date().toLocaleString());
+                return cloudData;
+            }
+            return null;
+        } catch (error) {
+            console.error('初回自動読み込みエラー:', error);
+            this.hasError = true;
+            return null;
         }
     },
 
@@ -1312,6 +1233,7 @@ const TrippenGistSync = {
             const config = JSON.parse(currentConfigStr);
             config.gistId = gistId;
             config.lastSyncTime = this.lastSyncTime;
+            config.lastReadTime = this.lastReadTime;
 
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
             
@@ -1329,7 +1251,7 @@ const TrippenGistSync = {
         }
     },
 
-    // 同期時刻保存
+    // 書き込み時刻保存
     saveLastSyncTime() {
         try {
             const currentConfigStr = localStorage.getItem('trippen_gist_config');
@@ -1339,7 +1261,21 @@ const TrippenGistSync = {
             config.lastSyncTime = this.lastSyncTime;
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch (error) {
-            console.error('同期時刻保存エラー:', error);
+            console.error('書き込み時刻保存エラー:', error);
+        }
+    },
+
+    // 読み込み時刻保存
+    saveLastReadTime() {
+        try {
+            const currentConfigStr = localStorage.getItem('trippen_gist_config');
+            if (!currentConfigStr) return;
+
+            const config = JSON.parse(currentConfigStr);
+            config.lastReadTime = this.lastReadTime;
+            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
+        } catch (error) {
+            console.error('読み込み時刻保存エラー:', error);
         }
     },
 
@@ -1351,6 +1287,7 @@ const TrippenGistSync = {
         this.gistId = null;
         this.isEnabled = false;
         this.lastSyncTime = null;
+        this.lastReadTime = null;
         this.hasError = false;
     }
 };
@@ -1417,12 +1354,16 @@ showWeatherPopup: false,
 weatherPopupUrl: '',
 // 設定モーダル用データ
 showSettingsModal: false,
-// GitHub同期設定
+// 競合確認モーダル用データ
+showConflictModal: false,
+// GitHub同期設定（新同期方式対応）
 gistSync: {
 isEnabled: false,
 gistId: null,
 lastSyncTime: null,
+lastReadTime: null,
 isSyncing: false,
+isLoading: false,
 hasError: false
 },
 syncForm: {
@@ -2417,8 +2358,7 @@ startTime,
 endTime,
 category,
 coordinates,
-description,
-lastModified: new Date().toISOString() // 完全マージ用のタイムスタンプ追加
+description
 };
 
 if (isEdit) {
@@ -2572,7 +2512,7 @@ closeSettingsModal() {
 this.showSettingsModal = false;
 },
 
-// GitHub同期関数（完全マージ対応版）
+// 新同期方式のGitHub同期関数
 async saveGitHubSync() {
 const token = this.syncForm.token.trim();
 const gistId = this.syncForm.gistId.trim();
@@ -2586,23 +2526,25 @@ try {
 // 初期化
 TrippenGistSync.init(token, gistId || null);
 
-// 【重要】初回同期を明示的に実行してGist IDを取得
-const syncResult = await TrippenGistSync.manualSync();
+// 【重要】初回書き込みを明示的に実行してGist IDを取得
+const syncResult = await TrippenGistSync.manualWriteToCloud();
 
 if (syncResult) {
 // Vue.jsの状態を更新
 this.gistSync = {
 isEnabled: true,
-gistId: TrippenGistSync.gistId, // 新しく作成されたGist ID
+gistId: TrippenGistSync.gistId,
 lastSyncTime: TrippenGistSync.lastSyncTime,
+lastReadTime: TrippenGistSync.lastReadTime,
 isSyncing: false,
+isLoading: false,
 hasError: false
 };
 
 this.syncForm = { token: '', gistId: '' };
-alert('GitHub同期を開始しました（完全マージ方式）\nGist ID: ' + TrippenGistSync.gistId);
+alert('GitHub同期を開始しました（新方式）\nGist ID: ' + TrippenGistSync.gistId);
 } else {
-throw new Error('初回同期に失敗しました');
+throw new Error('初回書き込みに失敗しました');
 }
 } catch (error) {
 console.error('GitHub同期設定エラー:', error);
@@ -2619,21 +2561,83 @@ return;
 this.gistSync.isSyncing = true;
 
 try {
-const result = await TrippenGistSync.manualSync();
+const result = await TrippenGistSync.manualWriteToCloud();
 if (result) {
 this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
 this.gistSync.hasError = false;
-alert('手動同期が完了しました（完全マージ適用）');
+alert('手動書き込みが完了しました');
 } else {
-throw new Error('同期に失敗しました');
+throw new Error('書き込みに失敗しました');
 }
 } catch (error) {
-console.error('手動同期エラー:', error);
+console.error('手動書き込みエラー:', error);
 this.gistSync.hasError = true;
-alert('同期に失敗しました: ' + error.message);
+alert('書き込みに失敗しました: ' + error.message);
 } finally {
 this.gistSync.isSyncing = false;
 }
+},
+
+// 新同期方式：クラウドから読み込み
+async loadFromCloud() {
+if (!TrippenGistSync.isEnabled) {
+alert('GitHub同期が設定されていません');
+return;
+}
+
+this.gistSync.isLoading = true;
+
+try {
+const cloudData = await TrippenGistSync.loadFromCloud();
+if (cloudData && cloudData.data) {
+// クラウドデータでローカルデータを上書き
+if (cloudData.data.events) {
+this.events = cloudData.data.events;
+localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+}
+if (cloudData.data.days) {
+this.tripDays = cloudData.data.days;
+localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+if (this.tripDays.length > 0) {
+this.tripInitialized = true;
+}
+}
+if (cloudData.data.layerOrder) {
+this.eventLayerOrder = cloudData.data.layerOrder;
+localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
+}
+
+this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
+this.gistSync.hasError = false;
+alert('クラウドからデータを読み込みました');
+
+// 天気予報を再取得
+this.loadWeatherForAllEvents();
+} else {
+alert('クラウドにデータが見つかりませんでした');
+}
+} catch (error) {
+console.error('クラウド読み込みエラー:', error);
+this.gistSync.hasError = true;
+alert('読み込みに失敗しました: ' + error.message);
+} finally {
+this.gistSync.isLoading = false;
+}
+},
+
+// 競合処理
+handleSyncConflict() {
+this.showConflictModal = true;
+},
+
+closeConflictModal() {
+this.showConflictModal = false;
+},
+
+// 強制的にクラウドから読み込み
+async forceLoadFromCloud() {
+this.closeConflictModal();
+await this.loadFromCloud();
 },
 
 copyGistId() {
@@ -2672,7 +2676,9 @@ this.gistSync = {
 isEnabled: false,
 gistId: null,
 lastSyncTime: null,
+lastReadTime: null,
 isSyncing: false,
+isLoading: false,
 hasError: false
 };
 this.syncForm = { token: '', gistId: '' };
@@ -2684,7 +2690,7 @@ alert('設定の解除に失敗しました');
 },
 
 formatSyncTime(isoString) {
-if (!isoString) return '未同期';
+if (!isoString) return '未実行';
 try {
 const date = new Date(isoString);
 return date.toLocaleString('ja-JP');
@@ -2751,7 +2757,7 @@ this.tripDays = [];
 this.loadLayerOrder();
 }
 },
-// mounted()の修正 - 初期同期の強化
+// mounted()の修正 - 新同期方式対応
 mounted() {
 this.detectMobile();
 this.checkExistingData();
@@ -2763,28 +2769,36 @@ this.loadWeatherForAllEvents();
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
 
-// GitHub同期の初期化（強化版）
+// GitHub同期の初期化（新同期方式）
 const config = TrippenGistSync.loadConfig();
 if (config && config.isEnabled) {
 this.gistSync = {
 isEnabled: true,
 gistId: TrippenGistSync.gistId,
 lastSyncTime: TrippenGistSync.lastSyncTime,
+lastReadTime: TrippenGistSync.lastReadTime,
 isSyncing: false,
+isLoading: false,
 hasError: false
 };
 
-// 定期同期を開始
+// 定期書き込みを開始
 TrippenGistSync.startPeriodicSync();
 
-// アプリ起動時に即座に同期実行
-setTimeout(() => {
-TrippenGistSync.manualSync().then(() => {
-console.log('アプリ起動時の完全マージ同期が完了しました');
-}).catch(error => {
-console.error('アプリ起動時の同期に失敗:', error);
-});
-}, 2000); // 2秒後に初回同期
+// アプリ起動時に初回自動読み込み実行
+if (TrippenGistSync.gistId) {
+setTimeout(async () => {
+try {
+const cloudData = await TrippenGistSync.initialAutoLoad();
+if (cloudData && cloudData.data) {
+console.log('初回自動読み込みでデータを取得しました');
+// 必要に応じて画面更新（例：新しいデータがある場合の通知）
+}
+} catch (error) {
+console.error('初回自動読み込みエラー:', error);
+}
+}, 2000); // 2秒後に初回読み込み
+}
 }
 }
 }).mount('#app');
