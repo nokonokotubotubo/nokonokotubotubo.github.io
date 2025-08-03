@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（双方向同期機能完全対応版）
+// Minews PWA - データ管理・処理レイヤー（設定消失根本修正統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（双方向同期対応）
+// 改良版GitHub Gist同期システム（設定消失根本修正版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -55,16 +55,26 @@ window.GistSyncManager = {
     pendingChanges: false,
     lastChangeTime: null,
     
-    // 簡易暗号化機能（XOR ベース）
+    // 【NEW】設定消失防止フラグ
+    _configValidated: false,
+    _lastValidConfig: null,
+    
+    // 【改良】暗号化機能（エラー耐性強化）
     _encrypt(text, key = 'minews_secret_key') {
         if (!text) return '';
-        let result = '';
-        for (let i = 0; i < text.length; i++) {
-            result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        try {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return btoa(result);
+        } catch (error) {
+            console.error('暗号化エラー:', error);
+            throw new Error('暗号化処理に失敗しました'); // エラーを上位に伝播
         }
-        return btoa(result);
     },
 
+    // 【根本修正】復号化機能（失敗時の設定保持）
     _decrypt(encryptedText, key = 'minews_secret_key') {
         if (!encryptedText) return '';
         try {
@@ -73,64 +83,184 @@ window.GistSyncManager = {
             for (let i = 0; i < text.length; i++) {
                 result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
             }
+            
+            // 復号化結果の妥当性チェック
+            if (result.length < 10 || !/^[a-zA-Z0-9_]+$/.test(result)) {
+                console.warn('復号化結果が不正です:', result.substring(0, 10));
+                throw new Error('復号化データが無効です');
+            }
+            
             return result;
         } catch (error) {
-            return '';
+            console.error('復号化エラー:', error);
+            // 【重要】空文字を返さず、例外を投げて上位で判断させる
+            throw new Error('復号化に失敗しました');
         }
     },
     
-    // 初期化（設定画面で呼び出し）
-    init(token, gistId = null) {
-        this.token = token;
-        this.gistId = gistId;
-        this.isEnabled = !!token;
-        
-        try {
-            localStorage.setItem('minews_gist_config', JSON.stringify({
-                encryptedToken: token ? this._encrypt(token) : null,
-                gistId: gistId,
-                isEnabled: this.isEnabled,
-                configuredAt: new Date().toISOString(),
-                lastSyncTime: this.lastSyncTime || null
-            }));
-            
-            if (this.isEnabled) {
-                this.startPeriodicSync(60);
-            }
-        } catch (error) {
-            console.warn('Gist設定の保存に失敗:', error);
-        }
-    },
-    
-    // 設定読み込み
+    // 【根本修正】設定読み込み（消失防止版）
     loadConfig() {
         try {
-            const config = localStorage.getItem('minews_gist_config');
-            if (config) {
-                const parsed = JSON.parse(config);
-                
-                if (parsed.encryptedToken) {
-                    this.token = this._decrypt(parsed.encryptedToken);
-                    this.isEnabled = !!this.token;
-                } else {
-                    this.isEnabled = false;
+            const configStr = localStorage.getItem('minews_gist_config');
+            if (!configStr) {
+                console.log('設定が見つかりません');
+                return null;
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(configStr);
+            } catch (parseError) {
+                console.error('設定のJSONパースに失敗:', parseError);
+                // パース失敗時も設定を消さない
+                if (this._lastValidConfig) {
+                    console.log('前回の有効な設定を使用します');
+                    return this._lastValidConfig;
                 }
-                
-                this.gistId = parsed.gistId;
-                this.lastSyncTime = parsed.lastSyncTime || null;
-                
-                return {
-                    hasToken: !!this.token,
-                    gistId: parsed.gistId,
-                    isEnabled: this.isEnabled,
-                    configuredAt: parsed.configuredAt,
-                    lastSyncTime: this.lastSyncTime
-                };
+                throw parseError;
+            }
+
+            // トークン復号化試行（失敗しても設定は保持）
+            let decryptedToken = null;
+            if (parsed.encryptedToken) {
+                try {
+                    decryptedToken = this._decrypt(parsed.encryptedToken);
+                    console.log('トークンの復号化に成功しました');
+                } catch (decryptError) {
+                    console.warn('トークンの復号化に失敗しました:', decryptError.message);
+                    
+                    // 【重要】復号化に失敗しても設定を削除しない
+                    // 前回の有効な設定がある場合はそれを使用
+                    if (this._lastValidConfig && this._lastValidConfig.hasToken) {
+                        console.log('前回の有効なトークンを継続使用します');
+                        this.token = this.token; // 既存のメモリ上のトークンを維持
+                        this.isEnabled = true;
+                    } else {
+                        // トークンは無効だが、他の設定は保持
+                        this.token = null;
+                        this.isEnabled = false;
+                        console.log('トークンは無効ですが、その他の設定は保持します');
+                    }
+                }
+            } else {
+                decryptedToken = null;
+                this.isEnabled = false;
+            }
+
+            // 設定適用（トークン復号化失敗でも他の設定は有効）
+            if (decryptedToken) {
+                this.token = decryptedToken;
+                this.isEnabled = true;
+            }
+            
+            // 【重要】GistIDと同期時刻は常に保持
+            this.gistId = parsed.gistId || this.gistId; // 既存値を維持
+            this.lastSyncTime = parsed.lastSyncTime || this.lastSyncTime;
+
+            const validConfig = {
+                hasToken: !!this.token,
+                gistId: this.gistId,
+                isEnabled: this.isEnabled,
+                configuredAt: parsed.configuredAt,
+                lastSyncTime: this.lastSyncTime
+            };
+
+            // 【NEW】有効な設定をバックアップ
+            this._lastValidConfig = validConfig;
+            this._configValidated = true;
+
+            console.log('設定読み込み完了:', validConfig);
+            return validConfig;
+
+        } catch (error) {
+            console.error('設定読み込み中の重大エラー:', error);
+            
+            // 【根本修正】エラー時でも前回の設定があれば使用
+            if (this._lastValidConfig) {
+                console.log('エラー発生のため、前回の有効設定を使用します');
+                return this._lastValidConfig;
+            }
+            
+            // 【重要】nullを返すのではなく、最小限の設定情報を返す
+            return {
+                hasToken: false,
+                gistId: this.gistId || null, // 既存値を維持
+                isEnabled: false,
+                configuredAt: null,
+                lastSyncTime: this.lastSyncTime || null,
+                error: error.message
+            };
+        }
+    },
+
+    // 【改良】初期化（設定保持強化版）
+    init(token, gistId = null) {
+        // 入力検証
+        if (!token || typeof token !== 'string' || token.trim().length === 0) {
+            throw new Error('有効なトークンが必要です');
+        }
+
+        // 暗号化テスト（事前検証）
+        let encryptedToken;
+        try {
+            encryptedToken = this._encrypt(token.trim());
+            const testDecrypted = this._decrypt(encryptedToken);
+            if (testDecrypted !== token.trim()) {
+                throw new Error('暗号化処理の整合性確認に失敗');
             }
         } catch (error) {
-            console.warn('Gist設定の読み込みに失敗:', error);
+            console.error('暗号化テストエラー:', error);
+            throw new Error('トークンの暗号化処理に失敗しました: ' + error.message);
         }
-        return null;
+
+        // 【重要】既存設定の保護
+        const existingConfig = this.loadConfig();
+        
+        // メモリ上の設定を更新
+        this.token = token.trim();
+        this.gistId = gistId ? gistId.trim() : (existingConfig?.gistId || null);
+        this.isEnabled = true;
+
+        const configData = {
+            encryptedToken: encryptedToken,
+            gistId: this.gistId,
+            isEnabled: this.isEnabled,
+            configuredAt: new Date().toISOString(),
+            lastSyncTime: this.lastSyncTime || existingConfig?.lastSyncTime || null,
+            version: '1.2' // バージョンアップ
+        };
+
+        // 設定保存（失敗時の詳細エラー）
+        try {
+            const configString = JSON.stringify(configData);
+            localStorage.setItem('minews_gist_config', configString);
+            
+            // 保存確認テスト
+            const savedConfig = localStorage.getItem('minews_gist_config');
+            if (!savedConfig || JSON.parse(savedConfig).encryptedToken !== encryptedToken) {
+                throw new Error('設定の保存確認に失敗');
+            }
+            
+            console.log('GitHub同期設定を正常に保存しました');
+        } catch (saveError) {
+            console.error('設定保存エラー:', saveError);
+            throw new Error('設定の保存に失敗しました: ' + saveError.message);
+        }
+
+        // 【NEW】有効な設定としてバックアップ
+        this._lastValidConfig = {
+            hasToken: true,
+            gistId: this.gistId,
+            isEnabled: true,
+            configuredAt: configData.configuredAt,
+            lastSyncTime: this.lastSyncTime
+        };
+        this._configValidated = true;
+
+        // 定期同期開始
+        if (this.isEnabled) {
+            this.startPeriodicSync(60);
+        }
     },
     
     // 定期同期の開始
@@ -418,15 +548,30 @@ window.GistSyncManager = {
         }
     },
 
-    // 最終同期時刻の保存
+    // 【改良】最終同期時刻保存（設定保護版）
     _saveLastSyncTime(timestamp) {
         try {
-            const config = this.loadConfig() || {};
+            const currentConfigStr = localStorage.getItem('minews_gist_config');
+            if (!currentConfigStr) {
+                console.warn('設定が見つからないため同期時刻の保存をスキップ');
+                return;
+            }
+
+            const config = JSON.parse(currentConfigStr);
             config.lastSyncTime = timestamp;
             this.lastSyncTime = timestamp;
+
             localStorage.setItem('minews_gist_config', JSON.stringify(config));
+            
+            // バックアップ更新
+            if (this._lastValidConfig) {
+                this._lastValidConfig.lastSyncTime = timestamp;
+            }
+            
+            console.log('最終同期時刻を更新:', timestamp);
         } catch (error) {
-            console.error('最終同期時刻の保存に失敗:', error);
+            console.error('同期時刻保存エラー:', error);
+            // エラーでも処理は継続
         }
     },
     
@@ -532,17 +677,96 @@ window.GistSyncManager = {
         }
     },
     
-    // GistID保存
+    // 【改良】GistID保存（設定保護版）
     saveGistId(gistId) {
         try {
-            const config = this.loadConfig() || {};
+            const currentConfigStr = localStorage.getItem('minews_gist_config');
+            if (!currentConfigStr) {
+                console.warn('設定が見つからないためGistID保存をスキップ');
+                return;
+            }
+
+            const config = JSON.parse(currentConfigStr);
             config.gistId = gistId;
             config.lastSyncTime = this.lastSyncTime || null;
+
             localStorage.setItem('minews_gist_config', JSON.stringify(config));
+            
             this.gistId = gistId;
+            
+            // バックアップ更新
+            if (this._lastValidConfig) {
+                this._lastValidConfig.gistId = gistId;
+            }
+            
+            console.log('Gist IDを保存:', gistId);
         } catch (error) {
-            console.warn('GistID保存に失敗:', error);
+            console.error('GistID保存エラー:', error);
+            // エラーでもメモリ上は更新
+            this.gistId = gistId;
         }
+    },
+
+    // 【NEW】設定診断機能
+    validateCurrentConfig() {
+        const diagnostics = {
+            timestamp: new Date().toISOString(),
+            results: []
+        };
+
+        // LocalStorage確認
+        try {
+            const configStr = localStorage.getItem('minews_gist_config');
+            diagnostics.results.push({
+                test: 'LocalStorage存在確認',
+                status: configStr ? 'PASS' : 'FAIL',
+                details: configStr ? 'OK' : '設定が見つかりません'
+            });
+
+            if (configStr) {
+                // JSON解析確認
+                try {
+                    const config = JSON.parse(configStr);
+                    diagnostics.results.push({
+                        test: 'JSON解析',
+                        status: 'PASS',
+                        details: 'OK'
+                    });
+
+                    // 復号化確認
+                    if (config.encryptedToken) {
+                        try {
+                            const decrypted = this._decrypt(config.encryptedToken);
+                            diagnostics.results.push({
+                                test: 'トークン復号化',
+                                status: decrypted.length > 10 ? 'PASS' : 'FAIL',
+                                details: decrypted.length > 10 ? 'OK' : '復号化結果が短すぎます'
+                            });
+                        } catch (decryptError) {
+                            diagnostics.results.push({
+                                test: 'トークン復号化',
+                                status: 'FAIL',
+                                details: decryptError.message
+                            });
+                        }
+                    }
+                } catch (parseError) {
+                    diagnostics.results.push({
+                        test: 'JSON解析',
+                        status: 'FAIL',
+                        details: parseError.message
+                    });
+                }
+            }
+        } catch (error) {
+            diagnostics.results.push({
+                test: 'LocalStorage確認',
+                status: 'ERROR',
+                details: error.message
+            });
+        }
+
+        return diagnostics;
     },
 
     // 同期テスト
