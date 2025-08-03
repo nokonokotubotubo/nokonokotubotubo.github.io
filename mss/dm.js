@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（設定消失根本修正統合版）
+// Minews PWA - データ管理・処理レイヤー（完全修正統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（設定消失根本修正版）
+// 改良版GitHub Gist同期システム（完全修正統合版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -70,7 +70,7 @@ window.GistSyncManager = {
             return btoa(result);
         } catch (error) {
             console.error('暗号化エラー:', error);
-            throw new Error('暗号化処理に失敗しました'); // エラーを上位に伝播
+            throw new Error('暗号化処理に失敗しました');
         }
     },
 
@@ -93,7 +93,6 @@ window.GistSyncManager = {
             return result;
         } catch (error) {
             console.error('復号化エラー:', error);
-            // 【重要】空文字を返さず、例外を投げて上位で判断させる
             throw new Error('復号化に失敗しました');
         }
     },
@@ -112,7 +111,6 @@ window.GistSyncManager = {
                 parsed = JSON.parse(configStr);
             } catch (parseError) {
                 console.error('設定のJSONパースに失敗:', parseError);
-                // パース失敗時も設定を消さない
                 if (this._lastValidConfig) {
                     console.log('前回の有効な設定を使用します');
                     return this._lastValidConfig;
@@ -129,14 +127,11 @@ window.GistSyncManager = {
                 } catch (decryptError) {
                     console.warn('トークンの復号化に失敗しました:', decryptError.message);
                     
-                    // 【重要】復号化に失敗しても設定を削除しない
-                    // 前回の有効な設定がある場合はそれを使用
                     if (this._lastValidConfig && this._lastValidConfig.hasToken) {
                         console.log('前回の有効なトークンを継続使用します');
-                        this.token = this.token; // 既存のメモリ上のトークンを維持
+                        this.token = this.token;
                         this.isEnabled = true;
                     } else {
-                        // トークンは無効だが、他の設定は保持
                         this.token = null;
                         this.isEnabled = false;
                         console.log('トークンは無効ですが、その他の設定は保持します');
@@ -147,14 +142,13 @@ window.GistSyncManager = {
                 this.isEnabled = false;
             }
 
-            // 設定適用（トークン復号化失敗でも他の設定は有効）
+            // 設定適用
             if (decryptedToken) {
                 this.token = decryptedToken;
                 this.isEnabled = true;
             }
             
-            // 【重要】GistIDと同期時刻は常に保持
-            this.gistId = parsed.gistId || this.gistId; // 既存値を維持
+            this.gistId = parsed.gistId || this.gistId;
             this.lastSyncTime = parsed.lastSyncTime || this.lastSyncTime;
 
             const validConfig = {
@@ -165,7 +159,6 @@ window.GistSyncManager = {
                 lastSyncTime: this.lastSyncTime
             };
 
-            // 【NEW】有効な設定をバックアップ
             this._lastValidConfig = validConfig;
             this._configValidated = true;
 
@@ -175,16 +168,14 @@ window.GistSyncManager = {
         } catch (error) {
             console.error('設定読み込み中の重大エラー:', error);
             
-            // 【根本修正】エラー時でも前回の設定があれば使用
             if (this._lastValidConfig) {
                 console.log('エラー発生のため、前回の有効設定を使用します');
                 return this._lastValidConfig;
             }
             
-            // 【重要】nullを返すのではなく、最小限の設定情報を返す
             return {
                 hasToken: false,
-                gistId: this.gistId || null, // 既存値を維持
+                gistId: this.gistId || null,
                 isEnabled: false,
                 configuredAt: null,
                 lastSyncTime: this.lastSyncTime || null,
@@ -195,12 +186,11 @@ window.GistSyncManager = {
 
     // 【改良】初期化（設定保持強化版）
     init(token, gistId = null) {
-        // 入力検証
         if (!token || typeof token !== 'string' || token.trim().length === 0) {
             throw new Error('有効なトークンが必要です');
         }
 
-        // 暗号化テスト（事前検証）
+        // 暗号化テスト
         let encryptedToken;
         try {
             encryptedToken = this._encrypt(token.trim());
@@ -213,10 +203,8 @@ window.GistSyncManager = {
             throw new Error('トークンの暗号化処理に失敗しました: ' + error.message);
         }
 
-        // 【重要】既存設定の保護
         const existingConfig = this.loadConfig();
         
-        // メモリ上の設定を更新
         this.token = token.trim();
         this.gistId = gistId ? gistId.trim() : (existingConfig?.gistId || null);
         this.isEnabled = true;
@@ -227,15 +215,13 @@ window.GistSyncManager = {
             isEnabled: this.isEnabled,
             configuredAt: new Date().toISOString(),
             lastSyncTime: this.lastSyncTime || existingConfig?.lastSyncTime || null,
-            version: '1.2' // バージョンアップ
+            version: '1.2'
         };
 
-        // 設定保存（失敗時の詳細エラー）
         try {
             const configString = JSON.stringify(configData);
             localStorage.setItem('minews_gist_config', configString);
             
-            // 保存確認テスト
             const savedConfig = localStorage.getItem('minews_gist_config');
             if (!savedConfig || JSON.parse(savedConfig).encryptedToken !== encryptedToken) {
                 throw new Error('設定の保存確認に失敗');
@@ -247,7 +233,6 @@ window.GistSyncManager = {
             throw new Error('設定の保存に失敗しました: ' + saveError.message);
         }
 
-        // 【NEW】有効な設定としてバックアップ
         this._lastValidConfig = {
             hasToken: true,
             gistId: this.gistId,
@@ -257,7 +242,6 @@ window.GistSyncManager = {
         };
         this._configValidated = true;
 
-        // 定期同期開始
         if (this.isEnabled) {
             this.startPeriodicSync(60);
         }
@@ -291,7 +275,7 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【NEW】双方向同期実行（根本改善版）
+    // 【改良】定期同期実行（ソート抑制対応版）
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
@@ -299,19 +283,21 @@ window.GistSyncManager = {
         
         this.isSyncing = true;
         
+        // 【NEW】定期同期でもソート抑制フラグを設定
+        const shouldControlSortFlag = window.setState && !window.state?.isSyncUpdating;
+        if (shouldControlSortFlag) {
+            window.setState({ isSyncUpdating: true });
+        }
+        
         try {
-            // ステップ1: クラウドデータ取得
             const cloudData = await this.syncFromCloud();
             const localData = this.collectSyncData();
             
-            // ステップ2: データ比較とマージ
             const mergedData = this._mergeData(localData, cloudData);
             
-            // ステップ3: マージ結果をクラウドに保存
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                // ステップ4: ローカルデータ更新
                 await this._applyMergedDataToLocal(mergedData);
                 
                 this.lastSyncTime = new Date().toISOString();
@@ -328,12 +314,15 @@ window.GistSyncManager = {
             return false;
         } finally {
             this.isSyncing = false;
+            
+            if (shouldControlSortFlag) {
+                window.setState({ isSyncUpdating: false });
+            }
         }
     },
 
-    // 【NEW】データマージ機能（タイムスタンプベース）
+    // データマージ機能
     _mergeData(localData, cloudData) {
-        // クラウドデータがない場合はローカルデータを使用
         if (!cloudData) {
             return localData;
         }
@@ -349,27 +338,24 @@ window.GistSyncManager = {
         return mergedData;
     },
 
-    // 【NEW】AI学習データマージ
+    // AI学習データマージ
     _mergeAILearning(localAI, cloudAI) {
         if (!cloudAI) return localAI;
         if (!localAI) return cloudAI;
         
-        // タイムスタンプ比較
         const localTime = new Date(localAI.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudAI.lastUpdated || 0).getTime();
         
-        // 新しい方をベースにして、重みをマージ
         const baseAI = cloudTime > localTime ? cloudAI : localAI;
         const otherAI = cloudTime > localTime ? localAI : cloudAI;
         
         const mergedWordWeights = { ...baseAI.wordWeights };
         const mergedSourceWeights = { ...baseAI.sourceWeights };
         
-        // 重みの加算マージ（上限下限を考慮）
         Object.keys(otherAI.wordWeights || {}).forEach(word => {
             const baseWeight = mergedWordWeights[word] || 0;
             const otherWeight = otherAI.wordWeights[word] || 0;
-            const merged = baseWeight + (otherWeight * 0.5); // 他デバイスからの重みは50%に減衰
+            const merged = baseWeight + (otherWeight * 0.5);
             mergedWordWeights[word] = Math.max(-60, Math.min(60, merged));
         });
         
@@ -388,16 +374,14 @@ window.GistSyncManager = {
         };
     },
 
-    // 【NEW】ワードフィルターマージ
+    // ワードフィルターマージ
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
         
-        // タイムスタンプ比較
         const localTime = new Date(localWords.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
         
-        // 両方のワードを統合（重複除去）
         const mergedInterestWords = [...new Set([
             ...(localWords.interestWords || []),
             ...(cloudWords.interestWords || [])
@@ -417,37 +401,48 @@ window.GistSyncManager = {
         };
     },
 
-    // 【NEW】記事状態マージ
+    // 【改良】記事状態マージ（ログ追加版）
     _mergeArticleStates(localStates, cloudStates) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
         
         const mergedStates = { ...cloudStates };
+        let mergeCount = 0;
+        let localWinCount = 0;
+        let cloudWinCount = 0;
         
-        // ローカル状態で上書き（ローカル優先）
         Object.keys(localStates).forEach(articleId => {
             const localState = localStates[articleId];
             const cloudState = cloudStates[articleId];
             
             if (!cloudState) {
-                // クラウドにない場合はローカル状態を使用
                 mergedStates[articleId] = localState;
+                mergeCount++;
+                console.log(`記事 ${articleId}: ローカルのみ存在 -> ローカルを使用`);
             } else {
-                // 両方にある場合は新しい方を優先
                 const localTime = new Date(localState.lastModified || 0).getTime();
                 const cloudTime = new Date(cloudState.lastModified || 0).getTime();
                 
-                mergedStates[articleId] = localTime >= cloudTime ? localState : cloudState;
+                if (localTime >= cloudTime) {
+                    mergedStates[articleId] = localState;
+                    localWinCount++;
+                    console.log(`記事 ${articleId}: ローカル優先 (${new Date(localTime).toLocaleString()} >= ${new Date(cloudTime).toLocaleString()})`);
+                } else {
+                    mergedStates[articleId] = cloudState;
+                    cloudWinCount++;
+                    console.log(`記事 ${articleId}: クラウド優先 (${new Date(cloudTime).toLocaleString()} > ${new Date(localTime).toLocaleString()})`);
+                }
+                mergeCount++;
             }
         });
         
+        console.log(`記事状態マージ完了: 全${mergeCount}件 (ローカル優先: ${localWinCount}件, クラウド優先: ${cloudWinCount}件)`);
         return mergedStates;
     },
 
-    // 【NEW】マージ結果をローカルに適用
+    // マージ結果をローカルに適用
     async _applyMergedDataToLocal(mergedData) {
         try {
-            // AI学習データ更新
             if (mergedData.aiLearning) {
                 window.LocalStorageManager.setItem(
                     window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
@@ -456,7 +451,6 @@ window.GistSyncManager = {
                 window.DataHooksCache.clear('aiLearning');
             }
             
-            // ワードフィルター更新
             if (mergedData.wordFilters) {
                 window.LocalStorageManager.setItem(
                     window.CONFIG.STORAGE_KEYS.WORD_FILTERS, 
@@ -465,7 +459,6 @@ window.GistSyncManager = {
                 window.DataHooksCache.clear('wordFilters');
             }
             
-            // 記事状態更新
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
@@ -477,7 +470,8 @@ window.GistSyncManager = {
                             ...article,
                             readStatus: state.readStatus || article.readStatus,
                             userRating: state.userRating || article.userRating,
-                            readLater: state.readLater || article.readLater
+                            readLater: state.readLater || article.readLater,
+                            lastModified: state.lastModified || article.lastModified
                         };
                     }
                     return article;
@@ -489,12 +483,10 @@ window.GistSyncManager = {
                 );
                 window.DataHooksCache.clear('articles');
                 
-                // 画面状態更新
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
                 
-                // 画面再描画
                 if (window.render) {
                     window.render();
                 }
@@ -508,7 +500,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 手動同期
+    // 【NEW】手動同期（ソート抑制対応版）
     async autoSync(triggerType = 'manual') {
         if (!this.isEnabled || !this.token) {
             return { success: false, reason: 'disabled_or_not_configured' };
@@ -522,21 +514,34 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
-    // 手動同期実行（双方向対応）
+    // 【改良】手動同期実行（ソート抑制対応版）
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        return await this._executePeriodicSync() ? 
-            { success: true, triggerType: 'manual' } : 
-            { success: false, error: 'sync_failed', triggerType: 'manual' };
+        // 【NEW】同期開始前にソート抑制フラグを設定
+        if (window.setState) {
+            window.setState({ isSyncUpdating: true });
+        }
+        
+        try {
+            const result = await this._executePeriodicSync();
+            return result ? 
+                { success: true, triggerType: 'manual' } : 
+                { success: false, error: 'sync_failed', triggerType: 'manual' };
+        } finally {
+            // 【NEW】同期完了後にソート抑制フラグを解除
+            if (window.setState) {
+                window.setState({ isSyncUpdating: false });
+            }
+        }
     },
 
-    // タイムスタンプ比較判定（改良版）
+    // タイムスタンプ比較判定
     _shouldPullFromCloud(cloudTimestamp) {
         if (!cloudTimestamp || !this.lastSyncTime) {
-            return true; // 不明な場合は同期を実行
+            return true;
         }
         
         try {
@@ -544,11 +549,11 @@ window.GistSyncManager = {
             const localTime = new Date(this.lastSyncTime).getTime();
             return cloudTime > localTime;
         } catch (error) {
-            return true; // エラー時は同期を実行
+            return true;
         }
     },
 
-    // 【改良】最終同期時刻保存（設定保護版）
+    // 最終同期時刻保存
     _saveLastSyncTime(timestamp) {
         try {
             const currentConfigStr = localStorage.getItem('minews_gist_config');
@@ -563,7 +568,6 @@ window.GistSyncManager = {
 
             localStorage.setItem('minews_gist_config', JSON.stringify(config));
             
-            // バックアップ更新
             if (this._lastValidConfig) {
                 this._lastValidConfig.lastSyncTime = timestamp;
             }
@@ -571,29 +575,30 @@ window.GistSyncManager = {
             console.log('最終同期時刻を更新:', timestamp);
         } catch (error) {
             console.error('同期時刻保存エラー:', error);
-            // エラーでも処理は継続
         }
     },
     
-    // 同期対象データ収集（タイムスタンプ追加版）
+    // 【修正】同期対象データ収集（タイムスタンプ改善版）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
         
         const articleStates = {};
+        const currentTime = new Date().toISOString();
+        
         articlesHook.articles.forEach(article => {
             articleStates[article.id] = {
                 readStatus: article.readStatus,
                 userRating: article.userRating || 0,
                 readLater: article.readLater || false,
-                lastModified: new Date().toISOString() // タイムスタンプ追加
+                lastModified: article.lastModified || currentTime
             };
         });
         
         return {
             version: window.CONFIG.DATA_VERSION,
-            syncTime: new Date().toISOString(),
+            syncTime: currentTime,
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
             articleStates: articleStates
@@ -677,7 +682,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 【改良】GistID保存（設定保護版）
+    // GistID保存
     saveGistId(gistId) {
         try {
             const currentConfigStr = localStorage.getItem('minews_gist_config');
@@ -694,7 +699,6 @@ window.GistSyncManager = {
             
             this.gistId = gistId;
             
-            // バックアップ更新
             if (this._lastValidConfig) {
                 this._lastValidConfig.gistId = gistId;
             }
@@ -702,19 +706,17 @@ window.GistSyncManager = {
             console.log('Gist IDを保存:', gistId);
         } catch (error) {
             console.error('GistID保存エラー:', error);
-            // エラーでもメモリ上は更新
             this.gistId = gistId;
         }
     },
 
-    // 【NEW】設定診断機能
+    // 設定診断機能
     validateCurrentConfig() {
         const diagnostics = {
             timestamp: new Date().toISOString(),
             results: []
         };
 
-        // LocalStorage確認
         try {
             const configStr = localStorage.getItem('minews_gist_config');
             diagnostics.results.push({
@@ -724,7 +726,6 @@ window.GistSyncManager = {
             });
 
             if (configStr) {
-                // JSON解析確認
                 try {
                     const config = JSON.parse(configStr);
                     diagnostics.results.push({
@@ -733,7 +734,6 @@ window.GistSyncManager = {
                         details: 'OK'
                     });
 
-                    // 復号化確認
                     if (config.encryptedToken) {
                         try {
                             const decrypted = this._decrypt(config.encryptedToken);
@@ -790,7 +790,6 @@ window.GistSyncManager = {
             }
         });
         
-        // 双方向同期テスト追加
         try {
             const cloudData = await this.syncFromCloud();
             testResults.tests.push({
@@ -1094,11 +1093,20 @@ window.DataHooks = {
                 }
                 return true;
             },
+            // 【修正】記事更新時のタイムスタンプ自動追加
             updateArticle(articleId, updates, options = {}) {
                 const { skipRender = false } = options;
+                
+                // 【追加】状態変更時に必ずlastModifiedを更新
+                const updatesWithTimestamp = {
+                    ...updates,
+                    lastModified: new Date().toISOString()
+                };
+                
                 const updatedArticles = window.DataHooksCache.articles.map(article =>
-                    article.id === articleId ? { ...article, ...updates } : article
+                    article.id === articleId ? { ...article, ...updatesWithTimestamp } : article
                 );
+                
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.articles = updatedArticles;
                 window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
@@ -1109,6 +1117,8 @@ window.DataHooks = {
                 if (window.render && !skipRender) {
                     window.render();
                 }
+                
+                console.log(`記事 ${articleId} の状態を更新しました:`, updatesWithTimestamp);
             }
         };
     },
