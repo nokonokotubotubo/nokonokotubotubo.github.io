@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（無駄機能削除・簡素化完了版）
+// Minews PWA - データ管理・処理レイヤー（双方向同期機能完全対応版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// GitHub Gist API連携システム（シンプル版）
+// 改良版GitHub Gist同期システム（双方向同期対応）
 // ===========================================
 
 window.GistSyncManager = {
@@ -49,7 +49,7 @@ window.GistSyncManager = {
     isSyncing: false,
     lastSyncTime: null,
     
-    // 定期同期システム（1分間隔）
+    // 定期同期システム（双方向対応）
     periodicSyncEnabled: false,
     periodicSyncInterval: null,
     pendingChanges: false,
@@ -161,29 +161,220 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 定期同期実行（シンプル版）
+    // 【NEW】双方向同期実行（根本改善版）
     async _executePeriodicSync() {
-        if (!this.isEnabled || !this.token || !this.pendingChanges || this.isSyncing) {
-            return;
+        if (!this.isEnabled || !this.token || this.isSyncing) {
+            return false;
         }
         
         this.isSyncing = true;
         
         try {
-            const syncData = this.collectSyncData();
-            const result = await this.syncToCloud(syncData);
+            // ステップ1: クラウドデータ取得
+            const cloudData = await this.syncFromCloud();
+            const localData = this.collectSyncData();
             
-            if (result) {
+            // ステップ2: データ比較とマージ
+            const mergedData = this._mergeData(localData, cloudData);
+            
+            // ステップ3: マージ結果をクラウドに保存
+            const uploadResult = await this.syncToCloud(mergedData);
+            
+            if (uploadResult) {
+                // ステップ4: ローカルデータ更新
+                await this._applyMergedDataToLocal(mergedData);
+                
                 this.lastSyncTime = new Date().toISOString();
                 this._saveLastSyncTime(this.lastSyncTime);
                 this.pendingChanges = false;
+                
+                console.log('双方向同期完了:', new Date().toLocaleString());
+                return true;
             }
             
-            return result;
+            return false;
         } catch (error) {
+            console.error('定期同期エラー:', error);
             return false;
         } finally {
             this.isSyncing = false;
+        }
+    },
+
+    // 【NEW】データマージ機能（タイムスタンプベース）
+    _mergeData(localData, cloudData) {
+        // クラウドデータがない場合はローカルデータを使用
+        if (!cloudData) {
+            return localData;
+        }
+        
+        const mergedData = {
+            version: window.CONFIG.DATA_VERSION,
+            syncTime: new Date().toISOString(),
+            aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
+            wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
+            articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates)
+        };
+        
+        return mergedData;
+    },
+
+    // 【NEW】AI学習データマージ
+    _mergeAILearning(localAI, cloudAI) {
+        if (!cloudAI) return localAI;
+        if (!localAI) return cloudAI;
+        
+        // タイムスタンプ比較
+        const localTime = new Date(localAI.lastUpdated || 0).getTime();
+        const cloudTime = new Date(cloudAI.lastUpdated || 0).getTime();
+        
+        // 新しい方をベースにして、重みをマージ
+        const baseAI = cloudTime > localTime ? cloudAI : localAI;
+        const otherAI = cloudTime > localTime ? localAI : cloudAI;
+        
+        const mergedWordWeights = { ...baseAI.wordWeights };
+        const mergedSourceWeights = { ...baseAI.sourceWeights };
+        
+        // 重みの加算マージ（上限下限を考慮）
+        Object.keys(otherAI.wordWeights || {}).forEach(word => {
+            const baseWeight = mergedWordWeights[word] || 0;
+            const otherWeight = otherAI.wordWeights[word] || 0;
+            const merged = baseWeight + (otherWeight * 0.5); // 他デバイスからの重みは50%に減衰
+            mergedWordWeights[word] = Math.max(-60, Math.min(60, merged));
+        });
+        
+        Object.keys(otherAI.sourceWeights || {}).forEach(source => {
+            const baseWeight = mergedSourceWeights[source] || 0;
+            const otherWeight = otherAI.sourceWeights[source] || 0;
+            const merged = baseWeight + (otherWeight * 0.5);
+            mergedSourceWeights[source] = Math.max(-20, Math.min(20, merged));
+        });
+        
+        return {
+            version: window.CONFIG.DATA_VERSION,
+            wordWeights: mergedWordWeights,
+            sourceWeights: mergedSourceWeights,
+            lastUpdated: new Date().toISOString()
+        };
+    },
+
+    // 【NEW】ワードフィルターマージ
+    _mergeWordFilters(localWords, cloudWords) {
+        if (!cloudWords) return localWords;
+        if (!localWords) return cloudWords;
+        
+        // タイムスタンプ比較
+        const localTime = new Date(localWords.lastUpdated || 0).getTime();
+        const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
+        
+        // 両方のワードを統合（重複除去）
+        const mergedInterestWords = [...new Set([
+            ...(localWords.interestWords || []),
+            ...(cloudWords.interestWords || [])
+        ])];
+        
+        const mergedNgWords = [...new Set([
+            ...(localWords.ngWords || []),
+            ...(cloudWords.ngWords || [])
+        ])];
+        
+        return {
+            interestWords: mergedInterestWords,
+            ngWords: mergedNgWords,
+            lastUpdated: Math.max(localTime, cloudTime) > 0 ? 
+                new Date(Math.max(localTime, cloudTime)).toISOString() : 
+                new Date().toISOString()
+        };
+    },
+
+    // 【NEW】記事状態マージ
+    _mergeArticleStates(localStates, cloudStates) {
+        if (!cloudStates) return localStates;
+        if (!localStates) return cloudStates;
+        
+        const mergedStates = { ...cloudStates };
+        
+        // ローカル状態で上書き（ローカル優先）
+        Object.keys(localStates).forEach(articleId => {
+            const localState = localStates[articleId];
+            const cloudState = cloudStates[articleId];
+            
+            if (!cloudState) {
+                // クラウドにない場合はローカル状態を使用
+                mergedStates[articleId] = localState;
+            } else {
+                // 両方にある場合は新しい方を優先
+                const localTime = new Date(localState.lastModified || 0).getTime();
+                const cloudTime = new Date(cloudState.lastModified || 0).getTime();
+                
+                mergedStates[articleId] = localTime >= cloudTime ? localState : cloudState;
+            }
+        });
+        
+        return mergedStates;
+    },
+
+    // 【NEW】マージ結果をローカルに適用
+    async _applyMergedDataToLocal(mergedData) {
+        try {
+            // AI学習データ更新
+            if (mergedData.aiLearning) {
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
+                    mergedData.aiLearning
+                );
+                window.DataHooksCache.clear('aiLearning');
+            }
+            
+            // ワードフィルター更新
+            if (mergedData.wordFilters) {
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.WORD_FILTERS, 
+                    mergedData.wordFilters
+                );
+                window.DataHooksCache.clear('wordFilters');
+            }
+            
+            // 記事状態更新
+            if (mergedData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                const updatedArticles = currentArticles.map(article => {
+                    const state = mergedData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus || article.readStatus,
+                            userRating: state.userRating || article.userRating,
+                            readLater: state.readLater || article.readLater
+                        };
+                    }
+                    return article;
+                });
+                
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.ARTICLES, 
+                    updatedArticles
+                );
+                window.DataHooksCache.clear('articles');
+                
+                // 画面状態更新
+                if (window.state) {
+                    window.state.articles = updatedArticles;
+                }
+                
+                // 画面再描画
+                if (window.render) {
+                    window.render();
+                }
+            }
+            
+            console.log('ローカルデータ更新完了');
+            return true;
+        } catch (error) {
+            console.error('ローカルデータ更新エラー:', error);
+            return false;
         }
     },
     
@@ -201,36 +392,21 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
-    // 手動同期実行
+    // 手動同期実行（双方向対応）
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        this.isSyncing = true;
-        
-        try {
-            const syncData = this.collectSyncData();
-            const result = await this.syncToCloud(syncData);
-            
-            if (result) {
-                this.lastSyncTime = new Date().toISOString();
-                this._saveLastSyncTime(this.lastSyncTime);
-                this.pendingChanges = false;
-            }
-            
-            return { success: result, triggerType: 'manual' };
-        } catch (error) {
-            return { success: false, error: error.message, triggerType: 'manual' };
-        } finally {
-            this.isSyncing = false;
-        }
+        return await this._executePeriodicSync() ? 
+            { success: true, triggerType: 'manual' } : 
+            { success: false, error: 'sync_failed', triggerType: 'manual' };
     },
 
-    // タイムスタンプ比較判定（シンプル版）
+    // タイムスタンプ比較判定（改良版）
     _shouldPullFromCloud(cloudTimestamp) {
         if (!cloudTimestamp || !this.lastSyncTime) {
-            return false;
+            return true; // 不明な場合は同期を実行
         }
         
         try {
@@ -238,7 +414,7 @@ window.GistSyncManager = {
             const localTime = new Date(this.lastSyncTime).getTime();
             return cloudTime > localTime;
         } catch (error) {
-            return false;
+            return true; // エラー時は同期を実行
         }
     },
 
@@ -254,7 +430,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 同期対象データ収集
+    // 同期対象データ収集（タイムスタンプ追加版）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -265,7 +441,8 @@ window.GistSyncManager = {
             articleStates[article.id] = {
                 readStatus: article.readStatus,
                 userRating: article.userRating || 0,
-                readLater: article.readLater || false
+                readLater: article.readLater || false,
+                lastModified: new Date().toISOString() // タイムスタンプ追加
             };
         });
         
@@ -324,6 +501,7 @@ window.GistSyncManager = {
             
             return false;
         } catch (error) {
+            console.error('クラウド同期エラー:', error);
             return false;
         }
     },
@@ -332,18 +510,26 @@ window.GistSyncManager = {
     async syncFromCloud() {
         if (!this.token || !this.gistId) return null;
         
-        const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-            headers: {
-                'Authorization': `token ${this.token}`
+        try {
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (response.ok) {
+                const gist = await response.json();
+                if (gist.files && gist.files['minews_data.json']) {
+                    const content = gist.files['minews_data.json'].content;
+                    return JSON.parse(content);
+                }
             }
-        });
-        
-        if (response.ok) {
-            const gist = await response.json();
-            const content = gist.files['minews_data.json'].content;
-            return JSON.parse(content);
+            return null;
+        } catch (error) {
+            console.error('クラウドデータ取得エラー:', error);
+            return null;
         }
-        return null;
     },
     
     // GistID保存
@@ -379,6 +565,22 @@ window.GistSyncManager = {
                 gistId: this.gistId ? `${this.gistId.substring(0, 8)}...` : '未設定'
             }
         });
+        
+        // 双方向同期テスト追加
+        try {
+            const cloudData = await this.syncFromCloud();
+            testResults.tests.push({
+                name: 'クラウドデータ取得',
+                status: cloudData ? 'pass' : 'fail',
+                details: cloudData ? 'データ取得成功' : 'データ取得失敗'
+            });
+        } catch (error) {
+            testResults.tests.push({
+                name: 'クラウドデータ取得',
+                status: 'fail',
+                details: error.message
+            });
+        }
         
         return testResults;
     }
@@ -479,7 +681,6 @@ window.AIScoring = {
         
         return Math.max(0, Math.min(100, Math.round(score + 30)));
     },
-
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -6, -2, 0, 2, 6];
         let weight = weights[rating] || 0;
