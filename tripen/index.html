@@ -14,7 +14,11 @@
 html,body{height:100%;overflow:hidden;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column}
 #app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:8px 0;text-align:center;box-shadow:var(--shadow);flex-shrink:0}
+.header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:8px 0;text-align:center;box-shadow:var(--shadow);flex-shrink:0;position:relative}
+.header .container{position:relative}
+.header h1{margin:0;display:inline-block}
+.settings-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
+.settings-btn:hover{background:rgba(255,255,255,0.2);color:white}
 .penguin-icon{font-size:2rem;margin-right:10px}
 .desktop-ui,.mobile-ui{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .day-tabs-container{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--secondary) transparent;flex-shrink:0}
@@ -249,6 +253,190 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     border: none;
 }
 
+/* 設定モーダルのスタイル */
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+.settings-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.settings-content {
+    background: white;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.settings-header {
+    background: var(--primary);
+    color: white;
+    padding: 20px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.settings-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.settings-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-body {
+    padding: 20px;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+}
+
+.settings-section h3 {
+    color: var(--accent);
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.settings-section p {
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.sync-status {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--primary);
+}
+
+.sync-status.disabled {
+    border-left-color: #6c757d;
+}
+
+.sync-status.error {
+    border-left-color: #dc3545;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.sync-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.sync-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.sync-btn.primary:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.sync-btn.success {
+    background: #28a745;
+    color: white;
+}
+
+.sync-btn.success:hover {
+    background: #218838;
+}
+
+.sync-btn.danger {
+    background: #dc3545;
+    color: white;
+}
+
+.sync-btn.danger:hover {
+    background: #c82333;
+}
+
+.sync-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.sync-btn.secondary:hover {
+    background: #5a6268;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(135,206,235,0.25);
+    outline: none;
+}
 
 @media (max-width:768px){
 .header{padding:6px 0}
@@ -266,6 +454,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .event-action-btn{width:35px;height:35px;font-size:0.9rem}
 .event-block.overlapping{opacity:0.7;border:2px solid #ff6b6b}
 .weather-emoji-top-left{font-size:1.5rem}
+.settings-content{width:95%;max-height:90vh}
+.settings-header{padding:15px}
+.settings-body{padding:15px}
+.sync-actions{flex-direction:column}
+.sync-btn{width:100%}
 }
 </style>
 </head>
@@ -274,6 +467,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <header class="header">
 <div class="container">
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+<button class="settings-btn" @click="openSettingsModal" title="設定">
+<i class="fas fa-cog"></i>
+</button>
 </div>
 </header>
 <div v-if="!tripInitialized" class="container">
@@ -504,6 +700,64 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     </div>
 </div>
 
+<!-- 設定モーダル -->
+<div v-if="showSettingsModal" class="settings-modal" :class="{ show: showSettingsModal }" @click="closeSettingsModal">
+    <div class="settings-content" @click.stop>
+        <div class="settings-header">
+            <h2><i class="fas fa-cog"></i> 設定</h2>
+            <button class="settings-close" @click="closeSettingsModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="settings-body">
+            <div class="settings-section">
+                <h3><i class="fas fa-cloud-upload-alt"></i> GitHub同期設定</h3>
+                <p>GitHub Personal Access Tokenを設定すると、旅行データ（日程・予定・レイヤー順序）が定期的（1分間隔）に自動同期されます。</p>
+                
+                <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
+                    <div v-if="gistSync.isEnabled">
+                        <strong>同期状態:</strong> 有効<br>
+                        <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
+                        <span v-if="gistSync.lastSyncTime">最終同期: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
+                    </div>
+                    <div v-else>
+                        <strong>同期状態:</strong> 無効<br>
+                        <span>GitHub同期が設定されていません</span>
+                    </div>
+                </div>
+
+                <div v-if="!gistSync.isEnabled">
+                    <div class="form-group">
+                        <label for="githubToken">GitHub Personal Access Token</label>
+                        <input type="password" id="githubToken" v-model="syncForm.token" placeholder="GitHub Personal Access Tokenを入力">
+                    </div>
+                    <div class="form-group">
+                        <label for="existingGistId">既存のGist ID（任意）</label>
+                        <input type="text" id="existingGistId" v-model="syncForm.gistId" placeholder="他のデバイスと同期する場合のみ入力">
+                    </div>
+                    <div class="sync-actions">
+                        <button class="sync-btn success" @click="saveGitHubSync">GitHub同期を開始</button>
+                    </div>
+                </div>
+
+                <div v-else class="sync-actions">
+                    <button class="sync-btn primary" @click="manualSync" :disabled="gistSync.isSyncing">
+                        {{ gistSync.isSyncing ? '同期中...' : '手動同期' }}
+                    </button>
+                    <button class="sync-btn secondary" @click="copyGistId">Gist IDコピー</button>
+                    <button class="sync-btn danger" @click="clearGitHubSync">設定を解除</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
+                <p>とりっぺんちゃん - 旅行予定調整サイト<br>
+                GitHub同期機能統合版</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div v-for="modal in modals" :key="modal.id" class="modal fade" :id="modal.id" tabindex="-1">
 <div class="modal-dialog" :class="modal.size">
 <div class="modal-content">
@@ -522,6 +776,309 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const { createApp } = Vue;
+
+// GitHub Gist同期システム（とりっぺんちゃん専用版）
+const TrippenGistSync = {
+    token: null,
+    gistId: null,
+    isEnabled: false,
+    isSyncing: false,
+    lastSyncTime: null,
+    periodicSyncInterval: null,
+    hasError: false,
+
+    // 暗号化機能
+    _encrypt(text, key = 'trippen_secret_key') {
+        if (!text) return '';
+        try {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return btoa(result);
+        } catch (error) {
+            console.error('暗号化エラー:', error);
+            throw new Error('暗号化処理に失敗しました');
+        }
+    },
+
+    _decrypt(encryptedText, key = 'trippen_secret_key') {
+        if (!encryptedText) return '';
+        try {
+            const text = atob(encryptedText);
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        } catch (error) {
+            console.error('復号化エラー:', error);
+            throw new Error('復号化に失敗しました');
+        }
+    },
+
+    // 設定の読み込み
+    loadConfig() {
+        try {
+            const configStr = localStorage.getItem('trippen_gist_config');
+            if (!configStr) return null;
+
+            const config = JSON.parse(configStr);
+            
+            if (config.encryptedToken) {
+                this.token = this._decrypt(config.encryptedToken);
+                this.isEnabled = true;
+            }
+            
+            this.gistId = config.gistId || null;
+            this.lastSyncTime = config.lastSyncTime || null;
+            
+            return config;
+        } catch (error) {
+            console.error('設定読み込みエラー:', error);
+            this.hasError = true;
+            return null;
+        }
+    },
+
+    // 初期化
+    init(token, gistId = null) {
+        if (!token || typeof token !== 'string' || token.trim().length === 0) {
+            throw new Error('有効なトークンが必要です');
+        }
+
+        const encryptedToken = this._encrypt(token.trim());
+        
+        this.token = token.trim();
+        this.gistId = gistId ? gistId.trim() : null;
+        this.isEnabled = true;
+        this.hasError = false;
+
+        const configData = {
+            encryptedToken: encryptedToken,
+            gistId: this.gistId,
+            isEnabled: this.isEnabled,
+            configuredAt: new Date().toISOString(),
+            lastSyncTime: this.lastSyncTime,
+            version: '1.0'
+        };
+
+        localStorage.setItem('trippen_gist_config', JSON.stringify(configData));
+        this.startPeriodicSync();
+    },
+
+    // 定期同期開始
+    startPeriodicSync() {
+        if (this.periodicSyncInterval) {
+            clearInterval(this.periodicSyncInterval);
+        }
+        
+        this.periodicSyncInterval = setInterval(async () => {
+            await this.autoSync();
+        }, 60000); // 1分間隔
+    },
+
+    // 定期同期停止
+    stopPeriodicSync() {
+        if (this.periodicSyncInterval) {
+            clearInterval(this.periodicSyncInterval);
+            this.periodicSyncInterval = null;
+        }
+    },
+
+    // 同期データ収集
+    collectSyncData() {
+        const events = JSON.parse(localStorage.getItem('trippenEvents') || '[]');
+        const days = JSON.parse(localStorage.getItem('trippenDays') || '[]');
+        const layerOrder = JSON.parse(localStorage.getItem('trippenLayerOrder') || '[]');
+
+        return {
+            version: '1.0',
+            syncTime: new Date().toISOString(),
+            data: {
+                events: events,
+                days: days,
+                layerOrder: layerOrder
+            }
+        };
+    },
+
+    // クラウドへの同期
+    async syncToCloud(data) {
+        if (!this.token) return false;
+        
+        const payload = {
+            description: `とりっぺんちゃん 旅行データ バックアップ - ${new Date().toLocaleString('ja-JP')}`,
+            public: false,
+            files: {
+                "trippen_data.json": {
+                    content: JSON.stringify(data, null, 2)
+                }
+            }
+        };
+        
+        const url = this.gistId 
+            ? `https://api.github.com/gists/${this.gistId}`
+            : 'https://api.github.com/gists';
+            
+        const method = this.gistId ? 'PATCH' : 'POST';
+        
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (!this.gistId) {
+                    this.gistId = result.id;
+                    this.saveGistId(result.id);
+                }
+                
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('クラウド同期エラー:', error);
+            this.hasError = true;
+            return false;
+        }
+    },
+
+    // クラウドからの同期
+    async syncFromCloud() {
+        if (!this.token || !this.gistId) return null;
+        
+        try {
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (response.ok) {
+                const gist = await response.json();
+                if (gist.files && gist.files['trippen_data.json']) {
+                    const content = gist.files['trippen_data.json'].content;
+                    return JSON.parse(content);
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error('クラウドデータ取得エラー:', error);
+            this.hasError = true;
+            return null;
+        }
+    },
+
+    // 自動同期
+    async autoSync() {
+        if (!this.isEnabled || !this.token || this.isSyncing) return false;
+        
+        this.isSyncing = true;
+        this.hasError = false;
+        
+        try {
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                this.lastSyncTime = new Date().toISOString();
+                this.saveLastSyncTime();
+                console.log('自動同期完了:', new Date().toLocaleString());
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('自動同期エラー:', error);
+            this.hasError = true;
+            return false;
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
+    // 手動同期
+    async manualSync() {
+        if (!this.isEnabled || !this.token) {
+            throw new Error('GitHub同期が設定されていません');
+        }
+        
+        this.isSyncing = true;
+        this.hasError = false;
+        
+        try {
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                this.lastSyncTime = new Date().toISOString();
+                this.saveLastSyncTime();
+                return true;
+            }
+            
+            throw new Error('同期に失敗しました');
+        } catch (error) {
+            this.hasError = true;
+            throw error;
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
+    // GistID保存
+    saveGistId(gistId) {
+        try {
+            const currentConfigStr = localStorage.getItem('trippen_gist_config');
+            if (!currentConfigStr) return;
+
+            const config = JSON.parse(currentConfigStr);
+            config.gistId = gistId;
+            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
+            
+            this.gistId = gistId;
+        } catch (error) {
+            console.error('GistID保存エラー:', error);
+            this.gistId = gistId;
+        }
+    },
+
+    // 同期時刻保存
+    saveLastSyncTime() {
+        try {
+            const currentConfigStr = localStorage.getItem('trippen_gist_config');
+            if (!currentConfigStr) return;
+
+            const config = JSON.parse(currentConfigStr);
+            config.lastSyncTime = this.lastSyncTime;
+            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
+        } catch (error) {
+            console.error('同期時刻保存エラー:', error);
+        }
+    },
+
+    // 設定クリア
+    clear() {
+        this.stopPeriodicSync();
+        localStorage.removeItem('trippen_gist_config');
+        this.token = null;
+        this.gistId = null;
+        this.isEnabled = false;
+        this.lastSyncTime = null;
+        this.hasError = false;
+    }
+};
+
 const app = createApp({
 data() {
 return {
@@ -581,7 +1138,21 @@ weatherCache: {},
 weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
 // 天気予報ポップアップ用データ
 showWeatherPopup: false,
-weatherPopupUrl: ''
+weatherPopupUrl: '',
+// 設定モーダル用データ
+showSettingsModal: false,
+// GitHub同期設定
+gistSync: {
+isEnabled: false,
+gistId: null,
+lastSyncTime: null,
+isSyncing: false,
+hasError: false
+},
+syncForm: {
+token: '',
+gistId: ''
+}
 };
 },
 methods: {
@@ -810,6 +1381,7 @@ this.isDragComplete = true;
 
 // ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
+
 this.saveData();
 setTimeout(() => {
 this.isDragComplete = false;
@@ -1714,6 +2286,125 @@ closeWeatherPopup() {
     this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
 },
 
+// 設定モーダル関数
+openSettingsModal() {
+this.showSettingsModal = true;
+},
+
+closeSettingsModal() {
+this.showSettingsModal = false;
+},
+
+// GitHub同期関数
+saveGitHubSync() {
+const token = this.syncForm.token.trim();
+const gistId = this.syncForm.gistId.trim();
+
+if (!token) {
+alert('GitHub Personal Access Tokenを入力してください');
+return;
+}
+
+try {
+TrippenGistSync.init(token, gistId || null);
+this.gistSync = {
+isEnabled: true,
+gistId: TrippenGistSync.gistId,
+lastSyncTime: TrippenGistSync.lastSyncTime,
+isSyncing: false,
+hasError: false
+};
+this.syncForm = { token: '', gistId: '' };
+alert('GitHub同期を開始しました');
+} catch (error) {
+console.error('GitHub同期設定エラー:', error);
+alert('設定に失敗しました: ' + error.message);
+}
+},
+
+async manualSync() {
+if (!TrippenGistSync.isEnabled) {
+alert('GitHub同期が設定されていません');
+return;
+}
+
+this.gistSync.isSyncing = true;
+
+try {
+const result = await TrippenGistSync.manualSync();
+if (result) {
+this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
+this.gistSync.hasError = false;
+alert('手動同期が完了しました');
+} else {
+throw new Error('同期に失敗しました');
+}
+} catch (error) {
+console.error('手動同期エラー:', error);
+this.gistSync.hasError = true;
+alert('同期に失敗しました: ' + error.message);
+} finally {
+this.gistSync.isSyncing = false;
+}
+},
+
+copyGistId() {
+if (!this.gistSync.gistId) {
+alert('コピーするGist IDがありません');
+return;
+}
+
+try {
+navigator.clipboard.writeText(this.gistSync.gistId).then(() => {
+alert('Gist IDをクリップボードにコピーしました');
+}).catch(() => {
+// フォールバック
+const textArea = document.createElement('textarea');
+textArea.value = this.gistSync.gistId;
+document.body.appendChild(textArea);
+textArea.select();
+document.execCommand('copy');
+document.body.removeChild(textArea);
+alert('Gist IDをクリップボードにコピーしました');
+});
+} catch (error) {
+console.error('コピーエラー:', error);
+alert('コピーに失敗しました');
+}
+},
+
+clearGitHubSync() {
+if (!confirm('GitHub同期設定を解除しますか？')) {
+return;
+}
+
+try {
+TrippenGistSync.clear();
+this.gistSync = {
+isEnabled: false,
+gistId: null,
+lastSyncTime: null,
+isSyncing: false,
+hasError: false
+};
+this.syncForm = { token: '', gistId: '' };
+alert('GitHub同期設定を解除しました');
+} catch (error) {
+console.error('設定解除エラー:', error);
+alert('設定の解除に失敗しました');
+}
+},
+
+formatSyncTime(isoString) {
+if (!isoString) return '未同期';
+try {
+const date = new Date(isoString);
+return date.toLocaleString('ja-JP');
+} catch (error) {
+return '日時不明';
+}
+},
+
 // レイヤー順序の保存
 saveLayerOrder() {
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
@@ -1783,8 +2474,21 @@ this.loadWeatherForAllEvents();
 }
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
+
+// GitHub同期の初期化
+const config = TrippenGistSync.loadConfig();
+if (config && config.hasToken) {
+this.gistSync = {
+isEnabled: true,
+gistId: config.gistId,
+lastSyncTime: config.lastSyncTime,
+isSyncing: false,
+hasError: false
+};
+}
 }
 }).mount('#app');
 </script>
 </body>
 </html>
+
