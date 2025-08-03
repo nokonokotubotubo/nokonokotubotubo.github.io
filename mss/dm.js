@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（完全修正統合版）
+// Minews PWA - データ管理・処理レイヤー（サイレント同期機能統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（完全修正統合版）
+// 改良版GitHub Gist同期システム（サイレント同期機能統合版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -275,7 +275,7 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【改良】定期同期実行（ソート抑制対応版）
+    // 【改良】定期同期実行（サイレント同期対応版）
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
@@ -283,10 +283,10 @@ window.GistSyncManager = {
         
         this.isSyncing = true;
         
-        // 【NEW】定期同期でもソート抑制フラグを設定
+        // 【NEW】サイレント同期フラグを設定
         const shouldControlSortFlag = window.setState && !window.state?.isSyncUpdating;
         if (shouldControlSortFlag) {
-            window.setState({ isSyncUpdating: true });
+            window.setState({ isSyncUpdating: true, isBackgroundSyncing: true });
         }
         
         try {
@@ -298,13 +298,14 @@ window.GistSyncManager = {
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                await this._applyMergedDataToLocal(mergedData);
+                // 【重要】サイレント適用（画面更新なし）
+                await this._applyMergedDataToLocalSilently(mergedData);
                 
                 this.lastSyncTime = new Date().toISOString();
                 this._saveLastSyncTime(this.lastSyncTime);
                 this.pendingChanges = false;
                 
-                console.log('双方向同期完了:', new Date().toLocaleString());
+                console.log('サイレント同期完了:', new Date().toLocaleString());
                 return true;
             }
             
@@ -315,8 +316,9 @@ window.GistSyncManager = {
         } finally {
             this.isSyncing = false;
             
+            // 【NEW】サイレント同期完了後に一度だけ画面更新
             if (shouldControlSortFlag) {
-                window.setState({ isSyncUpdating: false });
+                window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
             }
         }
     },
@@ -440,7 +442,69 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // マージ結果をローカルに適用
+    // 【NEW】サイレント適用（画面更新を行わない版）
+    async _applyMergedDataToLocalSilently(mergedData) {
+        try {
+            // AI学習データ更新
+            if (mergedData.aiLearning) {
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
+                    mergedData.aiLearning
+                );
+                window.DataHooksCache.clear('aiLearning');
+            }
+            
+            // ワードフィルター更新
+            if (mergedData.wordFilters) {
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.WORD_FILTERS, 
+                    mergedData.wordFilters
+                );
+                window.DataHooksCache.clear('wordFilters');
+            }
+            
+            // 記事状態更新
+            if (mergedData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                const updatedArticles = currentArticles.map(article => {
+                    const state = mergedData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus || article.readStatus,
+                            userRating: state.userRating || article.userRating,
+                            readLater: state.readLater || article.readLater,
+                            lastModified: state.lastModified || article.lastModified
+                        };
+                    }
+                    return article;
+                });
+                
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.ARTICLES, 
+                    updatedArticles
+                );
+                window.DataHooksCache.clear('articles');
+                
+                // 【重要】状態更新はするが画面更新はしない
+                if (window.state) {
+                    window.state.articles = updatedArticles;
+                }
+                
+                // 【削除】window.render()を呼ばない（サイレント化）
+            }
+            
+            console.log('サイレント同期: ローカルデータ更新完了');
+            return true;
+        } catch (error) {
+            console.error('サイレント同期: データ更新エラー:', error);
+            return false;
+        }
+    },
+
+    // マージ結果をローカルに適用（手動同期用）
     async _applyMergedDataToLocal(mergedData) {
         try {
             if (mergedData.aiLearning) {
@@ -514,26 +578,48 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
-    // 【改良】手動同期実行（ソート抑制対応版）
+    // 【改良】手動同期実行（サイレント対応版）
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        // 【NEW】同期開始前にソート抑制フラグを設定
+        // 【重要】手動同期は非サイレント（ユーザーが意図的に実行）
         if (window.setState) {
-            window.setState({ isSyncUpdating: true });
+            window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         }
         
+        this.isSyncing = true;
+        
         try {
-            const result = await this._executePeriodicSync();
-            return result ? 
-                { success: true, triggerType: 'manual' } : 
-                { success: false, error: 'sync_failed', triggerType: 'manual' };
+            const cloudData = await this.syncFromCloud();
+            const localData = this.collectSyncData();
+            
+            const mergedData = this._mergeData(localData, cloudData);
+            
+            const uploadResult = await this.syncToCloud(mergedData);
+            
+            if (uploadResult) {
+                // 手動同期は通常の適用（画面更新あり）
+                await this._applyMergedDataToLocal(mergedData);
+                
+                this.lastSyncTime = new Date().toISOString();
+                this._saveLastSyncTime(this.lastSyncTime);
+                this.pendingChanges = false;
+                
+                console.log('手動同期完了:', new Date().toLocaleString());
+                return { success: true, triggerType: 'manual' };
+            }
+            
+            return { success: false, error: 'sync_failed', triggerType: 'manual' };
+        } catch (error) {
+            console.error('手動同期エラー:', error);
+            return { success: false, error: 'sync_failed', triggerType: 'manual' };
         } finally {
-            // 【NEW】同期完了後にソート抑制フラグを解除
+            this.isSyncing = false;
+            
             if (window.setState) {
-                window.setState({ isSyncUpdating: false });
+                window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
             }
         }
     },
