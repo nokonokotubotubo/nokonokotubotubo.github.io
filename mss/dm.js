@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（定期同期方式1分間隔完全統合版）
+// Minews PWA - データ管理・処理レイヤー（LocalStorage詳細トレース機能完全統合版）
 
 (function() {
 
@@ -35,6 +35,466 @@ window.DEFAULT_DATA = {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
+    }
+};
+
+// ===========================================
+// LocalStorage詳細トレースシステム
+// ===========================================
+
+window.LocalStorageTracer = {
+    isTracing: false,
+    originalStorage: null,
+    traceLog: [],
+    errorLog: [],
+    maxLogEntries: 100,
+    
+    // トレース開始
+    startTracing() {
+        if (this.isTracing) {
+            console.log('⚠️ LocalStorageトレースは既に開始されています');
+            return false;
+        }
+        
+        console.log('🔍 LocalStorage詳細トレース開始');
+        
+        // 元のLocalStorageメソッドを保存
+        this.originalStorage = {
+            setItem: localStorage.setItem,
+            getItem: localStorage.getItem,
+            removeItem: localStorage.removeItem,
+            clear: localStorage.clear,
+            key: localStorage.key
+        };
+        
+        // プロキシ化による監視開始
+        this._proxyLocalStorage();
+        this.isTracing = true;
+        
+        // 開始ログ
+        this._addTraceLog('TRACE_START', 'システム', {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            storageLength: localStorage.length
+        });
+        
+        return true;
+    },
+    
+    // トレース停止
+    stopTracing() {
+        if (!this.isTracing) {
+            console.log('⚠️ LocalStorageトレースは開始されていません');
+            return false;
+        }
+        
+        console.log('⏹️ LocalStorage詳細トレース停止');
+        
+        // 終了ログ
+        this._addTraceLog('TRACE_STOP', 'システム', {
+            timestamp: new Date().toISOString(),
+            totalLogs: this.traceLog.length,
+            totalErrors: this.errorLog.length
+        });
+        
+        // 元のLocalStorageメソッドを復元
+        localStorage.setItem = this.originalStorage.setItem;
+        localStorage.getItem = this.originalStorage.getItem;
+        localStorage.removeItem = this.originalStorage.removeItem;
+        localStorage.clear = this.originalStorage.clear;
+        localStorage.key = this.originalStorage.key;
+        
+        this.isTracing = false;
+        
+        // トレース結果の永続化保存
+        this._saveTraceResults();
+        
+        return true;
+    },
+    
+    // LocalStorageのプロキシ化
+    _proxyLocalStorage() {
+        const tracer = this;
+        
+        // setItem監視
+        localStorage.setItem = function(key, value) {
+            const startTime = performance.now();
+            const stackTrace = tracer._getStackTrace();
+            
+            try {
+                const result = tracer.originalStorage.setItem.call(this, key, value);
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('SET_ITEM', key, {
+                    value: value,
+                    valueLength: value.length,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: true
+                });
+                
+                return result;
+            } catch (error) {
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('SET_ITEM', key, {
+                    value: value,
+                    valueLength: value.length,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: false,
+                    error: error.message
+                });
+                
+                tracer._addErrorLog('SET_ITEM_ERROR', key, error, stackTrace);
+                throw error;
+            }
+        };
+        
+        // getItem監視
+        localStorage.getItem = function(key) {
+            const startTime = performance.now();
+            const stackTrace = tracer._getStackTrace();
+            
+            try {
+                const result = tracer.originalStorage.getItem.call(this, key);
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('GET_ITEM', key, {
+                    valueExists: result !== null,
+                    valueLength: result ? result.length : 0,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: true
+                });
+                
+                return result;
+            } catch (error) {
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('GET_ITEM', key, {
+                    valueExists: false,
+                    valueLength: 0,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: false,
+                    error: error.message
+                });
+                
+                tracer._addErrorLog('GET_ITEM_ERROR', key, error, stackTrace);
+                throw error;
+            }
+        };
+        
+        // removeItem監視
+        localStorage.removeItem = function(key) {
+            const startTime = performance.now();
+            const stackTrace = tracer._getStackTrace();
+            
+            try {
+                const result = tracer.originalStorage.removeItem.call(this, key);
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('REMOVE_ITEM', key, {
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: true
+                });
+                
+                return result;
+            } catch (error) {
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('REMOVE_ITEM', key, {
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: false,
+                    error: error.message
+                });
+                
+                tracer._addErrorLog('REMOVE_ITEM_ERROR', key, error, stackTrace);
+                throw error;
+            }
+        };
+        
+        // clear監視
+        localStorage.clear = function() {
+            const startTime = performance.now();
+            const stackTrace = tracer._getStackTrace();
+            const beforeLength = localStorage.length;
+            
+            try {
+                const result = tracer.originalStorage.clear.call(this);
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('CLEAR', 'ALL', {
+                    clearedItems: beforeLength,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: true
+                });
+                
+                return result;
+            } catch (error) {
+                const endTime = performance.now();
+                
+                tracer._addTraceLog('CLEAR', 'ALL', {
+                    clearedItems: 0,
+                    executionTime: endTime - startTime,
+                    stackTrace: stackTrace,
+                    success: false,
+                    error: error.message
+                });
+                
+                tracer._addErrorLog('CLEAR_ERROR', 'ALL', error, stackTrace);
+                throw error;
+            }
+        };
+    },
+    
+    // スタックトレース取得
+    _getStackTrace() {
+        try {
+            throw new Error();
+        } catch (e) {
+            return e.stack.split('\n').slice(2, 8).map(line => line.trim()).join('\n');
+        }
+    },
+    
+    // トレースログ追加
+    _addTraceLog(operation, key, details) {
+        const logEntry = {
+            id: this.traceLog.length,
+            timestamp: new Date().toISOString(),
+            operation: operation,
+            key: key,
+            details: details
+        };
+        
+        this.traceLog.push(logEntry);
+        
+        // Minews関連のキーの場合は詳細ログ
+        if (key && key.startsWith('minews_')) {
+            console.log(`📝 LocalStorage操作: ${operation}(${key})`, logEntry);
+        }
+        
+        // ログサイズ制限
+        if (this.traceLog.length > this.maxLogEntries) {
+            this.traceLog.shift();
+        }
+    },
+    
+    // エラーログ追加
+    _addErrorLog(type, key, error, stackTrace) {
+        const errorEntry = {
+            id: this.errorLog.length,
+            timestamp: new Date().toISOString(),
+            type: type,
+            key: key,
+            error: {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            },
+            stackTrace: stackTrace
+        };
+        
+        this.errorLog.push(errorEntry);
+        console.error(`❌ LocalStorageエラー: ${type}(${key})`, errorEntry);
+        
+        // エラーログサイズ制限
+        if (this.errorLog.length > 50) {
+            this.errorLog.shift();
+        }
+    },
+    
+    // トレース結果の保存
+    _saveTraceResults() {
+        try {
+            const traceResults = {
+                timestamp: new Date().toISOString(),
+                logs: this.traceLog,
+                errors: this.errorLog,
+                summary: this._generateSummary()
+            };
+            
+            // 一時的に元のsetItemを使用してトレース結果を保存
+            this.originalStorage.setItem.call(localStorage, 'minews_trace_results', JSON.stringify(traceResults));
+            console.log('💾 トレース結果を保存しました');
+        } catch (error) {
+            console.error('❌ トレース結果の保存に失敗:', error);
+        }
+    },
+    
+    // サマリー生成
+    _generateSummary() {
+        const minewsLogs = this.traceLog.filter(log => log.key && log.key.startsWith('minews_'));
+        const configLogs = this.traceLog.filter(log => log.key === 'minews_gist_config');
+        
+        return {
+            totalOperations: this.traceLog.length,
+            minewsOperations: minewsLogs.length,
+            configOperations: configLogs.length,
+            errors: this.errorLog.length,
+            operationBreakdown: {
+                setItem: this.traceLog.filter(log => log.operation === 'SET_ITEM').length,
+                getItem: this.traceLog.filter(log => log.operation === 'GET_ITEM').length,
+                removeItem: this.traceLog.filter(log => log.operation === 'REMOVE_ITEM').length,
+                clear: this.traceLog.filter(log => log.operation === 'CLEAR').length
+            },
+            suspiciousPatterns: this._detectSuspiciousPatterns()
+        };
+    },
+    
+    // 疑わしいパターンの検出
+    _detectSuspiciousPatterns() {
+        const patterns = [];
+        
+        // 設定削除の検出
+        const configRemovals = this.traceLog.filter(log => 
+            log.operation === 'REMOVE_ITEM' && log.key === 'minews_gist_config'
+        );
+        if (configRemovals.length > 0) {
+            patterns.push(`設定削除が${configRemovals.length}回検出されました`);
+        }
+        
+        // 短時間での重複操作
+        const configOperations = this.traceLog.filter(log => log.key === 'minews_gist_config');
+        if (configOperations.length > 5) {
+            patterns.push(`設定への操作が${configOperations.length}回実行されました（過多の可能性）`);
+        }
+        
+        // エラー発生パターン
+        if (this.errorLog.length > 0) {
+            patterns.push(`${this.errorLog.length}件のLocalStorageエラーが発生しました`);
+        }
+        
+        // clear操作の検出
+        const clearOperations = this.traceLog.filter(log => log.operation === 'CLEAR');
+        if (clearOperations.length > 0) {
+            patterns.push(`LocalStorage全消去が${clearOperations.length}回実行されました`);
+        }
+        
+        return patterns;
+    },
+    
+    // 保存されたトレース結果の読み込み
+    loadTraceResults() {
+        try {
+            const stored = localStorage.getItem('minews_trace_results');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (error) {
+            console.error('❌ トレース結果の読み込みに失敗:', error);
+        }
+        return null;
+    },
+    
+    // トレース結果のクリア
+    clearTraceResults() {
+        this.traceLog = [];
+        this.errorLog = [];
+        try {
+            localStorage.removeItem('minews_trace_results');
+            console.log('🗑️ トレース結果をクリアしました');
+        } catch (error) {
+            console.error('❌ トレース結果のクリアに失敗:', error);
+        }
+    },
+    
+    // 診断レポート生成
+    generateDiagnosticReport() {
+        const storedResults = this.loadTraceResults();
+        const currentLog = this.traceLog;
+        
+        return {
+            timestamp: new Date().toISOString(),
+            currentTrace: {
+                isActive: this.isTracing,
+                logCount: currentLog.length,
+                errorCount: this.errorLog.length
+            },
+            storedResults: storedResults,
+            analysis: this._analyzeTraceData(storedResults || { logs: currentLog, errors: this.errorLog }),
+            recommendations: this._generateRecommendations(storedResults || { logs: currentLog, errors: this.errorLog })
+        };
+    },
+    
+    // トレースデータ分析
+    _analyzeTraceData(data) {
+        const logs = data.logs || [];
+        const errors = data.errors || [];
+        
+        const analysis = {
+            configOperationPattern: [],
+            timingAnalysis: {},
+            errorAnalysis: {}
+        };
+        
+        // 設定操作パターン分析
+        const configLogs = logs.filter(log => log.key === 'minews_gist_config');
+        analysis.configOperationPattern = configLogs.map(log => ({
+            timestamp: log.timestamp,
+            operation: log.operation,
+            success: log.details.success,
+            stackTrace: log.details.stackTrace ? log.details.stackTrace.split('\n')[0] : 'unknown'
+        }));
+        
+        // タイミング分析
+        if (configLogs.length >= 2) {
+            const timeDiffs = [];
+            for (let i = 1; i < configLogs.length; i++) {
+                const prevTime = new Date(configLogs[i-1].timestamp).getTime();
+                const currTime = new Date(configLogs[i].timestamp).getTime();
+                timeDiffs.push(currTime - prevTime);
+            }
+            analysis.timingAnalysis = {
+                averageInterval: timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length,
+                minInterval: Math.min(...timeDiffs),
+                maxInterval: Math.max(...timeDiffs),
+                rapidOperations: timeDiffs.filter(diff => diff < 1000).length
+            };
+        }
+        
+        // エラー分析
+        analysis.errorAnalysis = {
+            totalErrors: errors.length,
+            errorTypes: [...new Set(errors.map(err => err.type))],
+            errorFrequency: errors.reduce((acc, err) => {
+                acc[err.type] = (acc[err.type] || 0) + 1;
+                return acc;
+            }, {})
+        };
+        
+        return analysis;
+    },
+    
+    // 推奨事項生成
+    _generateRecommendations(data) {
+        const recommendations = [];
+        const errors = data.errors || [];
+        const logs = data.logs || [];
+        
+        if (errors.length > 0) {
+            recommendations.push('LocalStorageエラーが検出されました。ブラウザの開発者ツールでエラー詳細を確認してください。');
+        }
+        
+        const configOperations = logs.filter(log => log.key === 'minews_gist_config');
+        if (configOperations.length > 10) {
+            recommendations.push('設定への操作が過多です。定期同期の間隔調整を検討してください。');
+        }
+        
+        const clearOperations = logs.filter(log => log.operation === 'CLEAR');
+        if (clearOperations.length > 0) {
+            recommendations.push('LocalStorage全消去が検出されました。他のスクリプトとの競合を確認してください。');
+        }
+        
+        if (recommendations.length === 0) {
+            recommendations.push('現在のところ、明確な問題は検出されていません。');
+        }
+        
+        return recommendations;
     }
 };
 
