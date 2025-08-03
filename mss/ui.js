@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（無駄機能削除・軽量化完了版）
+// Minews PWA - UI・表示レイヤー（完全修正統合版）
 (function() {
     'use strict';
 
@@ -40,7 +40,7 @@
     // アプリケーション状態管理
     // ===========================================
 
-    // 初期状態でLocalStorageから復元
+    // 【修正】初期状態でLocalStorageから復元（同期フラグ追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -48,7 +48,8 @@
         showModal: null,
         articles: [],
         isLoading: false,
-        lastUpdate: null
+        lastUpdate: null,
+        isSyncUpdating: false  // 【NEW】同期中フラグ
     };
 
     // setState統合版（自動保存機能付き）
@@ -80,19 +81,17 @@
         window.state.articles = articlesData;
     };
 
-    // Gist同期初期化関数（定期同期開始対応、グローバル登録修正版）
+    // Gist同期初期化関数
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
             if (config && config.hasToken) {
                 console.log('GitHub同期設定を復元しました');
-                // 定期同期の開始（1分間隔）
                 window.GistSyncManager.startPeriodicSync(60);
             }
         }
     };
 
-    // グローバル関数として明示的に登録
     window.initializeGistSync = initializeGistSync;
 
     // ===========================================
@@ -138,7 +137,7 @@
         });
     };
 
-    // 最終同期日時フォーマット関数（シンプル版）
+    // 最終同期日時フォーマット関数
     const formatLastSyncTime = (isoString) => {
         try {
             const date = new Date(isoString);
@@ -155,7 +154,7 @@
     };
 
     // ===========================================
-    // GitHub同期管理関数（定期同期対応版）
+    // GitHub同期管理関数（完全修正版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -186,27 +185,35 @@
         window.render();
     };
 
-    // シンプル化された手動同期
+    // 【改良】手動同期関数（ソート抑制対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
             return;
         }
         
-        const result = await window.GistSyncManager.autoSync('manual');
-        if (result.success) {
-            alert('データをクラウドに保存しました');
-        } else {
-            alert('クラウドへの保存に失敗しました: ' + (result.error || result.reason));
+        try {
+            const result = await window.GistSyncManager.autoSync('manual');
+            if (result.success) {
+                alert('データをクラウドに保存しました');
+            } else {
+                alert('クラウドへの保存に失敗しました: ' + (result.error || result.reason));
+            }
+        } catch (error) {
+            console.error('同期エラー:', error);
+            alert('同期処理中にエラーが発生しました: ' + error.message);
         }
     };
 
-    // 記事状態情報同期対応版クラウド復元処理
+    // 【改良】クラウド復元処理（ソート抑制対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
             return;
         }
+        
+        // 【NEW】同期開始前にソート抑制フラグを設定
+        window.setState({ isSyncUpdating: true });
         
         try {
             const cloudData = await window.GistSyncManager.syncFromCloud();
@@ -240,7 +247,8 @@
                             ...article,
                             readStatus: state.readStatus,
                             userRating: state.userRating,
-                            readLater: state.readLater
+                            readLater: state.readLater,
+                            lastModified: state.lastModified || article.lastModified
                         };
                     }
                     return article;
@@ -258,10 +266,13 @@
             window.render();
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
+        } finally {
+            // 【NEW】同期完了後にソート抑制フラグを解除
+            window.setState({ isSyncUpdating: false });
         }
     };
 
-    // シンプル化された同期診断
+    // 同期診断
     window.handleSyncDiagnostic = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -279,14 +290,13 @@
         }
     };
 
-    // 設定解除機能（定期同期停止対応）
+    // 設定解除機能
     window.handleClearGitHubSettings = () => {
         if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) {
             return;
         }
         
         try {
-            // 定期同期を停止
             if (window.GistSyncManager) {
                 window.GistSyncManager.stopPeriodicSync();
             }
@@ -319,7 +329,6 @@
             await navigator.clipboard.writeText(window.GistSyncManager.gistId);
             alert('Gist IDをコピーしました');
         } catch (error) {
-            // フォールバック
             const textArea = document.createElement('textarea');
             textArea.value = window.GistSyncManager.gistId;
             document.body.appendChild(textArea);
@@ -433,7 +442,7 @@
                 lastUpdate: new Date()
             });
             
-            // 記事更新後の変更マーク設定（定期同期で処理される）
+            // 記事更新後の変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -446,7 +455,7 @@
     };
 
     // ===========================================
-    // 記事操作（定期同期対応）
+    // 【確実な同期マーク設定】記事操作（完全修正版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -467,6 +476,7 @@
                 event.stopPropagation();
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
                 
+                // 【重要】updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
                 
                 // DOM直接更新
@@ -478,38 +488,31 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
-                // 変更マーク設定（定期同期で処理される）
+                // 【確実な同期マーク設定】
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
+                    console.log(`既読状態変更: ${articleId} -> ${newReadStatus}, 同期マーク設定完了`);
                 }
                 break;
 
-            case 'read':
-                if (article.readStatus !== 'read') {
-                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
-                    
-                    if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.markAsChanged();
-                    }
-                }
-                break;
-                
             case 'readLater':
                 event.preventDefault();
                 event.stopPropagation();
                 
-                articlesHook.updateArticle(articleId, { readLater: !article.readLater }, { skipRender: true });
+                const newReadLater = !article.readLater;
+                
+                // 【重要】updateArticleが自動的にlastModifiedを更新する
+                articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
                 
                 // DOM直接更新
                 const readLaterButton = event.target;
-                const newReadLater = !article.readLater;
-                
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
-                // 変更マーク設定（定期同期で処理される）
+                // 【確実な同期マーク設定】
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
+                    console.log(`後で読む状態変更: ${articleId} -> ${newReadLater}, 同期マーク設定完了`);
                 }
                 break;
 
@@ -534,6 +537,7 @@
 
                         if (window.GistSyncManager?.isEnabled) {
                             window.GistSyncManager.markAsChanged();
+                            console.log(`評価キャンセル: ${articleId}, 同期マーク設定完了`);
                         }
                         return;
                     }
@@ -563,9 +567,20 @@
                         });
                     }
 
-                    // 変更マーク設定（定期同期で処理される）
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
+                        console.log(`評価変更: ${articleId} -> ${rating}, 同期マーク設定完了`);
+                    }
+                }
+                break;
+                
+            case 'read':
+                if (article.readStatus !== 'read') {
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                    
+                    if (window.GistSyncManager?.isEnabled) {
+                        window.GistSyncManager.markAsChanged();
+                        console.log(`記事閲覧: ${articleId}, 同期マーク設定完了`);
                     }
                 }
                 break;
@@ -573,7 +588,7 @@
     };
 
     // ===========================================
-    // モーダル管理（シンプル化版）
+    // モーダル管理
     // ===========================================
 
     const handleCloseModal = () => {
@@ -585,7 +600,7 @@
     };
 
     // ===========================================
-    // ワード管理（定期同期対応）
+    // ワード管理（同期対応）
     // ===========================================
 
     const handleAddWord = (type) => {
@@ -600,7 +615,7 @@
         if (success) {
             window.render();
             
-            // 変更マーク設定（定期同期で処理される）
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -620,7 +635,7 @@
         if (success) {
             window.render();
             
-            // 変更マーク設定（定期同期で処理される）
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -712,6 +727,7 @@
         `;
     };
 
+    // 【修正】記事フィルタリング（同期時ソート抑制対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
@@ -736,6 +752,12 @@
         // NGワードフィルター
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
+
+        // 【NEW】同期中の場合はソートをスキップ
+        if (window.state.isSyncUpdating) {
+            console.log('同期中のためソートを抑制します');
+            return filtered;
+        }
 
         // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
@@ -989,7 +1011,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        無駄機能削除・軽量化版
+                                        完全修正統合版
                                     </p>
                                 </div>
                             </div>
@@ -1044,7 +1066,7 @@
     // 初期化
     // ===========================================
 
-    // グローバル関数をウィンドウに追加（診断関数削除済み）
+    // グローバル関数をウィンドウに追加
     window.handleFilterChange = handleFilterChange;
     window.handleSourceChange = handleSourceChange;
     window.handleRefresh = handleRefresh;
@@ -1053,7 +1075,7 @@
     window.handleOpenModal = handleOpenModal;
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
-    window.initializeGistSync = initializeGistSync; // 明示的追加
+    window.initializeGistSync = initializeGistSync;
 
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
