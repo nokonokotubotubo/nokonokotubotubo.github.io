@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（LocalStorage詳細トレース機能完全統合版）
+// Minews PWA - UI・表示レイヤー（無駄機能削除・軽量化完了版）
 (function() {
     'use strict';
 
@@ -327,95 +327,6 @@
             document.execCommand('copy');
             document.body.removeChild(textArea);
             alert('Gist IDをコピーしました');
-        }
-    };
-
-    // ===========================================
-    // LocalStorage診断制御関数
-    // ===========================================
-
-    // トレースの開始/停止切り替え
-    window.handleToggleLocalStorageTrace = () => {
-        if (!window.LocalStorageTracer) {
-            alert('LocalStorageTracerが初期化されていません');
-            return;
-        }
-        
-        if (window.LocalStorageTracer.isTracing) {
-            const result = window.LocalStorageTracer.stopTracing();
-            if (result) {
-                alert('LocalStorageトレースを停止しました\n結果が保存されました');
-                window.render();
-            }
-        } else {
-            const result = window.LocalStorageTracer.startTracing();
-            if (result) {
-                alert('LocalStorageトレースを開始しました\n設定消失の問題を再現してください');
-                window.render();
-            }
-        }
-    };
-
-    // トレース結果の表示
-    window.handleShowTraceResults = () => {
-        if (!window.LocalStorageTracer) {
-            alert('LocalStorageTracerが初期化されていません');
-            return;
-        }
-        
-        const report = window.LocalStorageTracer.generateDiagnosticReport();
-        
-        // 結果をコンソールに詳細表示
-        console.log('🔍 LocalStorage詳細トレース結果');
-        console.log('=====================================');
-        console.log('📊 現在のトレース状態:', report.currentTrace);
-        
-        if (report.storedResults) {
-            console.log('💾 保存されたトレース結果:', report.storedResults.summary);
-            console.log('📝 操作ログ:', report.storedResults.logs);
-            if (report.storedResults.errors.length > 0) {
-                console.log('❌ エラーログ:', report.storedResults.errors);
-            }
-        }
-        
-        console.log('🔍 分析結果:', report.analysis);
-        console.log('💡 推奨事項:', report.recommendations);
-        
-        // ユーザー向けサマリー表示
-        let summaryMessage = 'LocalStorageトレース結果:\n\n';
-        
-        if (report.storedResults && report.storedResults.summary) {
-            const summary = report.storedResults.summary;
-            summaryMessage += `総操作数: ${summary.totalOperations}件\n`;
-            summaryMessage += `設定操作数: ${summary.configOperations}件\n`;
-            summaryMessage += `エラー数: ${summary.errors}件\n\n`;
-            
-            if (summary.suspiciousPatterns.length > 0) {
-                summaryMessage += '⚠️ 検出された問題:\n';
-                summary.suspiciousPatterns.forEach(pattern => {
-                    summaryMessage += `- ${pattern}\n`;
-                });
-            } else {
-                summaryMessage += '✅ 疑わしいパターンは検出されていません\n';
-            }
-        } else {
-            summaryMessage += '保存されたトレース結果がありません。\nトレースを開始して問題を再現してください。';
-        }
-        
-        summaryMessage += '\n詳細はコンソールを確認してください。';
-        alert(summaryMessage);
-    };
-
-    // トレース結果のクリア
-    window.handleClearTraceResults = () => {
-        if (!confirm('トレース結果をクリアしますか？\nこの操作は取り消せません。')) {
-            return;
-        }
-        
-        if (window.LocalStorageTracer) {
-            window.LocalStorageTracer.clearTraceResults();
-            alert('トレース結果をクリアしました');
-            window.render();
         }
     };
 
@@ -1004,38 +915,6 @@
                         </div>
 
                         <div class="modal-section-group">
-                            <h3 class="group-title">LocalStorage診断</h3>
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>詳細トレース診断</h3>
-                                </div>
-                                <p class="text-muted mb-3">LocalStorage操作を詳細に監視し、設定消失の原因を特定します</p>
-                                
-                                <div class="modal-actions">
-                                    <button class="action-btn ${window.LocalStorageTracer?.isTracing ? 'danger' : 'success'}" 
-                                            onclick="handleToggleLocalStorageTrace()">
-                                        ${window.LocalStorageTracer?.isTracing ? 'トレース停止' : 'トレース開始'}
-                                    </button>
-                                    
-                                    <button class="action-btn" onclick="handleShowTraceResults()">
-                                        結果表示
-                                    </button>
-                                    
-                                    <button class="action-btn danger" onclick="handleClearTraceResults()">
-                                        ログクリア
-                                    </button>
-                                </div>
-                                
-                                <div id="trace-status" style="margin-top: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px; font-size: 0.85rem;">
-                                    ${window.LocalStorageTracer?.isTracing ? 
-                                        `<div style="color: #10b981;">✅ トレース実行中 (${window.LocalStorageTracer.traceLog.length}件のログ)</div>` :
-                                        '<div style="color: #9ca3af;">⏸️ トレース停止中</div>'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="modal-section-group">
                             <h3 class="group-title">ワード設定</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
@@ -1110,7 +989,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        LocalStorage詳細トレース機能完全統合版
+                                        無駄機能削除・軽量化版
                                     </p>
                                 </div>
                             </div>
@@ -1165,7 +1044,7 @@
     // 初期化
     // ===========================================
 
-    // グローバル関数をウィンドウに追加（LocalStorage診断関数追加）
+    // グローバル関数をウィンドウに追加（診断関数削除済み）
     window.handleFilterChange = handleFilterChange;
     window.handleSourceChange = handleSourceChange;
     window.handleRefresh = handleRefresh;
@@ -1175,11 +1054,6 @@
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
     window.initializeGistSync = initializeGistSync; // 明示的追加
-    
-    // LocalStorage診断関数
-    window.handleToggleLocalStorageTrace = handleToggleLocalStorageTrace;
-    window.handleShowTraceResults = handleShowTraceResults;
-    window.handleClearTraceResults = handleClearTraceResults;
 
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
