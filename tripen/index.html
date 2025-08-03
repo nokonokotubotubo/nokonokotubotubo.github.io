@@ -21,6 +21,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .cloud-load-btn:hover{background:rgba(255,255,255,0.2);color:white}
 .cloud-load-btn:disabled{opacity:0.5;cursor:not-allowed}
 .cloud-load-btn.loading{animation:spin 1s linear infinite}
+.cloud-load-btn.error{color:#ff6b6b}
 @keyframes spin{0%{transform:translateY(-50%) rotate(0deg)}100%{transform:translateY(-50%) rotate(360deg)}}
 .settings-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
 .settings-btn:hover{background:rgba(255,255,255,0.2);color:white}
@@ -550,7 +551,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div id="app">
 <header class="header">
 <div class="container">
-<button class="cloud-load-btn" @click="loadFromCloud" title="クラウドから読込" :disabled="!gistSync.isEnabled" :class="{ loading: gistSync.isLoading }">
+<button class="cloud-load-btn" @click="loadFromCloud" title="クラウドから読込" :disabled="gistSync.isLoading" :class="{ loading: gistSync.isLoading, error: gistSync.hasError }">
 <i class="fas fa-cloud-download-alt"></i>
 </button>
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
@@ -826,7 +827,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                 
                 <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
                     <div v-if="gistSync.isEnabled">
-                        <strong>同期状態:</strong> 有効（新方式）<br>
+                        <strong>同期状態:</strong> 有効（新方式・修正版）<br>
                         <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
                         <span v-if="gistSync.lastReadTime">最終読込: {{ formatSyncTime(gistSync.lastReadTime) }}</span><br>
                         <span v-if="gistSync.lastSyncTime">最終書込: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
@@ -863,7 +864,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
             <div class="settings-section">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
                 <p>とりっぺんちゃん - 旅行予定調整サイト<br>
-                GitHub新同期方式統合版</p>
+                GitHub新同期方式・問題解決版</p>
             </div>
         </div>
     </div>
@@ -888,7 +889,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script>
 const { createApp } = Vue;
 
-// GitHub Gist同期システム（新同期方式対応版）
+// GitHub Gist同期システム（問題解決版）
 const TrippenGistSync = {
     token: null,
     gistId: null,
@@ -934,33 +935,54 @@ const TrippenGistSync = {
         return new Date().toISOString();
     },
 
-    // 設定の読み込み
+    // 【修正】設定の読み込み - 確実な状態管理
     loadConfig() {
+        console.log('TrippenGistSync.loadConfig() 開始');
+        
         try {
             const configStr = localStorage.getItem('trippen_gist_config');
-            if (!configStr) return null;
+            console.log('設定文字列:', configStr);
+            
+            if (!configStr) {
+                console.log('設定が見つかりません');
+                return null;
+            }
 
             const config = JSON.parse(configStr);
+            console.log('パース済み設定:', config);
             
+            // 【重要】確実な状態設定
             if (config.encryptedToken) {
                 this.token = this._decrypt(config.encryptedToken);
-                this.isEnabled = true;
+                console.log('トークン復号化完了:', this.token ? 'あり' : 'なし');
             }
             
             this.gistId = config.gistId || null;
             this.lastSyncTime = config.lastSyncTime || null;
             this.lastReadTime = config.lastReadTime || null;
+            this.isEnabled = !!(this.token); // トークンの有無で判定
+            
+            console.log('最終状態:', {
+                isEnabled: this.isEnabled,
+                hasToken: !!this.token,
+                gistId: this.gistId,
+                lastSyncTime: this.lastSyncTime,
+                lastReadTime: this.lastReadTime
+            });
             
             return config;
         } catch (error) {
             console.error('設定読み込みエラー:', error);
             this.hasError = true;
+            this.isEnabled = false;
             return null;
         }
     },
 
     // 初期化
     init(token, gistId = null) {
+        console.log('TrippenGistSync.init() 開始:', { token: token ? 'あり' : 'なし', gistId });
+        
         if (!token || typeof token !== 'string' || token.trim().length === 0) {
             throw new Error('有効なトークンが必要です');
         }
@@ -983,6 +1005,8 @@ const TrippenGistSync = {
         };
 
         localStorage.setItem('trippen_gist_config', JSON.stringify(configData));
+        console.log('設定保存完了:', configData);
+        
         this.startPeriodicSync();
     },
 
@@ -995,6 +1019,8 @@ const TrippenGistSync = {
         this.periodicSyncInterval = setInterval(async () => {
             await this.autoWriteToCloud();
         }, 60000); // 1分間隔
+        
+        console.log('定期同期開始（1分間隔）');
     },
 
     // 定期同期停止
@@ -1002,6 +1028,7 @@ const TrippenGistSync = {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
             this.periodicSyncInterval = null;
+            console.log('定期同期停止');
         }
     },
 
@@ -1010,6 +1037,12 @@ const TrippenGistSync = {
         const events = JSON.parse(localStorage.getItem('trippenEvents') || '[]');
         const days = JSON.parse(localStorage.getItem('trippenDays') || '[]');
         const layerOrder = JSON.parse(localStorage.getItem('trippenLayerOrder') || '[]');
+
+        console.log('同期データ収集:', {
+            eventsCount: events.length,
+            daysCount: days.length,
+            layerOrderCount: layerOrder.length
+        });
 
         return {
             version: '2.0',
@@ -1024,7 +1057,10 @@ const TrippenGistSync = {
 
     // クラウドへの書き込み
     async syncToCloud(data) {
-        if (!this.token) return false;
+        if (!this.token) {
+            console.error('トークンが設定されていません');
+            return false;
+        }
         
         const payload = {
             description: `とりっぺんちゃん 旅行データ バックアップ - ${new Date().toLocaleString('ja-JP')}`,
@@ -1042,19 +1078,25 @@ const TrippenGistSync = {
             
         const method = this.gistId ? 'PATCH' : 'POST';
         
+        console.log('クラウド書き込み開始:', { method, url, gistId: this.gistId });
+        
         try {
             const response = await fetch(url, {
                 method: method,
                 headers: {
                     'Authorization': `token ${this.token}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App'
                 },
                 body: JSON.stringify(payload)
             });
             
+            console.log('レスポンス状態:', response.status);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log('書き込み成功:', result.id);
                 
                 if (!this.gistId && result.id) {
                     this.gistId = result.id;
@@ -1063,9 +1105,11 @@ const TrippenGistSync = {
                 }
                 
                 return true;
+            } else {
+                const errorText = await response.text();
+                console.error('書き込み失敗:', response.status, errorText);
+                return false;
             }
-            
-            return false;
         } catch (error) {
             console.error('クラウド書き込みエラー:', error);
             this.hasError = true;
@@ -1073,35 +1117,99 @@ const TrippenGistSync = {
         }
     },
 
-    // クラウドからの読み込み
+    // 【修正】クラウドからの読み込み - 確実なエラーハンドリング
     async loadFromCloud() {
-        if (!this.token || !this.gistId) return null;
+        console.log('loadFromCloud() 開始');
+        console.log('現在の状態:', { 
+            hasToken: !!this.token, 
+            hasGistId: !!this.gistId,
+            token: this.token ? 'あり' : 'なし',
+            gistId: this.gistId || 'なし'
+        });
+        
+        if (!this.token) {
+            throw new Error('トークンが設定されていません');
+        }
+        
+        if (!this.gistId) {
+            throw new Error('Gist IDが設定されていません');
+        }
         
         try {
+            console.log('GitHub APIアクセス開始:', `https://api.github.com/gists/${this.gistId}`);
+            
             const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                method: 'GET',
                 headers: {
                     'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App'
                 }
             });
             
-            if (response.ok) {
-                const gist = await response.json();
-                if (gist.files && gist.files['trippen_data.json']) {
-                    const content = gist.files['trippen_data.json'].content;
-                    
-                    // 読み込み時刻を記録
-                    this.lastReadTime = this.getUTCTimestamp();
-                    this.saveLastReadTime();
-                    
-                    return JSON.parse(content);
+            console.log('GitHub APIレスポンス:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error Response:', errorText);
+                
+                if (response.status === 404) {
+                    throw new Error('Gistが見つかりません。Gist IDを確認してください。');
+                } else if (response.status === 401) {
+                    throw new Error('GitHub Personal Access Tokenが無効です。設定を確認してください。');
+                } else if (response.status === 403) {
+                    throw new Error('GitHub APIの利用制限に達しています。しばらく待ってから再試行してください。');
+                } else {
+                    throw new Error(`GitHub API エラー: ${response.status} - ${response.statusText}`);
                 }
             }
-            return null;
+            
+            const gist = await response.json();
+            console.log('取得したGist情報:', {
+                id: gist.id,
+                description: gist.description,
+                files: Object.keys(gist.files || {})
+            });
+            
+            if (!gist.files || !gist.files['trippen_data.json']) {
+                throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
+            }
+            
+            const content = gist.files['trippen_data.json'].content;
+            console.log('ファイル内容サイズ:', content ? content.length : 0);
+            
+            if (!content || content.trim() === '') {
+                throw new Error('Gistファイルが空です');
+            }
+            
+            let parsedData;
+            try {
+                parsedData = JSON.parse(content);
+                console.log('JSONパース成功:', {
+                    version: parsedData.version,
+                    syncTime: parsedData.syncTime,
+                    hasData: !!parsedData.data
+                });
+            } catch (parseError) {
+                console.error('JSONパースエラー:', parseError);
+                throw new Error(`JSONパースエラー: ${parseError.message}`);
+            }
+            
+            // 読み込み成功時のみlastReadTimeを更新
+            this.lastReadTime = this.getUTCTimestamp();
+            this.saveLastReadTime();
+            
+            console.log('読み込み完了:', {
+                eventsCount: parsedData.data?.events?.length || 0,
+                daysCount: parsedData.data?.days?.length || 0
+            });
+            
+            return parsedData;
+            
         } catch (error) {
             console.error('クラウドデータ読み込みエラー:', error);
             this.hasError = true;
-            return null;
+            throw error; // エラーを再スローして呼び出し側で処理
         }
     },
 
@@ -1113,7 +1221,8 @@ const TrippenGistSync = {
             const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
                 headers: {
                     'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App'
                 }
             });
             
@@ -1125,8 +1234,15 @@ const TrippenGistSync = {
                 const lastReadTime = new Date(this.lastReadTime || 0);
                 const lastWriteTime = new Date(this.lastSyncTime || 0);
                 
-                // クラウドの更新時刻が両方より新しい場合は競合
-                return cloudUpdatedAt > lastReadTime && cloudUpdatedAt > lastWriteTime;
+                const hasNewerData = cloudUpdatedAt > lastReadTime && cloudUpdatedAt > lastWriteTime;
+                console.log('競合チェック結果:', {
+                    cloudUpdated: cloudUpdatedAt.toISOString(),
+                    lastRead: lastReadTime.toISOString(),
+                    lastWrite: lastWriteTime.toISOString(),
+                    hasNewer: hasNewerData
+                });
+                
+                return hasNewerData;
             }
             
             return false;
@@ -1138,7 +1254,14 @@ const TrippenGistSync = {
 
     // 自動書き込み（1分間隔）
     async autoWriteToCloud() {
-        if (!this.isEnabled || !this.token || this.isSyncing) return false;
+        if (!this.isEnabled || !this.token || this.isSyncing) {
+            console.log('自動書き込みスキップ:', {
+                isEnabled: this.isEnabled,
+                hasToken: !!this.token,
+                isSyncing: this.isSyncing
+            });
+            return false;
+        }
         
         this.isSyncing = true;
         this.hasError = false;
@@ -1147,6 +1270,7 @@ const TrippenGistSync = {
             // 1. 競合チェック
             const hasNewerData = await this.checkForNewerCloudData();
             if (hasNewerData) {
+                console.log('競合検出 - Vue.jsアプリに通知');
                 // Vue.jsアプリに競合を通知
                 if (window.app && window.app.handleSyncConflict) {
                     window.app.handleSyncConflict();
@@ -1191,6 +1315,7 @@ const TrippenGistSync = {
             if (uploadResult) {
                 this.lastSyncTime = this.getUTCTimestamp();
                 this.saveLastSyncTime();
+                console.log('手動書き込み完了');
                 return true;
             }
             
@@ -1205,9 +1330,17 @@ const TrippenGistSync = {
 
     // 初回自動読み込み
     async initialAutoLoad() {
-        if (!this.isEnabled || !this.token || !this.gistId) return null;
+        if (!this.isEnabled || !this.token || !this.gistId) {
+            console.log('初回自動読み込みスキップ:', {
+                isEnabled: this.isEnabled,
+                hasToken: !!this.token,
+                hasGistId: !!this.gistId
+            });
+            return null;
+        }
         
         try {
+            console.log('初回自動読み込み開始');
             const cloudData = await this.loadFromCloud();
             if (cloudData && cloudData.data) {
                 console.log('初回自動読み込み完了:', new Date().toLocaleString());
@@ -1289,6 +1422,8 @@ const TrippenGistSync = {
         this.lastSyncTime = null;
         this.lastReadTime = null;
         this.hasError = false;
+        
+        console.log('TrippenGistSync設定をクリアしました');
     }
 };
 
@@ -1356,7 +1491,7 @@ weatherPopupUrl: '',
 showSettingsModal: false,
 // 競合確認モーダル用データ
 showConflictModal: false,
-// GitHub同期設定（新同期方式対応）
+// GitHub同期設定（問題解決版対応）
 gistSync: {
 isEnabled: false,
 gistId: null,
@@ -2512,7 +2647,7 @@ closeSettingsModal() {
 this.showSettingsModal = false;
 },
 
-// 新同期方式のGitHub同期関数
+// GitHub同期関数（問題解決版）
 async saveGitHubSync() {
 const token = this.syncForm.token.trim();
 const gistId = this.syncForm.gistId.trim();
@@ -2523,16 +2658,13 @@ return;
 }
 
 try {
+console.log('GitHub同期初期化開始');
 // 初期化
 TrippenGistSync.init(token, gistId || null);
 
-// 【重要】初回書き込みを明示的に実行してGist IDを取得
-const syncResult = await TrippenGistSync.manualWriteToCloud();
-
-if (syncResult) {
-// Vue.jsの状態を更新
+// Vue.jsの状態を即座に更新
 this.gistSync = {
-isEnabled: true,
+isEnabled: TrippenGistSync.isEnabled,
 gistId: TrippenGistSync.gistId,
 lastSyncTime: TrippenGistSync.lastSyncTime,
 lastReadTime: TrippenGistSync.lastReadTime,
@@ -2541,13 +2673,25 @@ isLoading: false,
 hasError: false
 };
 
+console.log('Vue.js状態更新完了:', this.gistSync);
+
+// 【重要】初回書き込みを明示的に実行してGist IDを取得
+const syncResult = await TrippenGistSync.manualWriteToCloud();
+
+if (syncResult) {
+// Vue.jsの状態を再更新
+this.gistSync.gistId = TrippenGistSync.gistId;
+this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
+
 this.syncForm = { token: '', gistId: '' };
-alert('GitHub同期を開始しました（新方式）\nGist ID: ' + TrippenGistSync.gistId);
+alert('GitHub同期を開始しました（問題解決版）\nGist ID: ' + TrippenGistSync.gistId);
+console.log('GitHub同期設定完了');
 } else {
 throw new Error('初回書き込みに失敗しました');
 }
 } catch (error) {
 console.error('GitHub同期設定エラー:', error);
+this.gistSync.hasError = true;
 alert('設定に失敗しました: ' + error.message);
 }
 },
@@ -2561,11 +2705,13 @@ return;
 this.gistSync.isSyncing = true;
 
 try {
+console.log('手動書き込み開始');
 const result = await TrippenGistSync.manualWriteToCloud();
 if (result) {
 this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
 this.gistSync.hasError = false;
 alert('手動書き込みが完了しました');
+console.log('手動書き込み完了');
 } else {
 throw new Error('書き込みに失敗しました');
 }
@@ -2578,48 +2724,83 @@ this.gistSync.isSyncing = false;
 }
 },
 
-// 新同期方式：クラウドから読み込み
+// 【修正】クラウドから読み込み - 確実な状態管理
 async loadFromCloud() {
-if (!TrippenGistSync.isEnabled) {
-alert('GitHub同期が設定されていません');
+console.log('Vue.js側 loadFromCloud() 開始');
+console.log('現在のVue.js状態:', this.gistSync);
+
+// 【修正】TrippenGistSyncの状態を再確認
+if (!TrippenGistSync.isEnabled || !TrippenGistSync.token) {
+console.error('TrippenGistSync無効:', {
+isEnabled: TrippenGistSync.isEnabled,
+hasToken: !!TrippenGistSync.token
+});
+alert('GitHub同期が設定されていません。設定画面で設定してください。');
+return;
+}
+
+if (!TrippenGistSync.gistId) {
+console.error('GistID未設定');
+alert('Gist IDが設定されていません。最初にデータを書き込むか、既存のGist IDを設定してください。');
 return;
 }
 
 this.gistSync.isLoading = true;
 
 try {
+console.log('TrippenGistSync.loadFromCloud() 呼び出し');
 const cloudData = await TrippenGistSync.loadFromCloud();
-if (cloudData && cloudData.data) {
-// クラウドデータでローカルデータを上書き
+
+console.log('クラウドデータ取得結果:', cloudData);
+
+if (!cloudData || !cloudData.data) {
+throw new Error('クラウドデータの形式が正しくありません');
+}
+
+// データの強制的な上書き更新
 if (cloudData.data.events) {
-this.events = cloudData.data.events;
+console.log('イベントデータ更新:', cloudData.data.events.length, '件');
+this.events = [...cloudData.data.events]; // 配列の完全置換
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 }
+
 if (cloudData.data.days) {
-this.tripDays = cloudData.data.days;
+console.log('日程データ更新:', cloudData.data.days.length, '日分');
+this.tripDays = [...cloudData.data.days]; // 配列の完全置換
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-if (this.tripDays.length > 0) {
-this.tripInitialized = true;
+
+// 初期化フラグの確実な更新
+this.$nextTick(() => {
+this.tripInitialized = this.tripDays.length > 0;
+console.log('tripInitialized更新:', this.tripInitialized);
+});
 }
-}
+
 if (cloudData.data.layerOrder) {
-this.eventLayerOrder = cloudData.data.layerOrder;
+this.eventLayerOrder = [...cloudData.data.layerOrder];
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
 }
 
+// 状態の強制更新
 this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
 this.gistSync.hasError = false;
-alert('クラウドからデータを読み込みました');
+
+const eventCount = cloudData.data.events ? cloudData.data.events.length : 0;
+const dayCount = cloudData.data.days ? cloudData.data.days.length : 0;
+
+alert(`クラウドからデータを読み込みました\n日程: ${dayCount}日分\n予定: ${eventCount}件`);
 
 // 天気予報を再取得
+if (this.events.length > 0) {
 this.loadWeatherForAllEvents();
-} else {
-alert('クラウドにデータが見つかりませんでした');
 }
+
+console.log('読み込み処理完了');
+
 } catch (error) {
-console.error('クラウド読み込みエラー:', error);
+console.error('読み込み処理エラー:', error);
 this.gistSync.hasError = true;
-alert('読み込みに失敗しました: ' + error.message);
+alert(`読み込みに失敗しました\nエラー: ${error.message}`);
 } finally {
 this.gistSync.isLoading = false;
 }
@@ -2627,6 +2808,7 @@ this.gistSync.isLoading = false;
 
 // 競合処理
 handleSyncConflict() {
+console.log('競合検出 - モーダル表示');
 this.showConflictModal = true;
 },
 
@@ -2757,8 +2939,10 @@ this.tripDays = [];
 this.loadLayerOrder();
 }
 },
-// mounted()の修正 - 新同期方式対応
+// 【修正】mounted() - 確実な初期化プロセス
 mounted() {
+console.log('Vue.jsアプリ初期化開始');
+
 this.detectMobile();
 this.checkExistingData();
 this.loadData();
@@ -2769,11 +2953,17 @@ this.loadWeatherForAllEvents();
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
 
-// GitHub同期の初期化（新同期方式）
+// GitHub同期の初期化（問題解決版）
+console.log('TrippenGistSync初期化開始');
 const config = TrippenGistSync.loadConfig();
-if (config && config.isEnabled) {
+console.log('読み込まれた設定:', config);
+
+if (config && TrippenGistSync.isEnabled) {
+console.log('GitHub同期有効 - Vue.js状態同期開始');
+
+// 【重要】確実な状態同期
 this.gistSync = {
-isEnabled: true,
+isEnabled: TrippenGistSync.isEnabled,
 gistId: TrippenGistSync.gistId,
 lastSyncTime: TrippenGistSync.lastSyncTime,
 lastReadTime: TrippenGistSync.lastReadTime,
@@ -2782,24 +2972,31 @@ isLoading: false,
 hasError: false
 };
 
+console.log('Vue.js同期状態:', this.gistSync);
+
 // 定期書き込みを開始
 TrippenGistSync.startPeriodicSync();
 
 // アプリ起動時に初回自動読み込み実行
 if (TrippenGistSync.gistId) {
+console.log('初回自動読み込み開始');
 setTimeout(async () => {
 try {
 const cloudData = await TrippenGistSync.initialAutoLoad();
 if (cloudData && cloudData.data) {
 console.log('初回自動読み込みでデータを取得しました');
-// 必要に応じて画面更新（例：新しいデータがある場合の通知）
+// 画面更新は不要（手動読み込みボタンで対応）
 }
 } catch (error) {
 console.error('初回自動読み込みエラー:', error);
 }
-}, 2000); // 2秒後に初回読み込み
+}, 3000); // 3秒後に初回読み込み
 }
+} else {
+console.log('GitHub同期無効');
 }
+
+console.log('Vue.jsアプリ初期化完了');
 }
 }).mount('#app');
 </script>
