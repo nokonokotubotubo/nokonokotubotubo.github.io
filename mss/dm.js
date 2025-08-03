@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（サイレント同期機能統合版）
+// Minews PWA - データ管理・処理レイヤー（完全サイレント同期機能統合版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（サイレント同期機能統合版）
+// 改良版GitHub Gist同期システム（完全サイレント同期機能統合版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -275,7 +275,7 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【改良】定期同期実行（サイレント同期対応版）
+    // 【完全修正】定期同期実行（完全サイレント版）
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
@@ -283,10 +283,13 @@ window.GistSyncManager = {
         
         this.isSyncing = true;
         
-        // 【NEW】サイレント同期フラグを設定
-        const shouldControlSortFlag = window.setState && !window.state?.isSyncUpdating;
-        if (shouldControlSortFlag) {
-            window.setState({ isSyncUpdating: true, isBackgroundSyncing: true });
+        // 【重要】画面更新を一切行わない完全サイレント同期
+        const wasUpdating = window.state?.isSyncUpdating || false;
+        
+        // 【NEW】内部フラグのみ更新（画面更新なし）
+        if (window.state) {
+            window.state.isSyncUpdating = true;
+            window.state.isBackgroundSyncing = true;
         }
         
         try {
@@ -298,14 +301,14 @@ window.GistSyncManager = {
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                // 【重要】サイレント適用（画面更新なし）
-                await this._applyMergedDataToLocalSilently(mergedData);
+                // 【重要】完全サイレント適用（画面更新一切なし）
+                await this._applyMergedDataToLocalCompletelySilent(mergedData);
                 
                 this.lastSyncTime = new Date().toISOString();
                 this._saveLastSyncTime(this.lastSyncTime);
                 this.pendingChanges = false;
                 
-                console.log('サイレント同期完了:', new Date().toLocaleString());
+                console.log('完全サイレント同期完了:', new Date().toLocaleString());
                 return true;
             }
             
@@ -316,10 +319,13 @@ window.GistSyncManager = {
         } finally {
             this.isSyncing = false;
             
-            // 【NEW】サイレント同期完了後に一度だけ画面更新
-            if (shouldControlSortFlag) {
-                window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
+            // 【重要】内部フラグのみ更新（画面更新は一切行わない）
+            if (window.state) {
+                window.state.isSyncUpdating = wasUpdating; // 元の状態に戻す
+                window.state.isBackgroundSyncing = false;
             }
+            
+            // 【削除】setState()は一切呼び出さない
         }
     },
 
@@ -442,8 +448,8 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【NEW】サイレント適用（画面更新を行わない版）
-    async _applyMergedDataToLocalSilently(mergedData) {
+    // 【NEW】完全サイレント適用（画面更新を一切行わない版）
+    async _applyMergedDataToLocalCompletelySilent(mergedData) {
         try {
             // AI学習データ更新
             if (mergedData.aiLearning) {
@@ -482,24 +488,26 @@ window.GistSyncManager = {
                     return article;
                 });
                 
+                // 【重要】データ保存とキャッシュ更新のみ
                 window.LocalStorageManager.setItem(
                     window.CONFIG.STORAGE_KEYS.ARTICLES, 
                     updatedArticles
                 );
                 window.DataHooksCache.clear('articles');
+                window.DataHooksCache.articles = updatedArticles;
                 
-                // 【重要】状態更新はするが画面更新はしない
+                // 【重要】window.stateは更新するが画面更新は行わない
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
                 
-                // 【削除】window.render()を呼ばない（サイレント化）
+                // 【削除】render()やsetState()は一切呼び出さない
             }
             
-            console.log('サイレント同期: ローカルデータ更新完了');
+            console.log('完全サイレント同期: データ更新完了（画面更新なし）');
             return true;
         } catch (error) {
-            console.error('サイレント同期: データ更新エラー:', error);
+            console.error('完全サイレント同期: データ更新エラー:', error);
             return false;
         }
     },
@@ -578,13 +586,13 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
-    // 【改良】手動同期実行（サイレント対応版）
+    // 【改良】手動同期実行（明示的画面更新版）
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        // 【重要】手動同期は非サイレント（ユーザーが意図的に実行）
+        // 【重要】手動同期は明示的に画面更新を行う
         if (window.setState) {
             window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         }
