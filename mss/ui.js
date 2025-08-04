@@ -1,11 +1,12 @@
-// Minews PWA - UI・表示レイヤー（ドロップダウン形式チェックボックス対応）
+// Minews PWA - UI・表示レイヤー（フォルダ・フィード対応版）
 (function() {
     'use strict';
 
     // ===========================================
-    // フィルター状態永続化機能（ドロップダウン版）
+    // フィルター状態永続化機能（拡張版）
     // ===========================================
 
+    // フィルター状態をLocalStorageから復元
     const getStoredFilterState = () => {
         try {
             const stored = localStorage.getItem('minews_filterState');
@@ -13,10 +14,9 @@
                 const parsed = JSON.parse(stored);
                 return {
                     viewMode: parsed.viewMode || 'all',
-                    selectedSource: parsed.selectedSource || 'all',
-                    selectedFolders: new Set(parsed.selectedFolders || ['all']),
-                    showFolderDropdown: false,
-                    showSourceDropdown: false
+                    selectedFolders: parsed.selectedFolders || [],
+                    selectedFeeds: parsed.selectedFeeds || [],
+                    filterMode: parsed.filterMode || 'all' // 'all', 'folder', 'feed'
                 };
             }
         } catch (error) {
@@ -24,19 +24,20 @@
         }
         return {
             viewMode: 'all',
-            selectedSource: 'all',
-            selectedFolders: new Set(['all']),
-            showFolderDropdown: false,
-            showSourceDropdown: false
+            selectedFolders: [],
+            selectedFeeds: [],
+            filterMode: 'all'
         };
     };
 
-    const saveFilterState = (viewMode, selectedSource, selectedFolders) => {
+    // フィルター状態をLocalStorageに保存
+    const saveFilterState = (viewMode, selectedFolders, selectedFeeds, filterMode) => {
         try {
             const filterState = { 
                 viewMode, 
-                selectedSource, 
-                selectedFolders: Array.from(selectedFolders) 
+                selectedFolders: selectedFolders || [], 
+                selectedFeeds: selectedFeeds || [],
+                filterMode: filterMode || 'all'
             };
             localStorage.setItem('minews_filterState', JSON.stringify(filterState));
         } catch (error) {
@@ -45,32 +46,39 @@
     };
 
     // ===========================================
-    // アプリケーション状態管理
+    // アプリケーション状態管理（拡張版）
     // ===========================================
 
+    // 初期状態でLocalStorageから復元（フォルダ・フィード対応）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
-        selectedSource: initialFilterState.selectedSource,
         selectedFolders: initialFilterState.selectedFolders,
-        showFolderDropdown: false,
-        showSourceDropdown: false,
+        selectedFeeds: initialFilterState.selectedFeeds,
+        filterMode: initialFilterState.filterMode,
         showModal: null,
         articles: [],
+        folders: {}, // フォルダ情報を保持
         isLoading: false,
         lastUpdate: null,
-        isSyncUpdating: false,
-        isBackgroundSyncing: false
+        isSyncUpdating: false,     // 手動同期中フラグ
+        isBackgroundSyncing: false // バックグラウンド同期フラグ
     };
 
+    // setState統合版（フォルダ・フィード対応）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
         
-        if (newState.viewMode !== undefined || newState.selectedSource !== undefined || newState.selectedFolders !== undefined) {
+        // フィルター関連の状態変更時は自動保存
+        if (newState.viewMode !== undefined || 
+            newState.selectedFolders !== undefined || 
+            newState.selectedFeeds !== undefined ||
+            newState.filterMode !== undefined) {
             saveFilterState(
                 newState.viewMode || window.state.viewMode,
-                newState.selectedSource || window.state.selectedSource,
-                newState.selectedFolders || window.state.selectedFolders
+                newState.selectedFolders || window.state.selectedFolders,
+                newState.selectedFeeds || window.state.selectedFeeds,
+                newState.filterMode || window.state.filterMode
             );
         }
         
@@ -89,8 +97,28 @@
         });
 
         window.state.articles = articlesData;
+        
+        // フォルダ情報の初期化
+        loadFolderData();
     };
 
+    const loadFolderData = async () => {
+        try {
+            const response = await fetch('./articles.json');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.folders) {
+                    window.state.folders = data.folders;
+                    console.log('フォルダ情報を読み込みました:', Object.keys(data.folders).length, '個のフォルダ');
+                }
+            }
+        } catch (error) {
+            console.warn('フォルダ情報の読み込みに失敗:', error);
+            window.state.folders = {};
+        }
+    };
+
+    // Gist同期初期化関数
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
@@ -132,6 +160,21 @@
 
     window.truncateText = (text, maxLength = 200) => text.length <= maxLength ? text : text.substring(0, maxLength).trim() + '...';
 
+    // XMLエスケープ関数
+    window.escapeXml = (text) => {
+        return text.replace(/[<>&'"]/g, (char) => {
+            switch (char) {
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '&': return '&amp;';
+                case '"': return '&quot;';
+                case "'": return '&#39;';
+                default: return char;
+            }
+        });
+    };
+
+    // 最終同期日時フォーマット関数
     const formatLastSyncTime = (isoString) => {
         try {
             const date = new Date(isoString);
@@ -147,98 +190,110 @@
         }
     };
 
-    // フォルダ情報取得
-    const getAvailableFolders = () => {
-        const knownFolders = ['生成AI', '仕事', 'システム', 'IT', '価格', '2軍'];
+    // ===========================================
+    // フォルダ・フィード構造管理
+    // ===========================================
+
+    const generateFolderStructure = () => {
+        const structure = {};
         
-        const dynamicFolders = new Set();
+        // 記事からフォルダ・フィード情報を収集
         window.state.articles.forEach(article => {
-            const folderName = article.folderName || article.category || '未分類';
-            dynamicFolders.add(folderName);
+            const folderId = article.folderId || 'uncategorized';
+            const folderName = article.folderName || '未分類';
+            const feedName = article.rssSource;
+            
+            if (!structure[folderId]) {
+                structure[folderId] = {
+                    id: folderId,
+                    name: folderName,
+                    feeds: new Set()
+                };
+            }
+            
+            structure[folderId].feeds.add(feedName);
         });
         
-        const allFolders = [...new Set([...knownFolders, ...Array.from(dynamicFolders)])];
-        return allFolders.sort();
+        // Set を Array に変換
+        Object.values(structure).forEach(folder => {
+            folder.feeds = Array.from(folder.feeds).sort();
+        });
+        
+        return structure;
+    };
+
+    const getActiveFiltersCount = () => {
+        return window.state.selectedFolders.length + window.state.selectedFeeds.length;
     };
 
     // ===========================================
-    // ドロップダウン管理
+    // フォルダ・フィード選択ハンドラー
     // ===========================================
 
-    // ドロップダウン表示切り替え
-    const toggleDropdown = (type) => {
-        if (type === 'folder') {
-            setState({ 
-                showFolderDropdown: !window.state.showFolderDropdown,
-                showSourceDropdown: false 
-            });
-        } else if (type === 'source') {
-            setState({ 
-                showSourceDropdown: !window.state.showSourceDropdown,
-                showFolderDropdown: false 
-            });
-        }
-    };
-
-    // ドロップダウン外クリックで閉じる
-    const handleDocumentClick = (e) => {
-        if (!e.target.closest('.filter-dropdown-container')) {
-            if (window.state.showFolderDropdown || window.state.showSourceDropdown) {
-                setState({ 
-                    showFolderDropdown: false,
-                    showSourceDropdown: false 
-                });
-            }
-        }
-    };
-
-    // フォルダ選択処理
     const handleFolderToggle = (folderId) => {
-        const newSelectedFolders = new Set(window.state.selectedFolders);
+        const selectedFolders = [...window.state.selectedFolders];
+        const index = selectedFolders.indexOf(folderId);
         
-        if (folderId === 'all') {
-            if (newSelectedFolders.has('all')) {
-                // 全解除
-                newSelectedFolders.clear();
-            } else {
-                // 全選択
-                newSelectedFolders.clear();
-                newSelectedFolders.add('all');
-                const folders = getAvailableFolders();
-                folders.forEach(folder => {
-                    newSelectedFolders.add(folder);
-                });
-            }
+        if (index > -1) {
+            selectedFolders.splice(index, 1);
         } else {
-            newSelectedFolders.delete('all');
-            
-            if (newSelectedFolders.has(folderId)) {
-                newSelectedFolders.delete(folderId);
-            } else {
-                newSelectedFolders.add(folderId);
-            }
-            
-            // 全て選択されている場合は「全て」を追加
-            const folders = getAvailableFolders();
-            if (folders.length > 0 && folders.every(folder => newSelectedFolders.has(folder))) {
-                newSelectedFolders.add('all');
-            }
+            selectedFolders.push(folderId);
         }
         
-        setState({ selectedFolders: newSelectedFolders });
+        setState({ 
+            selectedFolders, 
+            filterMode: selectedFolders.length > 0 ? 'folder' : 'all' 
+        });
     };
 
-    // 選択状況テキスト生成
-    const getFolderSelectionText = () => {
-        if (window.state.selectedFolders.has('all')) return 'すべてのフォルダ';
-        const count = window.state.selectedFolders.size;
-        return count === 0 ? 'フォルダ未選択' : `${count}個のフォルダ`;
+    const handleFeedToggle = (feedName) => {
+        const selectedFeeds = [...window.state.selectedFeeds];
+        const index = selectedFeeds.indexOf(feedName);
+        
+        if (index > -1) {
+            selectedFeeds.splice(index, 1);
+        } else {
+            selectedFeeds.push(feedName);
+        }
+        
+        setState({ 
+            selectedFeeds, 
+            filterMode: selectedFeeds.length > 0 ? 'feed' : 'all' 
+        });
+    };
+
+    const handleSelectAllFolders = () => {
+        const folderStructure = generateFolderStructure();
+        const allFolderIds = Object.keys(folderStructure);
+        setState({ 
+            selectedFolders: allFolderIds, 
+            selectedFeeds: [],
+            filterMode: 'folder' 
+        });
+    };
+
+    const handleSelectAllFeeds = () => {
+        const allFeeds = [...new Set(window.state.articles.map(article => article.rssSource))];
+        setState({ 
+            selectedFolders: [],
+            selectedFeeds: allFeeds, 
+            filterMode: 'feed' 
+        });
+    };
+
+    const handleClearAllFilters = () => {
+        setState({ 
+            selectedFolders: [], 
+            selectedFeeds: [], 
+            filterMode: 'all' 
+        });
     };
 
     // ===========================================
-    // GitHub同期管理関数（省略版）
+    // GitHub同期管理関数
     // ===========================================
 
+    // GitHub同期管理関数
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -249,11 +304,13 @@
         }
         
         try {
+            // GistIDの検証と設定
             if (gistId) {
                 if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
                     alert('Gist IDの形式が正しくありません');
                     return;
                 }
+                
                 window.GistSyncManager.init(token, gistId);
                 alert('GitHub同期設定を保存しました（既存のGist IDを使用）\n定期同期（1分間隔）が開始されました');
             } else {
@@ -270,6 +327,7 @@
         }
     };
 
+    // 手動同期関数
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -289,12 +347,14 @@
         }
     };
 
+    // クラウド復元処理
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
             return;
         }
         
+        // 手動復元は非サイレント（ユーザーが意図的に実行）
         window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         
         try {
@@ -304,16 +364,19 @@
                 return;
             }
             
+            // AI学習データの復元
             if (cloudData.aiLearning) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
                 window.DataHooksCache.clear('aiLearning');
             }
             
+            // ワードフィルターの復元
             if (cloudData.wordFilters) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
                 window.DataHooksCache.clear('wordFilters');
             }
             
+            // 記事状態情報の復元
             if (cloudData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
@@ -335,6 +398,8 @@
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.clear('articles');
                 window.state.articles = updatedArticles;
+                
+                console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
             }
             
             alert('クラウドからデータを復元しました');
@@ -345,6 +410,7 @@
         }
     };
 
+    // 同期診断
     window.handleSyncDiagnostic = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -362,6 +428,7 @@
         }
     };
 
+    // 設定解除機能
     window.handleClearGitHubSettings = () => {
         if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) {
             return;
@@ -389,6 +456,7 @@
         }
     };
 
+    // Gist IDコピー機能
     window.handleCopyCurrentGistId = async () => {
         if (!window.GistSyncManager?.gistId) {
             alert('コピーするGist IDが設定されていません');
@@ -410,9 +478,10 @@
     };
 
     // ===========================================
-    // データ管理機能（省略）
+    // データ管理機能
     // ===========================================
 
+    // 学習データエクスポート
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -434,6 +503,7 @@
         alert('学習データをエクスポートしました');
     };
 
+    // 学習データインポート
     window.handleImportLearningData = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -450,6 +520,7 @@
                 const aiHook = window.DataHooks.useAILearning();
                 const wordHook = window.DataHooks.useWordFilters();
 
+                // AI学習データのマージ
                 Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
                     const weight = importData.aiLearning.wordWeights[word];
                     const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
@@ -457,6 +528,7 @@
                     aiHook.aiLearning.wordWeights[word] = newWeight;
                 });
 
+                // 配信元重みのマージ
                 Object.keys(importData.aiLearning.sourceWeights || {}).forEach(source => {
                     const weight = importData.aiLearning.sourceWeights[source];
                     const currentWeight = aiHook.aiLearning.sourceWeights[source] || 0;
@@ -464,6 +536,7 @@
                     aiHook.aiLearning.sourceWeights[source] = newWeight;
                 });
 
+                // ワードフィルターのマージ
                 (importData.wordFilters.interestWords || []).forEach(word => {
                     wordHook.addInterestWord(word);
                 });
@@ -491,10 +564,6 @@
         setState({ viewMode: mode });
     };
 
-    const handleSourceChange = (sourceId) => {
-        setState({ selectedSource: sourceId });
-    };
-
     const handleRefresh = async () => {
         setState({ isLoading: true });
         
@@ -507,6 +576,7 @@
                 lastUpdate: new Date()
             });
             
+            // 記事更新後の変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -519,10 +589,11 @@
     };
 
     // ===========================================
-    // 記事操作（省略）
+    // 記事操作（負荷軽減版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
+        // タイトルクリック（read）以外の場合のみイベントを阻止
         if (actionType !== 'read') {
             event.preventDefault();
             event.stopPropagation();
@@ -539,8 +610,10 @@
                 event.stopPropagation();
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
                 
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
                 
+                // DOM直接更新
                 const articleCard = document.querySelector(`[data-article-id="${articleId}"]`).closest('.article-card');
                 const readButton = event.target;
                 
@@ -549,8 +622,10 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
+                    console.log(`既読状態変更: ${articleId} -> ${newReadStatus}, 同期マーク設定完了`);
                 }
                 break;
 
@@ -560,14 +635,18 @@
                 
                 const newReadLater = !article.readLater;
                 
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
                 
+                // DOM直接更新
                 const readLaterButton = event.target;
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
+                    console.log(`後で読む状態変更: ${articleId} -> ${newReadLater}, 同期マーク設定完了`);
                 }
                 break;
 
@@ -576,12 +655,14 @@
                 event.stopPropagation();
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
+                    // 評価キャンセル機能
                     if (article.userRating === rating) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                         
                         articlesHook.updateArticle(articleId, { userRating: 0 }, { skipRender: true });
                         
+                        // DOM直接更新
                         const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                         if (starRating) {
                             const stars = starRating.querySelectorAll('.star');
@@ -590,20 +671,24 @@
 
                         if (window.GistSyncManager?.isEnabled) {
                             window.GistSyncManager.markAsChanged();
+                            console.log(`評価キャンセル: ${articleId}, 同期マーク設定完了`);
                         }
                         return;
                     }
 
+                    // 既存評価取り消し
                     if (article.userRating > 0) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                     }
 
+                    // 新しい評価で更新
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
                     articlesHook.updateArticle(articleId, { userRating: rating }, { skipRender: true });
                     
+                    // DOM直接更新
                     const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                     if (starRating) {
                         const stars = starRating.querySelectorAll('.star');
@@ -618,16 +703,19 @@
 
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
+                        console.log(`評価変更: ${articleId} -> ${rating}, 同期マーク設定完了`);
                     }
                 }
                 break;
                 
             case 'read':
                 if (article.readStatus !== 'read') {
+                    // 既読ボタンと同様に即座に表示効果を適用
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                     
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
+                        console.log(`記事閲覧: ${articleId}, 同期マーク設定完了`);
                     }
                 }
                 break;
@@ -647,7 +735,7 @@
     };
 
     // ===========================================
-    // ワード管理
+    // ワード管理（同期対応）
     // ===========================================
 
     const handleAddWord = (type) => {
@@ -662,6 +750,7 @@
         if (success) {
             window.render();
             
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -681,6 +770,7 @@
         if (success) {
             window.render();
             
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -688,52 +778,10 @@
     };
 
     // ===========================================
-    // レンダリング（ドロップダウン版）
+    // レンダリング（フォルダ・フィード対応版）
     // ===========================================
 
-    const renderFolderDropdown = () => {
-        if (!window.state.showFolderDropdown) return '';
-        
-        const folders = getAvailableFolders();
-        
-        const folderOptions = [
-            `<div class="filter-checkbox-item">
-                <label>
-                    <input type="checkbox" 
-                           ${window.state.selectedFolders.has('all') ? 'checked' : ''}
-                           onchange="handleFolderToggle('all')">
-                    すべてのフォルダ
-                </label>
-            </div>`,
-            '<div class="filter-divider"></div>',
-            ...folders.map(folder => {
-                const articleCount = window.state.articles.filter(article => {
-                    const folderName = article.folderName || article.category || '未分類';
-                    return folderName === folder;
-                }).length;
-                return `<div class="filter-checkbox-item">
-                    <label>
-                        <input type="checkbox" 
-                               ${window.state.selectedFolders.has(folder) ? 'checked' : ''}
-                               onchange="handleFolderToggle('${folder}')">
-                        ${folder} (${articleCount})
-                    </label>
-                </div>`;
-            })
-        ].join('');
-        
-        return folderOptions;
-    };
-
     const renderNavigation = () => {
-        const sources = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
-        const sourceOptions = [
-            '<option value="all">全提供元</option>',
-            ...sources.map(source => 
-                `<option value="${source}" ${window.state.selectedSource === source ? 'selected' : ''}>${source}</option>`
-            )
-        ].join('');
-
         return `
             <nav class="nav">
                 <div class="nav-top-row">
@@ -753,27 +801,6 @@
                 
                 <div class="nav-filters-mobile">
                     <div class="filter-row">
-                        <div class="filter-dropdown-container">
-                            <label>フォルダ:</label>
-                            <button class="filter-dropdown-btn ${window.state.showFolderDropdown ? 'open' : ''}" 
-                                    onclick="toggleDropdown('folder')">
-                                <span>${getFolderSelectionText()}</span>
-                                <span class="dropdown-arrow">▼</span>
-                            </button>
-                            <div class="filter-dropdown" style="display: ${window.state.showFolderDropdown ? 'block' : 'none'};">
-                                ${renderFolderDropdown()}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="filter-row">
-                        <label for="sourceFilter">提供元:</label>
-                        <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
-                            ${sourceOptions}
-                        </select>
-                    </div>
-                    
-                    <div class="filter-row">
                         <label for="viewFilter">表示:</label>
                         <select id="viewFilter" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
@@ -781,6 +808,12 @@
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
                         </select>
+                    </div>
+                    
+                    <div class="filter-row">
+                        <button class="action-btn" onclick="handleOpenModal('filters')">
+                            フォルダ・フィード選択 (${getActiveFiltersCount()})
+                        </button>
                     </div>
                 </div>
 
@@ -790,34 +823,7 @@
                 </div>
                 
                 <div class="nav-filters desktop-only">
-                    <div class="filter-dropdown-container">
-                        <label>フォルダ:</label>
-                        <button class="filter-dropdown-btn ${window.state.showFolderDropdown ? 'open' : ''}" 
-                                onclick="toggleDropdown('folder')">
-                            <span>${getFolderSelectionText()}</span>
-                            <span class="dropdown-arrow">▼</span>
-                        </button>
-                        <div class="filter-dropdown" style="display: ${window.state.showFolderDropdown ? 'block' : 'none'};">
-                            ${renderFolderDropdown()}
-                        </div>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label for="sourceFilter2">提供元:</label>
-                        <select id="sourceFilter2" class="filter-select" onchange="handleSourceChange(this.value)">
-                            ${sourceOptions}
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label for="viewFilter2">表示:</label>
-                        <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
-                            <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
-                            <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
-                            <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
-                            <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
-                        </select>
-                    </div>
+                    ${renderDesktopFilters()}
                 </div>
 
                 <div class="nav-actions desktop-only">
@@ -832,21 +838,124 @@
         `;
     };
 
-    // 記事フィルタリング
+    const renderDesktopFilters = () => {
+        const folderStructure = generateFolderStructure();
+        
+        return `
+            <div class="filter-group">
+                <label for="viewFilter2">表示:</label>
+                <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
+                    <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
+                    <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
+                    <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
+                    <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
+                </select>
+            </div>
+            
+            <div class="filter-group desktop-folder-filters">
+                <div class="folder-filter-container">
+                    <div class="filter-controls">
+                        <button class="filter-control-btn" onclick="handleSelectAllFolders()">全フォルダ</button>
+                        <button class="filter-control-btn" onclick="handleSelectAllFeeds()">全フィード</button>
+                        <button class="filter-control-btn" onclick="handleClearAllFilters()">クリア</button>
+                    </div>
+                    
+                    <div class="folder-list">
+                        ${Object.values(folderStructure).map(folder => `
+                            <div class="folder-item">
+                                <label class="folder-checkbox">
+                                    <input type="checkbox" 
+                                           ${window.state.selectedFolders.includes(folder.id) ? 'checked' : ''}
+                                           onchange="handleFolderToggle('${folder.id}')">
+                                    <span class="folder-name">${folder.name} (${folder.feeds.length})</span>
+                                </label>
+                                
+                                <div class="feed-list ${window.state.selectedFolders.includes(folder.id) ? 'expanded' : ''}">
+                                    ${folder.feeds.map(feed => `
+                                        <label class="feed-checkbox">
+                                            <input type="checkbox" 
+                                                   ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''}
+                                                   onchange="handleFeedToggle('${feed}')">
+                                            <span class="feed-name">${feed}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    // フィルターモーダルの追加
+    const renderFiltersModal = () => {
+        const folderStructure = generateFolderStructure();
+        
+        return `
+            <div class="modal-overlay" onclick="handleCloseModal()">
+                <div class="modal filter-modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2>フォルダ・フィード選択</h2>
+                        <button class="modal-close" onclick="handleCloseModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="filter-controls">
+                            <button class="action-btn" onclick="handleSelectAllFolders()">全フォルダ選択</button>
+                            <button class="action-btn" onclick="handleSelectAllFeeds()">全フィード選択</button>
+                            <button class="action-btn danger" onclick="handleClearAllFilters()">全てクリア</button>
+                        </div>
+                        
+                        <div class="current-selection">
+                            <p>選択中: フォルダ ${window.state.selectedFolders.length}個、フィード ${window.state.selectedFeeds.length}個</p>
+                        </div>
+                        
+                        <div class="folder-structure">
+                            ${Object.values(folderStructure).map(folder => `
+                                <div class="folder-section">
+                                    <div class="folder-header">
+                                        <label class="folder-checkbox">
+                                            <input type="checkbox" 
+                                                   ${window.state.selectedFolders.includes(folder.id) ? 'checked' : ''}
+                                                   onchange="handleFolderToggle('${folder.id}')">
+                                            <span class="folder-title">${folder.name}</span>
+                                            <span class="folder-count">(${folder.feeds.length}フィード)</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feed-grid">
+                                        ${folder.feeds.map(feed => `
+                                            <label class="feed-item">
+                                                <input type="checkbox" 
+                                                       ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''}
+                                                       onchange="handleFeedToggle('${feed}')">
+                                                <span class="feed-label">${feed}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    // 記事フィルタリング（フォルダ・フィード対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // フォルダフィルター
-        if (!window.state.selectedFolders.has('all') && window.state.selectedFolders.size > 0) {
+        // フォルダ・フィードフィルター
+        if (window.state.filterMode === 'folder' && window.state.selectedFolders.length > 0) {
             filtered = filtered.filter(article => {
-                const folderName = article.folderName || article.category || '未分類';
-                return window.state.selectedFolders.has(folderName);
+                const articleFolderId = article.folderId || 'uncategorized';
+                return window.state.selectedFolders.includes(articleFolderId);
             });
-        }
-
-        // 提供元フィルター
-        if (window.state.selectedSource !== 'all') {
-            filtered = filtered.filter(article => article.rssSource === window.state.selectedSource);
+        } else if (window.state.filterMode === 'feed' && window.state.selectedFeeds.length > 0) {
+            filtered = filtered.filter(article => {
+                return window.state.selectedFeeds.includes(article.rssSource);
+            });
         }
 
         // 表示モードフィルター
@@ -866,11 +975,13 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
+        // 手動同期中のみソートを抑制（自動同期は関係なし）
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
+            console.log('手動同期中のためソートを抑制します');
             return filtered;
         }
 
-        // AIスコア計算とソート
+        // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
         const articlesWithScores = filtered.map(article => ({
             ...article,
@@ -891,8 +1002,6 @@
             `<span class="keyword">${keyword}</span>`
         ).join('');
 
-        const folderName = article.folderName || article.category || '未分類';
-
         return `
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
@@ -907,7 +1016,6 @@
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
                         <span class="source">${article.rssSource}</span>
-                        <span class="category">${folderName}</span>
                         <span class="ai-score">AI: ${article.aiScore || 0}</span>
                         ${article.userRating > 0 ? `<span class="rating-badge">★${article.userRating}</span>` : ''}
                     </div>
@@ -952,7 +1060,6 @@
         `;
     };
 
-    // 設定モーダル（省略版）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
@@ -992,6 +1099,10 @@
                                     ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
                                         `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
                                         ''}
+                                </p>
+                                
+                                <p class="text-muted mb-3">
+                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが定期的（1分間隔）に自動で同期されます。
                                 </p>
                                 
                                 ${window.GistSyncManager?.isEnabled ? `
@@ -1067,6 +1178,16 @@
                                     ${ngWords || '<div class="text-muted">設定されていません</div>'}
                                 </div>
                             </div>
+
+                            <div class="word-help">
+                                <h4>ヘルプ</h4>
+                                <ul>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
+                                    <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
+                                    <li>大文字・小文字は区別されません</li>
+                                    <li>部分一致で動作します</li>
+                                </ul>
+                            </div>
                         </div>
 
                         <div class="modal-section-group">
@@ -1075,6 +1196,7 @@
                                 <div class="word-section-header">
                                     <h3>学習データ管理</h3>
                                 </div>
+                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
                                 
                                 <div class="modal-actions">
                                     <button class="action-btn success" onclick="handleExportLearningData()">
@@ -1110,7 +1232,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        ドロップダウン形式チェックボックス対応版
+                                        フォルダ・フィード対応版
                                     </p>
                                 </div>
                             </div>
@@ -1125,6 +1247,8 @@
         switch (window.state.showModal) {
             case 'settings':
                 return renderSettingsModal();
+            case 'filters':
+                return renderFiltersModal();
             default:
                 return '';
         }
@@ -1162,12 +1286,16 @@
     };
 
     // ===========================================
-    // 初期化
+    // グローバル関数の追加
     // ===========================================
 
     // グローバル関数をウィンドウに追加
     window.handleFilterChange = handleFilterChange;
-    window.handleSourceChange = handleSourceChange;
+    window.handleFolderToggle = handleFolderToggle;
+    window.handleFeedToggle = handleFeedToggle;
+    window.handleSelectAllFolders = handleSelectAllFolders;
+    window.handleSelectAllFeeds = handleSelectAllFeeds;
+    window.handleClearAllFilters = handleClearAllFilters;
     window.handleRefresh = handleRefresh;
     window.handleArticleClick = handleArticleClick;
     window.handleCloseModal = handleCloseModal;
@@ -1175,11 +1303,10 @@
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
     window.initializeGistSync = initializeGistSync;
-    window.toggleDropdown = toggleDropdown; // 追加
-    window.handleFolderToggle = handleFolderToggle; // 追加
 
-    // ドキュメントクリックイベント設定
-    document.addEventListener('click', handleDocumentClick);
+    // ===========================================
+    // 初期化
+    // ===========================================
 
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
