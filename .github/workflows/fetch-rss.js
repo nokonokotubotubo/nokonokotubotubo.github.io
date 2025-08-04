@@ -36,7 +36,7 @@ const Mecab = require('mecab-async');
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// 🔧 修正: より安全なID生成関数を追加
+// より安全なID生成関数を追加
 function generateUniqueId() {
     return `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.random().toString(36).substr(2, 5)}`;
 }
@@ -92,7 +92,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【重要】フォルダ構造対応版 OPML読み込み関数
+// 【修正】OPML読み込み処理（フォルダ対応版）
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -114,18 +114,17 @@ async function loadOPML() {
     
     const feeds = [];
     const folders = [];
-    const outlines = result.opml.body[0].outline;
+    let folderOrder = 1;
     
+    const outlines = result.opml.body[0].outline;
     outlines.forEach(outline => {
-      // フォルダがある場合（outline要素を持つ）
-      if (outline.outline && Array.isArray(outline.outline)) {
-        const folderName = outline.$.text || outline.$.title;
-        const folderId = `folder_${folderName.toLowerCase().replace(/\s+/g, '_')}`;
-        
+      if (outline.outline) {
+        // フォルダの場合
+        const folderId = `folder_${outline.$.text.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`;
         folders.push({
           id: folderId,
-          name: folderName,
-          order: folders.length
+          name: outline.$.text,
+          order: folderOrder++
         });
         
         outline.outline.forEach(feed => {
@@ -134,13 +133,13 @@ async function loadOPML() {
             url: feed.$.xmlUrl,
             title: feed.$.title,
             folderId: folderId,
-            folderName: folderName,
+            folderName: outline.$.text,
             lastUpdated: new Date().toISOString(),
             isActive: true
           });
         });
       } else {
-        // フォルダに属さないフィード（未分類）
+        // 単体フィードの場合
         feeds.push({
           id: generateUniqueId(),
           url: outline.$.xmlUrl,
@@ -153,13 +152,12 @@ async function loadOPML() {
       }
     });
     
-    // 未分類フォルダを末尾に追加
-    const hasUncategorized = feeds.some(feed => feed.folderId === 'folder_uncategorized');
-    if (hasUncategorized) {
+    // デフォルトフォルダを追加
+    if (!folders.find(f => f.id === 'folder_uncategorized')) {
       folders.push({
         id: 'folder_uncategorized',
         name: '未分類',
-        order: 999 // 末尾に表示
+        order: 999
       });
     }
     
@@ -172,9 +170,9 @@ async function loadOPML() {
   }
 }
 
-async function fetchAndParseRSS(url, title) {
+async function fetchAndParseRSS(url, title, folderName = '未分類') {
   try {
-    console.log(`🔍 [${title}] RSS取得開始: ${url}`);
+    console.log(`🔍 [${title}] RSS取得開始: ${url} (${folderName})`);
     const response = await fetch(url, {
       timeout: 15000,
       headers: {
@@ -214,7 +212,7 @@ async function fetchAndParseRSS(url, title) {
     console.log(`🔄 [${title}] アイテム解析開始: ${items.length}件を処理`);
     let validArticles = 0, invalidArticles = 0;
     for (const item of items.slice(0, 20)) {
-      const article = await parseRSSItem(item, url, title);
+      const article = await parseRSSItem(item, url, title, folderName);
       if (article) {
         articles.push(article); validArticles++;
         console.log(`✅ [${title}] 記事解析成功: "${article.title.substring(0, 50)}..."`);
@@ -234,29 +232,35 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// URL抽出関数（既存）
+// 配列内$.href構造に完全対応
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
 
 function extractUrlFromItem(item) {
+  // link: string
   if (typeof item.link === 'string' && looksLikeUrl(item.link)) return item.link;
   
+  // link: object (非配列)
   if (typeof item.link === 'object' && item.link && !Array.isArray(item.link)) {
     if (item.link.$ && item.link.$.href && looksLikeUrl(item.link.$.href)) return item.link.$.href;
     if (item.link.href && looksLikeUrl(item.link.href)) return item.link.href;
     if (item.link._ && looksLikeUrl(item.link._)) return item.link._;
   }
   
+  // link: array
   if (Array.isArray(item.link)) {
+    // 優先順位1: rel="alternate" (標準Atom)
     for (const l of item.link) {
       if (l && l.$ && l.$.rel === 'alternate' && looksLikeUrl(l.$.href)) return l.$.href;
     }
     
+    // 優先順位2: l.$.href (rel属性なしまたは他の値、ただしenclosureは除外)
     for (const l of item.link) {
       if (l && l.$ && l.$.href && l.$.rel !== 'enclosure' && looksLikeUrl(l.$.href)) return l.$.href;
     }
     
+    // 優先順位3: その他のパターン
     for (const l of item.link) {
       if (l && l.href && looksLikeUrl(l.href)) return l.href;
       if (l && l._ && looksLikeUrl(l._)) return l._;
@@ -264,6 +268,7 @@ function extractUrlFromItem(item) {
     }
   }
   
+  // その他のフォールバック
   if (item['rdf:about'] && looksLikeUrl(item['rdf:about'])) return item['rdf:about'];
   if (item.guid) {
     if (typeof item.guid === 'object') {
@@ -276,7 +281,7 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【重要】フォルダ名対応版記事解析関数
+// 【修正】parseRSSItem関数（フォルダ名追加）
 async function parseRSSItem(item, sourceUrl, feedTitle, folderName = '未分類') {
   try {
     console.log(`🔍 [${feedTitle}] 記事解析開始`);
@@ -294,11 +299,13 @@ async function parseRSSItem(item, sourceUrl, feedTitle, folderName = '未分類'
     const publishDate = parseDate(pubDate);
     const articleDate = new Date(publishDate);
 
+    // 2週間を超えて古い記事は除外
     if (articleDate < twoWeeksAgo) {
       console.log(`❌ [${feedTitle}] 記事除外（2週間超過）: "${title.substring(0, 30)}..."`);
       return null;
     }
 
+    // 未来の日付の記事は除外
     if (articleDate > now) {
       console.log(`❌ [${feedTitle}] 記事除外（未来日付）: "${title.substring(0, 30)}..."`);
       return null;
@@ -310,6 +317,16 @@ async function parseRSSItem(item, sourceUrl, feedTitle, folderName = '未分類'
 
     if (!title || !link) {
       console.log(`❌ [${feedTitle}] 記事除外: タイトル="${title || 'なし'}", リンク="${link || 'なし'}"`);
+      if (!title) {
+        console.log(`   タイトル候補:`, JSON.stringify(item.title));
+      }
+      if (!link) {
+        console.log(`   リンク候補:`, JSON.stringify(item.link));
+        console.log(`   url:`, JSON.stringify(item.url));
+        console.log(`   guid:`, JSON.stringify(item.guid));
+        console.log(`   id:`, JSON.stringify(item.id));
+        console.log(`   rdf:about:`, JSON.stringify(item["rdf:about"]));
+      }
       return null;
     }
     console.log(`✅ [${feedTitle}] 記事解析成功: "${title}"`);
@@ -322,7 +339,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle, folderName = '未分類'
       content: cleanDescription,
       publishDate: parseDate(pubDate),
       rssSource: feedTitle,
-      folderName: folderName, // 【重要】フォルダ名を追加
+      folderName: folderName,  // 【NEW】フォルダ名を追加
       category: category.trim(),
       readStatus: 'unread',
       readLater: false,
@@ -402,56 +419,58 @@ async function extractKeywordsWithMecab(text) {
   }
 }
 
-// 【重要】フォルダ対応版メイン関数
+// 【修正】main関数（フォルダ対応版）
 async function main() {
   try {
     const startTime = Date.now();
     console.log('🚀 RSS記事取得開始 (フォルダ対応版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
-
-    // MeCabセットアップ
+    
+    // MeCabセットアップの詳細ログ
     console.log('🔧 MeCab初期化開始...');
     const mecabReady = await setupMecab();
     if (!mecabReady) {
       console.error('❌ MeCabの設定に失敗しました');
+      console.error('⭕ システム確認: MeCabがインストールされているか確認してください');
       process.exit(1);
     }
     console.log('✅ MeCab準備完了');
-
-    // フォルダ対応OPML読み込み
+    
+    // OPML読み込みの詳細ログ
     console.log('📋 OPML読み込み開始...');
-    const opmlData = await loadOPML();
-    if (opmlData.feeds.length === 0) {
+    const opmlResult = await loadOPML();
+    const feeds = opmlResult.feeds;
+    const folders = opmlResult.folders;
+    
+    if (feeds.length === 0) {
       console.error('❌ フィードが取得できませんでした');
+      console.error('⭕ システム確認: .github/workflows/rsslist.xmlが存在するか確認してください');
       process.exit(1);
     }
+    console.log(`📊 フィード情報: ${feeds.length}個のRSSフィード、${folders.length}個のフォルダを処理します`);
     
-    console.log(`📊 フィード情報: ${opmlData.feeds.length}個のRSSフィード、${opmlData.folders.length}個のフォルダを処理します`);
-    
+    // RSS取得処理
+    console.log('🌐 RSS取得処理開始...');
     const allArticles = [];
     let processedCount = 0;
     let successCount = 0;
     let errorCount = 0;
     
-    for (const feed of opmlData.feeds) {
+    for (const feed of feeds) {
       if (feed.isActive) {
         processedCount++;
-        console.log(`\n🔄 [${processedCount}/${opmlData.feeds.length}] 処理中: ${feed.title} (${feed.folderName})`);
+        console.log(`\n🔄 [${processedCount}/${feeds.length}] 処理中: ${feed.title} (${feed.folderName})`);
         try {
-          const articles = await fetchAndParseRSS(feed.url, feed.title);
-          // 各記事にフォルダ名を追加
-          const articlesWithFolder = articles.map(article => ({
-            ...article,
-            folderName: feed.folderName
-          }));
-          allArticles.push(...articlesWithFolder);
+          const articles = await fetchAndParseRSS(feed.url, feed.title, feed.folderName);
+          allArticles.push(...articles);
           successCount++;
           console.log(`✅ [${feed.title}] 処理成功: ${articles.length}件の記事を取得`);
         } catch (error) {
           errorCount++;
           console.error(`❌ [${feed.title}] 処理失敗:`, error.message);
         }
+        // 待機時間
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -464,6 +483,7 @@ async function main() {
     console.log(`   失敗: ${errorCount}件`);
     console.log(`   取得記事数: ${allArticles.length}件`);
     
+    // データ処理の続行...
     if (allArticles.length === 0) {
       console.warn('⚠️  記事が取得できませんでしたが、処理を続行します');
     }
@@ -486,18 +506,19 @@ async function main() {
     const limitedArticles = uniqueArticles.slice(0, 1000);
     console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1000件）`);
     
-    // ファイル出力（フォルダ情報付き）
+    // ファイル出力用ディレクトリ作成
     if (!fs.existsSync('./mss')) {
       fs.mkdirSync('./mss');
       console.log('📁 mssディレクトリを作成しました');
     }
     
+    // 【NEW】フォルダ情報を含む出力
     const output = {
       articles: limitedArticles,
-      folders: opmlData.folders.sort((a, b) => a.order - b.order), // 【重要】フォルダ情報を追加
+      folders: folders,  // 【NEW】フォルダ情報を追加
       lastUpdated: new Date().toISOString(),
       totalCount: limitedArticles.length,
-      processedFeeds: opmlData.feeds.length,
+      processedFeeds: feeds.length,
       successfulFeeds: successCount,
       debugInfo: {
         processingTime: processingTime,
@@ -509,13 +530,26 @@ async function main() {
     fs.writeFileSync('./mss/articles.json', JSON.stringify(output, null, 2));
     
     const totalTime = (Date.now() - startTime) / 1000;
-    console.log('\n🎉 RSS記事取得完了!');
+    console.log('\n🎉 RSS記事取得完了 (フォルダ対応版)!');
     console.log(`📊 最終結果:`);
     console.log(`   保存記事数: ${limitedArticles.length}件`);
-    console.log(`   フォルダ数: ${opmlData.folders.length}個`);
+    console.log(`   フォルダ数: ${folders.length}個`);
     console.log(`   最終更新: ${output.lastUpdated}`);
     console.log(`   総実行時間: ${totalTime.toFixed(1)}秒`);
+    console.log(`   処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
     console.log(`💾 ファイル: ./mss/articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
+    
+    // デバッグサマリー
+    console.log(`\n🔍 デバッグサマリー:`);
+    console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
+    console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
+    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
+    console.log(`   フォルダ別分布:`);
+    folders.forEach(folder => {
+      const folderArticles = limitedArticles.filter(article => article.folderName === folder.name);
+      console.log(`     ${folder.name}: ${folderArticles.length}件`);
+    });
+    
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
