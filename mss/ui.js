@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（フォルダ対応版）
+// Minews PWA - UI・表示レイヤー（フォルダフィルタリング対応版）
 (function() {
     'use strict';
 
@@ -15,7 +15,7 @@
                 return {
                     viewMode: parsed.viewMode || 'all',
                     selectedSource: parsed.selectedSource || 'all',
-                    selectedFolder: parsed.selectedFolder || 'all' // 【NEW】フォルダフィルター
+                    selectedFolder: parsed.selectedFolder || 'all' // 🔧 追加
                 };
             }
         } catch (error) {
@@ -24,7 +24,7 @@
         return {
             viewMode: 'all',
             selectedSource: 'all',
-            selectedFolder: 'all' // 【NEW】
+            selectedFolder: 'all' // 🔧 追加
         };
     };
 
@@ -47,17 +47,16 @@
     window.state = {
         viewMode: initialFilterState.viewMode,
         selectedSource: initialFilterState.selectedSource,
-        selectedFolder: initialFilterState.selectedFolder, // 【NEW】
+        selectedFolder: initialFilterState.selectedFolder, // 🔧 追加
         showModal: null,
         articles: [],
-        folders: [], // 【NEW】フォルダ情報
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,
         isBackgroundSyncing: false
     };
 
-    // setState統合版（フォルダ対応）
+    // setState統合版（フォルダ自動保存対応）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
         
@@ -73,7 +72,6 @@
         window.render();
     };
 
-    // 【修正】データ初期化（フォルダ対応版）
     const initializeData = () => {
         const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles);
         const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
@@ -86,34 +84,6 @@
         });
 
         window.state.articles = articlesData;
-        
-        // 【NEW】フォルダ情報の読み込み（articles.jsonから）
-        loadFoldersFromArticlesData();
-    };
-
-    // 【NEW】フォルダ情報読み込み関数
-    const loadFoldersFromArticlesData = async () => {
-        try {
-            const response = await fetch('./articles.json');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.folders && Array.isArray(data.folders)) {
-                    window.state.folders = data.folders;
-                    console.log('フォルダ情報を読み込みました:', data.folders.length, '個');
-                } else {
-                    // フォルダ情報がない場合はデフォルトフォルダを作成
-                    window.state.folders = [
-                        { id: 'folder_uncategorized', name: '未分類', order: 999 }
-                    ];
-                    console.log('デフォルトフォルダを設定しました');
-                }
-            }
-        } catch (error) {
-            console.warn('フォルダ情報の読み込みに失敗:', error);
-            window.state.folders = [
-                { id: 'folder_uncategorized', name: '未分類', order: 999 }
-            ];
-        }
     };
 
     // Gist同期初期化関数
@@ -188,10 +158,21 @@
         }
     };
 
+    // 🔧 【新規追加】フォルダ情報を取得するユーティリティ関数
+    const getAvailableFolders = () => {
+        const folders = new Set();
+        window.state.articles.forEach(article => {
+            const folderName = article.folderName || '未分類';
+            folders.add(folderName);
+        });
+        return Array.from(folders).sort();
+    };
+
     // ===========================================
-    // GitHub同期管理関数
+    // GitHub同期管理関数（完全サイレント同期対応版）
     // ===========================================
 
+    // GitHub同期管理関数
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -202,6 +183,7 @@
         }
         
         try {
+            // GistIDの検証と設定
             if (gistId) {
                 if (!/^[a-zA-Z0-9-_]+$/.test(gistId) || gistId.length < 10) {
                     alert('Gist IDの形式が正しくありません');
@@ -224,6 +206,7 @@
         }
     };
 
+    // 手動同期関数（完全サイレント同期対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -243,12 +226,14 @@
         }
     };
 
+    // クラウド復元処理（完全サイレント同期対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
             return;
         }
         
+        // 手動復元は非サイレント（ユーザーが意図的に実行）
         window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         
         try {
@@ -258,16 +243,19 @@
                 return;
             }
             
+            // AI学習データの復元
             if (cloudData.aiLearning) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
                 window.DataHooksCache.clear('aiLearning');
             }
             
+            // ワードフィルターの復元
             if (cloudData.wordFilters) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
                 window.DataHooksCache.clear('wordFilters');
             }
             
+            // 記事状態情報の復元
             if (cloudData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
@@ -294,6 +282,7 @@
             }
             
             alert('クラウドからデータを復元しました');
+            // 手動復元は明示的に画面更新
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
@@ -301,6 +290,7 @@
         }
     };
 
+    // 同期診断
     window.handleSyncDiagnostic = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -318,6 +308,7 @@
         }
     };
 
+    // 設定解除機能
     window.handleClearGitHubSettings = () => {
         if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) {
             return;
@@ -345,6 +336,7 @@
         }
     };
 
+    // Gist IDコピー機能
     window.handleCopyCurrentGistId = async () => {
         if (!window.GistSyncManager?.gistId) {
             alert('コピーするGist IDが設定されていません');
@@ -369,6 +361,7 @@
     // データ管理機能
     // ===========================================
 
+    // 学習データエクスポート
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -390,6 +383,7 @@
         alert('学習データをエクスポートしました');
     };
 
+    // 学習データインポート
     window.handleImportLearningData = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -406,6 +400,7 @@
                 const aiHook = window.DataHooks.useAILearning();
                 const wordHook = window.DataHooks.useWordFilters();
 
+                // AI学習データのマージ
                 Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
                     const weight = importData.aiLearning.wordWeights[word];
                     const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
@@ -413,6 +408,7 @@
                     aiHook.aiLearning.wordWeights[word] = newWeight;
                 });
 
+                // 配信元重みのマージ
                 Object.keys(importData.aiLearning.sourceWeights || {}).forEach(source => {
                     const weight = importData.aiLearning.sourceWeights[source];
                     const currentWeight = aiHook.aiLearning.sourceWeights[source] || 0;
@@ -420,6 +416,7 @@
                     aiHook.aiLearning.sourceWeights[source] = newWeight;
                 });
 
+                // ワードフィルターのマージ
                 (importData.wordFilters.interestWords || []).forEach(word => {
                     wordHook.addInterestWord(word);
                 });
@@ -444,35 +441,31 @@
     // ===========================================
 
     const handleFilterChange = (mode) => {
-        window.setState({ viewMode: mode });
+        setState({ viewMode: mode });
     };
 
     const handleSourceChange = (sourceId) => {
-        window.setState({ selectedSource: sourceId });
+        setState({ selectedSource: sourceId });
     };
 
-    // 【NEW】フォルダ変更ハンドラ
+    // 🔧 【新規追加】フォルダ変更ハンドラー
     const handleFolderChange = (folderId) => {
-        window.setState({ selectedFolder: folderId });
+        setState({ selectedFolder: folderId });
     };
 
-    // 【修正】記事更新（フォルダ情報も含む）
     const handleRefresh = async () => {
-        window.setState({ isLoading: true });
+        setState({ isLoading: true });
         
         try {
             const rssHook = window.DataHooks.useRSSManager();
             const result = await rssHook.fetchAllFeeds();
-            
-            // フォルダ情報も更新
-            await loadFoldersFromArticlesData();
-            
             alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
             
-            window.setState({ 
+            setState({ 
                 lastUpdate: new Date()
             });
             
+            // 記事更新後の変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -480,15 +473,16 @@
         } catch (error) {
             alert('記事の更新に失敗しました: ' + error.message);
         } finally {
-            window.setState({ isLoading: false });
+            setState({ isLoading: false });
         }
     };
 
     // ===========================================
-    // 記事操作（変更なし）
+    // 【確実な同期マーク設定】記事操作（負荷軽減版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
+        // タイトルクリック（read）以外の場合のみイベントを阻止
         if (actionType !== 'read') {
             event.preventDefault();
             event.stopPropagation();
@@ -505,8 +499,10 @@
                 event.stopPropagation();
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
                 
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
                 
+                // DOM直接更新
                 const articleCard = document.querySelector(`[data-article-id="${articleId}"]`).closest('.article-card');
                 const readButton = event.target;
                 
@@ -515,6 +511,7 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                     console.log(`既読状態変更: ${articleId} -> ${newReadStatus}, 同期マーク設定完了`);
@@ -527,12 +524,15 @@
                 
                 const newReadLater = !article.readLater;
                 
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
                 
+                // DOM直接更新
                 const readLaterButton = event.target;
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                     console.log(`後で読む状態変更: ${articleId} -> ${newReadLater}, 同期マーク設定完了`);
@@ -544,12 +544,14 @@
                 event.stopPropagation();
                 const rating = parseInt(event.target.getAttribute('data-rating'));
                 if (rating && rating >= 1 && rating <= 5) {
+                    // 評価キャンセル機能
                     if (article.userRating === rating) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                         
                         articlesHook.updateArticle(articleId, { userRating: 0 }, { skipRender: true });
                         
+                        // DOM直接更新
                         const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                         if (starRating) {
                             const stars = starRating.querySelectorAll('.star');
@@ -563,16 +565,19 @@
                         return;
                     }
 
+                    // 既存評価取り消し
                     if (article.userRating > 0) {
                         const aiHook = window.DataHooks.useAILearning();
                         aiHook.updateLearningData(article, article.userRating, true);
                     }
 
+                    // 新しい評価で更新
                     const aiHook = window.DataHooks.useAILearning();
                     aiHook.updateLearningData(article, rating, false);
 
                     articlesHook.updateArticle(articleId, { userRating: rating }, { skipRender: true });
                     
+                    // DOM直接更新
                     const starRating = document.querySelector(`.star-rating[data-article-id="${articleId}"]`);
                     if (starRating) {
                         const stars = starRating.querySelectorAll('.star');
@@ -594,6 +599,7 @@
                 
             case 'read':
                 if (article.readStatus !== 'read') {
+                    // 既読ボタンと同様に即座に表示効果を適用
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
                     
                     if (window.GistSyncManager?.isEnabled) {
@@ -610,15 +616,15 @@
     // ===========================================
 
     const handleCloseModal = () => {
-        window.setState({ showModal: null });
+        setState({ showModal: null });
     };
 
     const handleOpenModal = (modalType) => {
-        window.setState({ showModal: modalType });
+        setState({ showModal: modalType });
     };
 
     // ===========================================
-    // ワード管理
+    // ワード管理（同期対応）
     // ===========================================
 
     const handleAddWord = (type) => {
@@ -633,6 +639,7 @@
         if (success) {
             window.render();
             
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -652,6 +659,7 @@
         if (success) {
             window.render();
             
+            // 変更マーク設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -662,7 +670,6 @@
     // レンダリング（フォルダ対応版）
     // ===========================================
 
-    // 【修正】ナビゲーション（フォルダフィルター追加）
     const renderNavigation = () => {
         const sources = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
         const sourceOptions = [
@@ -672,14 +679,13 @@
             )
         ].join('');
 
-        // 【NEW】フォルダオプション作成
+        // 🔧 【新規追加】フォルダオプション生成
+        const folders = getAvailableFolders();
         const folderOptions = [
             '<option value="all">全フォルダ</option>',
-            ...window.state.folders
-                .sort((a, b) => a.order - b.order)
-                .map(folder => 
-                    `<option value="${folder.id}" ${window.state.selectedFolder === folder.id ? 'selected' : ''}>${folder.name}</option>`
-                )
+            ...folders.map(folder => 
+                `<option value="${folder}" ${window.state.selectedFolder === folder ? 'selected' : ''}>${folder}</option>`
+            )
         ].join('');
 
         return `
@@ -768,16 +774,16 @@
         `;
     };
 
-    // 【修正】記事フィルタリング（フォルダ対応版）
+    // 🔧 【修正】記事フィルタリング（フォルダ対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // 【NEW】フォルダフィルター
+        // 🔧 【新規追加】フォルダフィルター
         if (window.state.selectedFolder !== 'all') {
-            const selectedFolderName = window.state.folders.find(f => f.id === window.state.selectedFolder)?.name;
-            if (selectedFolderName) {
-                filtered = filtered.filter(article => article.folderName === selectedFolderName);
-            }
+            filtered = filtered.filter(article => {
+                const folderName = article.folderName || '未分類';
+                return folderName === window.state.selectedFolder;
+            });
         }
 
         // 提供元フィルター
@@ -802,7 +808,7 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // 手動同期中のみソートを抑制
+        // 手動同期中のみソートを抑制（自動同期は関係なし）
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
             console.log('手動同期中のためソートを抑制します');
             return filtered;
@@ -824,11 +830,14 @@
         });
     };
 
-    // 【修正】記事カード（フォルダ名表示追加）
+    // 🔧 【修正】記事カード表示（フォルダ名表示対応）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => 
             `<span class="keyword">${keyword}</span>`
         ).join('');
+
+        // フォルダ名の表示準備
+        const folderName = article.folderName || '未分類';
 
         return `
             <div class="article-card" data-read-status="${article.readStatus}">
@@ -844,7 +853,7 @@
                     <div class="article-meta">
                         <span class="date">${window.formatDate(article.publishDate)}</span>
                         <span class="source">${article.rssSource}</span>
-                        ${article.folderName ? `<span class="category">${article.folderName}</span>` : ''}
+                        <span class="category">${folderName}</span>
                         <span class="ai-score">AI: ${article.aiScore || 0}</span>
                         ${article.userRating > 0 ? `<span class="rating-badge">★${article.userRating}</span>` : ''}
                     </div>
@@ -889,7 +898,6 @@
         `;
     };
 
-    // 設定モーダル（変更なし）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
@@ -1062,7 +1070,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        フォルダ対応版
+                                        フォルダフィルタリング対応版
                                     </p>
                                 </div>
                             </div>
@@ -1117,10 +1125,10 @@
     // 初期化
     // ===========================================
 
-    // グローバル関数をウィンドウに追加
+    // グローバル関数をウィンドウに追加（フォルダ対応版）
     window.handleFilterChange = handleFilterChange;
     window.handleSourceChange = handleSourceChange;
-    window.handleFolderChange = handleFolderChange; // 【NEW】
+    window.handleFolderChange = handleFolderChange; // 🔧 追加
     window.handleRefresh = handleRefresh;
     window.handleArticleClick = handleArticleClick;
     window.handleCloseModal = handleCloseModal;
