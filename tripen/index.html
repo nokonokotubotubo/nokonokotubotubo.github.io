@@ -941,100 +941,55 @@ const TrippenGistSync = {
         }
     },
 
-    // 【改良】自動書き込み（変更フラグ管理版）
-    async autoWriteToCloud() {
-        if (!this.isEnabled || !this.token || this.isSyncing) {
-            console.log('自動書き込みスキップ:', {
-                isEnabled: this.isEnabled,
-                hasToken: !!this.token,
-                isSyncing: this.isSyncing
-            });
-            return false;
-        }
+    // 【問題回避版】自動書き込み - ハッシュ比較無効化
+async autoWriteToCloud() {
+    if (!this.isEnabled || !this.token || this.isSyncing) {
+        return false;
+    }
 
-        // 【新機能】変更フラグチェック
-        if (!this.hasChanged) {
-            console.log('変更フラグなし - 書き込みスキップ');
+    if (!this.hasChanged) {
+        console.log('変更フラグなし - 書き込みスキップ');
+        return false;
+    }
+    
+    this.isSyncing = true;
+    this.hasError = false;
+    
+    try {
+        console.log('変更フラグあり - 書き込み実行（ハッシュチェック無効）');
+        
+        // 競合チェック
+        const hasNewerData = await this.checkForNewerCloudData();
+        if (hasNewerData) {
+            console.log('競合検出');
+            if (window.app && window.app.handleSyncConflict) {
+                window.app.handleSyncConflict();
+            }
             return false;
         }
         
-        this.isSyncing = true;
-        this.hasError = false;
+        // データ収集と書き込み
+        const localData = this.collectSyncData();
+        const uploadResult = await this.syncToCloud(localData);
         
-        try {
-            // 1. 現在のデータでハッシュ計算
-            const localData = this.collectSyncData();
-            const currentHash = this.calculateHash(localData);
-            
-            // 2. 前回のハッシュと比較
-            if (this.lastDataHash === currentHash) {
-                console.log('データハッシュ一致 - 実質的な変更なし');
-                this.resetChanged();
-                return false;
-            }
-
-            // 3. 競合チェック
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                console.log('競合検出 - Vue.jsアプリに通知');
-                if (window.app && window.app.handleSyncConflict) {
-                    window.app.handleSyncConflict();
-                }
-                return false;
-            }
-            
-            // 4. クラウドに書き込み
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = currentHash; // 【新機能】ハッシュ更新
-                this.saveLastSyncTime();
-                this.resetChanged(); // 【新機能】書き込み成功時にフラグリセット
-                console.log('自動書き込み完了:', new Date().toLocaleString());
-                return true;
-            }
-            
-            return false;
-        } catch (error) {
-            console.error('自動書き込みエラー:', error);
-            this.hasError = true;
-            return false;
-        } finally {
-            this.isSyncing = false;
-        }
-    },
-
-    async manualWriteToCloud() {
-        if (!this.isEnabled || !this.token) {
-            throw new Error('GitHub同期が設定されていません');
+        if (uploadResult) {
+            this.lastSyncTime = this.getUTCTimestamp();
+            this.lastDataHash = this.calculateHash(localData);
+            this.saveLastSyncTime();
+            this.resetChanged();
+            console.log('書き込み完了:', new Date().toLocaleString());
+            return true;
         }
         
-        this.isSyncing = true;
-        this.hasError = false;
-        
-        try {
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                const currentHash = this.calculateHash(localData); // 【新機能】ハッシュ計算
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = currentHash; // 【新機能】ハッシュ更新
-                this.saveLastSyncTime();
-                this.resetChanged(); // 【新機能】手動書き込み成功時にフラグリセット
-                console.log('手動書き込み完了');
-                return true;
-            }
-            
-            throw new Error('書き込みに失敗しました');
-        } catch (error) {
-            this.hasError = true;
-            throw error;
-        } finally {
-            this.isSyncing = false;
-        }
-    },
+        return false;
+    } catch (error) {
+        console.error('書き込みエラー:', error);
+        this.hasError = true;
+        return false;
+    } finally {
+        this.isSyncing = false;
+    }
+},
 
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) {
