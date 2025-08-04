@@ -1039,3 +1039,170 @@ input:focus {
         text-decoration: underline;
     }
 }
+
+/* チェックボックス式UI用スタイル */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-button {
+    background: #374151;
+    color: #e2e8f0;
+    border: 1px solid #4b5563;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    min-width: 200px;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-button:hover {
+    background: #4b5563;
+}
+
+.dropdown-arrow {
+    margin-left: 0.5rem;
+    color: #9ca3af;
+}
+
+.dropdown-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #1f2937;
+    border: 1px solid #4b5563;
+    border-radius: 6px;
+    min-width: 300px;
+    max-width: 400px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    margin-top: 2px;
+}
+
+.folder-checkbox-container {
+    padding: 0.5rem;
+}
+
+.folder-checkbox-item {
+    margin-bottom: 0.5rem;
+}
+
+.folder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-label:hover {
+    background: #374151;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 0.5rem;
+    accent-color: #3b82f6;
+}
+
+.folder-label {
+    font-weight: 600;
+    flex: 1;
+}
+
+.feed-label {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.folder-toggle {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    min-width: 20px;
+}
+
+.folder-toggle:hover {
+    background: #4b5563;
+    color: #e2e8f0;
+}
+
+.feeds-list {
+    margin-left: 1rem;
+    border-left: 1px solid #4b5563;
+    padding-left: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+/* 記事カードにフォルダ表示を追加 */
+.article-meta .folder {
+    color: #8b5cf6;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    margin-left: 0.25rem;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .dropdown-content {
+        min-width: 280px;
+        max-width: 90vw;
+        left: 0;
+        right: auto;
+    }
+    
+    .dropdown-button {
+        min-width: 180px;
+        font-size: 0.9rem;
+    }
+    
+    .checkbox-label {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.9rem;
+    }
+    
+    .feed-label {
+        font-size: 0.8rem;
+        margin-left: 0.8rem;
+    }
+}
+
+/* スクロールバー */
+.dropdown-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-content::-webkit-scrollbar-track {
+    background: #374151;
+}
+
+.dropdown-content::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 3px;
+}
+
+.dropdown-content::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
