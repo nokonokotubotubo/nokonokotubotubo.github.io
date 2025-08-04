@@ -745,7 +745,7 @@
         // 表示モードフィルター
         switch (window.state.viewMode) {
             case 'unread':
-                filtered = filtered.filter(article => article.readStatus === 'unread');
+  　　　　　　　  filtered = filtered.filter(article => article.readStatus === 'unread' && !article.readLater);
                 break;
             case 'read':
                 filtered = filtered.filter(article => article.readStatus === 'read');
