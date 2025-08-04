@@ -965,120 +965,141 @@ width: 100%;
     color: var(--text-color);
 }
 
-/* ────────────── フォルダチェックボックス ────────────── */
-.filter-section {
-    margin-bottom: 1rem;
-}
-
-.filter-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.filter-section-header label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.folder-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.folder-toggle-btn {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.folder-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.folder-count {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.folder-checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    max-height: 120px;
-    overflow-y: auto;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.folder-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    cursor: pointer;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: var(--transition);
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
-
-.folder-checkbox:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.folder-checkbox input[type="checkbox"] {
-    margin: 0;
-    scale: 0.9;
-}
-
-.folder-name {
-    color: var(--text-color);
-    font-size: 0.8rem;
-}
-
-/* デスクトップ版フォルダフィルター */
-.folder-filter-group {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-    min-width: 250px;
+/* フォルダ・フィード選択用のスタイル */
+.desktop-folder-filters {
+    max-width: 400px;
 }
 
 .folder-filter-container {
-    width: 100%;
+    background: #374151;
+    border-radius: 8px;
+    padding: 1rem;
 }
 
-.folder-checkboxes.desktop {
-    max-height: 100px;
-    font-size: 0.75rem;
+.filter-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
 }
 
-/* モバイル調整 */
-@media (max-width: 768px) {
-    .folder-checkboxes {
-        max-height: 80px;
-        gap: 0.3rem;
-    }
-    
-    .folder-checkbox {
-        font-size: 0.75rem;
-        padding: 0.15rem 0.3rem;
-    }
-    
-    .folder-name {
-        font-size: 0.75rem;
-    }
+.filter-control-btn {
+    padding: 0.25rem 0.5rem;
+    background: #4B5563;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.filter-control-btn:hover {
+    background: #6B7280;
+}
+
+.folder-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.folder-item {
+    margin-bottom: 0.5rem;
+}
+
+.folder-checkbox, .feed-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.folder-name {
+    font-weight: 600;
+    color: #E5E7EB;
+}
+
+.feed-list {
+    margin-left: 1rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.feed-list.expanded {
+    max-height: 200px;
+}
+
+.feed-checkbox {
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+.feed-name {
+    color: #D1D5DB;
+}
+
+/* フィルターモーダル用のスタイル */
+.filter-modal {
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.current-selection {
+    background: #1F2937;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.folder-structure {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.folder-section {
+    border: 1px solid #374151;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.folder-header {
+    background: #374151;
+    padding: 0.75rem;
+}
+
+.folder-title {
+    font-weight: 600;
+    color: #E5E7EB;
+}
+
+.folder-count {
+    color: #9CA3AF;
+    font-size: 0.9rem;
+}
+
+.feed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.feed-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+}
+
+.feed-item:hover {
+    background: #374151;
+}
+
+.feed-label {
+    color: #D1D5DB;
+    font-size: 0.9rem;
 }
