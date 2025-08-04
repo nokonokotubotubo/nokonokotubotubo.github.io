@@ -1,11 +1,11 @@
-// Minews PWA - データ管理・処理レイヤー（負荷軽減・最適化版）
+// Minews PWA - データ管理・処理レイヤー（フォルダ対応版）
 
 (function() {
 
 'use strict';
 
 // ===========================================
-// 定数・設定
+// 定数・設定（フォルダ対応版）
 // ===========================================
 
 window.CONFIG = {
@@ -17,7 +17,7 @@ window.CONFIG = {
         WORD_FILTERS: 'minews_wordFilters'
     },
     MAX_ARTICLES: 1000,
-    DATA_VERSION: '1.0',
+    DATA_VERSION: '1.1',  // フォルダ対応でバージョンアップ
     REQUEST_TIMEOUT: 15000,
     MAX_RETRIES: 2,
     RETRY_DELAY: 3000
@@ -25,6 +25,9 @@ window.CONFIG = {
 
 window.DEFAULT_DATA = {
     articles: [],
+    folders: [
+        { id: 'folder_uncategorized', name: '未分類', order: 999 }
+    ],
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
@@ -39,7 +42,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（負荷軽減・最適化版）
+// 改良版GitHub Gist同期システム（フォルダ対応版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -218,7 +221,7 @@ window.GistSyncManager = {
             isEnabled: this.isEnabled,
             configuredAt: new Date().toISOString(),
             lastSyncTime: this.lastSyncTime || existingConfig?.lastSyncTime || null,
-            version: '1.2'
+            version: '1.3'
         };
 
         try {
@@ -323,7 +326,7 @@ window.GistSyncManager = {
         }
     },
 
-    // データマージ機能
+    // 【修正】データマージ機能（フォルダ情報追加）
     _mergeData(localData, cloudData) {
         if (!cloudData) {
             return localData;
@@ -334,7 +337,8 @@ window.GistSyncManager = {
             syncTime: new Date().toISOString(),
             aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
             wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
-            articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates)
+            articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates),
+            folders: this._mergeFolders(localData.folders, cloudData.folders)  // 【NEW】
         };
         
         return mergedData;
@@ -403,7 +407,31 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正3】記事状態マージの最適化
+    // 【NEW】フォルダ情報マージ
+    _mergeFolders(localFolders, cloudFolders) {
+        if (!cloudFolders) return localFolders;
+        if (!localFolders) return cloudFolders;
+        
+        // フォルダはIDをキーとしてマージ
+        const folderMap = new Map();
+        
+        // ローカルフォルダを追加
+        localFolders.forEach(folder => {
+            folderMap.set(folder.id, folder);
+        });
+        
+        // クラウドフォルダを追加/更新
+        cloudFolders.forEach(folder => {
+            const existingFolder = folderMap.get(folder.id);
+            if (!existingFolder || folder.order !== undefined) {
+                folderMap.set(folder.id, folder);
+            }
+        });
+        
+        return Array.from(folderMap.values()).sort((a, b) => (a.order || 999) - (b.order || 999));
+    },
+
+    // 記事状態マージの最適化
     _mergeArticleStates(localStates, cloudStates) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
@@ -474,6 +502,10 @@ window.GistSyncManager = {
                 batchUpdates.wordFilters = mergedData.wordFilters;
             }
             
+            if (mergedData.folders) {  // 【NEW】
+                batchUpdates.folders = mergedData.folders;
+            }
+            
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
@@ -512,6 +544,7 @@ window.GistSyncManager = {
         const updateSequence = [
             { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
             { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' },
+            { key: 'folders', storageKey: window.CONFIG.STORAGE_KEYS.FOLDERS, cacheKey: 'folders' },  // 【NEW】
             { key: 'articles', storageKey: window.CONFIG.STORAGE_KEYS.ARTICLES, cacheKey: 'articles' }
         ];
         
@@ -526,6 +559,14 @@ window.GistSyncManager = {
                     window.DataHooksCache.articles = batchUpdates[update.key];
                     if (window.state) {
                         window.state.articles = batchUpdates[update.key];
+                    }
+                }
+                
+                // フォルダデータの場合は追加処理  // 【NEW】
+                if (update.key === 'folders') {
+                    window.DataHooksCache.folders = batchUpdates[update.key];
+                    if (window.state) {
+                        window.state.folders = batchUpdates[update.key];
                     }
                 }
                 
@@ -558,7 +599,7 @@ window.GistSyncManager = {
                     gistId: this.gistId,
                     isEnabled: this.isEnabled,
                     configuredAt: new Date().toISOString(),
-                    version: '1.2',
+                    version: '1.3',
                     recreated: true
                 };
             }
@@ -607,6 +648,18 @@ window.GistSyncManager = {
                     mergedData.wordFilters
                 );
                 window.DataHooksCache.clear('wordFilters');
+            }
+            
+            // 【NEW】フォルダ情報の復元
+            if (mergedData.folders) {
+                window.LocalStorageManager.setItem(
+                    window.CONFIG.STORAGE_KEYS.FOLDERS, 
+                    mergedData.folders
+                );
+                window.DataHooksCache.clear('folders');
+                if (window.state) {
+                    window.state.folders = mergedData.folders;
+                }
             }
             
             if (mergedData.articleStates) {
@@ -753,11 +806,12 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正2】同期対象データ収集（負荷軽減版）
+    // 【修正2】同期対象データ収集（フォルダ対応版）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
+        const foldersHook = window.DataHooks.useFolders();  // 【NEW】
         
         const articleStates = {};
         const currentTime = new Date().toISOString();
@@ -793,7 +847,8 @@ window.GistSyncManager = {
             syncTime: currentTime,
             aiLearning: aiHook.aiLearning,
             wordFilters: wordHook.wordFilters,
-            articleStates: articleStates
+            articleStates: articleStates,
+            folders: foldersHook.folders  // 【NEW】
         };
     },
 
@@ -1035,7 +1090,7 @@ window.GistSyncManager = {
 };
 
 // ===========================================
-// キャッシュシステム
+// キャッシュシステム（フォルダ対応版）
 // ===========================================
 
 window.DataHooksCache = {
@@ -1063,7 +1118,7 @@ window.DataHooksCache = {
 };
 
 // ===========================================
-// JSON記事データ読み込みシステム
+// JSON記事データ読み込みシステム（フォルダ対応版）
 // ===========================================
 
 window.ArticleLoader = {
@@ -1076,6 +1131,7 @@ window.ArticleLoader = {
             const data = await response.json();
             return {
                 articles: data.articles || [],
+                folders: data.folders || [],  // 【NEW】
                 lastUpdated: data.lastUpdated || new Date().toISOString(),
                 totalCount: data.totalCount || 0
             };
@@ -1083,6 +1139,7 @@ window.ArticleLoader = {
             console.error('記事データの読み込みに失敗しました:', error);
             return {
                 articles: [],
+                folders: [],  // 【NEW】
                 lastUpdated: new Date().toISOString(),
                 totalCount: 0
             };
@@ -1091,7 +1148,7 @@ window.ArticleLoader = {
 };
 
 // ===========================================
-// AI学習システム
+// AI学習システム（変更なし）
 // ===========================================
 
 window.AIScoring = {
@@ -1153,7 +1210,7 @@ window.AIScoring = {
 };
 
 // ===========================================
-// ワードフィルター管理
+// ワードフィルター管理（変更なし）
 // ===========================================
 
 window.WordFilterManager = {
@@ -1193,7 +1250,7 @@ window.WordFilterManager = {
 };
 
 // ===========================================
-// ローカルストレージ管理
+// ローカルストレージ管理（変更なし）
 // ===========================================
 
 window.LocalStorageManager = {
@@ -1270,7 +1327,7 @@ window.LocalStorageManager = {
 };
 
 // ===========================================
-// データ操作フック
+// データ操作フック（フォルダ対応版）
 // ===========================================
 
 window.DataHooks = {
@@ -1285,11 +1342,11 @@ window.DataHooks = {
         
         return {
             articles: window.DataHooksCache.articles,
-            // 【修正4】記事追加時の重複チェック強化
+            // 記事追加時の重複チェック強化
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
                 
-                // 【改善】より厳密な重複チェック
+                // より厳密な重複チェック
                 const exists = updatedArticles.find(article => {
                     // ID完全一致
                     if (article.id === newArticle.id) return true;
@@ -1308,7 +1365,6 @@ window.DataHooks = {
                 });
                 
                 if (exists) {
-                    // 【改善】重複記事の詳細ログ（デバッグ用）
                     console.log(`重複記事をスキップ: ${newArticle.title} (${newArticle.rssSource})`);
                     return false;
                 }
@@ -1338,7 +1394,7 @@ window.DataHooks = {
             updateArticle(articleId, updates, options = {}) {
                 const { skipRender = false } = options;
                 
-                // 【追加】状態変更時に必ずlastModifiedを更新
+                // 状態変更時に必ずlastModifiedを更新
                 const updatesWithTimestamp = {
                     ...updates,
                     lastModified: new Date().toISOString()
@@ -1363,6 +1419,8 @@ window.DataHooks = {
             }
         };
     },
+    
+    // 【修正】RSS管理（フォルダ情報も読み込み）
     useRSSManager() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -1376,11 +1434,18 @@ window.DataHooks = {
             rssFeeds: window.DataHooksCache.rssFeeds,
             async fetchAllFeeds() {
                 const articlesHook = window.DataHooks.useArticles();
+                const foldersHook = window.DataHooks.useFolders();  // 【NEW】
                 
                 try {
                     const data = await window.ArticleLoader.loadArticlesFromJSON();
                     let addedCount = 0;
                     let skippedCount = 0;
+                    
+                    // 【NEW】フォルダ情報の更新
+                    if (data.folders && data.folders.length > 0) {
+                        foldersHook.updateFolders(data.folders);
+                        console.log(`フォルダ情報を更新: ${data.folders.length}個`);
+                    }
                     
                     data.articles.forEach(article => {
                         if (articlesHook.addArticle(article)) {
@@ -1421,6 +1486,40 @@ window.DataHooks = {
             }
         };
     },
+
+    // 【NEW】フォルダ管理フック
+    useFolders() {
+        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
+        const timestamp = stored ? JSON.parse(stored).timestamp : null;
+        
+        if (!window.DataHooksCache.folders || window.DataHooksCache.lastUpdate.folders !== timestamp) {
+            window.DataHooksCache.folders = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders);
+            window.DataHooksCache.lastUpdate.folders = timestamp;
+        }
+        
+        return {
+            folders: window.DataHooksCache.folders,
+            updateFolders(newFolders) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, newFolders);
+                window.DataHooksCache.folders = newFolders;
+                window.DataHooksCache.lastUpdate.folders = new Date().toISOString();
+                
+                if (window.state) {
+                    window.state.folders = newFolders;
+                }
+                
+                console.log('フォルダ情報を更新しました:', newFolders.length, '個');
+                return newFolders;
+            },
+            getFolderById(folderId) {
+                return window.DataHooksCache.folders.find(folder => folder.id === folderId);
+            },
+            getFolderByName(folderName) {
+                return window.DataHooksCache.folders.find(folder => folder.name === folderName);
+            }
+        };
+    },
+
     useAILearning() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -1441,6 +1540,7 @@ window.DataHooks = {
             }
         };
     },
+    
     useWordFilters() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
