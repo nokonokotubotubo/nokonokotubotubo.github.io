@@ -126,400 +126,57 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .date-input-group{display:flex;align-items:center;justify-content:center;gap:15px;margin:20px 0;flex-wrap:wrap}
 .date-input-group input[type="date"]{padding:10px;border:2px solid var(--secondary);border-radius:8px;font-size:1rem}
 .date-input-group span{font:bold 1.2rem/1 sans-serif;color:var(--accent)}
-
-/* 天気アイコン用スタイル（左上配置・大きめサイズ） */
-.weather-emoji-top-left {
-    position: absolute;
-    top: -12px;
-    left:-12px;
-    font-size: 2rem;
-    z-index: 30;
-    line-height: 1;
-    cursor: pointer; /* クリック可能であることを示すカーソルに変更 */
-    -webkit-tap-highlight-color: transparent; /* モバイルでのタップ時のハイライトを無効化 */
-}
-
-/* OpenStreetMap地図のスタイル */
-.map-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 3000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.map-container {
-    width: 90%;
-    max-width: 800px;
-    height: 80%;
-    max-height: 600px;
-    background: white;
-    border-radius: 10px;
-    position: relative;
-    overflow: hidden;
-}
-
-.map-header {
-    background: var(--primary);
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.map-close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background 0.3s;
-}
-
-.map-close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-#map {
-    width: 100%;
-    height: calc(100% - 60px);
-}
-
-.map-info {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-/* 天気予報ポップアップ */
-.weather-popup-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.weather-popup-content {
-    width: 100%;
-    height: 100%;
-    background: #fff;
-    position: relative;
-}
-
-.weather-popup-close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.5);
-    border: 2px solid white;
-    color: white;
-    font-size: 2rem;
-    line-height: 36px;
-    text-align: center;
-    cursor: pointer;
-    z-index: 5001;
-    padding: 0;
-    -webkit-appearance: none;
-}
-
-.weather-popup-close:hover {
-    background: rgba(0,0,0,0.8);
-}
-
-.weather-popup-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-
-/* 設定モーダルのスタイル */
-.settings-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 4000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: var(--transition);
-}
-
-.settings-modal.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.settings-content {
-    background: white;
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-
-.settings-header {
-    background: var(--primary);
-    color: white;
-    padding: 20px;
-    border-radius: var(--radius) var(--radius) 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.settings-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-.settings-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    width: 35px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--transition);
-}
-
-.settings-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.settings-body {
-    padding: 20px;
-}
-
-.settings-section {
-    margin-bottom: 30px;
-}
-
-.settings-section h3 {
-    color: var(--accent);
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-}
-
-.settings-section p {
-    color: #666;
-    margin-bottom: 15px;
-    line-height: 1.5;
-}
-
-.sync-status {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border-left: 4px solid var(--primary);
-}
-
-.sync-status.disabled {
-    border-left-color: #6c757d;
-}
-
-.sync-status.error {
-    border-left-color: #dc3545;
-}
-
-.sync-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 15px;
-}
-
-.sync-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: var(--transition);
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.sync-btn.primary {
-    background: var(--primary);
-    color: white;
-}
-
-.sync-btn.primary:hover {
-    background: var(--accent);
-    color: white;
-}
-
-.sync-btn.success {
-    background: #28a745;
-    color: white;
-}
-
-.sync-btn.success:hover {
-    background: #218838;
-}
-
-.sync-btn.danger {
-    background: #dc3545;
-    color: white;
-}
-
-.sync-btn.danger:hover {
-    background: #c82333;
-}
-
-.sync-btn.secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.sync-btn.secondary:hover {
-    background: #5a6268;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: var(--transition);
-}
-
-.form-group input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 0.2rem rgba(135,206,235,0.25);
-    outline: none;
-}
-
-/* 競合確認モーダル */
-.conflict-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 6000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: var(--transition);
-}
-
-.conflict-modal.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.conflict-content {
-    background: white;
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 500px;
-    padding: 0;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-
-.conflict-header {
-    background: #dc3545;
-    color: white;
-    padding: 20px;
-    border-radius: var(--radius) var(--radius) 0 0;
-    text-align: center;
-}
-
-.conflict-body {
-    padding: 20px;
-    text-align: center;
-    line-height: 1.6;
-}
-
-.conflict-actions {
-    padding: 0 20px 20px 20px;
-    display: flex;
-    gap: 10px;
-    flex-direction: column;
-}
-
-.conflict-btn {
-    padding: 15px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.conflict-btn.primary {
-    background: var(--primary);
-    color: white;
-}
-
-.conflict-btn.secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.conflict-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
+.weather-emoji-top-left {position: absolute;top: -12px;left:-12px;font-size: 2rem;z-index: 30;line-height: 1;cursor: pointer;-webkit-tap-highlight-color: transparent;}
+.map-modal {position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.8);z-index: 3000;display: flex;align-items: center;justify-content: center;}
+.map-container {width: 90%;max-width: 800px;height: 80%;max-height: 600px;background: white;border-radius: 10px;position: relative;overflow: hidden;}
+.map-header {background: var(--primary);color: white;padding: 15px;display: flex;justify-content: space-between;align-items: center;}
+.map-close-btn {background: none;border: none;color: white;font-size: 1.5rem;cursor: pointer;width: 30px;height: 30px;display: flex;align-items: center;justify-content: center;border-radius: 50%;transition: background 0.3s;}
+.map-close-btn:hover {background: rgba(255, 255, 255, 0.2);}
+#map {width: 100%;height: calc(100% - 60px);}
+.map-info {position: absolute;bottom: 10px;left: 10px;right: 10px;background: rgba(255, 255, 255, 0.9);padding: 10px;border-radius: 5px;font-size: 0.9rem;text-align: center;}
+.weather-popup-modal {position: fixed;top: 0;left: 0;width: 100vw;height: 100vh;background: rgba(0, 0, 0, 0.7);z-index: 5000;display: flex;align-items: center;justify-content: center;}
+.weather-popup-content {width: 100%;height: 100%;background: #fff;position: relative;}
+.weather-popup-close {position: absolute;top: 10px;right: 15px;width: 40px;height: 40px;border-radius: 50%;background: rgba(0,0,0,0.5);border: 2px solid white;color: white;font-size: 2rem;line-height: 36px;text-align: center;cursor: pointer;z-index: 5001;padding: 0;-webkit-appearance: none;}
+.weather-popup-close:hover {background: rgba(0,0,0,0.8);}
+.weather-popup-iframe {width: 100%;height: 100%;border: none;}
+.settings-modal {position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.8);z-index: 4000;display: flex;align-items: center;justify-content: center;opacity: 0;visibility: hidden;transition: var(--transition);}
+.settings-modal.show {opacity: 1;visibility: visible;}
+.settings-content {background: white;border-radius: var(--radius);width: 90%;max-width: 600px;max-height: 80vh;overflow-y: auto;box-shadow: 0 10px 30px rgba(0,0,0,0.3);}
+.settings-header {background: var(--primary);color: white;padding: 20px;border-radius: var(--radius) var(--radius) 0 0;display: flex;justify-content: space-between;align-items: center;}
+.settings-header h2 {margin: 0;font-size: 1.5rem;}
+.settings-close {background: none;border: none;color: white;font-size: 1.5rem;cursor: pointer;padding: 5px;border-radius: 50%;width: 35px;height: 35px;display: flex;align-items: center;justify-content: center;transition: var(--transition);}
+.settings-close:hover {background: rgba(255, 255, 255, 0.2);}
+.settings-body {padding: 20px;}
+.settings-section {margin-bottom: 30px;}
+.settings-section h3 {color: var(--accent);margin-bottom: 15px;font-size: 1.2rem;}
+.settings-section p {color: #666;margin-bottom: 15px;line-height: 1.5;}
+.sync-status {background: #f8f9fa;padding: 15px;border-radius: 8px;margin-bottom: 15px;border-left: 4px solid var(--primary);}
+.sync-status.disabled {border-left-color: #6c757d;}
+.sync-status.error {border-left-color: #dc3545;}
+.sync-actions {display: flex;gap: 10px;flex-wrap: wrap;margin-top: 15px;}
+.sync-btn {padding: 10px 20px;border: none;border-radius: 8px;cursor: pointer;font-size: 0.9rem;transition: var(--transition);text-decoration: none;display: inline-block;text-align: center;}
+.sync-btn.primary {background: var(--primary);color: white;}
+.sync-btn.primary:hover {background: var(--accent);color: white;}
+.sync-btn.success {background: #28a745;color: white;}
+.sync-btn.success:hover {background: #218838;}
+.sync-btn.danger {background: #dc3545;color: white;}
+.sync-btn.danger:hover {background: #c82333;}
+.sync-btn.secondary {background: #6c757d;color: white;}
+.sync-btn.secondary:hover {background: #5a6268;}
+.form-group {margin-bottom: 20px;}
+.form-group label {display: block;margin-bottom: 8px;font-weight: 600;color: var(--text);}
+.form-group input {width: 100%;padding: 10px;border: 2px solid #e0e0e0;border-radius: 8px;font-size: 1rem;transition: var(--transition);}
+.form-group input:focus {border-color: var(--primary);box-shadow: 0 0 0 0.2rem rgba(135,206,235,0.25);outline: none;}
+.conflict-modal {position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.8);z-index: 6000;display: flex;align-items: center;justify-content: center;opacity: 0;visibility: hidden;transition: var(--transition);}
+.conflict-modal.show {opacity: 1;visibility: visible;}
+.conflict-content {background: white;border-radius: var(--radius);width: 90%;max-width: 500px;padding: 0;box-shadow: 0 10px 30px rgba(0,0,0,0.3);}
+.conflict-header {background: #dc3545;color: white;padding: 20px;border-radius: var(--radius) var(--radius) 0 0;text-align: center;}
+.conflict-body {padding: 20px;text-align: center;line-height: 1.6;}
+.conflict-actions {padding: 0 20px 20px 20px;display: flex;gap: 10px;flex-direction: column;}
+.conflict-btn {padding: 15px;border: none;border-radius: 8px;font-weight: bold;cursor: pointer;transition: var(--transition);}
+.conflict-btn.primary {background: var(--primary);color: white;}
+.conflict-btn.secondary {background: #6c757d;color: white;}
+.conflict-btn:hover {transform: translateY(-2px);box-shadow: 0 4px 8px rgba(0,0,0,0.2);}
 @media (max-width:768px){
 .header{padding:6px 0}
 .cloud-load-btn{left:10px;font-size:1.3rem}
@@ -761,7 +418,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 </div>
 </div>
 
-<!-- OpenStreetMap地図モーダル（指示通りのみ）-->
 <div v-if="showMapModal" class="map-modal" @click="closeMapModal">
     <div class="map-container" @click.stop>
         <div class="map-header">
@@ -780,7 +436,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     </div>
 </div>
 
-<!-- 天気予報ポップアップモーダル -->
 <div v-if="showWeatherPopup" class="weather-popup-modal">
     <div class="weather-popup-content">
         <button class="weather-popup-close" @click="closeWeatherPopup" title="閉じる">&times;</button>
@@ -788,7 +443,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     </div>
 </div>
 
-<!-- 競合確認モーダル -->
 <div v-if="showConflictModal" class="conflict-modal" :class="{ show: showConflictModal }" @click="closeConflictModal">
     <div class="conflict-content" @click.stop>
         <div class="conflict-header">
@@ -810,7 +464,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     </div>
 </div>
 
-<!-- 設定モーダル -->
 <div v-if="showSettingsModal" class="settings-modal" :class="{ show: showSettingsModal }" @click="closeSettingsModal">
     <div class="settings-content" @click.stop>
         <div class="settings-header">
@@ -823,11 +476,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
             <div class="settings-section">
                 <h3><i class="fas fa-cloud-upload-alt"></i> GitHub同期設定</h3>
                 <p>GitHub Personal Access Tokenを設定すると、旅行データが自動同期されます。<br>
-                <strong>新方式:</strong> 初回・手動読み込み + 1分間隔自動書き込み + 競合チェック</p>
+                <strong>新方式:</strong> 変更フラグ管理で効率的同期 + 競合チェック</p>
                 
                 <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
                     <div v-if="gistSync.isEnabled">
-                        <strong>同期状態:</strong> 有効（新方式・修正版）<br>
+                        <strong>同期状態:</strong> 有効（変更フラグ管理版）<br>
                         <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
                         <span v-if="gistSync.lastReadTime">最終読込: {{ formatSyncTime(gistSync.lastReadTime) }}</span><br>
                         <span v-if="gistSync.lastSyncTime">最終書込: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
@@ -864,7 +517,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
             <div class="settings-section">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
                 <p>とりっぺんちゃん - 旅行予定調整サイト<br>
-                GitHub新同期方式・問題解決版</p>
+                GitHub変更フラグ管理版</p>
             </div>
         </div>
     </div>
@@ -889,7 +542,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script>
 const { createApp } = Vue;
 
-// GitHub Gist同期システム（問題解決版）
+// GitHub Gist同期システム（変更フラグ管理版）
 const TrippenGistSync = {
     token: null,
     gistId: null,
@@ -899,6 +552,44 @@ const TrippenGistSync = {
     lastReadTime: null,
     periodicSyncInterval: null,
     hasError: false,
+    
+    // 【新機能】変更フラグ管理
+    hasChanged: false,
+    lastDataHash: null,
+
+    // 【新機能】データハッシュ計算
+    calculateHash(data) {
+        try {
+            const sortedData = {
+                events: data.data.events || [],
+                days: data.data.days || [],
+                layerOrder: data.data.layerOrder || []
+            };
+            const jsonString = JSON.stringify(sortedData, Object.keys(sortedData).sort());
+            let hash = 0;
+            for (let i = 0; i < jsonString.length; i++) {
+                const char = jsonString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; // 32bit整数に変換
+            }
+            return hash.toString();
+        } catch (error) {
+            console.error('ハッシュ計算エラー:', error);
+            return Date.now().toString();
+        }
+    },
+
+    // 【新機能】変更フラグ設定
+    markChanged() {
+        this.hasChanged = true;
+        console.log('データが変更されました - フラグ設定');
+    },
+
+    // 【新機能】変更フラグリセット
+    resetChanged() {
+        this.hasChanged = false;
+        console.log('変更フラグをリセットしました');
+    },
 
     // 暗号化機能
     _encrypt(text, key = 'trippen_secret_key') {
@@ -930,12 +621,10 @@ const TrippenGistSync = {
         }
     },
 
-    // UTC時刻を生成（タイムゾーン対応）
     getUTCTimestamp() {
         return new Date().toISOString();
     },
 
-    // 【修正】設定の読み込み - 確実な状態管理
     loadConfig() {
         console.log('TrippenGistSync.loadConfig() 開始');
         
@@ -951,7 +640,6 @@ const TrippenGistSync = {
             const config = JSON.parse(configStr);
             console.log('パース済み設定:', config);
             
-            // 【重要】確実な状態設定
             if (config.encryptedToken) {
                 this.token = this._decrypt(config.encryptedToken);
                 console.log('トークン復号化完了:', this.token ? 'あり' : 'なし');
@@ -960,14 +648,16 @@ const TrippenGistSync = {
             this.gistId = config.gistId || null;
             this.lastSyncTime = config.lastSyncTime || null;
             this.lastReadTime = config.lastReadTime || null;
-            this.isEnabled = !!(this.token); // トークンの有無で判定
+            this.lastDataHash = config.lastDataHash || null; // 【新機能】ハッシュ復元
+            this.isEnabled = !!(this.token);
             
             console.log('最終状態:', {
                 isEnabled: this.isEnabled,
                 hasToken: !!this.token,
                 gistId: this.gistId,
                 lastSyncTime: this.lastSyncTime,
-                lastReadTime: this.lastReadTime
+                lastReadTime: this.lastReadTime,
+                lastDataHash: this.lastDataHash
             });
             
             return config;
@@ -979,7 +669,6 @@ const TrippenGistSync = {
         }
     },
 
-    // 初期化
     init(token, gistId = null) {
         console.log('TrippenGistSync.init() 開始:', { token: token ? 'あり' : 'なし', gistId });
         
@@ -993,6 +682,7 @@ const TrippenGistSync = {
         this.gistId = gistId ? gistId.trim() : null;
         this.isEnabled = true;
         this.hasError = false;
+        this.hasChanged = false; // 【新機能】初期化時にフラグリセット
 
         const configData = {
             encryptedToken: encryptedToken,
@@ -1001,7 +691,8 @@ const TrippenGistSync = {
             configuredAt: this.getUTCTimestamp(),
             lastSyncTime: this.lastSyncTime,
             lastReadTime: this.lastReadTime,
-            version: '2.0'
+            lastDataHash: this.lastDataHash, // 【新機能】ハッシュ保存
+            version: '3.0' // バージョンアップ
         };
 
         localStorage.setItem('trippen_gist_config', JSON.stringify(configData));
@@ -1010,7 +701,6 @@ const TrippenGistSync = {
         this.startPeriodicSync();
     },
 
-    // 1分間隔の定期同期開始
     startPeriodicSync() {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
@@ -1020,10 +710,9 @@ const TrippenGistSync = {
             await this.autoWriteToCloud();
         }, 60000); // 1分間隔
         
-        console.log('定期同期開始（1分間隔）');
+        console.log('定期同期開始（1分間隔・変更フラグ管理版）');
     },
 
-    // 定期同期停止
     stopPeriodicSync() {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
@@ -1032,7 +721,6 @@ const TrippenGistSync = {
         }
     },
 
-    // 同期データ収集
     collectSyncData() {
         const events = JSON.parse(localStorage.getItem('trippenEvents') || '[]');
         const days = JSON.parse(localStorage.getItem('trippenDays') || '[]');
@@ -1045,7 +733,7 @@ const TrippenGistSync = {
         });
 
         return {
-            version: '2.0',
+            version: '3.0',
             syncTime: this.getUTCTimestamp(),
             data: {
                 events: events,
@@ -1055,7 +743,6 @@ const TrippenGistSync = {
         };
     },
 
-    // クラウドへの書き込み
     async syncToCloud(data) {
         if (!this.token) {
             console.error('トークンが設定されていません');
@@ -1117,7 +804,6 @@ const TrippenGistSync = {
         }
     },
 
-    // 【修正】クラウドからの読み込み - 確実なエラーハンドリング
     async loadFromCloud() {
         console.log('loadFromCloud() 開始');
         console.log('現在の状態:', { 
@@ -1195,9 +881,14 @@ const TrippenGistSync = {
                 throw new Error(`JSONパースエラー: ${parseError.message}`);
             }
             
-            // 読み込み成功時のみlastReadTimeを更新
+            // 【新機能】読み込み時にハッシュを更新
+            const newHash = this.calculateHash(parsedData);
+            this.lastDataHash = newHash;
+            console.log('読み込み時ハッシュ更新:', newHash);
+            
             this.lastReadTime = this.getUTCTimestamp();
             this.saveLastReadTime();
+            this.resetChanged(); // 【新機能】読み込み後は変更フラグリセット
             
             console.log('読み込み完了:', {
                 eventsCount: parsedData.data?.events?.length || 0,
@@ -1209,11 +900,10 @@ const TrippenGistSync = {
         } catch (error) {
             console.error('クラウドデータ読み込みエラー:', error);
             this.hasError = true;
-            throw error; // エラーを再スローして呼び出し側で処理
+            throw error;
         }
     },
 
-    // 競合チェック（新しいデータがクラウドにあるかチェック）
     async checkForNewerCloudData() {
         if (!this.token || !this.gistId) return false;
         
@@ -1230,7 +920,6 @@ const TrippenGistSync = {
                 const gist = await response.json();
                 const cloudUpdatedAt = new Date(gist.updated_at);
                 
-                // 最後の読み込み時刻と最後の書き込み時刻と比較
                 const lastReadTime = new Date(this.lastReadTime || 0);
                 const lastWriteTime = new Date(this.lastSyncTime || 0);
                 
@@ -1252,7 +941,7 @@ const TrippenGistSync = {
         }
     },
 
-    // 自動書き込み（1分間隔）
+    // 【改良】自動書き込み（変更フラグ管理版）
     async autoWriteToCloud() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             console.log('自動書き込みスキップ:', {
@@ -1262,29 +951,46 @@ const TrippenGistSync = {
             });
             return false;
         }
+
+        // 【新機能】変更フラグチェック
+        if (!this.hasChanged) {
+            console.log('変更フラグなし - 書き込みスキップ');
+            return false;
+        }
         
         this.isSyncing = true;
         this.hasError = false;
         
         try {
-            // 1. 競合チェック
+            // 1. 現在のデータでハッシュ計算
+            const localData = this.collectSyncData();
+            const currentHash = this.calculateHash(localData);
+            
+            // 2. 前回のハッシュと比較
+            if (this.lastDataHash === currentHash) {
+                console.log('データハッシュ一致 - 実質的な変更なし');
+                this.resetChanged();
+                return false;
+            }
+
+            // 3. 競合チェック
             const hasNewerData = await this.checkForNewerCloudData();
             if (hasNewerData) {
                 console.log('競合検出 - Vue.jsアプリに通知');
-                // Vue.jsアプリに競合を通知
                 if (window.app && window.app.handleSyncConflict) {
                     window.app.handleSyncConflict();
                 }
-                return false; // 競合があるため書き込みを停止
+                return false;
             }
             
-            // 2. ローカルデータをクラウドに書き込み
-            const localData = this.collectSyncData();
+            // 4. クラウドに書き込み
             const uploadResult = await this.syncToCloud(localData);
             
             if (uploadResult) {
                 this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = currentHash; // 【新機能】ハッシュ更新
                 this.saveLastSyncTime();
+                this.resetChanged(); // 【新機能】書き込み成功時にフラグリセット
                 console.log('自動書き込み完了:', new Date().toLocaleString());
                 return true;
             }
@@ -1299,7 +1005,6 @@ const TrippenGistSync = {
         }
     },
 
-    // 手動書き込み
     async manualWriteToCloud() {
         if (!this.isEnabled || !this.token) {
             throw new Error('GitHub同期が設定されていません');
@@ -1313,8 +1018,11 @@ const TrippenGistSync = {
             const uploadResult = await this.syncToCloud(localData);
             
             if (uploadResult) {
+                const currentHash = this.calculateHash(localData); // 【新機能】ハッシュ計算
                 this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = currentHash; // 【新機能】ハッシュ更新
                 this.saveLastSyncTime();
+                this.resetChanged(); // 【新機能】手動書き込み成功時にフラグリセット
                 console.log('手動書き込み完了');
                 return true;
             }
@@ -1328,7 +1036,6 @@ const TrippenGistSync = {
         }
     },
 
-    // 初回自動読み込み
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) {
             console.log('初回自動読み込みスキップ:', {
@@ -1354,7 +1061,6 @@ const TrippenGistSync = {
         }
     },
 
-    // GistID保存
     saveGistId(gistId) {
         try {
             const currentConfigStr = localStorage.getItem('trippen_gist_config');
@@ -1367,24 +1073,23 @@ const TrippenGistSync = {
             config.gistId = gistId;
             config.lastSyncTime = this.lastSyncTime;
             config.lastReadTime = this.lastReadTime;
+            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
 
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
             
             this.gistId = gistId;
             console.log('Gist IDを正常に保存:', gistId);
             
-            // Vue.jsの状態も更新
             if (window.app && window.app.gistSync) {
                 window.app.gistSync.gistId = gistId;
             }
             
         } catch (error) {
             console.error('GistID保存エラー:', error);
-            this.gistId = gistId; // エラーでも内部状態は更新
+            this.gistId = gistId;
         }
     },
 
-    // 書き込み時刻保存
     saveLastSyncTime() {
         try {
             const currentConfigStr = localStorage.getItem('trippen_gist_config');
@@ -1392,13 +1097,13 @@ const TrippenGistSync = {
 
             const config = JSON.parse(currentConfigStr);
             config.lastSyncTime = this.lastSyncTime;
+            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch (error) {
             console.error('書き込み時刻保存エラー:', error);
         }
     },
 
-    // 読み込み時刻保存
     saveLastReadTime() {
         try {
             const currentConfigStr = localStorage.getItem('trippen_gist_config');
@@ -1406,13 +1111,13 @@ const TrippenGistSync = {
 
             const config = JSON.parse(currentConfigStr);
             config.lastReadTime = this.lastReadTime;
+            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch (error) {
             console.error('読み込み時刻保存エラー:', error);
         }
     },
 
-    // 設定クリア
     clear() {
         this.stopPeriodicSync();
         localStorage.removeItem('trippen_gist_config');
@@ -1422,8 +1127,10 @@ const TrippenGistSync = {
         this.lastSyncTime = null;
         this.lastReadTime = null;
         this.hasError = false;
+        this.hasChanged = false; // 【新機能】フラグクリア
+        this.lastDataHash = null; // 【新機能】ハッシュクリア
         
-        console.log('TrippenGistSync設定をクリアしました');
+        console.log('TrippenGistSync設定をクリアしました（変更フラグ管理版）');
     }
 };
 
@@ -1462,7 +1169,6 @@ dragStarted: false,
 longPressEventData: null,
 longPressEvent: null,
 readyToMoveEventId: null,
-// OpenStreetMap地図機能用のデータ
 showMapModal: false,
 map: null,
 selectedCoordinates: null,
@@ -1477,21 +1183,15 @@ description: '',
 coordinates: ''
 },
 modals: [],
-// ドラッグした順序でz-indexを管理
 eventLayerOrder: [],
 baseZIndex: 10,
 maxZIndex: 10,
-// 天気予報機能のデータ
 weatherCache: {},
-weatherCacheExpiry: 6 * 60 * 60 * 1000, // 6時間（ミリ秒）
-// 天気予報ポップアップ用データ
+weatherCacheExpiry: 6 * 60 * 60 * 1000,
 showWeatherPopup: false,
 weatherPopupUrl: '',
-// 設定モーダル用データ
 showSettingsModal: false,
-// 競合確認モーダル用データ
 showConflictModal: false,
-// GitHub同期設定（問題解決版対応）
 gistSync: {
 isEnabled: false,
 gistId: null,
@@ -1597,7 +1297,6 @@ inlineText
 };
 });
 },
-// 重なり判定メソッド
 checkEventOverlap(eventA, eventB) {
 if (eventA.dayIndex !== eventB.dayIndex) return false;
   
@@ -1608,35 +1307,26 @@ const endB = this.timeToMinutes(eventB.endTime);
   
 return !(endA <= startB || endB <= startA);
 },
-
-// 特定のイベントと重なる全てのイベントを取得
 getOverlappingEvents(targetEvent) {
 return this.events.filter(event => 
 event.id !== targetEvent.id && 
 this.checkEventOverlap(targetEvent, event)
 );
 },
-
-// z-indexを更新する
 updateEventZIndex(eventId) {
 const targetEvent = this.events.find(e => e.id === eventId);
 if (!targetEvent) return;
   
 const overlappingEvents = this.getOverlappingEvents(targetEvent);
   
-// 重なりがない場合は何もしない
 if (overlappingEvents.length === 0) return;
   
-// 既存の順序から削除
 this.eventLayerOrder = this.eventLayerOrder.filter(id => id !== eventId);
   
-// 最前面に追加
 this.eventLayerOrder.push(eventId);
   
-// 最大z-indexを更新
 this.maxZIndex = Math.max(this.maxZIndex, this.baseZIndex + this.eventLayerOrder.length);
   
-// データを保存
 this.saveLayerOrder();
 },
 handleEventClick(event, eventData) {
@@ -1697,7 +1387,6 @@ document.removeEventListener('mouseup', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
 
-// ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
 
 this.saveData();
@@ -1731,7 +1420,6 @@ document.removeEventListener('touchend', endHandler);
 this.draggingEvent = null;
 this.isDragComplete = true;
 
-// ドラッグした予定のz-indexを更新
 this.updateEventZIndex(eventData.id);
 
 this.saveData();
@@ -2074,7 +1762,6 @@ const startPixels = this.timeToPixels(event.startTime);
 const endPixels = this.timeToPixels(event.endTime);
 const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
 
-// z-indexを動的に設定
 let zIndex = this.baseZIndex;
 const layerIndex = this.eventLayerOrder.indexOf(event.id);
 if (layerIndex !== -1) {
@@ -2099,7 +1786,6 @@ custom: 'fas fa-star'
 return icons[category] || 'fas fa-calendar';
 },
 
-// 天気予報を取得する
 async fetchWeatherForEvent(event) {
 if (!event.coordinates) return null;
 
@@ -2110,7 +1796,6 @@ if (isNaN(lat) || isNaN(lng)) return null;
 const cacheKey = `${lat},${lng}_${event.dayIndex}`;
 const cachedWeather = this.weatherCache[cacheKey];
 
-// キャッシュが有効な場合は返す
 if (cachedWeather && Date.now() - cachedWeather.timestamp < this.weatherCacheExpiry) {
 return cachedWeather.data;
 }
@@ -2126,7 +1811,6 @@ if (!response.ok) throw new Error('Weather API request failed');
 const data = await response.json();
 const weatherCode = data.daily.weathercode[0];
 
-// キャッシュに保存
 this.weatherCache[cacheKey] = {
 data: weatherCode,
 timestamp: Date.now()
@@ -2139,7 +1823,6 @@ return null;
 }
 },
 
-// 天気コードを絵文字に変換
 getWeatherEmoji(weatherCode) {
 if (weatherCode === null || weatherCode === undefined) return '';
 
@@ -2177,7 +1860,6 @@ const weatherMap = {
 return weatherMap[weatherCode] || '';
 },
 
-// 全ての予定の天気予報を取得
 async loadWeatherForAllEvents() {
 const promises = this.events
 .filter(event => event.coordinates)
@@ -2186,7 +1868,6 @@ const promises = this.events
 await Promise.all(promises);
 },
 
-// 予定の天気予報絵文字を取得
 getEventWeatherEmoji(event) {
 if (!event.coordinates) return '';
 
@@ -2200,7 +1881,6 @@ return this.getWeatherEmoji(cachedWeather.data);
 return '';
 },
 
-// OpenStreetMap地図機能メソッド（指示通りのみ）
 setLocationFromMap() {
 this.showMapModal = true;
 this.$nextTick(() => {
@@ -2209,17 +1889,14 @@ this.initializeMap();
 },
 
 initializeMap() {
-// 大阪府大阪市北区の座標 (34.7024, 135.4959)
 const initialLat = 34.7024;
 const initialLng = 135.4959;
 
 this.map = L.map('map').setView([initialLat, initialLng], 15);
-// OpenStreetMap APIを使用
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 attribution: '© OpenStreetMap contributors'
 }).addTo(this.map);
 
-// 地図クリック（タップ）イベント - 座標取得
 this.map.on('click', (e) => {
 this.handleMapClick(e);
 });
@@ -2230,24 +1907,19 @@ const lat = e.latlng.lat.toFixed(6);
 const lng = e.latlng.lng.toFixed(6);
 this.selectedCoordinates = `${lat},${lng}`;
 
-// 既存のマーカーを削除
 if (this.mapMarker) {
 this.map.removeLayer(this.mapMarker);
 }
 
-// 新しいマーカーを追加
 this.mapMarker = L.marker([lat, lng]).addTo(this.map);
 
-// 座標を入力フィールドに設定
 const coordinatesInput = document.getElementById('eventCoordinates');
 if (coordinatesInput) {
 coordinatesInput.value = this.selectedCoordinates;
 }
 
-// タップフィードバック
 if (navigator.vibrate) navigator.vibrate(100);
 
-// 地図を自動で閉じる
 this.closeMapModal();
 },
 
@@ -2274,7 +1946,6 @@ navigator.clipboard.writeText(coordinates).then(() => {
 alert('緯度経度をクリップボードにコピーしました');
 if (navigator.vibrate) navigator.vibrate(100);
 }).catch(() => {
-// フォールバック処理
 coordinatesInput.select();
 document.execCommand('copy');
 alert('緯度経度をクリップボードにコピーしました');
@@ -2297,10 +1968,8 @@ const googleMapsUrl = `https://maps.google.co.jp/maps?ll=${coords}&z=15`;
 
 try {
 if (this.isMobile) {
-// モバイルの場合はアプリで開く
 window.location.href = googleMapsUrl;
 } else {
-// デスクトップの場合は別タブで開く
 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
 }
 } catch (error) {
@@ -2373,10 +2042,8 @@ alert('予定の編集準備に失敗しました。もう一度お試しくだ�
 openEventModal(event = null, fromContextMenu = false) {
     const isEdit = !!event;
     if (isEdit) {
-        // 編集モード
         this.eventForm = { ...event };
     } else if (!fromContextMenu) {
-        // 新規追加モード（コンテキストメニュー以外から）
         this.eventForm = {
             title: '',
             dayIndex: this.activeDay,
@@ -2388,7 +2055,6 @@ openEventModal(event = null, fromContextMenu = false) {
         };
     }
 
-// モーダルのタイトルと内容を設定
 const modalTitle = isEdit ? '予定を編集' : '新しい予定を追加';
 const modalBody = this.generateEventModalBody();
 const modalFooter = this.generateEventModalFooter(isEdit);
@@ -2480,7 +2146,6 @@ alert('終了時間は開始時間より後に設定してください');
 return;
 }
 
-// 座標の形式チェック
 if (coordinates && !this.validateCoordinates(coordinates)) {
 alert('緯度経度の形式が正しくありません。\n正しい形式：34.702485,135.495951');
 return;
@@ -2497,13 +2162,11 @@ description
 };
 
 if (isEdit) {
-// 編集の場合
 const eventIndex = this.events.findIndex(e => e.id === this.eventForm.id);
 if (eventIndex !== -1) {
 this.events[eventIndex] = { ...this.events[eventIndex], ...eventData };
 }
 } else {
-// 新規追加の場合
 eventData.id = Date.now() + Math.random();
 this.events.push(eventData);
 }
@@ -2512,10 +2175,8 @@ this.saveData();
 this.closeAllModals();
 this.editModeEvent = null;
 
-// 追加・編集した日程をアクティブにする
 this.activeDay = dayIndex;
 
-// 天気予報を再取得
 this.loadWeatherForAllEvents();
 
 if (navigator.vibrate) navigator.vibrate(100);
@@ -2547,7 +2208,6 @@ if (modalElement) {
 const bootstrapModal = new bootstrap.Modal(modalElement);
 bootstrapModal.show();
 
-// モーダルが閉じられたときにmodals配列から削除
 modalElement.addEventListener('hidden.bs.modal', () => {
 const index = this.modals.findIndex(m => m.id === modalId);
 if (index !== -1) {
@@ -2603,7 +2263,6 @@ if (confirm('開始日を変更しますか？既存の予定も日程が調整�
 this.tripDays = this.generateConsecutiveDays(newStartDate, this.tripDays.length);
 this.saveData();
 this.closeAllModals();
-// 天気予報を再取得
 this.loadWeatherForAllEvents();
 if (navigator.vibrate) navigator.vibrate(100);
 }
@@ -2621,9 +2280,9 @@ openWeatherPopup(event) {
         if (!dayData) {
             throw new Error('該当日程データが見つかりません。');
         }
-        const date = dayData.fullDate.replace(/-/g, ''); // YYYY-MM-DD -> YYYYMMDD
-        const hour = event.startTime.split(':')[0].padStart(2, '0'); // HH:MM -> HH
-        const datetime = `${date}${hour}00`; // YYYYMMDDHH00
+        const date = dayData.fullDate.replace(/-/g, '');
+        const hour = event.startTime.split(':')[0].padStart(2, '0');
+        const datetime = `${date}${hour}00`;
         
         this.weatherPopupUrl = `https://nokonokotubotubo.github.io/fukunavi/?lat=${lat.trim()}&lng=${lng.trim()}&datetime=${datetime}`;
         this.showWeatherPopup = true;
@@ -2635,10 +2294,9 @@ openWeatherPopup(event) {
 },
 closeWeatherPopup() {
     this.showWeatherPopup = false;
-    this.weatherPopupUrl = ''; // メモリ解放のためにURLをクリア
+    this.weatherPopupUrl = '';
 },
 
-// 設定モーダル関数
 openSettingsModal() {
 this.showSettingsModal = true;
 },
@@ -2647,7 +2305,7 @@ closeSettingsModal() {
 this.showSettingsModal = false;
 },
 
-// GitHub同期関数（問題解決版）
+// 【改良】GitHub同期設定（変更フラグ管理版）
 async saveGitHubSync() {
 const token = this.syncForm.token.trim();
 const gistId = this.syncForm.gistId.trim();
@@ -2658,11 +2316,9 @@ return;
 }
 
 try {
-console.log('GitHub同期初期化開始');
-// 初期化
+console.log('GitHub同期初期化開始（変更フラグ管理版）');
 TrippenGistSync.init(token, gistId || null);
 
-// Vue.jsの状態を即座に更新
 this.gistSync = {
 isEnabled: TrippenGistSync.isEnabled,
 gistId: TrippenGistSync.gistId,
@@ -2675,16 +2331,14 @@ hasError: false
 
 console.log('Vue.js状態更新完了:', this.gistSync);
 
-// 【重要】初回書き込みを明示的に実行してGist IDを取得
 const syncResult = await TrippenGistSync.manualWriteToCloud();
 
 if (syncResult) {
-// Vue.jsの状態を再更新
 this.gistSync.gistId = TrippenGistSync.gistId;
 this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
 
 this.syncForm = { token: '', gistId: '' };
-alert('GitHub同期を開始しました（問題解決版）\nGist ID: ' + TrippenGistSync.gistId);
+alert('GitHub同期を開始しました（変更フラグ管理版）\nGist ID: ' + TrippenGistSync.gistId);
 console.log('GitHub同期設定完了');
 } else {
 throw new Error('初回書き込みに失敗しました');
@@ -2724,12 +2378,10 @@ this.gistSync.isSyncing = false;
 }
 },
 
-// 【修正】クラウドから読み込み - 確実な状態管理
 async loadFromCloud() {
 console.log('Vue.js側 loadFromCloud() 開始');
 console.log('現在のVue.js状態:', this.gistSync);
 
-// 【修正】TrippenGistSyncの状態を再確認
 if (!TrippenGistSync.isEnabled || !TrippenGistSync.token) {
 console.error('TrippenGistSync無効:', {
 isEnabled: TrippenGistSync.isEnabled,
@@ -2757,19 +2409,17 @@ if (!cloudData || !cloudData.data) {
 throw new Error('クラウドデータの形式が正しくありません');
 }
 
-// データの強制的な上書き更新
 if (cloudData.data.events) {
 console.log('イベントデータ更新:', cloudData.data.events.length, '件');
-this.events = [...cloudData.data.events]; // 配列の完全置換
+this.events = [...cloudData.data.events];
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 }
 
 if (cloudData.data.days) {
 console.log('日程データ更新:', cloudData.data.days.length, '日分');
-this.tripDays = [...cloudData.data.days]; // 配列の完全置換
+this.tripDays = [...cloudData.data.days];
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
 
-// 初期化フラグの確実な更新
 this.$nextTick(() => {
 this.tripInitialized = this.tripDays.length > 0;
 console.log('tripInitialized更新:', this.tripInitialized);
@@ -2781,7 +2431,6 @@ this.eventLayerOrder = [...cloudData.data.layerOrder];
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
 }
 
-// 状態の強制更新
 this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
 this.gistSync.hasError = false;
 
@@ -2790,7 +2439,6 @@ const dayCount = cloudData.data.days ? cloudData.data.days.length : 0;
 
 alert(`クラウドからデータを読み込みました\n日程: ${dayCount}日分\n予定: ${eventCount}件`);
 
-// 天気予報を再取得
 if (this.events.length > 0) {
 this.loadWeatherForAllEvents();
 }
@@ -2806,7 +2454,6 @@ this.gistSync.isLoading = false;
 }
 },
 
-// 競合処理
 handleSyncConflict() {
 console.log('競合検出 - モーダル表示');
 this.showConflictModal = true;
@@ -2816,7 +2463,6 @@ closeConflictModal() {
 this.showConflictModal = false;
 },
 
-// 強制的にクラウドから読み込み
 async forceLoadFromCloud() {
 this.closeConflictModal();
 await this.loadFromCloud();
@@ -2832,7 +2478,6 @@ try {
 navigator.clipboard.writeText(this.gistSync.gistId).then(() => {
 alert('Gist IDをクリップボードにコピーしました');
 }).catch(() => {
-// フォールバック
 const textArea = document.createElement('textarea');
 textArea.value = this.gistSync.gistId;
 document.body.appendChild(textArea);
@@ -2881,13 +2526,11 @@ return '日時不明';
 }
 },
 
-// レイヤー順序の保存
 saveLayerOrder() {
 localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
 localStorage.setItem('trippenMaxZIndex', this.maxZIndex.toString());
 },
 
-// レイヤー順序の読み込み
 loadLayerOrder() {
 const savedLayerOrder = localStorage.getItem('trippenLayerOrder');
 const savedMaxZIndex = localStorage.getItem('trippenMaxZIndex');
@@ -2905,14 +2548,19 @@ if (savedMaxZIndex) {
 this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
 }
 },
-// saveDataメソッドの修正
+
+// 【改良】データ保存（変更フラグ管理版）
 saveData() {
 localStorage.setItem('trippenEvents', JSON.stringify(this.events));
 localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
 this.saveLayerOrder();
+
+// 【新機能】変更フラグを設定
+if (TrippenGistSync.isEnabled) {
+TrippenGistSync.markChanged();
+}
 },
 
-// loadDataメソッドの修正
 loadData() {
 const savedEvents = localStorage.getItem('trippenEvents');
 const savedDays = localStorage.getItem('trippenDays');
@@ -2935,13 +2583,11 @@ this.tripDays = [];
 }
 }
 
-// レイヤー順序の読み込み
 this.loadLayerOrder();
 }
 },
-// 【修正】mounted() - 確実な初期化プロセス
 mounted() {
-console.log('Vue.jsアプリ初期化開始');
+console.log('Vue.jsアプリ初期化開始（変更フラグ管理版）');
 
 this.detectMobile();
 this.checkExistingData();
@@ -2953,7 +2599,6 @@ this.loadWeatherForAllEvents();
 window.addEventListener('resize', this.detectMobile);
 window.app = this;
 
-// GitHub同期の初期化（問題解決版）
 console.log('TrippenGistSync初期化開始');
 const config = TrippenGistSync.loadConfig();
 console.log('読み込まれた設定:', config);
@@ -2961,7 +2606,6 @@ console.log('読み込まれた設定:', config);
 if (config && TrippenGistSync.isEnabled) {
 console.log('GitHub同期有効 - Vue.js状態同期開始');
 
-// 【重要】確実な状態同期
 this.gistSync = {
 isEnabled: TrippenGistSync.isEnabled,
 gistId: TrippenGistSync.gistId,
@@ -2974,10 +2618,8 @@ hasError: false
 
 console.log('Vue.js同期状態:', this.gistSync);
 
-// 定期書き込みを開始
 TrippenGistSync.startPeriodicSync();
 
-// アプリ起動時に初回自動読み込み実行
 if (TrippenGistSync.gistId) {
 console.log('初回自動読み込み開始');
 setTimeout(async () => {
@@ -2985,18 +2627,17 @@ try {
 const cloudData = await TrippenGistSync.initialAutoLoad();
 if (cloudData && cloudData.data) {
 console.log('初回自動読み込みでデータを取得しました');
-// 画面更新は不要（手動読み込みボタンで対応）
 }
 } catch (error) {
 console.error('初回自動読み込みエラー:', error);
 }
-}, 3000); // 3秒後に初回読み込み
+}, 3000);
 }
 } else {
 console.log('GitHub同期無効');
 }
 
-console.log('Vue.jsアプリ初期化完了');
+console.log('Vue.jsアプリ初期化完了（変更フラグ管理版）');
 }
 }).mount('#app');
 </script>
