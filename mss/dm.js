@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（シンプル化された競合回避機能統合版）
+// Minews PWA - データ管理・処理レイヤー（負荷軽減・最適化版）
 
 (function() {
 
@@ -39,7 +39,7 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 改良版GitHub Gist同期システム（シンプル化された競合回避機能統合版）
+// 改良版GitHub Gist同期システム（負荷軽減・最適化版）
 // ===========================================
 
 window.GistSyncManager = {
@@ -403,24 +403,41 @@ window.GistSyncManager = {
         };
     },
 
-    // 【改良】記事状態マージ（ログ追加版）
+    // 【修正3】記事状態マージの最適化
     _mergeArticleStates(localStates, cloudStates) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
         
-        const mergedStates = { ...cloudStates };
+        // 【改善1】現在存在する記事IDのみを対象にする
+        const articlesHook = window.DataHooks.useArticles();
+        const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
+        
+        const mergedStates = {};
         let mergeCount = 0;
         let localWinCount = 0;
         let cloudWinCount = 0;
         
-        Object.keys(localStates).forEach(articleId => {
+        // 【改善2】現在存在する記事IDのみをマージ対象にする
+        const allRelevantIds = new Set([
+            ...Object.keys(localStates),
+            ...Object.keys(cloudStates)
+        ]);
+        
+        allRelevantIds.forEach(articleId => {
+            // 現在存在しない記事IDはスキップ
+            if (!currentArticleIds.has(articleId)) {
+                return;
+            }
+            
             const localState = localStates[articleId];
             const cloudState = cloudStates[articleId];
             
             if (!cloudState) {
                 mergedStates[articleId] = localState;
-                mergeCount++;
-                console.log(`記事 ${articleId}: ローカルのみ存在 -> ローカルを使用`);
+                localWinCount++;
+            } else if (!localState) {
+                mergedStates[articleId] = cloudState;
+                cloudWinCount++;
             } else {
                 const localTime = new Date(localState.lastModified || 0).getTime();
                 const cloudTime = new Date(cloudState.lastModified || 0).getTime();
@@ -428,17 +445,17 @@ window.GistSyncManager = {
                 if (localTime >= cloudTime) {
                     mergedStates[articleId] = localState;
                     localWinCount++;
-                    console.log(`記事 ${articleId}: ローカル優先 (${new Date(localTime).toLocaleString()} >= ${new Date(cloudTime).toLocaleString()})`);
                 } else {
                     mergedStates[articleId] = cloudState;
                     cloudWinCount++;
-                    console.log(`記事 ${articleId}: クラウド優先 (${new Date(cloudTime).toLocaleString()} > ${new Date(localTime).toLocaleString()})`);
                 }
-                mergeCount++;
             }
+            mergeCount++;
         });
         
-        console.log(`記事状態マージ完了: 全${mergeCount}件 (ローカル優先: ${localWinCount}件, クラウド優先: ${cloudWinCount}件)`);
+        // 【改善3】ログを簡潔にまとめる
+        console.log(`記事状態マージ完了: ${mergeCount}件（ローカル優先: ${localWinCount}件、クラウド優先: ${cloudWinCount}件）`);
+        
         return mergedStates;
     },
 
@@ -736,7 +753,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】同期対象データ収集（タイムスタンプ改善版）
+    // 【修正2】同期対象データ収集（負荷軽減版）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -745,14 +762,31 @@ window.GistSyncManager = {
         const articleStates = {};
         const currentTime = new Date().toISOString();
         
+        // 【重要】現在存在する記事IDのセットを作成
+        const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
+        
+        // 【改善1】現在存在する記事のみを同期対象にする
         articlesHook.articles.forEach(article => {
-            articleStates[article.id] = {
-                readStatus: article.readStatus,
-                userRating: article.userRating || 0,
-                readLater: article.readLater || false,
-                lastModified: article.lastModified || currentTime
-            };
+            // デフォルト値と異なる場合のみ同期対象に追加
+            const hasCustomState = 
+                article.readStatus === 'read' || 
+                (article.userRating && article.userRating > 0) || 
+                article.readLater === true;
+                
+            if (hasCustomState) {
+                articleStates[article.id] = {
+                    readStatus: article.readStatus,
+                    userRating: article.userRating || 0,
+                    readLater: article.readLater || false,
+                    lastModified: article.lastModified || currentTime
+                };
+            }
         });
+        
+        // 【改善2】既存の同期データから古い記事IDを除外
+        this._cleanupOldArticleStates(currentArticleIds);
+        
+        console.log(`同期対象記事状態: ${Object.keys(articleStates).length}件（全記事: ${articlesHook.articles.length}件）`);
         
         return {
             version: window.CONFIG.DATA_VERSION,
@@ -761,6 +795,39 @@ window.GistSyncManager = {
             wordFilters: wordHook.wordFilters,
             articleStates: articleStates
         };
+    },
+
+    // 【新規追加】古い記事状態のクリーンアップ機能
+    _cleanupOldArticleStates(currentArticleIds) {
+        try {
+            // 前回の同期データから古いIDを検出・削除
+            const lastCleanupKey = 'minews_last_cleanup';
+            const lastCleanup = localStorage.getItem(lastCleanupKey);
+            const now = Date.now();
+            
+            // 1日に1回だけクリーンアップを実行
+            if (lastCleanup && (now - parseInt(lastCleanup)) < 86400000) {
+                return;
+            }
+            
+            // 記事データから古いIDを削除
+            const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
+            if (Array.isArray(articlesData)) {
+                const validArticles = articlesData.filter(article => currentArticleIds.has(article.id));
+                const removedCount = articlesData.length - validArticles.length;
+                
+                if (removedCount > 0) {
+                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, validArticles);
+                    console.log(`古い記事データをクリーンアップ: ${removedCount}件削除`);
+                }
+            }
+            
+            // クリーンアップ実行時刻を記録
+            localStorage.setItem(lastCleanupKey, now.toString());
+            
+        } catch (error) {
+            console.warn('記事状態クリーンアップエラー:', error);
+        }
     },
 
     // クラウド同期（アップロード）
@@ -1218,16 +1285,31 @@ window.DataHooks = {
         
         return {
             articles: window.DataHooksCache.articles,
+            // 【修正4】記事追加時の重複チェック強化
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
                 
-                const exists = updatedArticles.find(article =>
-                    article.id === newArticle.id ||
-                    article.url === newArticle.url ||
-                    (article.title === newArticle.title && article.rssSource === newArticle.rssSource)
-                );
+                // 【改善】より厳密な重複チェック
+                const exists = updatedArticles.find(article => {
+                    // ID完全一致
+                    if (article.id === newArticle.id) return true;
+                    
+                    // URL完全一致
+                    if (article.url === newArticle.url) return true;
+                    
+                    // タイトル+配信元+日付での重複チェック
+                    if (article.title === newArticle.title && 
+                        article.rssSource === newArticle.rssSource &&
+                        article.publishDate === newArticle.publishDate) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
                 
                 if (exists) {
+                    // 【改善】重複記事の詳細ログ（デバッグ用）
+                    console.log(`重複記事をスキップ: ${newArticle.title} (${newArticle.rssSource})`);
                     return false;
                 }
                 
@@ -1249,9 +1331,10 @@ window.DataHooks = {
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
+                console.log(`新しい記事を追加: ${newArticle.title} (${newArticle.rssSource})`);
                 return true;
             },
-            // 【修正】記事更新時のタイムスタンプ自動追加
+            // 記事更新時のタイムスタンプ自動追加
             updateArticle(articleId, updates, options = {}) {
                 const { skipRender = false } = options;
                 
