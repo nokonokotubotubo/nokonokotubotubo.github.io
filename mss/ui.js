@@ -1,12 +1,12 @@
-// Minews PWA - UI・表示レイヤー（フォルダ・フィード対応版）
+// Minews PWA - UI・表示レイヤー（フォルダフィルター対応・負荷軽減・最適化版）
 (function() {
     'use strict';
 
     // ===========================================
-    // フィルター状態永続化機能（拡張版）
+    // フィルター状態永続化機能（フォルダ対応版）
     // ===========================================
 
-    // フィルター状態をLocalStorageから復元
+    // フィルター状態をLocalStorageから復元（フォルダ対応）
     const getStoredFilterState = () => {
         try {
             const stored = localStorage.getItem('minews_filterState');
@@ -14,9 +14,8 @@
                 const parsed = JSON.parse(stored);
                 return {
                     viewMode: parsed.viewMode || 'all',
-                    selectedFolders: parsed.selectedFolders || [],
-                    selectedFeeds: parsed.selectedFeeds || [],
-                    filterMode: parsed.filterMode || 'all' // 'all', 'folder', 'feed'
+                    selectedSource: parsed.selectedSource || 'all',
+                    selectedFolders: parsed.selectedFolders || [] // 【新規追加】フォルダフィルター
                 };
             }
         } catch (error) {
@@ -24,21 +23,15 @@
         }
         return {
             viewMode: 'all',
-            selectedFolders: [],
-            selectedFeeds: [],
-            filterMode: 'all'
+            selectedSource: 'all',
+            selectedFolders: [] // 【新規追加】空配列で初期化
         };
     };
 
-    // フィルター状態をLocalStorageに保存
-    const saveFilterState = (viewMode, selectedFolders, selectedFeeds, filterMode) => {
+    // フィルター状態をLocalStorageに保存（フォルダ対応）
+    const saveFilterState = (viewMode, selectedSource, selectedFolders = []) => {
         try {
-            const filterState = { 
-                viewMode, 
-                selectedFolders: selectedFolders || [], 
-                selectedFeeds: selectedFeeds || [],
-                filterMode: filterMode || 'all'
-            };
+            const filterState = { viewMode, selectedSource, selectedFolders };
             localStorage.setItem('minews_filterState', JSON.stringify(filterState));
         } catch (error) {
             console.warn('フィルター状態の保存に失敗:', error);
@@ -46,76 +39,59 @@
     };
 
     // ===========================================
-    // アプリケーション状態管理（拡張版）
+    // アプリケーション状態管理（フォルダ対応版）
     // ===========================================
 
-    // 初期状態でLocalStorageから復元（フォルダ・フィード対応）
+    // 初期状態でLocalStorageから復元（フォルダフィルター対応）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
-        selectedFolders: initialFilterState.selectedFolders,
-        selectedFeeds: initialFilterState.selectedFeeds,
-        filterMode: initialFilterState.filterMode,
+        selectedSource: initialFilterState.selectedSource,
+        selectedFolders: initialFilterState.selectedFolders, // 【新規追加】フォルダ選択状態
         showModal: null,
         articles: [],
-        folders: {}, // フォルダ情報を保持
+        folders: [], // 【新規追加】フォルダ一覧
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,     // 手動同期中フラグ
-        isBackgroundSyncing: false // バックグラウンド同期フラグ
+        isBackgroundSyncing: false, // バックグラウンド同期フラグ
+        folderDropdownOpen: false   // 【新規追加】フォルダドロップダウン開閉状態
     };
 
-    // setState統合版（フォルダ・フィード対応）
+    // setState統合版（フォルダ対応・自動保存機能付き）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
         
-        // フィルター関連の状態変更時は自動保存
-        if (newState.viewMode !== undefined || 
-            newState.selectedFolders !== undefined || 
-            newState.selectedFeeds !== undefined ||
-            newState.filterMode !== undefined) {
+        // フィルター関連の状態変更時は自動保存（フォルダ含む）
+        if (newState.viewMode !== undefined || newState.selectedSource !== undefined || newState.selectedFolders !== undefined) {
             saveFilterState(
                 newState.viewMode || window.state.viewMode,
-                newState.selectedFolders || window.state.selectedFolders,
-                newState.selectedFeeds || window.state.selectedFeeds,
-                newState.filterMode || window.state.filterMode
+                newState.selectedSource || window.state.selectedSource,
+                newState.selectedFolders || window.state.selectedFolders
             );
         }
         
         window.render();
     };
 
+    // 【修正】初期化関数（フォルダデータ読み込み対応）
     const initializeData = () => {
         const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles);
         const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
         const wordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
+        
+        // 【新規追加】フォルダデータの読み込み
+        const foldersData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders || []);
 
         Object.assign(window.DataHooksCache, {
             articles: articlesData,
             aiLearning: aiData,
-            wordFilters: wordData
+            wordFilters: wordData,
+            folders: foldersData // 【新規追加】フォルダキャッシュ
         });
 
         window.state.articles = articlesData;
-        
-        // フォルダ情報の初期化
-        loadFolderData();
-    };
-
-    const loadFolderData = async () => {
-        try {
-            const response = await fetch('./articles.json');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.folders) {
-                    window.state.folders = data.folders;
-                    console.log('フォルダ情報を読み込みました:', Object.keys(data.folders).length, '個のフォルダ');
-                }
-            }
-        } catch (error) {
-            console.warn('フォルダ情報の読み込みに失敗:', error);
-            window.state.folders = {};
-        }
+        window.state.folders = foldersData; // 【新規追加】状態にフォルダ設定
     };
 
     // Gist同期初期化関数
@@ -191,106 +167,7 @@
     };
 
     // ===========================================
-    // フォルダ・フィード構造管理
-    // ===========================================
-
-    const generateFolderStructure = () => {
-        const structure = {};
-        
-        // 記事からフォルダ・フィード情報を収集
-        window.state.articles.forEach(article => {
-            const folderId = article.folderId || 'uncategorized';
-            const folderName = article.folderName || '未分類';
-            const feedName = article.rssSource;
-            
-            if (!structure[folderId]) {
-                structure[folderId] = {
-                    id: folderId,
-                    name: folderName,
-                    feeds: new Set()
-                };
-            }
-            
-            structure[folderId].feeds.add(feedName);
-        });
-        
-        // Set を Array に変換
-        Object.values(structure).forEach(folder => {
-            folder.feeds = Array.from(folder.feeds).sort();
-        });
-        
-        return structure;
-    };
-
-    const getActiveFiltersCount = () => {
-        return window.state.selectedFolders.length + window.state.selectedFeeds.length;
-    };
-
-    // ===========================================
-    // フォルダ・フィード選択ハンドラー
-    // ===========================================
-
-    const handleFolderToggle = (folderId) => {
-        const selectedFolders = [...window.state.selectedFolders];
-        const index = selectedFolders.indexOf(folderId);
-        
-        if (index > -1) {
-            selectedFolders.splice(index, 1);
-        } else {
-            selectedFolders.push(folderId);
-        }
-        
-        setState({ 
-            selectedFolders, 
-            filterMode: selectedFolders.length > 0 ? 'folder' : 'all' 
-        });
-    };
-
-    const handleFeedToggle = (feedName) => {
-        const selectedFeeds = [...window.state.selectedFeeds];
-        const index = selectedFeeds.indexOf(feedName);
-        
-        if (index > -1) {
-            selectedFeeds.splice(index, 1);
-        } else {
-            selectedFeeds.push(feedName);
-        }
-        
-        setState({ 
-            selectedFeeds, 
-            filterMode: selectedFeeds.length > 0 ? 'feed' : 'all' 
-        });
-    };
-
-    const handleSelectAllFolders = () => {
-        const folderStructure = generateFolderStructure();
-        const allFolderIds = Object.keys(folderStructure);
-        setState({ 
-            selectedFolders: allFolderIds, 
-            selectedFeeds: [],
-            filterMode: 'folder' 
-        });
-    };
-
-    const handleSelectAllFeeds = () => {
-        const allFeeds = [...new Set(window.state.articles.map(article => article.rssSource))];
-        setState({ 
-            selectedFolders: [],
-            selectedFeeds: allFeeds, 
-            filterMode: 'feed' 
-        });
-    };
-
-    const handleClearAllFilters = () => {
-        setState({ 
-            selectedFolders: [], 
-            selectedFeeds: [], 
-            filterMode: 'all' 
-        });
-    };
-
-    // ===========================================
-    // GitHub同期管理関数
+    // GitHub同期管理関数（完全サイレント同期対応版）
     // ===========================================
 
     // GitHub同期管理関数
@@ -327,7 +204,7 @@
         }
     };
 
-    // 手動同期関数
+    // 手動同期関数（完全サイレント同期対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -347,7 +224,7 @@
         }
     };
 
-    // クラウド復元処理
+    // クラウド復元処理（完全サイレント同期対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -403,6 +280,7 @@
             }
             
             alert('クラウドからデータを復元しました');
+            // 手動復元は明示的に画面更新
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
@@ -557,11 +435,44 @@
     };
 
     // ===========================================
-    // フィルタ・イベントハンドラ
+    // フィルタ・イベントハンドラ（フォルダ対応版）
     // ===========================================
 
     const handleFilterChange = (mode) => {
         setState({ viewMode: mode });
+    };
+
+    const handleSourceChange = (sourceId) => {
+        setState({ selectedSource: sourceId });
+    };
+
+    // 【新規追加】フォルダフィルター変更ハンドラ
+    const handleFolderChange = (folderId) => {
+        const currentFolders = [...window.state.selectedFolders];
+        const index = currentFolders.indexOf(folderId);
+        
+        if (index > -1) {
+            // 選択解除
+            currentFolders.splice(index, 1);
+        } else {
+            // 選択追加
+            currentFolders.push(folderId);
+        }
+        
+        setState({ selectedFolders: currentFolders });
+    };
+
+    // 【新規追加】フォルダドロップダウン開閉
+    const handleToggleFolderDropdown = () => {
+        setState({ folderDropdownOpen: !window.state.folderDropdownOpen });
+    };
+
+    // 【新規追加】ドロップダウン外クリック処理
+    const handleDocumentClick = (event) => {
+        const folderDropdown = document.querySelector('.folder-filter-dropdown');
+        if (folderDropdown && !folderDropdown.contains(event.target)) {
+            setState({ folderDropdownOpen: false });
+        }
     };
 
     const handleRefresh = async () => {
@@ -589,7 +500,7 @@
     };
 
     // ===========================================
-    // 記事操作（負荷軽減版）
+    // 【確実な同期マーク設定】記事操作（負荷軽減版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -778,10 +689,62 @@
     };
 
     // ===========================================
-    // レンダリング（フォルダ・フィード対応版）
+    // レンダリング（フォルダフィルター対応版）
     // ===========================================
 
+    // 【新規追加】フォルダからRSSソースの逆引きマップを生成
+    const getFolderToSourcesMap = () => {
+        const folderToSources = {};
+        
+        // XMLパースエラー対応版マッピング（rsslist.xmlベース）
+        const xmlMapping = {
+            '生成AI': ['生成AIタグが付けられた新着記事 - Qiita', 'Zennの「生成 AI」のフィード'],
+            '仕事': ['ブルームバーグ トップニュース', '日経新聞 テクノロジー', '日経新聞 ビジネス', '日経ビジネスPLUS 最新記事', '日経ビジネスX 最新記事', '日経ビジネス電子版　最新記事', 'グローバルマクロ・リサーチ・インスティテュート'],
+            'システム': ['IT・システム – 流通ニュース', 'マイナビニュース 企業IT', '＠IT 全フォーラム 最新記事一覧', 'IT（情報技術） - 日経 xTECH（クロステック）'],
+            'IT': ['ミ田の備忘録', 'Dream Seed', '気になる、記になる…', 'CNET Japan 最新情報　総合', '8796.jp管理日誌', 'Gadget Gate', 'ReaMEIZU', 'はやぽんログ！', 'ZDNet Japan 最新情報　総合', '家電 Watch', '8vivid', 'ケータイ Watch', 'AKIBA PC Hotline!', 'マイナビニュース スマホとデジタル家電', 'マイナビニュース パソコン', 'HelenTech.net', 'telektlist', 'HANPEN-BLOG', 'SIMフリー遊び', 'PC Watch', 'ヲチモノ', '携帯総合研究所', 'ITmedia Mobile 最新記事一覧', '情報科学屋さんを目指す人のメモ', 'ITmedia エンタープライズ 最新記事一覧', 'INTERNET Watch', '道具眼日誌：古田-私的記録', '寝る子ブログ', '価格.comマガジン', 'パソコン 【価格.com　新製品ニュース】', '家電 【価格.com　新製品ニュース】', '携帯電話・スマートフォン 【価格.com　新製品ニュース】', 'orefolder.net', 'ロボスタ', 'そうすけブログ.com', 'AndroPlus'],
+            '価格': ['激安特価マンBlog', '白ロム転売法', 'ヤフオク落札価格より安い超特価品情報blog', '激安特価品調査ブログ', 'こまめブログ', '特価blog919!!', '激安★超特価商店街', 'カードレビューズ', '激安速報 特価品伝道者'],
+            '2軍': ['GIGAZINE'],
+            '未分類': ['Android Authority', '市況かぶ全力２階建']
+        };
+
+        return xmlMapping;
+    };
+
+    // 【修正】ナビゲーション（フォルダフィルター完全統合版）
     const renderNavigation = () => {
+        const sources = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
+        const sourceOptions = [
+            '<option value="all">全提供元</option>',
+            ...sources.map(source => 
+                `<option value="${source}" ${window.state.selectedSource === source ? 'selected' : ''}>${source}</option>`
+            )
+        ].join('');
+
+        // 【新規追加】フォルダドロップダウン+チェックボックス生成
+        const folderToSources = getFolderToSourcesMap();
+        const folderNames = Object.keys(folderToSources);
+        
+        const renderFolderOptions = () => {
+            return folderNames.map(folderName => {
+                const isChecked = window.state.selectedFolders.includes(folderName);
+                return `
+                    <label class="folder-option">
+                        <input type="checkbox" 
+                               value="${folderName}" 
+                               ${isChecked ? 'checked' : ''}
+                               onchange="handleFolderChange('${folderName}')">
+                        <span class="folder-label">${folderName}</span>
+                    </label>
+                `;
+            }).join('');
+        };
+
+        const selectedFolderText = window.state.selectedFolders.length === 0 
+            ? '全フォルダ' 
+            : window.state.selectedFolders.length === 1 
+                ? window.state.selectedFolders[0]
+                : `${window.state.selectedFolders.length}個選択`;
+
         return `
             <nav class="nav">
                 <div class="nav-top-row">
@@ -801,6 +764,13 @@
                 
                 <div class="nav-filters-mobile">
                     <div class="filter-row">
+                        <label for="sourceFilter">提供元:</label>
+                        <select id="sourceFilter" class="filter-select" onchange="handleSourceChange(this.value)">
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-row">
                         <label for="viewFilter">表示:</label>
                         <select id="viewFilter" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
@@ -810,10 +780,17 @@
                         </select>
                     </div>
                     
+                    <!-- 【新規追加】フォルダフィルター（ドロップダウン+チェックボックス） -->
                     <div class="filter-row">
-                        <button class="action-btn" onclick="handleOpenModal('filters')">
-                            フォルダ・フィード選択 (${getActiveFiltersCount()})
-                        </button>
+                        <label>フォルダ:</label>
+                        <div class="folder-filter-dropdown">
+                            <button class="folder-dropdown-button" onclick="handleToggleFolderDropdown()">
+                                ${selectedFolderText} ▼
+                            </button>
+                            <div class="folder-dropdown-content ${window.state.folderDropdownOpen ? 'open' : ''}">
+                                ${renderFolderOptions()}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -823,7 +800,35 @@
                 </div>
                 
                 <div class="nav-filters desktop-only">
-                    ${renderDesktopFilters()}
+                    <div class="filter-group">
+                        <label for="sourceFilter2">提供元:</label>
+                        <select id="sourceFilter2" class="filter-select" onchange="handleSourceChange(this.value)">
+                            ${sourceOptions}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="viewFilter2">表示:</label>
+                        <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
+                            <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
+                            <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
+                            <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
+                            <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
+                        </select>
+                    </div>
+
+                    <!-- 【新規追加】デスクトップ版フォルダフィルター -->
+                    <div class="filter-group">
+                        <label>フォルダ:</label>
+                        <div class="folder-filter-dropdown">
+                            <button class="folder-dropdown-button" onclick="handleToggleFolderDropdown()">
+                                ${selectedFolderText} ▼
+                            </button>
+                            <div class="folder-dropdown-content ${window.state.folderDropdownOpen ? 'open' : ''}">
+                                ${renderFolderOptions()}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="nav-actions desktop-only">
@@ -838,124 +843,26 @@
         `;
     };
 
-    const renderDesktopFilters = () => {
-        const folderStructure = generateFolderStructure();
-        
-        return `
-            <div class="filter-group">
-                <label for="viewFilter2">表示:</label>
-                <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
-                    <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
-                    <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
-                    <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
-                    <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
-                </select>
-            </div>
-            
-            <div class="filter-group desktop-folder-filters">
-                <div class="folder-filter-container">
-                    <div class="filter-controls">
-                        <button class="filter-control-btn" onclick="handleSelectAllFolders()">全フォルダ</button>
-                        <button class="filter-control-btn" onclick="handleSelectAllFeeds()">全フィード</button>
-                        <button class="filter-control-btn" onclick="handleClearAllFilters()">クリア</button>
-                    </div>
-                    
-                    <div class="folder-list">
-                        ${Object.values(folderStructure).map(folder => `
-                            <div class="folder-item">
-                                <label class="folder-checkbox">
-                                    <input type="checkbox" 
-                                           ${window.state.selectedFolders.includes(folder.id) ? 'checked' : ''}
-                                           onchange="handleFolderToggle('${folder.id}')">
-                                    <span class="folder-name">${folder.name} (${folder.feeds.length})</span>
-                                </label>
-                                
-                                <div class="feed-list ${window.state.selectedFolders.includes(folder.id) ? 'expanded' : ''}">
-                                    ${folder.feeds.map(feed => `
-                                        <label class="feed-checkbox">
-                                            <input type="checkbox" 
-                                                   ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''}
-                                                   onchange="handleFeedToggle('${feed}')">
-                                            <span class="feed-name">${feed}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    };
-
-    // フィルターモーダルの追加
-    const renderFiltersModal = () => {
-        const folderStructure = generateFolderStructure();
-        
-        return `
-            <div class="modal-overlay" onclick="handleCloseModal()">
-                <div class="modal filter-modal" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h2>フォルダ・フィード選択</h2>
-                        <button class="modal-close" onclick="handleCloseModal()">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="filter-controls">
-                            <button class="action-btn" onclick="handleSelectAllFolders()">全フォルダ選択</button>
-                            <button class="action-btn" onclick="handleSelectAllFeeds()">全フィード選択</button>
-                            <button class="action-btn danger" onclick="handleClearAllFilters()">全てクリア</button>
-                        </div>
-                        
-                        <div class="current-selection">
-                            <p>選択中: フォルダ ${window.state.selectedFolders.length}個、フィード ${window.state.selectedFeeds.length}個</p>
-                        </div>
-                        
-                        <div class="folder-structure">
-                            ${Object.values(folderStructure).map(folder => `
-                                <div class="folder-section">
-                                    <div class="folder-header">
-                                        <label class="folder-checkbox">
-                                            <input type="checkbox" 
-                                                   ${window.state.selectedFolders.includes(folder.id) ? 'checked' : ''}
-                                                   onchange="handleFolderToggle('${folder.id}')">
-                                            <span class="folder-title">${folder.name}</span>
-                                            <span class="folder-count">(${folder.feeds.length}フィード)</span>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="feed-grid">
-                                        ${folder.feeds.map(feed => `
-                                            <label class="feed-item">
-                                                <input type="checkbox" 
-                                                       ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''}
-                                                       onchange="handleFeedToggle('${feed}')">
-                                                <span class="feed-label">${feed}</span>
-                                            </label>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
-
-    // 記事フィルタリング（フォルダ・フィード対応版）
+    // 【修正】記事フィルタリング（フォルダフィルター統合版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // フォルダ・フィードフィルター
-        if (window.state.filterMode === 'folder' && window.state.selectedFolders.length > 0) {
-            filtered = filtered.filter(article => {
-                const articleFolderId = article.folderId || 'uncategorized';
-                return window.state.selectedFolders.includes(articleFolderId);
+        // 提供元フィルター
+        if (window.state.selectedSource !== 'all') {
+            filtered = filtered.filter(article => article.rssSource === window.state.selectedSource);
+        }
+
+        // 【新規追加】フォルダフィルター
+        if (window.state.selectedFolders.length > 0) {
+            const folderToSources = getFolderToSourcesMap();
+            const selectedSources = new Set();
+            
+            window.state.selectedFolders.forEach(folderName => {
+                const sources = folderToSources[folderName] || [];
+                sources.forEach(source => selectedSources.add(source));
             });
-        } else if (window.state.filterMode === 'feed' && window.state.selectedFeeds.length > 0) {
-            filtered = filtered.filter(article => {
-                return window.state.selectedFeeds.includes(article.rssSource);
-            });
+            
+            filtered = filtered.filter(article => selectedSources.has(article.rssSource));
         }
 
         // 表示モードフィルター
@@ -980,6 +887,9 @@
             console.log('手動同期中のためソートを抑制します');
             return filtered;
         }
+
+        // バックグラウンド同期中は通常通りソートを実行
+        // これにより、フィルター操作時などに最新データで正しくソートされる
 
         // AIスコア計算と通常ソート
         const aiHook = window.DataHooks.useAILearning();
@@ -1232,7 +1142,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        フォルダ・フィード対応版
+                                        フォルダフィルター対応版
                                     </p>
                                 </div>
                             </div>
@@ -1247,8 +1157,6 @@
         switch (window.state.showModal) {
             case 'settings':
                 return renderSettingsModal();
-            case 'filters':
-                return renderFiltersModal();
             default:
                 return '';
         }
@@ -1283,19 +1191,21 @@
             star.removeEventListener('click', window._starClickHandler);
             star.addEventListener('click', window._starClickHandler);
         });
+
+        // 【新規追加】ドキュメントクリックイベントリスナー（ドロップダウン閉じる）
+        document.removeEventListener('click', handleDocumentClick);
+        document.addEventListener('click', handleDocumentClick);
     };
 
     // ===========================================
-    // グローバル関数の追加
+    // 初期化
     // ===========================================
 
-    // グローバル関数をウィンドウに追加
+    // グローバル関数をウィンドウに追加（フォルダフィルター対応）
     window.handleFilterChange = handleFilterChange;
-    window.handleFolderToggle = handleFolderToggle;
-    window.handleFeedToggle = handleFeedToggle;
-    window.handleSelectAllFolders = handleSelectAllFolders;
-    window.handleSelectAllFeeds = handleSelectAllFeeds;
-    window.handleClearAllFilters = handleClearAllFilters;
+    window.handleSourceChange = handleSourceChange;
+    window.handleFolderChange = handleFolderChange; // 【新規追加】
+    window.handleToggleFolderDropdown = handleToggleFolderDropdown; // 【新規追加】
     window.handleRefresh = handleRefresh;
     window.handleArticleClick = handleArticleClick;
     window.handleCloseModal = handleCloseModal;
@@ -1303,10 +1213,6 @@
     window.handleAddWord = handleAddWord;
     window.handleRemoveWord = handleRemoveWord;
     window.initializeGistSync = initializeGistSync;
-
-    // ===========================================
-    // 初期化
-    // ===========================================
 
     // DOM読み込み完了時の初期化
     if (document.readyState === 'loading') {
