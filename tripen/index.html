@@ -542,7 +542,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script>
 const { createApp } = Vue;
 
-// GitHub Gist同期システム（変更フラグ管理版）
+// GitHub Gist同期システム（変更フラグ管理版・完全修正版）
 const TrippenGistSync = {
     token: null,
     gistId: null,
@@ -553,11 +553,11 @@ const TrippenGistSync = {
     periodicSyncInterval: null,
     hasError: false,
     
-    // 【新機能】変更フラグ管理
+    // 変更フラグ管理
     hasChanged: false,
     lastDataHash: null,
 
-    // 【新機能】データハッシュ計算
+    // データハッシュ計算
     calculateHash(data) {
         try {
             const sortedData = {
@@ -570,7 +570,7 @@ const TrippenGistSync = {
             for (let i = 0; i < jsonString.length; i++) {
                 const char = jsonString.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash |= 0; // 32bit整数に変換
+                hash |= 0;
             }
             return hash.toString();
         } catch (error) {
@@ -579,13 +579,13 @@ const TrippenGistSync = {
         }
     },
 
-    // 【新機能】変更フラグ設定
+    // 変更フラグ設定
     markChanged() {
         this.hasChanged = true;
         console.log('データが変更されました - フラグ設定');
     },
 
-    // 【新機能】変更フラグリセット
+    // 変更フラグリセット
     resetChanged() {
         this.hasChanged = false;
         console.log('変更フラグをリセットしました');
@@ -648,7 +648,7 @@ const TrippenGistSync = {
             this.gistId = config.gistId || null;
             this.lastSyncTime = config.lastSyncTime || null;
             this.lastReadTime = config.lastReadTime || null;
-            this.lastDataHash = config.lastDataHash || null; // 【新機能】ハッシュ復元
+            this.lastDataHash = config.lastDataHash || null;
             this.isEnabled = !!(this.token);
             
             console.log('最終状態:', {
@@ -682,7 +682,7 @@ const TrippenGistSync = {
         this.gistId = gistId ? gistId.trim() : null;
         this.isEnabled = true;
         this.hasError = false;
-        this.hasChanged = false; // 【新機能】初期化時にフラグリセット
+        this.hasChanged = false;
 
         const configData = {
             encryptedToken: encryptedToken,
@@ -691,8 +691,8 @@ const TrippenGistSync = {
             configuredAt: this.getUTCTimestamp(),
             lastSyncTime: this.lastSyncTime,
             lastReadTime: this.lastReadTime,
-            lastDataHash: this.lastDataHash, // 【新機能】ハッシュ保存
-            version: '3.0' // バージョンアップ
+            lastDataHash: this.lastDataHash,
+            version: '3.0'
         };
 
         localStorage.setItem('trippen_gist_config', JSON.stringify(configData));
@@ -708,7 +708,7 @@ const TrippenGistSync = {
         
         this.periodicSyncInterval = setInterval(async () => {
             await this.autoWriteToCloud();
-        }, 60000); // 1分間隔
+        }, 60000);
         
         console.log('定期同期開始（1分間隔・変更フラグ管理版）');
     },
@@ -881,14 +881,13 @@ const TrippenGistSync = {
                 throw new Error(`JSONパースエラー: ${parseError.message}`);
             }
             
-            // 【新機能】読み込み時にハッシュを更新
             const newHash = this.calculateHash(parsedData);
             this.lastDataHash = newHash;
             console.log('読み込み時ハッシュ更新:', newHash);
             
             this.lastReadTime = this.getUTCTimestamp();
             this.saveLastReadTime();
-            this.resetChanged(); // 【新機能】読み込み後は変更フラグリセット
+            this.resetChanged();
             
             console.log('読み込み完了:', {
                 eventsCount: parsedData.data?.events?.length || 0,
@@ -941,55 +940,89 @@ const TrippenGistSync = {
         }
     },
 
-    // 【問題回避版】自動書き込み - ハッシュ比較無効化
-async autoWriteToCloud() {
-    if (!this.isEnabled || !this.token || this.isSyncing) {
-        return false;
-    }
+    // 【修正版】自動書き込み（問題回避版）
+    async autoWriteToCloud() {
+        if (!this.isEnabled || !this.token || this.isSyncing) {
+            return false;
+        }
 
-    if (!this.hasChanged) {
-        console.log('変更フラグなし - 書き込みスキップ');
-        return false;
-    }
-    
-    this.isSyncing = true;
-    this.hasError = false;
-    
-    try {
-        console.log('変更フラグあり - 書き込み実行（ハッシュチェック無効）');
-        
-        // 競合チェック
-        const hasNewerData = await this.checkForNewerCloudData();
-        if (hasNewerData) {
-            console.log('競合検出');
-            if (window.app && window.app.handleSyncConflict) {
-                window.app.handleSyncConflict();
-            }
+        if (!this.hasChanged) {
+            console.log('変更フラグなし - 書き込みスキップ');
             return false;
         }
         
-        // データ収集と書き込み
-        const localData = this.collectSyncData();
-        const uploadResult = await this.syncToCloud(localData);
+        this.isSyncing = true;
+        this.hasError = false;
         
-        if (uploadResult) {
-            this.lastSyncTime = this.getUTCTimestamp();
-            this.lastDataHash = this.calculateHash(localData);
-            this.saveLastSyncTime();
-            this.resetChanged();
-            console.log('書き込み完了:', new Date().toLocaleString());
-            return true;
+        try {
+            console.log('変更フラグあり - 書き込み実行（ハッシュチェック無効）');
+            
+            // 競合チェック
+            const hasNewerData = await this.checkForNewerCloudData();
+            if (hasNewerData) {
+                console.log('競合検出');
+                if (window.app && window.app.handleSyncConflict) {
+                    window.app.handleSyncConflict();
+                }
+                return false;
+            }
+            
+            // データ収集と書き込み
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = this.calculateHash(localData);
+                this.saveLastSyncTime();
+                this.resetChanged();
+                console.log('自動書き込み完了:', new Date().toLocaleString());
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('自動書き込みエラー:', error);
+            this.hasError = true;
+            return false;
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
+    // 【追加】手動書き込みメソッド
+    async manualWriteToCloud() {
+        if (!this.isEnabled || !this.token) {
+            throw new Error('GitHub同期が設定されていません');
         }
         
-        return false;
-    } catch (error) {
-        console.error('書き込みエラー:', error);
-        this.hasError = true;
-        return false;
-    } finally {
-        this.isSyncing = false;
-    }
-},
+        this.isSyncing = true;
+        this.hasError = false;
+        
+        try {
+            console.log('手動書き込み開始');
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                const currentHash = this.calculateHash(localData);
+                this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = currentHash;
+                this.saveLastSyncTime();
+                this.resetChanged();
+                console.log('手動書き込み完了');
+                return true;
+            }
+            
+            throw new Error('書き込みに失敗しました');
+        } catch (error) {
+            this.hasError = true;
+            console.error('手動書き込みエラー:', error);
+            throw error;
+        } finally {
+            this.isSyncing = false;
+        }
+    },
 
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) {
@@ -1028,7 +1061,7 @@ async autoWriteToCloud() {
             config.gistId = gistId;
             config.lastSyncTime = this.lastSyncTime;
             config.lastReadTime = this.lastReadTime;
-            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
+            config.lastDataHash = this.lastDataHash;
 
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
             
@@ -1052,7 +1085,7 @@ async autoWriteToCloud() {
 
             const config = JSON.parse(currentConfigStr);
             config.lastSyncTime = this.lastSyncTime;
-            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
+            config.lastDataHash = this.lastDataHash;
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch (error) {
             console.error('書き込み時刻保存エラー:', error);
@@ -1066,7 +1099,7 @@ async autoWriteToCloud() {
 
             const config = JSON.parse(currentConfigStr);
             config.lastReadTime = this.lastReadTime;
-            config.lastDataHash = this.lastDataHash; // 【新機能】ハッシュ保存
+            config.lastDataHash = this.lastDataHash;
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch (error) {
             console.error('読み込み時刻保存エラー:', error);
@@ -1082,12 +1115,13 @@ async autoWriteToCloud() {
         this.lastSyncTime = null;
         this.lastReadTime = null;
         this.hasError = false;
-        this.hasChanged = false; // 【新機能】フラグクリア
-        this.lastDataHash = null; // 【新機能】ハッシュクリア
+        this.hasChanged = false;
+        this.lastDataHash = null;
         
         console.log('TrippenGistSync設定をクリアしました（変更フラグ管理版）');
     }
 };
+
 
 const app = createApp({
 data() {
