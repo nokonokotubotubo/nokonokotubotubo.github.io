@@ -39,6 +39,27 @@
     };
 
     // ===========================================
+    // ユニークID生成機能
+    // ===========================================
+
+    const generateUniqueIds = (articles) => {
+        const folders = [...new Set(articles.map(a => a.folderName))].sort();
+        const folderIds = {};
+        const feedIds = {};
+        
+        folders.forEach((folder, fi) => {
+            folderIds[folder] = `folder_${fi}`;
+            feedIds[folder] = {};
+            const feeds = [...new Set(articles.filter(a => a.folderName === folder).map(a => a.rssSource))].sort();
+            feeds.forEach((feed, fidx) => {
+                feedIds[folder][feed] = `feed_${fi}_${fidx}`;
+            });
+        });
+        
+        return { folderIds, feedIds };
+    };
+
+    // ===========================================
     // アプリケーション状態管理
     // ===========================================
 
@@ -227,6 +248,7 @@
     const renderFolderDropdown = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
+        const uniqueIds = generateUniqueIds(window.state.articles);
         
         const foldersByFeed = {};
         window.state.articles.forEach(article => {
@@ -247,38 +269,45 @@
                 </button>
                 <div class="folder-dropdown-content" id="folderDropdownContent" style="display: none;">
                     <div class="folder-controls">
-                        <label class="folder-item" for="selectAllFolders">
-                            <input type="checkbox" id="selectAllFolders" name="selectAllFolders" ${allFoldersSelected ? 'checked' : ''} 
+                        <label class="folder-item" for="selectAllFoldersControl">
+                            <input type="checkbox" id="selectAllFoldersControl" name="selectAllFoldersControl" 
+                                   ${allFoldersSelected ? 'checked' : ''} 
                                    onchange="handleSelectAllFolders(this.checked)">
                             <span>すべてのフォルダ</span>
                         </label>
                     </div>
                     <hr class="folder-separator">
-                    ${folders.map((folder, folderIndex) => `
+                    ${folders.map((folder) => {
+                        const folderId = uniqueIds.folderIds[folder];
+                        return `
                         <div class="folder-group">
-                            <label class="folder-item" for="folder_${folderIndex}">
-                                <input type="checkbox" id="folder_${folderIndex}" name="folder_${folderIndex}" 
+                            <label class="folder-item" for="${folderId}">
+                                <input type="checkbox" id="${folderId}" name="${folderId}" 
                                        ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} 
                                        onchange="handleFolderToggle('${folder}')">
                                 <span class="folder-name">${folder}</span>
                             </label>
                             <div class="feed-list">
-                                ${Array.from(foldersByFeed[folder]).map((feed, feedIndex) => `
-                                    <label class="feed-item" for="feed_${folderIndex}_${feedIndex}">
-                                        <input type="checkbox" id="feed_${folderIndex}_${feedIndex}" 
-                                               name="feed_${folderIndex}_${feedIndex}"
+                                ${Array.from(foldersByFeed[folder]).map((feed) => {
+                                    const feedId = uniqueIds.feedIds[folder][feed];
+                                    return `
+                                    <label class="feed-item" for="${feedId}">
+                                        <input type="checkbox" id="${feedId}" name="${feedId}"
                                                ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} 
                                                onchange="handleFeedToggle('${feed}')">
                                         <span class="feed-name">${feed}</span>
                                     </label>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                     <hr class="folder-separator">
                     <div class="folder-controls">
-                        <label class="folder-item" for="selectAllFeeds">
-                            <input type="checkbox" id="selectAllFeeds" name="selectAllFeeds" ${allFeedsSelected ? 'checked' : ''} 
+                        <label class="folder-item" for="selectAllFeedsControl">
+                            <input type="checkbox" id="selectAllFeedsControl" name="selectAllFeedsControl" 
+                                   ${allFeedsSelected ? 'checked' : ''} 
                                    onchange="handleSelectAllFeeds(this.checked)">
                             <span>すべてのフィード</span>
                         </label>
