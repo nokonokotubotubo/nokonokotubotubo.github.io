@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（完全サイレント同期機能統合版）
+// Minews PWA - UI・表示レイヤー（負荷軽減・最適化版）
 (function() {
     'use strict';
 
@@ -40,7 +40,7 @@
     // アプリケーション状態管理
     // ===========================================
 
-    // 【修正】初期状態でLocalStorageから復元（完全サイレント同期フラグ追加）
+    // 初期状態でLocalStorageから復元（完全サイレント同期フラグ追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -50,7 +50,7 @@
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,     // 手動同期中フラグ
-        isBackgroundSyncing: false // 【NEW】バックグラウンド同期フラグ
+        isBackgroundSyncing: false // バックグラウンド同期フラグ
     };
 
     // setState統合版（自動保存機能付き）
@@ -192,7 +192,7 @@
         }
     };
 
-    // 【改良】手動同期関数（完全サイレント同期対応版）
+    // 手動同期関数（完全サイレント同期対応版）
     window.handleSyncToCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -212,7 +212,7 @@
         }
     };
 
-    // 【改良】クラウド復元処理（完全サイレント同期対応版）
+    // クラウド復元処理（完全サイレント同期対応版）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -268,7 +268,7 @@
             }
             
             alert('クラウドからデータを復元しました');
-            // 【重要】手動復元は明示的に画面更新
+            // 手動復元は明示的に画面更新
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
@@ -459,7 +459,7 @@
     };
 
     // ===========================================
-    // 【確実な同期マーク設定】記事操作（完全修正版）
+    // 【確実な同期マーク設定】記事操作（負荷軽減版）
     // ===========================================
 
     const handleArticleClick = (event, articleId, actionType) => {
@@ -480,7 +480,7 @@
                 event.stopPropagation();
                 const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
                 
-                // 【重要】updateArticleが自動的にlastModifiedを更新する
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
                 
                 // DOM直接更新
@@ -492,7 +492,7 @@
                     readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
                 }
 
-                // 【確実な同期マーク設定】
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                     console.log(`既読状態変更: ${articleId} -> ${newReadStatus}, 同期マーク設定完了`);
@@ -505,7 +505,7 @@
                 
                 const newReadLater = !article.readLater;
                 
-                // 【重要】updateArticleが自動的にlastModifiedを更新する
+                // updateArticleが自動的にlastModifiedを更新する
                 articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
                 
                 // DOM直接更新
@@ -513,7 +513,7 @@
                 readLaterButton.setAttribute('data-active', newReadLater);
                 readLaterButton.textContent = newReadLater ? '解除' : '後で';
 
-                // 【確実な同期マーク設定】
+                // 確実な同期マーク設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                     console.log(`後で読む状態変更: ${articleId} -> ${newReadLater}, 同期マーク設定完了`);
@@ -580,7 +580,8 @@
                 
             case 'read':
                 if (article.readStatus !== 'read') {
-                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                    // 【修正1】タイトルクリック時のサイレント化
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' }, { skipRender: true });
                     
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
@@ -731,7 +732,7 @@
         `;
     };
 
-    // 【改良】記事フィルタリング（完全サイレント対応版）
+    // 記事フィルタリング（完全サイレント対応版）
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
@@ -757,13 +758,13 @@
         const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
-        // 【改良】手動同期中のみソートを抑制（自動同期は関係なし）
+        // 手動同期中のみソートを抑制（自動同期は関係なし）
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
             console.log('手動同期中のためソートを抑制します');
             return filtered;
         }
 
-        // 【重要】バックグラウンド同期中は通常通りソートを実行
+        // バックグラウンド同期中は通常通りソートを実行
         // これにより、フィルター操作時などに最新データで正しくソートされる
 
         // AIスコア計算と通常ソート
@@ -1017,7 +1018,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        完全サイレント同期機能統合版
+                                        負荷軽減・最適化版
                                     </p>
                                 </div>
                             </div>
