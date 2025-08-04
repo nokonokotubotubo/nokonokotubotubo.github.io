@@ -579,16 +579,17 @@
                 break;
                 
             case 'read':
-                if (article.readStatus !== 'read') {
-                    // 【修正1】タイトルクリック時のサイレント化
-                    articlesHook.updateArticle(articleId, { readStatus: 'read' }, { skipRender: true });
-                    
-                    if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.markAsChanged();
-                        console.log(`記事閲覧: ${articleId}, 同期マーク設定完了`);
-                    }
-                }
-                break;
+    if (article.readStatus !== 'read') {
+        // 既読ボタンと同様に即座に表示効果を適用
+        articlesHook.updateArticle(articleId, { readStatus: 'read' });
+        
+        if (window.GistSyncManager?.isEnabled) {
+            window.GistSyncManager.markAsChanged();
+            console.log(`記事閲覧: ${articleId}, 同期マーク設定完了`);
+        }
+    }
+    break;
+
         }
     };
 
