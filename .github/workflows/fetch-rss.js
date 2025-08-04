@@ -457,7 +457,11 @@ async function main() {
     uniqueArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
     const limitedArticles = uniqueArticles.slice(0, 1000);
     console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1000件）`);
-    // ファイル出力（ルートディレクトリに変更）
+    // ファイル出力
+    if (!fs.existsSync('./mss')) {
+      fs.mkdirSync('./mss');
+      console.log('📁 mssディレクトリを作成しました');
+    }
     const output = {
       articles: limitedArticles,
       lastUpdated: new Date().toISOString(),
@@ -470,7 +474,7 @@ async function main() {
         debugVersion: 'v1.2-配列構造完全対応版'
       }
     };
-    fs.writeFileSync('./articles.json', JSON.stringify(output, null, 2));
+    fs.writeFileSync('./mss/articles.json', JSON.stringify(output, null, 2));
     const totalTime = (Date.now() - startTime) / 1000;
     console.log('\n🎉 RSS記事取得完了!');
     console.log(`📊 最終結果:`);
@@ -478,7 +482,7 @@ async function main() {
     console.log(`   最終更新: ${output.lastUpdated}`);
     console.log(`   総実行時間: ${totalTime.toFixed(1)}秒`);
     console.log(`   処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
-    console.log(`💾 ファイル: ./articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
+    console.log(`💾 ファイル: ./mss/articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
     // デバッグサマリー
     console.log(`\n🔍 デバッグサマリー:`);
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
