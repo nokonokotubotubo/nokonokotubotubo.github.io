@@ -992,39 +992,53 @@ async autoWriteToCloud() {
     }
 },
 
-    // 【追加】手動書き込みメソッド
-    async manualWriteToCloud() {
-        if (!this.isEnabled || !this.token) {
-            throw new Error('GitHub同期が設定されていません');
-        }
+    // 【修正後】手動書き込みメソッド（競合チェック対応）
+async manualWriteToCloud() {
+    if (!this.isEnabled || !this.token) {
+        throw new Error('GitHub同期が設定されていません');
+    }
+    
+    this.isSyncing = true;
+    this.hasError = false;
+    
+    try {
+        console.log('手動書き込み開始');
         
-        this.isSyncing = true;
-        this.hasError = false;
-        
-        try {
-            console.log('手動書き込み開始');
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                const currentHash = this.calculateHash(localData);
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = currentHash;
-                this.saveLastSyncTime();
-                this.resetChanged();
-                console.log('手動書き込み完了');
-                return true;
+        // 【追加】競合チェックを実行
+        console.log('競合チェック実行中...');
+        const hasNewerData = await this.checkForNewerCloudData();
+        if (hasNewerData) {
+            console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
+            if (window.app && window.app.handleSyncConflict) {
+                window.app.handleSyncConflict();
             }
-            
-            throw new Error('書き込みに失敗しました');
-        } catch (error) {
-            this.hasError = true;
-            console.error('手動書き込みエラー:', error);
-            throw error;
-        } finally {
-            this.isSyncing = false;
+            throw new Error('データ競合が検出されました。クラウドから最新データを読み込んでください。');
         }
-    },
+        
+        // データ収集と書き込み
+        const localData = this.collectSyncData();
+        const uploadResult = await this.syncToCloud(localData);
+        
+        if (uploadResult) {
+            const currentHash = this.calculateHash(localData);
+            this.lastSyncTime = this.getUTCTimestamp();
+            this.lastDataHash = currentHash;
+            this.saveLastSyncTime();
+            this.resetChanged();
+            console.log('手動書き込み完了');
+            return true;
+        }
+        
+        throw new Error('書き込みに失敗しました');
+    } catch (error) {
+        this.hasError = true;
+        console.error('手動書き込みエラー:', error);
+        throw error;
+    } finally {
+        this.isSyncing = false;
+    }
+},
+
 
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) {
