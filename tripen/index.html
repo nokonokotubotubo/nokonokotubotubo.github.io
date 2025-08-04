@@ -940,55 +940,57 @@ const TrippenGistSync = {
         }
     },
 
-    // 【修正版】自動書き込み（問題回避版）
-    async autoWriteToCloud() {
-        if (!this.isEnabled || !this.token || this.isSyncing) {
-            return false;
+    // 【修正後】自動書き込み（競合チェック優先版）
+async autoWriteToCloud() {
+    if (!this.isEnabled || !this.token || this.isSyncing) {
+        return false;
+    }
+    
+    this.isSyncing = true;
+    this.hasError = false;
+    
+    try {
+        // 【修正】競合チェックを最初に実行（変更フラグに関係なく）
+        console.log('競合チェック実行中...');
+        const hasNewerData = await this.checkForNewerCloudData();
+        if (hasNewerData) {
+            console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
+            if (window.app && window.app.handleSyncConflict) {
+                window.app.handleSyncConflict();
+            }
+            return false; // 競合があるため書き込み停止
         }
 
+        // 変更フラグチェック（競合チェック後に移動）
         if (!this.hasChanged) {
             console.log('変更フラグなし - 書き込みスキップ');
             return false;
         }
         
-        this.isSyncing = true;
-        this.hasError = false;
+        console.log('変更フラグあり - 書き込み実行');
         
-        try {
-            console.log('変更フラグあり - 書き込み実行（ハッシュチェック無効）');
-            
-            // 競合チェック
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                console.log('競合検出');
-                if (window.app && window.app.handleSyncConflict) {
-                    window.app.handleSyncConflict();
-                }
-                return false;
-            }
-            
-            // データ収集と書き込み
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = this.calculateHash(localData);
-                this.saveLastSyncTime();
-                this.resetChanged();
-                console.log('自動書き込み完了:', new Date().toLocaleString());
-                return true;
-            }
-            
-            return false;
-        } catch (error) {
-            console.error('自動書き込みエラー:', error);
-            this.hasError = true;
-            return false;
-        } finally {
-            this.isSyncing = false;
+        // データ収集と書き込み
+        const localData = this.collectSyncData();
+        const uploadResult = await this.syncToCloud(localData);
+        
+        if (uploadResult) {
+            this.lastSyncTime = this.getUTCTimestamp();
+            this.lastDataHash = this.calculateHash(localData);
+            this.saveLastSyncTime();
+            this.resetChanged();
+            console.log('自動書き込み完了:', new Date().toLocaleString());
+            return true;
         }
-    },
+        
+        return false;
+    } catch (error) {
+        console.error('自動書き込みエラー:', error);
+        this.hasError = true;
+        return false;
+    } finally {
+        this.isSyncing = false;
+    }
+},
 
     // 【追加】手動書き込みメソッド
     async manualWriteToCloud() {
