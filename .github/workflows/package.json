@@ -1,31 +1,69 @@
 {
   "name": "minews-rss-fetcher",
-  "version": "1.0.0",
-  "description": "RSS fetcher for Minews PWA",
+  "version": "1.1.0",
+  "description": "Minews RSS記事取得システム（フォルダ対応版）",
   "main": "fetch-rss.js",
   "scripts": {
     "start": "node fetch-rss.js",
-    "fetch": "node fetch-rss.js"
+    "fetch": "node fetch-rss.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "lint": "echo \"No linting specified\" && exit 0",
+    "validate": "node -c fetch-rss.js"
   },
   "dependencies": {
     "xml2js": "^0.6.2",
     "node-fetch": "^2.7.0",
     "mecab-async": "^0.1.2"
   },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nokonokotubotubo/nokonokotubotubo.github.io.git"
+    "url": "git+https://github.com/username/minews.git"
   },
   "keywords": [
     "rss",
     "news",
-    "pwa",
-    "github-actions"
+    "reader",
+    "mecab",
+    "japanese",
+    "nlp",
+    "feed",
+    "parser",
+    "folder",
+    "categorization"
   ],
-  "author": "",
+  "author": "Minews Development Team",
   "license": "MIT",
-  "private": true
+  "bugs": {
+    "url": "https://github.com/username/minews/issues"
+  },
+  "homepage": "https://github.com/username/minews#readme",
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "directories": {
+    "lib": "./",
+    "test": "./test"
+  },
+  "files": [
+    "fetch-rss.js",
+    "package.json",
+    "README.md"
+  ],
+  "config": {
+    "max_articles": 1000,
+    "timeout": 15000,
+    "retry_count": 2
+  }
 }
