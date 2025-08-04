@@ -205,22 +205,22 @@
         window.setState({ selectedFeeds });
     };
 
-    const handleSelectAllFolders = () => {
-        const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
-        window.setState({ selectedFolders: [...folders] });
+    const handleSelectAllFolders = (selectAll) => {
+        if (selectAll) {
+            const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
+            window.setState({ selectedFolders: [...folders] });
+        } else {
+            window.setState({ selectedFolders: [] });
+        }
     };
 
-    const handleDeselectAllFolders = () => {
-        window.setState({ selectedFolders: [] });
-    };
-
-    const handleSelectAllFeeds = () => {
-        const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
-        window.setState({ selectedFeeds: [...feeds] });
-    };
-
-    const handleDeselectAllFeeds = () => {
-        window.setState({ selectedFeeds: [] });
+    const handleSelectAllFeeds = (selectAll) => {
+        if (selectAll) {
+            const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
+            window.setState({ selectedFeeds: [...feeds] });
+        } else {
+            window.setState({ selectedFeeds: [] });
+        }
     };
 
     // フォルダドロップダウンレンダリング関数
@@ -241,30 +241,33 @@
         
         return `
             <div class="folder-dropdown">
-                <button class="folder-dropdown-btn" onclick="toggleFolderDropdown()">
+                <button type="button" class="folder-dropdown-btn" onclick="toggleFolderDropdown()">
                     フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})
                     <span class="dropdown-arrow">▼</span>
                 </button>
                 <div class="folder-dropdown-content" id="folderDropdownContent" style="display: none;">
                     <div class="folder-controls">
-                        <label class="folder-item">
-                            <input type="checkbox" ${allFoldersSelected ? 'checked' : ''} 
-                                   onchange="handleSelectAllFolders(${!allFoldersSelected})">
+                        <label class="folder-item" for="selectAllFolders">
+                            <input type="checkbox" id="selectAllFolders" name="selectAllFolders" ${allFoldersSelected ? 'checked' : ''} 
+                                   onchange="handleSelectAllFolders(this.checked)">
                             <span>すべてのフォルダ</span>
                         </label>
                     </div>
                     <hr class="folder-separator">
-                    ${folders.map(folder => `
+                    ${folders.map((folder, folderIndex) => `
                         <div class="folder-group">
-                            <label class="folder-item">
-                                <input type="checkbox" ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} 
+                            <label class="folder-item" for="folder_${folderIndex}">
+                                <input type="checkbox" id="folder_${folderIndex}" name="folder_${folderIndex}" 
+                                       ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} 
                                        onchange="handleFolderToggle('${folder}')">
                                 <span class="folder-name">${folder}</span>
                             </label>
                             <div class="feed-list">
-                                ${Array.from(foldersByFeed[folder]).map(feed => `
-                                    <label class="feed-item">
-                                        <input type="checkbox" ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} 
+                                ${Array.from(foldersByFeed[folder]).map((feed, feedIndex) => `
+                                    <label class="feed-item" for="feed_${folderIndex}_${feedIndex}">
+                                        <input type="checkbox" id="feed_${folderIndex}_${feedIndex}" 
+                                               name="feed_${folderIndex}_${feedIndex}"
+                                               ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} 
                                                onchange="handleFeedToggle('${feed}')">
                                         <span class="feed-name">${feed}</span>
                                     </label>
@@ -274,9 +277,9 @@
                     `).join('')}
                     <hr class="folder-separator">
                     <div class="folder-controls">
-                        <label class="folder-item">
-                            <input type="checkbox" ${allFeedsSelected ? 'checked' : ''} 
-                                   onchange="handleSelectAllFeeds(${!allFeedsSelected})">
+                        <label class="folder-item" for="selectAllFeeds">
+                            <input type="checkbox" id="selectAllFeeds" name="selectAllFeeds" ${allFeedsSelected ? 'checked' : ''} 
+                                   onchange="handleSelectAllFeeds(this.checked)">
                             <span>すべてのフィード</span>
                         </label>
                     </div>
@@ -289,7 +292,21 @@
     const toggleFolderDropdown = () => {
         const content = document.getElementById('folderDropdownContent');
         if (content) {
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            const isVisible = content.style.display !== 'none';
+            content.style.display = isVisible ? 'none' : 'block';
+            
+            // ドロップダウンが開いた時に外部クリックで閉じるイベントを追加
+            if (!isVisible) {
+                setTimeout(() => {
+                    const closeOnOutsideClick = (event) => {
+                        if (!content.contains(event.target) && !event.target.closest('.folder-dropdown-btn')) {
+                            content.style.display = 'none';
+                            document.removeEventListener('click', closeOnOutsideClick);
+                        }
+                    };
+                    document.addEventListener('click', closeOnOutsideClick);
+                }, 100);
+            }
         }
     };
 
@@ -810,8 +827,8 @@
                     </div>
                     
                     <div class="filter-row">
-                        <label for="viewFilter">表示:</label>
-                        <select id="viewFilter" class="filter-select" onchange="handleFilterChange(this.value)">
+                        <label for="viewFilterMobile">表示:</label>
+                        <select id="viewFilterMobile" name="viewFilterMobile" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
                             <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
@@ -831,8 +848,8 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label for="viewFilter2">表示:</label>
-                        <select id="viewFilter2" class="filter-select" onchange="handleFilterChange(this.value)">
+                        <label for="viewFilterDesktop">表示:</label>
+                        <select id="viewFilterDesktop" name="viewFilterDesktop" class="filter-select" onchange="handleFilterChange(this.value)">
                             <option value="all" ${window.state.viewMode === 'all' ? 'selected' : ''}>全て</option>
                             <option value="unread" ${window.state.viewMode === 'unread' ? 'selected' : ''}>未読のみ</option>
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
@@ -1039,18 +1056,18 @@
                                 ` : `
                                     <div class="modal-actions">
                                         <div style="margin-bottom: 1rem;">
-                                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
+                                            <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
                                                 GitHub Personal Access Token
                                             </label>
-                                            <input type="password" id="githubToken" placeholder="GitHub Personal Access Tokenを入力" 
+                                            <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" 
                                                    class="filter-select" style="width: 100%;">
                                         </div>
                                         
                                         <div style="margin-bottom: 1rem;">
-                                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
+                                            <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
                                                 既存のGist ID（任意）
                                             </label>
-                                            <input type="text" id="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" 
+                                            <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" 
                                                    class="filter-select" style="width: 100%; font-family: monospace;">
                                         </div>
                                         
@@ -1203,20 +1220,8 @@
     window.initializeGistSync = initializeGistSync;
     window.handleFolderToggle = handleFolderToggle;
     window.handleFeedToggle = handleFeedToggle;
-    window.handleSelectAllFolders = (selectAll) => {
-        if (selectAll) {
-            handleSelectAllFolders();
-        } else {
-            handleDeselectAllFolders();
-        }
-    };
-    window.handleSelectAllFeeds = (selectAll) => {
-        if (selectAll) {
-            handleSelectAllFeeds();
-        } else {
-            handleDeselectAllFeeds();
-        }
-    };
+    window.handleSelectAllFolders = handleSelectAllFolders;
+    window.handleSelectAllFeeds = handleSelectAllFeeds;
     window.toggleFolderDropdown = toggleFolderDropdown;
 
     // DOM読み込み完了時の初期化
