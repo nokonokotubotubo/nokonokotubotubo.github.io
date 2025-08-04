@@ -23,8 +23,11 @@ window.CONFIG = {
     RETRY_DELAY: 3000
 };
 
+// 【修正】フォルダデフォルトデータを追加
 window.DEFAULT_DATA = {
     articles: [],
+    folders: [], // 既存のCONFIG.STORAGE_KEYS.FOLDERSに対応するデフォルトデータを追加
+    feeds: [], // フィード情報も追加
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
@@ -1042,10 +1045,11 @@ window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
     folders: null,
+    feeds: null, // 【追加】フィード情報キャッシュ
     aiLearning: null,
     wordFilters: null,
     lastUpdate: {
-        articles: null, rssFeeds: null, folders: null, aiLearning: null, wordFilters: null
+        articles: null, rssFeeds: null, folders: null, feeds: null, aiLearning: null, wordFilters: null
     },
     clear(key) {
         if (key) {
@@ -1063,7 +1067,7 @@ window.DataHooksCache = {
 };
 
 // ===========================================
-// JSON記事データ読み込みシステム
+// JSON記事データ読み込みシステム（フォルダ対応版）
 // ===========================================
 
 window.ArticleLoader = {
@@ -1074,8 +1078,23 @@ window.ArticleLoader = {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
+            
+            // 【修正】既存のCONFIG.STORAGE_KEYS.FOLDERSを活用してフォルダデータを保存
+            if (data.folders) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, data.folders);
+                window.DataHooksCache.folders = data.folders; // 既存のキャッシュを活用
+            }
+            
+            // 【追加】フィード情報の保存
+            if (data.feeds) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, data.feeds);
+                window.DataHooksCache.feeds = data.feeds;
+            }
+            
             return {
                 articles: data.articles || [],
+                folders: data.folders || [],
+                feeds: data.feeds || [],
                 lastUpdated: data.lastUpdated || new Date().toISOString(),
                 totalCount: data.totalCount || 0
             };
@@ -1083,6 +1102,8 @@ window.ArticleLoader = {
             console.error('記事データの読み込みに失敗しました:', error);
             return {
                 articles: [],
+                folders: [],
+                feeds: [],
                 lastUpdated: new Date().toISOString(),
                 totalCount: 0
             };
@@ -1270,7 +1291,7 @@ window.LocalStorageManager = {
 };
 
 // ===========================================
-// データ操作フック
+// データ操作フック（フォルダ対応版）
 // ===========================================
 
 window.DataHooks = {
@@ -1390,6 +1411,14 @@ window.DataHooks = {
                         }
                     });
                     
+                    // 【追加】フォルダ・フィード情報を状態に反映
+                    if (data.folders && window.state) {
+                        window.state.folders = data.folders;
+                    }
+                    if (data.feeds && window.state) {
+                        window.state.feeds = data.feeds;
+                    }
+                    
                     return {
                         totalAdded: addedCount,
                         totalSkipped: skippedCount,
@@ -1492,6 +1521,34 @@ window.DataHooks = {
                 }
                 return false;
             }
+        };
+    },
+    // 【新規追加】既存のCONFIG.STORAGE_KEYS.FOLDERSとDataHooksCache.foldersを活用
+    useFolders() {
+        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
+        const timestamp = stored ? JSON.parse(stored).timestamp : null;
+        
+        if (!window.DataHooksCache.folders || window.DataHooksCache.lastUpdate.folders !== timestamp) {
+            window.DataHooksCache.folders = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders);
+            window.DataHooksCache.lastUpdate.folders = timestamp;
+        }
+        
+        return {
+            folders: window.DataHooksCache.folders
+        };
+    },
+    // 【新規追加】フィード管理フック
+    useFeeds() {
+        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
+        const timestamp = stored ? JSON.parse(stored).timestamp : null;
+        
+        if (!window.DataHooksCache.feeds || window.DataHooksCache.lastUpdate.feeds !== timestamp) {
+            window.DataHooksCache.feeds = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.feeds);
+            window.DataHooksCache.lastUpdate.feeds = timestamp;
+        }
+        
+        return {
+            feeds: window.DataHooksCache.feeds
         };
     }
 };
