@@ -7,7 +7,6 @@
     // ===========================================
 
     const encodeToValidId = (text) => {
-        // 日本語文字列をURLエンコードしてHTML IDとして有効にする
         return encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
     };
 
@@ -218,19 +217,9 @@
         }
     };
 
-    const handleSelectAllFeeds = (selectAll) => {
-        if (selectAll) {
-            const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
-            window.setState({ selectedFeeds: [...feeds] });
-        } else {
-            window.setState({ selectedFeeds: [] });
-        }
-    };
-
-    // フォルダドロップダウンレンダリング関数（プレフィックス対応）
+    // フォルダドロップダウンレンダリング関数（「すべてのフィード」削除、画面いっぱいのサイズ対応）
     const renderFolderDropdown = (prefix = '') => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
-        const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
         const uniqueIds = generateUniqueIds(window.state.articles, prefix);
         
         const foldersByFeed = {};
@@ -242,7 +231,6 @@
         });
         
         const allFoldersSelected = folders.every(folder => window.state.selectedFolders.includes(folder));
-        const allFeedsSelected = feeds.every(feed => window.state.selectedFeeds.includes(feed));
         
         return `
             <div class="folder-dropdown">
@@ -250,7 +238,7 @@
                     フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})
                     <span class="dropdown-arrow">▼</span>
                 </button>
-                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none;">
+                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;" onclick="event.stopPropagation()">
                     <div class="folder-controls">
                         <label class="folder-item" for="${prefix}selectAllFolders">
                             <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
@@ -286,37 +274,47 @@
                         </div>
                         `;
                     }).join('')}
-                    <hr class="folder-separator">
-                    <div class="folder-controls">
-                        <label class="folder-item" for="${prefix}selectAllFeeds">
-                            <input type="checkbox" id="${prefix}selectAllFeeds" name="${prefix}selectAllFeeds" 
-                                   ${allFeedsSelected ? 'checked' : ''} 
-                                   onchange="handleSelectAllFeeds(this.checked)">
-                            <span>すべてのフィード</span>
-                        </label>
-                    </div>
                 </div>
             </div>
         `;
     };
 
+    // ドロップダウンの開閉（チェックボックス操作時は閉じない、外部クリック時のみ閉じる）
     const toggleFolderDropdown = (prefix = '') => {
         const content = document.getElementById(`${prefix}folderDropdownContent`);
-        if (content) {
-            const isVisible = content.style.display !== 'none';
-            content.style.display = isVisible ? 'none' : 'block';
-            
-            if (!isVisible) {
-                setTimeout(() => {
-                    const closeOnOutsideClick = (event) => {
-                        if (!content.contains(event.target) && !event.target.closest('.folder-dropdown-btn')) {
-                            content.style.display = 'none';
-                            document.removeEventListener('click', closeOnOutsideClick);
-                        }
-                    };
-                    document.addEventListener('click', closeOnOutsideClick);
-                }, 100);
+        if (!content) return;
+
+        const isVisible = content.style.display !== 'none';
+        
+        if (isVisible) {
+            content.style.display = 'none';
+            // 既存の外部クリックイベントを削除
+            if (window._currentCloseHandler) {
+                document.removeEventListener('click', window._currentCloseHandler);
+                window._currentCloseHandler = null;
             }
+        } else {
+            content.style.display = 'block';
+
+            // 外部クリック時にのみ閉じるイベントを設定
+            setTimeout(() => {
+                const closeOnOutsideClick = (event) => {
+                    // ドロップダウンボタンや内容をクリックした場合は無視
+                    if (!content.contains(event.target) && !event.target.closest('.folder-dropdown-btn')) {
+                        content.style.display = 'none';
+                        document.removeEventListener('click', closeOnOutsideClick);
+                        window._currentCloseHandler = null;
+                    }
+                };
+                
+                // 既存のハンドラーがあれば削除
+                if (window._currentCloseHandler) {
+                    document.removeEventListener('click', window._currentCloseHandler);
+                }
+                
+                document.addEventListener('click', closeOnOutsideClick);
+                window._currentCloseHandler = closeOnOutsideClick;
+            }, 100);
         }
     };
 
@@ -1172,7 +1170,6 @@
     window.handleFolderToggle = handleFolderToggle;
     window.handleFeedToggle = handleFeedToggle;
     window.handleSelectAllFolders = handleSelectAllFolders;
-    window.handleSelectAllFeeds = handleSelectAllFeeds;
     window.toggleFolderDropdown = toggleFolderDropdown;
 
     if (document.readyState === 'loading') {
