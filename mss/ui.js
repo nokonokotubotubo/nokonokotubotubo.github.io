@@ -179,7 +179,69 @@
     };
 
     // ===========================================
-    // フォルダ・フィード管理（修正版）
+    // 部分更新関数（DOM再構築回避用）
+    // ===========================================
+
+    // 記事一覧のみ更新する関数
+    const updateArticleListOnly = () => {
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.innerHTML = renderArticleList();
+            
+            // 星評価のイベントリスナーを再設定
+            if (!window._starClickHandler) {
+                window._starClickHandler = (e) => {
+                    handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
+                };
+            }
+
+            document.querySelectorAll('.star').forEach(star => {
+                star.removeEventListener('click', window._starClickHandler);
+                star.addEventListener('click', window._starClickHandler);
+            });
+        }
+    };
+
+    // フォルダボタンの選択数表示更新
+    const updateFolderButtonCount = () => {
+        const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
+        
+        document.querySelectorAll('.folder-dropdown-btn').forEach(btn => {
+            const countText = `フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})`;
+            const textNode = btn.childNodes[0];
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                textNode.textContent = countText;
+            } else {
+                // テキストノードが見つからない場合は内部のテキストを更新
+                btn.innerHTML = `${countText}<span class="dropdown-arrow">▼</span>`;
+            }
+        });
+    };
+
+    // チェックボックス状態の更新
+    const updateFolderCheckboxStates = () => {
+        const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
+        
+        document.querySelectorAll('.folder-dropdown-content').forEach(dropdown => {
+            // すべてのフォルダチェックボックス
+            const selectAllCheckbox = dropdown.querySelector('[id$="selectAllFolders"]');
+            if (selectAllCheckbox) {
+                const allSelected = folders.every(folder => window.state.selectedFolders.includes(folder));
+                selectAllCheckbox.checked = allSelected;
+            }
+            
+            // 個別フォルダチェックボックス
+            folders.forEach(folder => {
+                const checkbox = dropdown.querySelector(`[id$="folder_${encodeToValidId(folder)}"]`);
+                if (checkbox) {
+                    checkbox.checked = window.state.selectedFolders.includes(folder);
+                }
+            });
+        });
+    };
+
+    // ===========================================
+    // フォルダ・フィード管理（DOM再構築回避版）
     // ===========================================
 
     const handleFolderToggle = (folderName, event) => {
@@ -196,7 +258,15 @@
             selectedFolders.push(folderName);
         }
         
-        window.setState({ selectedFolders });
+        // DOM再構築を避けるため、直接状態更新
+        window.state.selectedFolders = selectedFolders;
+        saveFilterState(window.state.viewMode, selectedFolders, window.state.selectedFeeds);
+        
+        // 記事一覧のみ再レンダリング
+        updateArticleListOnly();
+        
+        // フォルダ選択数の表示更新
+        updateFolderButtonCount();
     };
 
     const handleFeedToggle = (feedName, event) => {
@@ -213,7 +283,15 @@
             selectedFeeds.push(feedName);
         }
         
-        window.setState({ selectedFeeds });
+        // DOM再構築を避けるため、直接状態更新
+        window.state.selectedFeeds = selectedFeeds;
+        saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds);
+        
+        // 記事一覧のみ再レンダリング
+        updateArticleListOnly();
+        
+        // フォルダ選択数の表示更新
+        updateFolderButtonCount();
     };
 
     const handleSelectAllFolders = (selectAll, event) => {
@@ -221,15 +299,29 @@
             event.stopPropagation();
         }
         
+        let selectedFolders;
         if (selectAll) {
             const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
-            window.setState({ selectedFolders: [...folders] });
+            selectedFolders = [...folders];
         } else {
-            window.setState({ selectedFolders: [] });
+            selectedFolders = [];
         }
+        
+        // DOM再構築を避けるため、直接状態更新
+        window.state.selectedFolders = selectedFolders;
+        saveFilterState(window.state.viewMode, selectedFolders, window.state.selectedFeeds);
+        
+        // 記事一覧のみ再レンダリング
+        updateArticleListOnly();
+        
+        // フォルダ選択数の表示更新
+        updateFolderButtonCount();
+        
+        // チェックボックス状態の更新
+        updateFolderCheckboxStates();
     };
 
-    // フォルダドロップダウンレンダリング関数（修正版）
+    // フォルダドロップダウンレンダリング関数
     const renderFolderDropdown = (prefix = '') => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const uniqueIds = generateUniqueIds(window.state.articles, prefix);
@@ -291,7 +383,7 @@
         `;
     };
 
-    // ドロップダウンの開閉（修正版）
+    // ドロップダウンの開閉
     const toggleFolderDropdown = (prefix = '') => {
         const content = document.getElementById(`${prefix}folderDropdownContent`);
         if (!content) return;
@@ -1141,7 +1233,7 @@
     };
 
     // ===========================================
-    // メインレンダー関数（修正版）
+    // メインレンダー関数
     // ===========================================
 
     window.render = () => {
