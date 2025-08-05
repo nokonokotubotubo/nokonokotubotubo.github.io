@@ -217,7 +217,7 @@
         }
     };
 
-    // フォルダドロップダウンレンダリング関数（「すべてのフィード」削除、画面いっぱいのサイズ対応）
+    // フォルダドロップダウンレンダリング関数（画面いっぱいのサイズ対応、「すべてのフィード」削除）
     const renderFolderDropdown = (prefix = '') => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const uniqueIds = generateUniqueIds(window.state.articles, prefix);
@@ -238,7 +238,7 @@
                     フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})
                     <span class="dropdown-arrow">▼</span>
                 </button>
-                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;" onclick="event.stopPropagation()">
+                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
                     <div class="folder-controls">
                         <label class="folder-item" for="${prefix}selectAllFolders">
                             <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
@@ -299,8 +299,11 @@
             // 外部クリック時にのみ閉じるイベントを設定
             setTimeout(() => {
                 const closeOnOutsideClick = (event) => {
-                    // ドロップダウンボタンや内容をクリックした場合は無視
-                    if (!content.contains(event.target) && !event.target.closest('.folder-dropdown-btn')) {
+                    // より厳密な判定: ドロップダウン内の要素、ボタン、ラベル、チェックボックスをすべて除外
+                    const isInsideDropdown = content.contains(event.target);
+                    const isDropdownButton = event.target.closest('.folder-dropdown-btn');
+                    
+                    if (!isInsideDropdown && !isDropdownButton) {
                         content.style.display = 'none';
                         document.removeEventListener('click', closeOnOutsideClick);
                         window._currentCloseHandler = null;
@@ -1126,7 +1129,7 @@
     };
 
     // ===========================================
-    // メインレンダー関数
+    // メインレンダー関数（修正版）
     // ===========================================
 
     window.render = () => {
@@ -1143,6 +1146,7 @@
             </div>
         `;
 
+        // 星評価のイベントリスナー設定
         if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
@@ -1152,6 +1156,19 @@
         document.querySelectorAll('.star').forEach(star => {
             star.removeEventListener('click', window._starClickHandler);
             star.addEventListener('click', window._starClickHandler);
+        });
+
+        // 【重要修正】フォルダドロップダウン内のチェックボックスとラベルのイベント伝播を停止
+        document.querySelectorAll('.folder-dropdown-content input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+        });
+
+        document.querySelectorAll('.folder-dropdown-content label').forEach(label => {
+            label.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
         });
     };
 
