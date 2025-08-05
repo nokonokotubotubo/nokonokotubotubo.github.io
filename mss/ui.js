@@ -179,10 +179,14 @@
     };
 
     // ===========================================
-    // フォルダ・フィード管理
+    // フォルダ・フィード管理（修正版）
     // ===========================================
 
-    const handleFolderToggle = (folderName) => {
+    const handleFolderToggle = (folderName, event) => {
+        if (event) {
+            event.stopPropagation();
+        }
+        
         const selectedFolders = [...window.state.selectedFolders];
         const index = selectedFolders.indexOf(folderName);
         
@@ -195,7 +199,11 @@
         window.setState({ selectedFolders });
     };
 
-    const handleFeedToggle = (feedName) => {
+    const handleFeedToggle = (feedName, event) => {
+        if (event) {
+            event.stopPropagation();
+        }
+        
         const selectedFeeds = [...window.state.selectedFeeds];
         const index = selectedFeeds.indexOf(feedName);
         
@@ -208,7 +216,11 @@
         window.setState({ selectedFeeds });
     };
 
-    const handleSelectAllFolders = (selectAll) => {
+    const handleSelectAllFolders = (selectAll, event) => {
+        if (event) {
+            event.stopPropagation();
+        }
+        
         if (selectAll) {
             const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
             window.setState({ selectedFolders: [...folders] });
@@ -217,7 +229,7 @@
         }
     };
 
-    // フォルダドロップダウンレンダリング関数（画面いっぱいのサイズ対応、「すべてのフィード」削除）
+    // フォルダドロップダウンレンダリング関数（修正版）
     const renderFolderDropdown = (prefix = '') => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const uniqueIds = generateUniqueIds(window.state.articles, prefix);
@@ -243,7 +255,7 @@
                         <label class="folder-item" for="${prefix}selectAllFolders">
                             <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
                                    ${allFoldersSelected ? 'checked' : ''} 
-                                   onchange="handleSelectAllFolders(this.checked)">
+                                   onchange="event.stopPropagation(); handleSelectAllFolders(this.checked, event)">
                             <span>すべてのフォルダ</span>
                         </label>
                     </div>
@@ -255,7 +267,7 @@
                             <label class="folder-item" for="${folderId}">
                                 <input type="checkbox" id="${folderId}" name="${folderId}" 
                                        ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} 
-                                       onchange="handleFolderToggle('${folder.replace(/'/g, "\\'")}')">
+                                       onchange="event.stopPropagation(); handleFolderToggle('${folder.replace(/'/g, "\\'")}', event)">
                                 <span class="folder-name">${folder}</span>
                             </label>
                             <div class="feed-list">
@@ -265,7 +277,7 @@
                                     <label class="feed-item" for="${feedId}">
                                         <input type="checkbox" id="${feedId}" name="${feedId}"
                                                ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} 
-                                               onchange="handleFeedToggle('${feed.replace(/'/g, "\\'")}')">
+                                               onchange="event.stopPropagation(); handleFeedToggle('${feed.replace(/'/g, "\\'")}', event)">
                                         <span class="feed-name">${feed}</span>
                                     </label>
                                     `;
@@ -279,7 +291,7 @@
         `;
     };
 
-    // ドロップダウンの開閉（チェックボックス操作時は閉じない、外部クリック時のみ閉じる）
+    // ドロップダウンの開閉（修正版）
     const toggleFolderDropdown = (prefix = '') => {
         const content = document.getElementById(`${prefix}folderDropdownContent`);
         if (!content) return;
@@ -299,7 +311,7 @@
             // 外部クリック時にのみ閉じるイベントを設定
             setTimeout(() => {
                 const closeOnOutsideClick = (event) => {
-                    // より厳密な判定: ドロップダウン内の要素、ボタン、ラベル、チェックボックスをすべて除外
+                    // より厳密な判定
                     const isInsideDropdown = content.contains(event.target);
                     const isDropdownButton = event.target.closest('.folder-dropdown-btn');
                     
@@ -1146,7 +1158,7 @@
             </div>
         `;
 
-        // 星評価のイベントリスナー設定
+        // 星評価のイベントリスナー設定のみ
         if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
@@ -1156,19 +1168,6 @@
         document.querySelectorAll('.star').forEach(star => {
             star.removeEventListener('click', window._starClickHandler);
             star.addEventListener('click', window._starClickHandler);
-        });
-
-        // 【重要修正】フォルダドロップダウン内のチェックボックスとラベルのイベント伝播を停止
-        document.querySelectorAll('.folder-dropdown-content input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
-        });
-
-        document.querySelectorAll('.folder-dropdown-content label').forEach(label => {
-            label.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
         });
     };
 
