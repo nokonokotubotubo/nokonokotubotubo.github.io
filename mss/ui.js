@@ -218,6 +218,22 @@
         });
     };
 
+    // フィードチェックボックス状態の更新
+    const updateFeedCheckboxStates = () => {
+        document.querySelectorAll('.folder-dropdown-content').forEach(dropdown => {
+            // 各フィードチェックボックスの状態を更新
+            const feedCheckboxes = dropdown.querySelectorAll('[id*="feed_"]');
+            feedCheckboxes.forEach(checkbox => {
+                // チェックボックスのIDからフィード名を逆算
+                const feedElement = checkbox.closest('label').querySelector('.feed-name');
+                if (feedElement) {
+                    const feedName = feedElement.textContent.trim();
+                    checkbox.checked = window.state.selectedFeeds.includes(feedName);
+                }
+            });
+        });
+    };
+
     // チェックボックス状態の更新
     const updateFolderCheckboxStates = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
@@ -238,10 +254,13 @@
                 }
             });
         });
+        
+        // フィードチェックボックスも更新
+        updateFeedCheckboxStates();
     };
 
     // ===========================================
-    // フォルダ・フィード管理（DOM再構築回避版）
+    // フォルダ・フィード管理（フィード連動対応版）
     // ===========================================
 
     const handleFolderToggle = (folderName, event) => {
@@ -250,23 +269,47 @@
         }
         
         const selectedFolders = [...window.state.selectedFolders];
+        const selectedFeeds = [...window.state.selectedFeeds];
         const index = selectedFolders.indexOf(folderName);
         
+        // フォルダ内のすべてのフィードを取得
+        const feedsInFolder = [...new Set(window.state.articles
+            .filter(article => article.folderName === folderName)
+            .map(article => article.rssSource)
+        )];
+        
         if (index > -1) {
+            // フォルダのチェックを外す場合
             selectedFolders.splice(index, 1);
+            
+            // フォルダ内のフィードもすべてチェックを外す
+            feedsInFolder.forEach(feed => {
+                const feedIndex = selectedFeeds.indexOf(feed);
+                if (feedIndex > -1) {
+                    selectedFeeds.splice(feedIndex, 1);
+                }
+            });
         } else {
+            // フォルダのチェックを付ける場合
             selectedFolders.push(folderName);
+            
+            // フォルダ内のフィードもすべてチェックを付ける
+            feedsInFolder.forEach(feed => {
+                if (!selectedFeeds.includes(feed)) {
+                    selectedFeeds.push(feed);
+                }
+            });
         }
         
-        // DOM再構築を避けるため、直接状態更新
+        // 状態を更新
         window.state.selectedFolders = selectedFolders;
-        saveFilterState(window.state.viewMode, selectedFolders, window.state.selectedFeeds);
+        window.state.selectedFeeds = selectedFeeds;
+        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
-        // 記事一覧のみ再レンダリング
+        // 表示を更新
         updateArticleListOnly();
-        
-        // フォルダ選択数の表示更新
         updateFolderButtonCount();
+        updateFolderCheckboxStates();
     };
 
     const handleFeedToggle = (feedName, event) => {
@@ -292,6 +335,9 @@
         
         // フォルダ選択数の表示更新
         updateFolderButtonCount();
+        
+        // チェックボックス状態の更新
+        updateFeedCheckboxStates();
     };
 
     const handleSelectAllFolders = (selectAll, event) => {
@@ -300,16 +346,21 @@
         }
         
         let selectedFolders;
+        let selectedFeeds;
         if (selectAll) {
             const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
+            const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
             selectedFolders = [...folders];
+            selectedFeeds = [...feeds];
         } else {
             selectedFolders = [];
+            selectedFeeds = [];
         }
         
         // DOM再構築を避けるため、直接状態更新
         window.state.selectedFolders = selectedFolders;
-        saveFilterState(window.state.viewMode, selectedFolders, window.state.selectedFeeds);
+        window.state.selectedFeeds = selectedFeeds;
+        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
         // 記事一覧のみ再レンダリング
         updateArticleListOnly();
@@ -938,8 +989,10 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
+        // フィルタリングロジックを OR 条件に変更
+        // 「選択されたフォルダ内の記事」OR「選択されたフィードの記事」
         filtered = filtered.filter(article => 
-            window.state.selectedFolders.includes(article.folderName) && 
+            window.state.selectedFolders.includes(article.folderName) || 
             window.state.selectedFeeds.includes(article.rssSource)
         );
 
