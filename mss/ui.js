@@ -393,7 +393,7 @@
                     フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})
                     <span class="dropdown-arrow">▼</span>
                 </button>
-                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
+                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100%; max-width: calc(100vw - 2rem); max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem; box-sizing: border-box;">
                     <div class="folder-controls">
                         <label class="folder-item" for="${prefix}selectAllFolders">
                             <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
