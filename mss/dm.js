@@ -1120,33 +1120,24 @@ window.AIScoring = {
         // 生スコア計算（制限なし）
         let rawScore = 0;
         
-        // キーワードスコアの計算（制限を撤廃）
+        // 【新機能】多次元嗜好マッピング統合版キーワードスコア
         if (article.keywords && aiLearning.wordWeights && article.keywords.length > 0) {
-            let keywordScore = 0;
-            let validKeywords = 0;
+            // Step 1: AI学習重みによる上位3つのキーワードを選択
+            const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
             
-            article.keywords.forEach(keyword => {
-                const weight = aiLearning.wordWeights[keyword] || 0;
-                keywordScore += weight; // 制限を撤廃
-                validKeywords++;
-            });
+            // Step 2: 多次元スコア計算
+            const multidimensionalScore = this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
             
-            // キーワード数による平均化（自然な重み付け）
-            if (validKeywords > 0) {
-                const averageKeywordScore = keywordScore / validKeywords;
-                // 複数キーワードによる影響力の段階的増加（制限撤廃）
-                const keywordMultiplier = Math.log(validKeywords + 1) * 0.8;
-                rawScore += averageKeywordScore * keywordMultiplier;
-            }
+            rawScore += multidimensionalScore;
         }
         
-        // ソーススコア（制限撤廃）
+        // ソーススコア（既存維持）
         if (article.rssSource && aiLearning.sourceWeights) {
             const weight = aiLearning.sourceWeights[article.rssSource] || 0;
             rawScore += weight;
         }
         
-        // 興味ワードスコア（制限撤廃、動的重み付け）
+        // 興味ワードスコア（既存維持）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1154,57 +1145,129 @@ window.AIScoring = {
             );
             
             if (matchedWords.length > 0) {
-                // 興味ワードの影響を段階的に増加
                 const interestBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
                 rawScore += interestBonus;
             }
         }
         
-        // ユーザー評価（制限撤廃、強い影響力）
+        // ユーザー評価（既存維持）
         if (article.userRating > 0) {
-            const ratingImpact = (article.userRating - 3) * 25; // 影響力を強化
+            const ratingImpact = (article.userRating - 3) * 25;
             rawScore += ratingImpact;
         }
         
-        // 【新機能】シグモイド正規化による自然な分布生成
-        // rawScoreを0-100の範囲に正規化し、40-60点を中心とした正規分布に変換
+        // シグモイド正規化（既存維持）
         const normalizedScore = this._sigmoidNormalization(rawScore);
         
         return Math.round(normalizedScore);
     },
     
-    // 【新機能】シグモイド正規化関数
+    // 【新機能】AI学習重みによる上位3つのキーワード選択
+    _getTopKeywordsByAIWeights(keywords, wordWeights) {
+        // キーワードをAI学習重み順でソート
+        const keywordsWithWeights = keywords.map(keyword => ({
+            keyword: keyword,
+            weight: Math.abs(wordWeights[keyword] || 0), // 絶対値で影響力を判定
+            originalWeight: wordWeights[keyword] || 0
+        }));
+        
+        // 重みの絶対値順でソートし、上位3つを選択
+        const topKeywords = keywordsWithWeights
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, 3);
+        
+        return topKeywords;
+    },
+    
+    // 【新機能】多次元キーワードスコア計算（バランス重視版）
+    _calculateMultidimensionalKeywordScore(topKeywords, aiLearning) {
+        if (topKeywords.length === 0) return 0;
+        
+        let totalScore = 0;
+        
+        // 1. 個別キーワードスコア（基本軸）
+        let individualScore = 0;
+        topKeywords.forEach(item => {
+            individualScore += item.originalWeight;
+        });
+        
+        // 2. カテゴリ組み合わせボーナス（簡素版）
+        const combinationBonus = this._calculateCombinationBonus(topKeywords);
+        
+        // 3. 嗜好強度の段階化（3段階：低・中・高）
+        const intensityMultiplier = this._calculateIntensityMultiplier(topKeywords);
+        
+        // 4. バランス重視の統合計算
+        // 個別スコア：60%、組み合わせ：25%、強度：15%
+        totalScore = (individualScore * 0.6) + (combinationBonus * 0.25) + (individualScore * intensityMultiplier * 0.15);
+        
+        return totalScore;
+    },
+    
+    // 【新機能】カテゴリ組み合わせボーナス（軽量版）
+    _calculateCombinationBonus(topKeywords) {
+        if (topKeywords.length < 2) return 0;
+        
+        // 事前計算されたボーナステーブル（実装コスト軽減）
+        const bonusTable = {
+            2: 3,  // 2つの組み合わせ：+3点
+            3: 8   // 3つの組み合わせ：+8点
+        };
+        
+        const keywordCount = topKeywords.length;
+        let bonus = bonusTable[keywordCount] || 0;
+        
+        // 重みの相乗効果を簡易計算
+        const avgWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
+        const synergy = avgWeight > 5 ? 1.5 : (avgWeight > 2 ? 1.2 : 1.0);
+        
+        return bonus * synergy;
+    },
+    
+    // 【新機能】嗜好強度の段階化（3段階）
+    _calculateIntensityMultiplier(topKeywords) {
+        // 上位キーワードの重みの絶対値平均で強度を判定
+        const avgAbsWeight = topKeywords.reduce((sum, item) => sum + item.weight, 0) / topKeywords.length;
+        
+        // 3段階の強度分類（バランス重視の閾値）
+        if (avgAbsWeight >= 8) {
+            return 0.25;  // 高強度：25%の追加影響
+        } else if (avgAbsWeight >= 3) {
+            return 0.15;  // 中強度：15%の追加影響
+        } else {
+            return 0.05;  // 低強度：5%の追加影響
+        }
+    },
+    
+    // 既存機能：シグモイド正規化（維持）
     _sigmoidNormalization(rawScore) {
-        // Step 1: シグモイド関数による正規化 (0〜1の範囲)
         const sigmoid = 1 / (1 + Math.exp(-rawScore / 20));
-        
-        // Step 2: 正規分布風の調整（中央値50を基準に分散を調整）
-        const centered = (sigmoid - 0.5) * 2; // -1〜1の範囲に変換
-        
-        // Step 3: ガウス風分布への変換（中央値50、標準偏差15相当）
+        const centered = (sigmoid - 0.5) * 2;
         const gaussianFactor = Math.exp(-Math.pow(centered, 2) * 0.5);
-        
-        // Step 4: 目標分布への変換（40-60点中心、0-100範囲）
-        // 中央付近（40-60点）に約68%、全体の95%が20-80点に収まる分布
         const targetScore = 50 + (centered * 15 * gaussianFactor) + (centered * 35 * (1 - gaussianFactor));
         
-        // Step 5: 0-100の範囲に最終調整
         return Math.max(0, Math.min(100, targetScore));
     },
     
-    // 【学習重み維持】現在の超保守的設定を保持
+    // 【改良】学習機能強化版
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        // 学習重みを非常に穏やかに調整（長期学習対応・維持）
-        const weights = [0, -1, -0.5, 0, 0.5, 1]; // G選択により現在設定を維持
+        const weights = [0, -1, -0.5, 0, 0.5, 1];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
         if (article.keywords) {
+            // 【新機能】多次元学習：上位3つのキーワードをより重点的に学習
+            const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
+            const topKeywordNames = topKeywords.map(item => item.keyword);
+            
             article.keywords.forEach(keyword => {
                 const currentWeight = aiLearning.wordWeights[keyword] || 0;
-                const newWeight = currentWeight + weight;
                 
-                // 重みの範囲を維持（長期学習向け）
+                // 上位3つのキーワードは1.3倍で学習（重点学習）
+                const learningMultiplier = topKeywordNames.includes(keyword) ? 1.3 : 1.0;
+                const adjustedWeight = weight * learningMultiplier;
+                
+                const newWeight = currentWeight + adjustedWeight;
                 aiLearning.wordWeights[keyword] = Math.max(-15, Math.min(15, newWeight));
             });
         }
@@ -1214,7 +1277,6 @@ window.AIScoring = {
             const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
             const newWeight = currentWeight + sourceWeight;
             
-            // ソース重みの範囲を維持
             aiLearning.sourceWeights[article.rssSource] = Math.max(-8, Math.min(8, newWeight));
         }
         
@@ -1222,6 +1284,7 @@ window.AIScoring = {
         return aiLearning;
     }
 };
+
 
 
 
