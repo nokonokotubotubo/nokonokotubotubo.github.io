@@ -1117,34 +1117,36 @@ window.ArticleLoader = {
 
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
-        let score = 50; // ベーススコアを50に変更（中央値）
+        // 生スコア計算（制限なし）
+        let rawScore = 0;
         
-        // キーワードスコアの正規化処理
+        // キーワードスコアの計算（制限を撤廃）
         if (article.keywords && aiLearning.wordWeights && article.keywords.length > 0) {
             let keywordScore = 0;
             let validKeywords = 0;
             
             article.keywords.forEach(keyword => {
                 const weight = aiLearning.wordWeights[keyword] || 0;
-                keywordScore += Math.max(-15, Math.min(15, weight)); // 個別キーワード上限を15に縮小
+                keywordScore += weight; // 制限を撤廃
                 validKeywords++;
             });
             
-            // キーワード数による正規化（平均化して影響を安定化）
+            // キーワード数による平均化（自然な重み付け）
             if (validKeywords > 0) {
                 const averageKeywordScore = keywordScore / validKeywords;
-                const normalizedScore = averageKeywordScore * Math.min(1.5, validKeywords / 3); // 3個以上で影響度上限
-                score += Math.max(-25, Math.min(25, normalizedScore)); // 全体への影響上限を25に制限
+                // 複数キーワードによる影響力の段階的増加（制限撤廃）
+                const keywordMultiplier = Math.log(validKeywords + 1) * 0.8;
+                rawScore += averageKeywordScore * keywordMultiplier;
             }
         }
         
-        // ソーススコア（変更なし、影響度小）
+        // ソーススコア（制限撤廃）
         if (article.rssSource && aiLearning.sourceWeights) {
             const weight = aiLearning.sourceWeights[article.rssSource] || 0;
-            score += Math.max(-5, Math.min(5, weight));
+            rawScore += weight;
         }
         
-        // 興味ワードスコア（動的調整）
+        // 興味ワードスコア（制限撤廃、動的重み付け）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1152,26 +1154,48 @@ window.AIScoring = {
             );
             
             if (matchedWords.length > 0) {
-                // マッチした興味ワード数に応じて段階的にボーナス（上限8点）
-                const interestBonus = Math.min(8, matchedWords.length * 3);
-                score += interestBonus;
+                // 興味ワードの影響を段階的に増加
+                const interestBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
+                rawScore += interestBonus;
             }
         }
         
-        // ユーザー評価（影響度を緩和）
+        // ユーザー評価（制限撤廃、強い影響力）
         if (article.userRating > 0) {
-            const ratingImpact = (article.userRating - 3) * 6; // 10→6に縮小
-            score += ratingImpact;
+            const ratingImpact = (article.userRating - 3) * 25; // 影響力を強化
+            rawScore += ratingImpact;
         }
         
-        // 最終スコアの調整（20-80の範囲により多く分散）
-        const finalScore = Math.round(score);
-        return Math.max(20, Math.min(80, finalScore)); // 0-100 → 20-80に変更
+        // 【新機能】シグモイド正規化による自然な分布生成
+        // rawScoreを0-100の範囲に正規化し、40-60点を中心とした正規分布に変換
+        const normalizedScore = this._sigmoidNormalization(rawScore);
+        
+        return Math.round(normalizedScore);
     },
     
+    // 【新機能】シグモイド正規化関数
+    _sigmoidNormalization(rawScore) {
+        // Step 1: シグモイド関数による正規化 (0〜1の範囲)
+        const sigmoid = 1 / (1 + Math.exp(-rawScore / 20));
+        
+        // Step 2: 正規分布風の調整（中央値50を基準に分散を調整）
+        const centered = (sigmoid - 0.5) * 2; // -1〜1の範囲に変換
+        
+        // Step 3: ガウス風分布への変換（中央値50、標準偏差15相当）
+        const gaussianFactor = Math.exp(-Math.pow(centered, 2) * 0.5);
+        
+        // Step 4: 目標分布への変換（40-60点中心、0-100範囲）
+        // 中央付近（40-60点）に約68%、全体の95%が20-80点に収まる分布
+        const targetScore = 50 + (centered * 15 * gaussianFactor) + (centered * 35 * (1 - gaussianFactor));
+        
+        // Step 5: 0-100の範囲に最終調整
+        return Math.max(0, Math.min(100, targetScore));
+    },
+    
+    // 【学習重み維持】現在の超保守的設定を保持
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        // 学習重みを穏やかに調整（安定化）
-        const weights = [0, -3, -1, 0, 1, 3]; // [-6,-2,0,2,6] → [-3,-1,0,1,3]に縮小
+        // 学習重みを非常に穏やかに調整（長期学習対応・維持）
+        const weights = [0, -1, -0.5, 0, 0.5, 1]; // G選択により現在設定を維持
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
@@ -1180,8 +1204,8 @@ window.AIScoring = {
                 const currentWeight = aiLearning.wordWeights[keyword] || 0;
                 const newWeight = currentWeight + weight;
                 
-                // 重みの範囲を縮小（安定化）
-                aiLearning.wordWeights[keyword] = Math.max(-30, Math.min(30, newWeight)); // -60〜60 → -30〜30
+                // 重みの範囲を維持（長期学習向け）
+                aiLearning.wordWeights[keyword] = Math.max(-15, Math.min(15, newWeight));
             });
         }
         
@@ -1190,14 +1214,15 @@ window.AIScoring = {
             const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
             const newWeight = currentWeight + sourceWeight;
             
-            // ソース重みの範囲も縮小
-            aiLearning.sourceWeights[article.rssSource] = Math.max(-15, Math.min(15, newWeight)); // -20〜20 → -15〜15
+            // ソース重みの範囲を維持
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-8, Math.min(8, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
         return aiLearning;
     }
 };
+
 
 
 // ===========================================
