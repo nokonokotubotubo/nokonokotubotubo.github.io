@@ -802,11 +802,11 @@ min-width: 50px;
 .folder-dropdown-content {
     position: fixed !important; /* ドロップダウンのみfixed */
     top: auto !important; /* topをリセット */
-    bottom: 0 !important; /* 画面下部から表示 */
+    bottom: 5vh !important; /* 画面下部に5%の余白を作成 */
     left: 0 !important;
     right: 0 !important;
     width: 100vw !important;
-    max-height: 80vh !important;
+    max-height: 70vh !important; /* 80vh → 70vh に変更（画面の7割） */
     border-radius: 0 !important; /* 画面下部表示時は角丸なし */
 }
 }
@@ -1062,10 +1062,10 @@ width: 100%;
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .folder-dropdown-content {
-        max-height: 80vh !important;
+        max-height: 70vh !important; /* 80vh → 70vh に変更（画面の7割） */
         position: fixed !important; /* ドロップダウンのみfixed */
         top: auto !important; /* topをリセット */
-        bottom: 0 !important; /* 画面下部から表示 */
+        bottom: 5vh !important; /* 画面下部に5%の余白を作成 */
         left: 0 !important;
         right: 0 !important;
         width: 100vw !important;
