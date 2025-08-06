@@ -961,7 +961,7 @@
                 <div class="nav-top-row">
                     <div class="nav-left-mobile">
                         <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
-                        ${window.state.lastUpdate ? `<span class="last-update-mobile">最終更新: ${window.formatDate(window.state.lastUpdate)}</span>` : ''}
+                        <span class="last-update-mobile">表示中: ${getFilteredArticles().length}件</span>
                     </div>
                     <div class="nav-actions-mobile">
                         <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
@@ -994,7 +994,7 @@
 
                 <div class="nav-left desktop-only">
                     <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
-                    ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
+                    <div class="last-update">表示中: ${getFilteredArticles().length}件</div>
                 </div>
                 
                 <div class="nav-filters desktop-only">
