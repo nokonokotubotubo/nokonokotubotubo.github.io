@@ -793,6 +793,11 @@ font-size: 0.75rem;
 padding: 0.35rem 0.6rem;
 min-width: 50px;
 }
+
+/* --- ドロップダウン最大高さ修正 --- */
+.folder-dropdown-content {
+    max-height: 80vh !important;
+}
 }
 
 @media (max-width: 480px) {
@@ -1002,6 +1007,8 @@ width: 100%;
     overflow-y: auto;
 }
 
+/* --- モバイル時は媒体クエリで上書き（下記80vh）--- */
+
 .folder-item, .feed-item {
     display: flex;
     align-items: center;
@@ -1046,6 +1053,6 @@ width: 100%;
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .folder-dropdown-content {
-        max-height: 300px;
+        max-height: 80vh !important;
     }
 }
