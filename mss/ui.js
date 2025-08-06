@@ -182,11 +182,31 @@
     // 部分更新関数（DOM再構築回避用）
     // ===========================================
 
-    // 記事一覧のみ更新する関数
+    // ナビゲーションの件数表示のみ更新する関数（NEW）
+    const updateArticleCount = () => {
+        const count = getFilteredArticles().length;
+        
+        // モバイル版の件数表示を更新
+        const mobileUpdate = document.querySelector('.last-update-mobile');
+        if (mobileUpdate) {
+            mobileUpdate.textContent = `表示中: ${count}件`;
+        }
+        
+        // デスクトップ版の件数表示を更新
+        const desktopUpdate = document.querySelector('.last-update');
+        if (desktopUpdate) {
+            desktopUpdate.textContent = `表示中: ${count}件`;
+        }
+    };
+
+    // 記事一覧のみ更新する関数（件数表示も同時更新するよう修正）
     const updateArticleListOnly = () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
+            
+            // 件数表示も更新（NEW）
+            updateArticleCount();
             
             // 星評価のイベントリスナーを再設定
             if (!window._starClickHandler) {
@@ -961,7 +981,7 @@
                 <div class="nav-top-row">
                     <div class="nav-left-mobile">
                         <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
-                        ${window.state.lastUpdate ? `<span class="last-update-mobile">最終更新: ${window.formatDate(window.state.lastUpdate)}</span>` : ''}
+                        <span class="last-update-mobile">表示中: ${getFilteredArticles().length}件</span>
                     </div>
                     <div class="nav-actions-mobile">
                         <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
@@ -994,7 +1014,7 @@
 
                 <div class="nav-left desktop-only">
                     <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
-                    ${window.state.lastUpdate ? `<div class="last-update">最終更新: ${window.formatDate(window.state.lastUpdate)}</div>` : ''}
+                    <div class="last-update">表示中: ${getFilteredArticles().length}件</div>
                 </div>
                 
                 <div class="nav-filters desktop-only">
