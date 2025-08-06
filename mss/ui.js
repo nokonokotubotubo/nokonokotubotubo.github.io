@@ -182,31 +182,11 @@
     // 部分更新関数（DOM再構築回避用）
     // ===========================================
 
-    // ナビゲーションの件数表示のみ更新する関数（NEW）
-    const updateArticleCount = () => {
-        const count = getFilteredArticles().length;
-        
-        // モバイル版の件数表示を更新
-        const mobileUpdate = document.querySelector('.last-update-mobile');
-        if (mobileUpdate) {
-            mobileUpdate.textContent = `表示中: ${count}件`;
-        }
-        
-        // デスクトップ版の件数表示を更新
-        const desktopUpdate = document.querySelector('.last-update');
-        if (desktopUpdate) {
-            desktopUpdate.textContent = `表示中: ${count}件`;
-        }
-    };
-
-    // 記事一覧のみ更新する関数（件数表示も同時更新するよう修正）
+    // 記事一覧のみ更新する関数
     const updateArticleListOnly = () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
-            
-            // 件数表示も更新（NEW）
-            updateArticleCount();
             
             // 星評価のイベントリスナーを再設定
             if (!window._starClickHandler) {
