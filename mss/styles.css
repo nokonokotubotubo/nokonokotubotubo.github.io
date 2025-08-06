@@ -797,6 +797,9 @@ min-width: 50px;
 /* --- ドロップダウン最大高さ修正 --- */
 .folder-dropdown-content {
     max-height: 80vh !important;
+    position: fixed !important; /* fixedを強制適用 */
+    width: 100vw !important; /* 全幅確保 */
+    left: 0 !important; /* 左端から表示 */
 }
 }
 
@@ -995,19 +998,17 @@ width: 100%;
 }
 
 .folder-dropdown-content {
-    position: absolute;
+    position: fixed; /* absolute → fixed に変更 */
     top: 100%;
     left: 0;
     right: 0;
     background: #374151;
     border: 1px solid #4b5563;
     border-radius: 4px;
-    z-index: 1000;
+    z-index: 9999; /* 1000 → 9999 に変更（sticky要素より確実に上に） */
     max-height: 400px;
     overflow-y: auto;
 }
-
-/* --- モバイル時は媒体クエリで上書き（下記80vh）--- */
 
 .folder-item, .feed-item {
     display: flex;
@@ -1054,5 +1055,8 @@ width: 100%;
 @media (max-width: 768px) {
     .folder-dropdown-content {
         max-height: 80vh !important;
+        position: fixed !important; /* fixedを強制適用 */
+        width: 100vw !important; /* 全幅確保 */
+        left: 0 !important; /* 左端から表示 */
     }
 }
