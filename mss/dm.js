@@ -1116,62 +1116,89 @@ window.ArticleLoader = {
 // ===========================================
 
 window.AIScoring = {
-    filterArticles(articles, wordFilters) {
-        if (!wordFilters.ngWords || wordFilters.ngWords.length === 0) return articles;
-        return articles.filter(article => {
-            const content = (article.title + ' ' + article.content).toLowerCase();
-            return !wordFilters.ngWords.some(ngWord => content.includes(ngWord.toLowerCase()));
-        });
-    },
     calculateScore(article, aiLearning, wordFilters) {
-        let score = 0;
-    
-        if (article.keywords && aiLearning.wordWeights) {
+        let score = 50; // ベーススコアを50に変更（中央値）
+        
+        // キーワードスコアの正規化処理
+        if (article.keywords && aiLearning.wordWeights && article.keywords.length > 0) {
+            let keywordScore = 0;
+            let validKeywords = 0;
+            
             article.keywords.forEach(keyword => {
                 const weight = aiLearning.wordWeights[keyword] || 0;
-                score += Math.max(-20, Math.min(20, weight));
+                keywordScore += Math.max(-15, Math.min(15, weight)); // 個別キーワード上限を15に縮小
+                validKeywords++;
             });
+            
+            // キーワード数による正規化（平均化して影響を安定化）
+            if (validKeywords > 0) {
+                const averageKeywordScore = keywordScore / validKeywords;
+                const normalizedScore = averageKeywordScore * Math.min(1.5, validKeywords / 3); // 3個以上で影響度上限
+                score += Math.max(-25, Math.min(25, normalizedScore)); // 全体への影響上限を25に制限
+            }
         }
         
+        // ソーススコア（変更なし、影響度小）
         if (article.rssSource && aiLearning.sourceWeights) {
             const weight = aiLearning.sourceWeights[article.rssSource] || 0;
             score += Math.max(-5, Math.min(5, weight));
         }
         
+        // 興味ワードスコア（動的調整）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
-            const hasInterestWord = wordFilters.interestWords.some(word => content.includes(word.toLowerCase()));
-            if (hasInterestWord) score += 10;
+            const matchedWords = wordFilters.interestWords.filter(word => 
+                content.includes(word.toLowerCase())
+            );
+            
+            if (matchedWords.length > 0) {
+                // マッチした興味ワード数に応じて段階的にボーナス（上限8点）
+                const interestBonus = Math.min(8, matchedWords.length * 3);
+                score += interestBonus;
+            }
         }
         
+        // ユーザー評価（影響度を緩和）
         if (article.userRating > 0) {
-            score += (article.userRating - 3) * 10;
+            const ratingImpact = (article.userRating - 3) * 6; // 10→6に縮小
+            score += ratingImpact;
         }
         
-        return Math.max(0, Math.min(100, Math.round(score + 30)));
+        // 最終スコアの調整（20-80の範囲により多く分散）
+        const finalScore = Math.round(score);
+        return Math.max(20, Math.min(80, finalScore)); // 0-100 → 20-80に変更
     },
+    
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        const weights = [0, -6, -2, 0, 2, 6];
+        // 学習重みを穏やかに調整（安定化）
+        const weights = [0, -3, -1, 0, 1, 3]; // [-6,-2,0,2,6] → [-3,-1,0,1,3]に縮小
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
         if (article.keywords) {
             article.keywords.forEach(keyword => {
-                const newWeight = (aiLearning.wordWeights[keyword] || 0) + weight;
-                aiLearning.wordWeights[keyword] = Math.max(-60, Math.min(60, newWeight));
+                const currentWeight = aiLearning.wordWeights[keyword] || 0;
+                const newWeight = currentWeight + weight;
+                
+                // 重みの範囲を縮小（安定化）
+                aiLearning.wordWeights[keyword] = Math.max(-30, Math.min(30, newWeight)); // -60〜60 → -30〜30
             });
         }
         
         if (article.rssSource) {
             const sourceWeight = Math.round(weight * 0.5);
-            const newWeight = (aiLearning.sourceWeights[article.rssSource] || 0) + sourceWeight;
-            aiLearning.sourceWeights[article.rssSource] = Math.max(-20, Math.min(20, newWeight));
+            const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
+            const newWeight = currentWeight + sourceWeight;
+            
+            // ソース重みの範囲も縮小
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-15, Math.min(15, newWeight)); // -20〜20 → -15〜15
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
         return aiLearning;
     }
 };
+
 
 // ===========================================
 // ワードフィルター管理
