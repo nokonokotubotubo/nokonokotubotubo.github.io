@@ -168,6 +168,24 @@ box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 animation: pulse 1.5s infinite;
 }
 
+/* 一括既読ボタンのスタイル */
+.bulk-read-btn {
+    margin-left: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    font-weight: bold;
+    min-width: auto;
+    background: rgba(76, 175, 80, 0.8);
+    color: white;
+    border: 1px solid rgba(76, 175, 80, 1);
+}
+
+.bulk-read-btn:hover {
+    background: rgba(76, 175, 80, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.25);
+}
+
 /* ────────────── デスクトップ・モバイル制御 ────────────── */
 /* デスクトップのみ表示 */
 .desktop-only {
@@ -418,7 +436,6 @@ color: #ffc107;
     transform: scale(0.95);
   }
 }
-
 
 /* ────────────── モーダル ────────────── */
 .modal-overlay {
@@ -747,6 +764,13 @@ font-size: 0.85rem;
 padding: 0.4rem 0.6rem;
 min-width: 0; /* flexの最小幅制限を解除 */
 max-width: 100%;
+}
+
+.bulk-read-btn {
+    margin-left: 0.3rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 .main-content {
