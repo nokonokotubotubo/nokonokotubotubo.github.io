@@ -1062,7 +1062,7 @@ width: 100%;
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .folder-dropdown-content {
-        max-height: 60vh !important; /* 80vh → 70vh に変更（画面の7割） */
+        max-height: 70vh !important; /* 80vh → 70vh に変更（画面の7割） */
         position: fixed !important; /* ドロップダウンのみfixed */
         top: auto !important; /* topをリセット */
         bottom: 10vh !important; /* 画面下部に5%の余白を作成 */
