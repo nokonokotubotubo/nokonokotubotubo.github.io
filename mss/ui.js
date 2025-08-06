@@ -260,6 +260,42 @@
     };
 
     // ===========================================
+    // 一括既読化処理（NEW）
+    // ===========================================
+
+    const handleBulkMarkAsRead = () => {
+        const confirmed = confirm('表示している記事を一括で既読にしますか？');
+        if (!confirmed) {
+            return;
+        }
+        
+        const filteredArticles = getFilteredArticles();
+        const articlesHook = window.DataHooks.useArticles();
+        let updatedCount = 0;
+        
+        filteredArticles.forEach(article => {
+            if (article.readStatus === 'unread') {
+                articlesHook.updateArticle(article.id, { readStatus: 'read' }, { skipRender: true });
+                updatedCount++;
+            }
+        });
+        
+        if (updatedCount > 0) {
+            // 記事一覧のみ更新
+            updateArticleListOnly();
+            
+            // GitHub同期フラグ設定
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+            
+            alert(`${updatedCount}件の記事を既読にしました`);
+        } else {
+            alert('既読にする記事がありませんでした');
+        }
+    };
+
+    // ===========================================
     // フォルダ・フィード管理（フィード連動対応版）
     // ===========================================
 
@@ -393,7 +429,7 @@
                     フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})
                     <span class="dropdown-arrow">▼</span>
                 </button>
-                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: 80vh; overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
+                <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: absolute; left: 0; top: 100%; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
                     <div class="folder-controls">
                         <label class="folder-item" for="${prefix}selectAllFolders">
                             <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
@@ -950,6 +986,9 @@
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
                         </select>
+                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">
+                            ✓
+                        </button>
                     </div>
                 </div>
 
@@ -971,6 +1010,9 @@
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
                         </select>
+                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">
+                            ✓
+                        </button>
                     </div>
                 </div>
 
@@ -1332,6 +1374,7 @@
     window.handleFeedToggle = handleFeedToggle;
     window.handleSelectAllFolders = handleSelectAllFolders;
     window.toggleFolderDropdown = toggleFolderDropdown;
+    window.handleBulkMarkAsRead = handleBulkMarkAsRead;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
