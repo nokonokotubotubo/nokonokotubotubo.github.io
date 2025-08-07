@@ -1638,15 +1638,18 @@ window.DataHooks = {
 };
 
 // ===========================================
-// エクスポート・インポート 機能（修正済み）
+// エクスポート・インポート機能（修正済み完全版）
 // ===========================================
 
+// 【修正後】エクスポート機能：記事状態を含む完全版
 window.exportMinewsData = function() {
-    const aiLearning = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
-    const wordFilters = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
-    const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
+    const aiHook = window.DataHooks.useAILearning();
+    const wordHook = window.DataHooks.useWordFilters();
+    const articlesHook = window.DataHooks.useArticles();
+    
+    // 記事状態を抽出（点数計算に影響する要素のみ）
     const articleStates = {};
-    for (const article of articles) {
+    articlesHook.articles.forEach(article => {
         if (
             article.readStatus === 'read' ||
             (article.userRating && article.userRating > 0) ||
@@ -1654,59 +1657,132 @@ window.exportMinewsData = function() {
         ) {
             articleStates[article.id] = {
                 readStatus: article.readStatus,
-                userRating: article.userRating,
-                readLater: article.readLater,
+                userRating: article.userRating || 0,
+                readLater: article.readLater || false,
                 lastModified: article.lastModified || null
             };
         }
-    }
-    const data = {
+    });
+    
+    const exportData = {
         version: window.CONFIG.DATA_VERSION,
-        exportedAt: new Date().toISOString(),
-        aiLearning,
-        wordFilters,
-        articleStates
+        exportDate: new Date().toISOString(),
+        aiLearning: aiHook.aiLearning,
+        wordFilters: wordHook.wordFilters,
+        articleStates: articleStates  // 追加：記事状態
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "minews_learnstate_export.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `minews_complete_data_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    alert('完全な学習・状態データのエクスポートが完了しました');
 };
 
+// 【修正後】インポート機能：置換処理＋記事状態復元
 window.importMinewsData = async function(file) {
     try {
         const text = await file.text();
-        const data = JSON.parse(text);
-        if (data.aiLearning) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, data.aiLearning);
-        if (data.wordFilters) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, data.wordFilters);
-        if (data.articleStates && typeof data.articleStates === 'object') {
-            const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
-            const updatedArticles = articles.map(article => {
-                if (data.articleStates[article.id]) {
-                    const st = data.articleStates[article.id];
+        const importData = JSON.parse(text);
+        
+        if (!importData.aiLearning || !importData.wordFilters) {
+            throw new Error('無効なデータ形式です');
+        }
+        
+        const aiHook = window.DataHooks.useAILearning();
+        const wordHook = window.DataHooks.useWordFilters();
+        const articlesHook = window.DataHooks.useArticles();
+        
+        // 修正1：置換処理（加算ではなく直接代入）
+        Object.keys(importData.aiLearning.wordWeights).forEach(word => {
+            const weight = importData.aiLearning.wordWeights[word];
+            // 境界値チェックのみ実行（加算処理を削除）
+            aiHook.aiLearning.wordWeights[word] = Math.max(-60, Math.min(60, weight));
+        });
+        
+        Object.keys(importData.aiLearning.sourceWeights).forEach(source => {
+            const weight = importData.aiLearning.sourceWeights[source];
+            // 境界値チェックのみ実行（加算処理を削除）
+            aiHook.aiLearning.sourceWeights[source] = Math.max(-20, Math.min(20, weight));
+        });
+        
+        // 修正2：ワードフィルターの完全置換
+        // 既存データをクリア
+        wordHook.wordFilters.interestWords.length = 0;
+        wordHook.wordFilters.ngWords.length = 0;
+        
+        // インポートデータで置換
+        importData.wordFilters.interestWords.forEach(word => {
+            if (!wordHook.wordFilters.interestWords.includes(word)) {
+                wordHook.wordFilters.interestWords.push(word);
+            }
+        });
+        
+        importData.wordFilters.ngWords.forEach(word => {
+            if (!wordHook.wordFilters.ngWords.includes(word)) {
+                wordHook.wordFilters.ngWords.push(word);
+            }
+        });
+        
+        // 修正3：記事状態の復元
+        if (importData.articleStates && typeof importData.articleStates === 'object') {
+            const currentArticles = articlesHook.articles;
+            const updatedArticles = currentArticles.map(article => {
+                const state = importData.articleStates[article.id];
+                if (state) {
                     return {
                         ...article,
-                        readStatus: typeof st.readStatus !== 'undefined' ? st.readStatus : 'unread',
-                        userRating: typeof st.userRating !== 'undefined' ? st.userRating : 0,
-                        readLater: typeof st.readLater !== 'undefined' ? st.readLater : false,
-                        lastModified: typeof st.lastModified !== 'undefined' ? st.lastModified : article.lastModified
+                        readStatus: typeof state.readStatus !== 'undefined' ? state.readStatus : 'unread',
+                        userRating: typeof state.userRating !== 'undefined' ? state.userRating : 0,
+                        readLater: typeof state.readLater !== 'undefined' ? state.readLater : false,
+                        lastModified: typeof state.lastModified !== 'undefined' ? state.lastModified : article.lastModified
                     };
                 }
                 return article;
             });
+            
+            // 記事データの更新
             window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+            window.DataHooksCache.clear('articles');
+            
+            if (window.state) {
+                window.state.articles = updatedArticles;
+            }
         }
-        window.DataHooksCache.clear();
-        alert('状態・学習データのインポートに成功しました');
+        
+        // AI学習とワードフィルターの更新タイムスタンプを設定
+        aiHook.aiLearning.lastUpdated = new Date().toISOString();
+        wordHook.wordFilters.lastUpdated = new Date().toISOString();
+        
+        // ローカルストレージに保存
+        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiHook.aiLearning);
+        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordHook.wordFilters);
+        
+        // キャッシュクリア
+        window.DataHooksCache.clear('aiLearning');
+        window.DataHooksCache.clear('wordFilters');
+        
+        alert('完全な学習・状態データのインポートが完了しました');
         if (window.render) window.render();
     } catch (error) {
         alert('インポートエラー: ' + error.message);
     }
+};
+
+// ===========================================
+// UI機能用のグローバル関数
+// ===========================================
+
+// 【追加】UI層用のエクスポート・インポート関数（既存UIとの互換性維持）
+window.handleExportLearningData = window.exportMinewsData;
+window.handleImportLearningData = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        window.importMinewsData(file);
+    }
+    event.target.value = '';
 };
 
 })();
