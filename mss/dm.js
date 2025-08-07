@@ -42,84 +42,6 @@ window.DEFAULT_DATA = {
 };
 
 // ===========================================
-// 【新規追加】エクスポート・インポート 機能
-// ===========================================
-
-window.exportMinewsData = function() {
-    // 学習データ
-    const aiLearning = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
-    // ワードフィルタ
-    const wordFilters = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
-    // 記事状態
-    const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
-    const articleStates = {};
-    for (const article of articles) {
-        if (
-            article.readStatus === 'read' ||
-            (article.userRating && article.userRating > 0) ||
-            article.readLater === true
-        ) {
-            articleStates[article.id] = {
-                readStatus: article.readStatus,
-                userRating: article.userRating || 0,
-                readLater: article.readLater || false,
-                lastModified: article.lastModified || null
-            };
-        }
-    }
-    const data = {
-        version: window.CONFIG.DATA_VERSION,
-        exportedAt: new Date().toISOString(),
-        aiLearning,
-        wordFilters,
-        articleStates
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "minews_learnstate_export.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-};
-
-window.importMinewsData = async function(file) {
-    try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        // 学習データ
-        if (data.aiLearning) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, data.aiLearning);
-        // ワードフィルタ
-        if (data.wordFilters) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, data.wordFilters);
-        // 記事状態
-        if (data.articleStates && typeof data.articleStates === 'object') {
-            const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
-            const updatedArticles = articles.map(article => {
-                if (data.articleStates[article.id]) {
-                    const st = data.articleStates[article.id];
-                    return {
-                        ...article,
-                        readStatus: st.readStatus || 'unread',
-                        userRating: st.userRating || 0,
-                        readLater: st.readLater || false,
-                        lastModified: st.lastModified || article.lastModified
-                    };
-                }
-                return article;
-            });
-            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-        }
-        window.DataHooksCache.clear();
-        alert('状態・学習データのインポートに成功しました');
-        if (window.render) window.render();
-    } catch (error) {
-        alert('インポートエラー: ' + error.message);
-    }
-};
-
-// ===========================================
 // 改良版GitHub Gist同期システム（負荷軽減・最適化版）
 // ===========================================
 
@@ -1496,34 +1418,22 @@ window.DataHooks = {
         
         return {
             articles: window.DataHooksCache.articles,
-            // 【修正4】記事追加時の重複チェック強化
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
-                
-                // 【改善】より厳密な重複チェック
                 const exists = updatedArticles.find(article => {
-                    // ID完全一致
                     if (article.id === newArticle.id) return true;
-                    
-                    // URL完全一致
                     if (article.url === newArticle.url) return true;
-                    
-                    // タイトル+配信元+日付での重複チェック
                     if (article.title === newArticle.title && 
                         article.rssSource === newArticle.rssSource &&
                         article.publishDate === newArticle.publishDate) {
                         return true;
                     }
-                    
                     return false;
                 });
-                
                 if (exists) {
-                    // 【改善】重複記事の詳細ログ（デバッグ用）
                     console.log(`重複記事をスキップ: ${newArticle.title} (${newArticle.rssSource})`);
                     return false;
                 }
-                
                 if (updatedArticles.length >= window.CONFIG.MAX_ARTICLES) {
                     updatedArticles.sort((a, b) => {
                         const aScore = (a.readStatus === 'read' && a.userRating === 0) ? 1 : 0;
@@ -1533,43 +1443,34 @@ window.DataHooks = {
                     });
                     updatedArticles.pop();
                 }
-                
                 updatedArticles.unshift(newArticle);
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.articles = updatedArticles;
                 window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
-                
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
                 console.log(`新しい記事を追加: ${newArticle.title} (${newArticle.rssSource})`);
                 return true;
             },
-            // 記事更新時のタイムスタンプ自動追加
             updateArticle(articleId, updates, options = {}) {
                 const { skipRender = false } = options;
-                
-                // 【追加】状態変更時に必ずlastModifiedを更新
                 const updatesWithTimestamp = {
                     ...updates,
                     lastModified: new Date().toISOString()
                 };
-                
                 const updatedArticles = window.DataHooksCache.articles.map(article =>
                     article.id === articleId ? { ...article, ...updatesWithTimestamp } : article
                 );
-                
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.articles = updatedArticles;
                 window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
-                
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
                 if (window.render && !skipRender) {
                     window.render();
                 }
-                
                 console.log(`記事 ${articleId} の状態を更新しました:`, updatesWithTimestamp);
             }
         };
@@ -1587,12 +1488,10 @@ window.DataHooks = {
             rssFeeds: window.DataHooksCache.rssFeeds,
             async fetchAllFeeds() {
                 const articlesHook = window.DataHooks.useArticles();
-                
                 try {
                     const data = await window.ArticleLoader.loadArticlesFromJSON();
                     let addedCount = 0;
                     let skippedCount = 0;
-                    
                     data.articles.forEach(article => {
                         if (articlesHook.addArticle(article)) {
                             addedCount++;
@@ -1600,15 +1499,12 @@ window.DataHooks = {
                             skippedCount++;
                         }
                     });
-                    
-                    // 【追加】フォルダ・フィード情報を状態に反映
                     if (data.folders && window.state) {
                         window.state.folders = data.folders;
                     }
                     if (data.feeds && window.state) {
                         window.state.feeds = data.feeds;
                     }
-                    
                     return {
                         totalAdded: addedCount,
                         totalSkipped: skippedCount,
@@ -1713,7 +1609,6 @@ window.DataHooks = {
             }
         };
     },
-    // 【新規追加】既存のCONFIG.STORAGE_KEYS.FOLDERSとDataHooksCache.foldersを活用
     useFolders() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -1727,7 +1622,6 @@ window.DataHooks = {
             folders: window.DataHooksCache.folders
         };
     },
-    // 【新規追加】フィード管理フック
     useFeeds() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -1740,6 +1634,78 @@ window.DataHooks = {
         return {
             feeds: window.DataHooksCache.feeds
         };
+    }
+};
+
+// ===========================================
+// エクスポート・インポート 機能（修正済み）
+// ===========================================
+
+window.exportMinewsData = function() {
+    const aiLearning = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
+    const wordFilters = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
+    const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
+    const articleStates = {};
+    for (const article of articles) {
+        if (
+            article.readStatus === 'read' ||
+            (article.userRating && article.userRating > 0) ||
+            article.readLater === true
+        ) {
+            articleStates[article.id] = {
+                readStatus: article.readStatus,
+                userRating: article.userRating,
+                readLater: article.readLater,
+                lastModified: article.lastModified || null
+            };
+        }
+    }
+    const data = {
+        version: window.CONFIG.DATA_VERSION,
+        exportedAt: new Date().toISOString(),
+        aiLearning,
+        wordFilters,
+        articleStates
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "minews_learnstate_export.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+window.importMinewsData = async function(file) {
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (data.aiLearning) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, data.aiLearning);
+        if (data.wordFilters) window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, data.wordFilters);
+        if (data.articleStates && typeof data.articleStates === 'object') {
+            const articles = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
+            const updatedArticles = articles.map(article => {
+                if (data.articleStates[article.id]) {
+                    const st = data.articleStates[article.id];
+                    return {
+                        ...article,
+                        readStatus: typeof st.readStatus !== 'undefined' ? st.readStatus : 'unread',
+                        userRating: typeof st.userRating !== 'undefined' ? st.userRating : 0,
+                        readLater: typeof st.readLater !== 'undefined' ? st.readLater : false,
+                        lastModified: typeof st.lastModified !== 'undefined' ? st.lastModified : article.lastModified
+                    };
+                }
+                return article;
+            });
+            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+        }
+        window.DataHooksCache.clear();
+        alert('状態・学習データのインポートに成功しました');
+        if (window.render) window.render();
+    } catch (error) {
+        alert('インポートエラー: ' + error.message);
     }
 };
 
