@@ -462,13 +462,12 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【改善1】一括データ更新（LocalStorageアクセスを1回に削減）
+    // 【完全版】完全同期対応一括データ更新（AIスコア再計算付き）
     async _applyMergedDataSilentBatch(mergedData) {
         try {
-            // 【重要】すべての更新を一度にまとめて実行
             const batchUpdates = {};
             
-            // データの準備（LocalStorageアクセスなし）
+            // AI学習データとワードフィルターを先に更新
             if (mergedData.aiLearning) {
                 batchUpdates.aiLearning = mergedData.aiLearning;
             }
@@ -481,10 +480,16 @@ window.GistSyncManager = {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
                 
+                // 【新規追加】同期後のAI学習データとワードフィルターを使用してAIスコアを再計算
+                const aiLearningData = mergedData.aiLearning || window.DataHooksCache.aiLearning;
+                const wordFiltersData = mergedData.wordFilters || window.DataHooksCache.wordFilters;
+                
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
+                    let updatedArticle = { ...article };
+                    
                     if (state) {
-                        return {
+                        updatedArticle = {
                             ...article,
                             readStatus: state.readStatus || article.readStatus,
                             userRating: state.userRating || article.userRating,
@@ -492,19 +497,28 @@ window.GistSyncManager = {
                             lastModified: state.lastModified || article.lastModified
                         };
                     }
-                    return article;
+                    
+                    // 【重要】AIスコアを同期後のデータで再計算
+                    if (aiLearningData && wordFiltersData) {
+                        updatedArticle.aiScore = window.AIScoring.calculateScore(
+                            updatedArticle, 
+                            aiLearningData, 
+                            wordFiltersData
+                        );
+                    }
+                    
+                    return updatedArticle;
                 });
                 
                 batchUpdates.articles = updatedArticles;
             }
             
-            // 【重要】一括更新実行（1回のLocalStorageアクセスのみ）
             await this._executeBatchUpdate(batchUpdates);
             
-            console.log('シンプル一括更新完了（LocalStorage競合なし）');
+            console.log('完全同期対応一括更新完了（AIスコア再計算済み）');
             return true;
         } catch (error) {
-            console.error('一括更新エラー:', error);
+            console.error('完全同期一括更新エラー:', error);
             return false;
         }
     },
@@ -593,15 +607,17 @@ window.GistSyncManager = {
         }
     },
 
-    // 手動同期用のデータ適用（従来版を保持）
+    // 【改良版】手動同期用完全データ適用（AIスコア再計算強化）
     async _applyMergedDataToLocal(mergedData) {
         try {
+            // 【修正1】AI学習データとワードフィルターを先に適用
             if (mergedData.aiLearning) {
                 window.LocalStorageManager.setItem(
                     window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
                     mergedData.aiLearning
                 );
                 window.DataHooksCache.clear('aiLearning');
+                window.DataHooksCache.aiLearning = mergedData.aiLearning;
             }
             
             if (mergedData.wordFilters) {
@@ -610,16 +626,23 @@ window.GistSyncManager = {
                     mergedData.wordFilters
                 );
                 window.DataHooksCache.clear('wordFilters');
+                window.DataHooksCache.wordFilters = mergedData.wordFilters;
             }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
                 
+                // 【修正2】更新されたAI学習データとワードフィルターを取得
+                const aiLearningData = window.DataHooksCache.aiLearning || window.DataHooks.useAILearning().aiLearning;
+                const wordFiltersData = window.DataHooksCache.wordFilters || window.DataHooks.useWordFilters().wordFilters;
+                
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
+                    let updatedArticle = { ...article };
+                    
                     if (state) {
-                        return {
+                        updatedArticle = {
                             ...article,
                             readStatus: state.readStatus || article.readStatus,
                             userRating: state.userRating || article.userRating,
@@ -627,7 +650,15 @@ window.GistSyncManager = {
                             lastModified: state.lastModified || article.lastModified
                         };
                     }
-                    return article;
+                    
+                    // 【重要修正】必ずAIスコアを最新データで再計算
+                    updatedArticle.aiScore = window.AIScoring.calculateScore(
+                        updatedArticle, 
+                        aiLearningData, 
+                        wordFiltersData
+                    );
+                    
+                    return updatedArticle;
                 });
                 
                 window.LocalStorageManager.setItem(
@@ -635,20 +666,29 @@ window.GistSyncManager = {
                     updatedArticles
                 );
                 window.DataHooksCache.clear('articles');
+                window.DataHooksCache.articles = updatedArticles;
                 
                 if (window.state) {
                     window.state.articles = updatedArticles;
                 }
                 
+                // 【修正3】確実な画面更新（2段階実行）
                 if (window.render) {
                     window.render();
+                    // 追加の確実な更新（100ms後）
+                    setTimeout(() => {
+                        if (window.render) {
+                            window.render();
+                            console.log('手動同期：最終画面更新完了（AIスコア完全同期）');
+                        }
+                    }, 100);
                 }
             }
             
-            console.log('ローカルデータ更新完了');
+            console.log('手動同期ローカルデータ更新完了（AIスコア再計算済み）');
             return true;
         } catch (error) {
-            console.error('ローカルデータ更新エラー:', error);
+            console.error('手動同期ローカルデータ更新エラー:', error);
             return false;
         }
     },
@@ -1641,23 +1681,33 @@ window.DataHooks = {
 // エクスポート・インポート機能（最終修正版）
 // ===========================================
 
-// 【最終修正】確実な評価状態エクスポート機能
+// 【完全版】評価状態+AIスコア完全エクスポート機能
 window.exportMinewsData = function() {
     const aiHook = window.DataHooks.useAILearning();
     const wordHook = window.DataHooks.useWordFilters();
     const articlesHook = window.DataHooks.useArticles();
     
-    // すべての記事状態を詳細エクスポート
+    // 【修正1】すべての記事状態を詳細エクスポート（AIスコア含む）
     const articleStates = {};
     articlesHook.articles.forEach(article => {
+        // 【新規追加】現在のAIスコアも含めてエクスポート
+        const currentAIScore = article.aiScore || window.AIScoring.calculateScore(
+            article, 
+            aiHook.aiLearning, 
+            wordHook.wordFilters
+        );
+        
         articleStates[article.id] = {
             readStatus: article.readStatus || 'unread',
             userRating: article.userRating || 0,
             readLater: article.readLater || false,
             lastModified: article.lastModified || new Date().toISOString(),
+            aiScore: currentAIScore, // 【新規追加】AIスコアをエクスポート
             // 検証用フィールド
             title: article.title,
-            url: article.url
+            url: article.url,
+            keywords: article.keywords || [], // 【新規追加】キーワードも保存
+            rssSource: article.rssSource || '' // 【新規追加】ソースも保存
         };
     });
     
@@ -1694,7 +1744,7 @@ window.exportMinewsData = function() {
     alert(`完全な評価状態データのエクスポートが完了しました\n記事状態: ${exportData.statistics.totalArticles}件\n評価済み: ${exportData.statistics.statesWithRating}件`);
 };
 
-// 【最終修正】確実な評価状態復元インポート機能
+// 【完全版】記事状態の確実な復元（AIスコア再計算付き）
 window.importMinewsData = async function(file) {
     try {
         const text = await file.text();
@@ -1738,11 +1788,12 @@ window.importMinewsData = async function(file) {
             }
         });
         
-        // 【修正3】記事状態の確実な復元
+        // 【完全版】記事状態の確実な復元（AIスコア再計算付き）
         if (importData.articleStates && typeof importData.articleStates === 'object') {
             const currentArticles = articlesHook.articles;
             let restoredCount = 0;
             let ratingRestoredCount = 0;
+            let aiScoreRestoredCount = 0;
             
             const updatedArticles = currentArticles.map(article => {
                 const state = importData.articleStates[article.id];
@@ -1755,16 +1806,42 @@ window.importMinewsData = async function(file) {
                         ratingRestoredCount++;
                     }
                     
-                    return {
+                    let updatedArticle = {
                         ...article,
                         readStatus: state.readStatus || 'unread',
                         userRating: newRating,
                         readLater: state.readLater || false,
                         lastModified: state.lastModified || article.lastModified || new Date().toISOString()
                     };
+                    
+                    // 【重要修正】インポート後にAIスコアを最新の学習データで再計算
+                    const newAIScore = window.AIScoring.calculateScore(
+                        updatedArticle, 
+                        aiHook.aiLearning, 
+                        wordHook.wordFilters
+                    );
+                    
+                    updatedArticle.aiScore = newAIScore;
+                    
+                    // 【新規追加】AIスコアが変更された場合のカウント
+                    if (Math.abs((state.aiScore || 0) - newAIScore) > 1) {
+                        aiScoreRestoredCount++;
+                    }
+                    
+                    return updatedArticle;
                 }
-                return article;
+                
+                // 状態がない記事でもAIスコアを再計算
+                const recalculatedArticle = { ...article };
+                recalculatedArticle.aiScore = window.AIScoring.calculateScore(
+                    recalculatedArticle, 
+                    aiHook.aiLearning, 
+                    wordHook.wordFilters
+                );
+                return recalculatedArticle;
             });
+            
+            console.log(`記事状態復元完了: ${restoredCount}件中、評価復元: ${ratingRestoredCount}件、AIスコア更新: ${aiScoreRestoredCount}件`);
             
             // 【重要】確実な保存と同期処理
             window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
@@ -1774,8 +1851,6 @@ window.importMinewsData = async function(file) {
             if (window.state) {
                 window.state.articles = updatedArticles;
             }
-            
-            console.log(`記事状態復元完了: ${restoredCount}件中、評価復元: ${ratingRestoredCount}件`);
         }
         
         // 【修正4】学習データとワードフィルターの確実な保存
