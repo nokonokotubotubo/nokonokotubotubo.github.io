@@ -22,6 +22,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .cloud-load-btn:disabled{opacity:0.5;cursor:not-allowed}
 .cloud-load-btn.loading{animation:spin 1s linear infinite}
 .cloud-load-btn.error{color:#ff6b6b}
+.cloud-write-btn{position:absolute;left:65px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
+.cloud-write-btn:hover{background:rgba(255,255,255,0.2);color:white}
+.cloud-write-btn:disabled{opacity:0.5;cursor:not-allowed}
+.cloud-write-btn.loading{animation:spin 1s linear infinite}
+.cloud-write-btn.error{color:#ff6b6b}
 @keyframes spin{0%{transform:translateY(-50%) rotate(0deg)}100%{transform:translateY(-50%) rotate(360deg)}}
 .settings-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;transition:var(--transition);z-index:100}
 .settings-btn:hover{background:rgba(255,255,255,0.2);color:white}
@@ -180,6 +185,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 @media (max-width:768px){
 .header{padding:6px 0}
 .cloud-load-btn{left:10px;font-size:1.3rem}
+.cloud-write-btn{left:55px;font-size:1.3rem}
 .settings-btn{right:10px;font-size:1.3rem}
 .timeline-header{padding:6px 15px}
 .timeline-header h5{font-size:0.9rem}
@@ -210,6 +216,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div class="container">
 <button class="cloud-load-btn" @click="loadFromCloud" title="クラウドから読込" :disabled="gistSync.isLoading" :class="{ loading: gistSync.isLoading, error: gistSync.hasError }">
 <i class="fas fa-cloud-download-alt"></i>
+</button>
+<button class="cloud-write-btn" @click="manualSync" title="手動書き込み" :disabled="gistSync.isSyncing" :class="{ loading: gistSync.isSyncing, error: gistSync.hasError }">
+<i class="fas fa-cloud-upload-alt"></i>
 </button>
 <h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
 <button class="settings-btn" @click="openSettingsModal" title="設定">
@@ -480,7 +489,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                 
                 <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
                     <div v-if="gistSync.isEnabled">
-                        <strong>同期状態:</strong> 有効（変更フラグ管理版）<br>
+                        <strong>同期状態:</strong> 有効（変更フラグ管理版・手動書き込みボタンヘッダー移動版）<br>
                         <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
                         <span v-if="gistSync.lastReadTime">最終読込: {{ formatSyncTime(gistSync.lastReadTime) }}</span><br>
                         <span v-if="gistSync.lastSyncTime">最終書込: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
@@ -506,9 +515,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
                 </div>
 
                 <div v-else class="sync-actions">
-                    <button class="sync-btn primary" @click="manualSync" :disabled="gistSync.isSyncing">
-                        {{ gistSync.isSyncing ? '書き込み中...' : '手動書き込み' }}
-                    </button>
                     <button class="sync-btn secondary" @click="copyGistId">Gist IDコピー</button>
                     <button class="sync-btn danger" @click="clearGitHubSync">設定を解除</button>
                 </div>
@@ -517,7 +523,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
             <div class="settings-section">
                 <h3><i class="fas fa-info-circle"></i> アプリ情報</h3>
                 <p>とりっぺんちゃん - 旅行予定調整サイト<br>
-                GitHub変更フラグ管理版</p>
+                GitHub変更フラグ管理版・手動書き込みボタンヘッダー移動版</p>
             </div>
         </div>
     </div>
@@ -542,7 +548,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <script>
 const { createApp } = Vue;
 
-// GitHub Gist同期システム（変更フラグ管理版・完全修正版）
+// GitHub Gist同期システム（変更フラグ管理版・競合チェック対応完全版）
 const TrippenGistSync = {
     token: null,
     gistId: null,
@@ -940,105 +946,104 @@ const TrippenGistSync = {
         }
     },
 
-    // 【修正後】自動書き込み（競合チェック優先版）
-async autoWriteToCloud() {
-    if (!this.isEnabled || !this.token || this.isSyncing) {
-        return false;
-    }
-    
-    this.isSyncing = true;
-    this.hasError = false;
-    
-    try {
-        // 【修正】競合チェックを最初に実行（変更フラグに関係なく）
-        console.log('競合チェック実行中...');
-        const hasNewerData = await this.checkForNewerCloudData();
-        if (hasNewerData) {
-            console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
-            if (window.app && window.app.handleSyncConflict) {
-                window.app.handleSyncConflict();
-            }
-            return false; // 競合があるため書き込み停止
-        }
-
-        // 変更フラグチェック（競合チェック後に移動）
-        if (!this.hasChanged) {
-            console.log('変更フラグなし - 書き込みスキップ');
+    // 【修正版】自動書き込み（競合チェック優先版）
+    async autoWriteToCloud() {
+        if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
         }
         
-        console.log('変更フラグあり - 書き込み実行');
+        this.isSyncing = true;
+        this.hasError = false;
         
-        // データ収集と書き込み
-        const localData = this.collectSyncData();
-        const uploadResult = await this.syncToCloud(localData);
-        
-        if (uploadResult) {
-            this.lastSyncTime = this.getUTCTimestamp();
-            this.lastDataHash = this.calculateHash(localData);
-            this.saveLastSyncTime();
-            this.resetChanged();
-            console.log('自動書き込み完了:', new Date().toLocaleString());
-            return true;
+        try {
+            // 【修正】競合チェックを最初に実行（変更フラグに関係なく）
+            console.log('競合チェック実行中...');
+            const hasNewerData = await this.checkForNewerCloudData();
+            if (hasNewerData) {
+                console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
+                if (window.app && window.app.handleSyncConflict) {
+                    window.app.handleSyncConflict();
+                }
+                return false; // 競合があるため書き込み停止
+            }
+
+            // 変更フラグチェック（競合チェック後に移動）
+            if (!this.hasChanged) {
+                console.log('変更フラグなし - 書き込みスキップ');
+                return false;
+            }
+            
+            console.log('変更フラグあり - 書き込み実行');
+            
+            // データ収集と書き込み
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = this.calculateHash(localData);
+                this.saveLastSyncTime();
+                this.resetChanged();
+                console.log('自動書き込み完了:', new Date().toLocaleString());
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('自動書き込みエラー:', error);
+            this.hasError = true;
+            return false;
+        } finally {
+            this.isSyncing = false;
         }
-        
-        return false;
-    } catch (error) {
-        console.error('自動書き込みエラー:', error);
-        this.hasError = true;
-        return false;
-    } finally {
-        this.isSyncing = false;
-    }
-},
+    },
 
     // 【修正後】手動書き込みメソッド（競合チェック対応）
-async manualWriteToCloud() {
-    if (!this.isEnabled || !this.token) {
-        throw new Error('GitHub同期が設定されていません');
-    }
-    
-    this.isSyncing = true;
-    this.hasError = false;
-    
-    try {
-        console.log('手動書き込み開始');
+    async manualWriteToCloud() {
+        if (!this.isEnabled || !this.token) {
+            throw new Error('GitHub同期が設定されていません');
+        }
         
-        // 【追加】競合チェックを実行
-        console.log('競合チェック実行中...');
-        const hasNewerData = await this.checkForNewerCloudData();
-        if (hasNewerData) {
-            console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
-            if (window.app && window.app.handleSyncConflict) {
-                window.app.handleSyncConflict();
+        this.isSyncing = true;
+        this.hasError = false;
+        
+        try {
+            console.log('手動書き込み開始');
+            
+            // 【追加】競合チェックを実行
+            console.log('競合チェック実行中...');
+            const hasNewerData = await this.checkForNewerCloudData();
+            if (hasNewerData) {
+                console.log('⚠️ 競合検出 - Vue.jsアプリに通知');
+                if (window.app && window.app.handleSyncConflict) {
+                    window.app.handleSyncConflict();
+                }
+                throw new Error('データ競合が検出されました。クラウドから最新データを読み込んでください。');
             }
-            throw new Error('データ競合が検出されました。クラウドから最新データを読み込んでください。');
+            
+            // データ収集と書き込み
+            const localData = this.collectSyncData();
+            const uploadResult = await this.syncToCloud(localData);
+            
+            if (uploadResult) {
+                const currentHash = this.calculateHash(localData);
+                this.lastSyncTime = this.getUTCTimestamp();
+                this.lastDataHash = currentHash;
+                this.saveLastSyncTime();
+                this.resetChanged();
+                console.log('手動書き込み完了');
+                return true;
+            }
+            
+            throw new Error('書き込みに失敗しました');
+        } catch (error) {
+            this.hasError = true;
+            console.error('手動書き込みエラー:', error);
+            throw error;
+        } finally {
+            this.isSyncing = false;
         }
-        
-        // データ収集と書き込み
-        const localData = this.collectSyncData();
-        const uploadResult = await this.syncToCloud(localData);
-        
-        if (uploadResult) {
-            const currentHash = this.calculateHash(localData);
-            this.lastSyncTime = this.getUTCTimestamp();
-            this.lastDataHash = currentHash;
-            this.saveLastSyncTime();
-            this.resetChanged();
-            console.log('手動書き込み完了');
-            return true;
-        }
-        
-        throw new Error('書き込みに失敗しました');
-    } catch (error) {
-        this.hasError = true;
-        console.error('手動書き込みエラー:', error);
-        throw error;
-    } finally {
-        this.isSyncing = false;
-    }
-},
-
+    },
 
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) {
@@ -1137,7 +1142,6 @@ async manualWriteToCloud() {
         console.log('TrippenGistSync設定をクリアしました（変更フラグ管理版）');
     }
 };
-
 
 const app = createApp({
 data() {
@@ -2355,6 +2359,7 @@ alert('設定に失敗しました: ' + error.message);
 }
 },
 
+// 【修正】手動書き込み（Vue.js側）
 async manualSync() {
 if (!TrippenGistSync.isEnabled) {
 alert('GitHub同期が設定されていません');
@@ -2592,7 +2597,7 @@ this.loadLayerOrder();
 }
 },
 mounted() {
-console.log('Vue.jsアプリ初期化開始（変更フラグ管理版）');
+console.log('Vue.jsアプリ初期化開始（変更フラグ管理版・手動書き込みヘッダー移動版）');
 
 this.detectMobile();
 this.checkExistingData();
@@ -2642,7 +2647,7 @@ console.error('初回自動読み込みエラー:', error);
 console.log('GitHub同期無効');
 }
 
-console.log('Vue.jsアプリ初期化完了（変更フラグ管理版）');
+console.log('Vue.jsアプリ初期化完了（変更フラグ管理版・手動書き込みヘッダー移動版）');
 }
 }).mount('#app');
 </script>
