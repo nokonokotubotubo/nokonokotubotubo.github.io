@@ -2,13 +2,9 @@
 <opml version="1.0">
   <body>
     <outline text="生成AI" title="生成AI">
-      <outline text="生成AI・LLM関連テックブログRSS" title="生成AI・LLM関連テックブログRSS" type="rss" xmlUrl="https://r-kagaya.github.io/llm-tech-blog-rss-feed/feeds/rss.xml" htmlUrl="https://r-kagaya.github.io/llm-tech-blog-rss-feed/"/>
-      <outline text="生成AI - AI総研｜AIの企画・開発・運用を一気通貫で支援" title="生成AI - AI総研｜AIの企画・開発・運用を一気通貫で支援" type="rss" xmlUrl="https://metaversesouken.com/ai/category/generative_ai/feed/" htmlUrl="https://metaversesouken.com/ai"/>
-      <outline text="#生成AIタグ" title="#生成AIタグ" type="rss" xmlUrl="https://note.com/hashtag/%E7%94%9F%E6%88%90AI/rss" htmlUrl="https://note.com/hashtag/%E7%94%9F%E6%88%90AI"/>
       <outline text="生成AI ｜AIsmiley AIニュース｜DXを推進するAIポータルメディア「AIsmiley」" title="生成AI ｜AIsmiley AIニュース｜DXを推進するAIポータルメディア「AIsmiley」" type="rss" xmlUrl="https://aismiley.co.jp/ai-news_category/generative-ai/feed/" htmlUrl="https://aismiley.co.jp/"/>
       <outline text="生成AIタグが付けられた新着記事 - Qiita" title="生成AIタグが付けられた新着記事 - Qiita" type="rss" xmlUrl="https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://qiita.com/"/>
       <outline text="Zennの「生成 AI」のフィード" title="Zennの「生成 AI」のフィード" type="rss" xmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai"/>
-      <outline text="reddit.com: search results - 生成AI" title="reddit.com: search results - 生成AI" type="rss" xmlUrl="https://www.reddit.com/search.rss?q=%E7%94%9F%E6%88%90AI&amp;type=link&amp;limit=20&amp;sort=new" htmlUrl="https://www.reddit.com/search?q=%E7%94%9F%E6%88%90AI&amp;type=link&amp;limit=20&amp;sort=new"/>
     </outline>
     <outline text="仕事" title="仕事">
       <outline text="市況かぶ全力２階建" title="市況かぶ全力２階建" type="rss" xmlUrl="https://kabumatome.doorblog.jp/index.rdf" htmlUrl="https://kabumatome.doorblog.jp/"/>
