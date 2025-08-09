@@ -1132,6 +1132,7 @@ this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrol
 const containerRect = container.getBoundingClientRect();
 const scheduleAreaRect = scheduleArea.getBoundingClientRect();
 const headerHeight = timelineHeader ? timelineHeader.offsetHeight : 0;
+
 const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
 const snappedY = Math.round(relativeY / 15) * 15;
 this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
@@ -1218,15 +1219,33 @@ this.isResizeComplete = false;
 document.addEventListener(moveEvent, moveHandler, { passive: false });
 document.addEventListener(endEvent, endHandler);
 },
+// 【修正後】短い予定が常に前面に表示されるgetEventStyleメソッド
 getEventStyle(event) {
 const startPixels = this.timeToPixels(event.startTime);
 const endPixels = this.timeToPixels(event.endTime);
 const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
 
+// 予定の長さ（分）を計算
+const eventDurationMinutes = this.timeToMinutes(event.endTime) - this.timeToMinutes(event.startTime);
+    
+// 同じ日の重複する予定を取得
+const overlappingEvents = this.getOverlappingEvents(event);
+    
 let zIndex = this.baseZIndex;
-const layerIndex = this.eventLayerOrder.indexOf(event.id);
-if (layerIndex !== -1) {
-zIndex = this.baseZIndex + layerIndex + 1;
+    
+if (overlappingEvents.length > 0) {
+// 重複がある場合、短い予定ほど高いz-indexを設定
+// 最短の予定が最前面、最長の予定が最背面になる
+const allOverlappingEvents = [...overlappingEvents, event];
+const sortedByDuration = allOverlappingEvents.sort((a, b) => {
+const durationA = this.timeToMinutes(a.endTime) - this.timeToMinutes(a.startTime);
+const durationB = this.timeToMinutes(b.endTime) - this.timeToMinutes(b.startTime);
+return durationA - durationB; // 短い順
+});
+        
+const currentEventIndex = sortedByDuration.findIndex(e => e.id === event.id);
+// 短い予定ほど高いz-index（最前面）
+zIndex = this.baseZIndex + sortedByDuration.length - currentEventIndex;
 }
 
 return {
