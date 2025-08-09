@@ -101,6 +101,7 @@ const TrippenGistSync = {
         this.periodicSyncInterval = null;
     },
 
+    // 修正1: tripTitle追加
     collectSyncData() {
         const getData = key => JSON.parse(localStorage.getItem(key) || '[]');
         return {
@@ -110,7 +111,7 @@ const TrippenGistSync = {
                 events: getData('trippenEvents'),
                 days: getData('trippenDays'),
                 layerOrder: getData('trippenLayerOrder'),
-                tripTitle: localStorage.getItem('trippenTitle') || ''
+                tripTitle: localStorage.getItem('trippenTitle') || '' // 追加
             }
         };
     },
@@ -216,6 +217,7 @@ const TrippenGistSync = {
         } catch { return false; }
     },
 
+    // 修正3: 同期前データ保存追加
     async autoWriteToCloud() {
         if (!this.isEnabled || !this.token || this.isSyncing) return false;
         
@@ -230,6 +232,9 @@ const TrippenGistSync = {
             }
             
             if (!this.hasChanged) return false;
+            
+            // 修正3: Vueインスタンスの最新データを保存してから同期
+            if (window.app?.saveData) window.app.saveData();
             
             const localData = this.collectSyncData();
             const uploadResult = await this.syncToCloud(localData);
@@ -337,7 +342,7 @@ const TrippenGistSync = {
 const app = createApp({
     data: () => ({
         tripInitialized: false, tripStartDate: '', tripEndDate: '',
-        tripTitle: '', // 追加
+        tripTitle: '', // 旅行タイトル
         today: new Date().toISOString().split('T')[0],
         hasExistingData: false, tripDays: [], activeDay: 0,
         showMobilePopup: false, selectedDayForPopup: null, selectedDayIndex: null,
@@ -372,7 +377,7 @@ const app = createApp({
             if (this.tripDays.length > 0) this.tripInitialized = true;
         },
 
-        // 追加：旅行タイトル編集機能
+        // 旅行タイトル編集機能
         editTripTitle() {
             const currentTitle = this.tripTitle || '';
             this.openModal('旅行タイトルを編集', `
@@ -1365,9 +1370,11 @@ const app = createApp({
             }
         },
 
+        // 修正2: saveData()呼び出し追加
         async manualSync() {
             if (!TrippenGistSync.isEnabled) return alert('GitHub同期が設定されていません');
 
+            this.saveData(); // 修正2: 同期前に最新データを保存
             this.gistSync.isSyncing = true;
             try {
                 const result = await TrippenGistSync.manualWriteToCloud();
@@ -1412,7 +1419,6 @@ const app = createApp({
                     this.eventLayerOrder = [...cloudData.data.layerOrder];
                     localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
                 }
-                // 修正：tripTitleの読み込み処理追加
                 if (cloudData.data.tripTitle !== undefined) {
                     this.tripTitle = cloudData.data.tripTitle || '';
                     localStorage.setItem('trippenTitle', this.tripTitle);
@@ -1496,7 +1502,6 @@ const app = createApp({
             }
         },
 
-        // 修正：saveDataにtripTitle保存を追加
         saveData() {
             localStorage.setItem('trippenEvents', JSON.stringify(this.events));
             localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
@@ -1505,7 +1510,6 @@ const app = createApp({
             if (TrippenGistSync.isEnabled) TrippenGistSync.markChanged();
         },
 
-        // 修正：loadDataにtripTitle読み込みを追加
         loadData() {
             try {
                 const savedEvents = localStorage.getItem('trippenEvents');
