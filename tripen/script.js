@@ -11,7 +11,8 @@ const TrippenGistSync = {
             const jsonString = JSON.stringify({
                 events: data.data.events || [],
                 days: data.data.days || [],
-                layerOrder: data.data.layerOrder || []
+                layerOrder: data.data.layerOrder || [],
+                tripTitle: data.data.tripTitle || ''
             }, Object.keys(data.data).sort());
             return jsonString.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0).toString();
         } catch {
@@ -108,7 +109,8 @@ const TrippenGistSync = {
             data: {
                 events: getData('trippenEvents'),
                 days: getData('trippenDays'),
-                layerOrder: getData('trippenLayerOrder')
+                layerOrder: getData('trippenLayerOrder'),
+                tripTitle: localStorage.getItem('trippenTitle') || ''
             }
         };
     },
@@ -335,6 +337,7 @@ const TrippenGistSync = {
 const app = createApp({
     data: () => ({
         tripInitialized: false, tripStartDate: '', tripEndDate: '',
+        tripTitle: '', // 追加
         today: new Date().toISOString().split('T')[0],
         hasExistingData: false, tripDays: [], activeDay: 0,
         showMobilePopup: false, selectedDayForPopup: null, selectedDayIndex: null,
@@ -367,6 +370,28 @@ const app = createApp({
         loadExistingData() {
             this.loadData();
             if (this.tripDays.length > 0) this.tripInitialized = true;
+        },
+
+        // 追加：旅行タイトル編集機能
+        editTripTitle() {
+            const currentTitle = this.tripTitle || '';
+            this.openModal('旅行タイトルを編集', `
+                <div class="mb-3">
+                    <label for="tripTitleInput" class="form-label">旅行タイトル</label>
+                    <input type="text" class="form-control" id="tripTitleInput" value="${currentTitle.replace(/"/g, '&quot;')}" placeholder="例：沖縄旅行、温泉巡りの旅など">
+                </div>
+            `, `
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="
+                    const input = document.getElementById('tripTitleInput');
+                    if (input) {
+                        window.app.tripTitle = input.value.trim();
+                        window.app.saveData();
+                        window.app.closeAllModals();
+                        navigator.vibrate?.(100);
+                    }
+                ">保存</button>
+            `);
         },
 
         initializeTripDays() {
@@ -1387,6 +1412,11 @@ const app = createApp({
                     this.eventLayerOrder = [...cloudData.data.layerOrder];
                     localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
                 }
+                // 修正：tripTitleの読み込み処理追加
+                if (cloudData.data.tripTitle !== undefined) {
+                    this.tripTitle = cloudData.data.tripTitle || '';
+                    localStorage.setItem('trippenTitle', this.tripTitle);
+                }
 
                 this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
                 this.gistSync.hasError = false;
@@ -1466,23 +1496,29 @@ const app = createApp({
             }
         },
 
+        // 修正：saveDataにtripTitle保存を追加
         saveData() {
             localStorage.setItem('trippenEvents', JSON.stringify(this.events));
             localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+            localStorage.setItem('trippenTitle', this.tripTitle);
             this.saveLayerOrder();
             if (TrippenGistSync.isEnabled) TrippenGistSync.markChanged();
         },
 
+        // 修正：loadDataにtripTitle読み込みを追加
         loadData() {
             try {
                 const savedEvents = localStorage.getItem('trippenEvents');
                 const savedDays = localStorage.getItem('trippenDays');
+                const savedTitle = localStorage.getItem('trippenTitle');
                 
                 if (savedEvents) this.events = JSON.parse(savedEvents);
                 if (savedDays) this.tripDays = JSON.parse(savedDays);
+                if (savedTitle) this.tripTitle = savedTitle;
             } catch {
                 this.events = [];
                 this.tripDays = [];
+                this.tripTitle = '';
             }
             this.loadLayerOrder();
         }
