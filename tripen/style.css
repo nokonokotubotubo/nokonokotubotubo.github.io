@@ -197,3 +197,4 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .sync-btn{width:100%}
 .conflict-content{width:95%}
 }
+.fas fa-edit edit-icon{width: 60px; transform: translate(15px, 0px); transition: none;}
