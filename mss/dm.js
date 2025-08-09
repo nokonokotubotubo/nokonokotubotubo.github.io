@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（軽量化版）
+// Minews PWA - データ管理・処理レイヤー（完全修正版）
 
 (function() {
 
@@ -37,7 +37,7 @@ window.DEFAULT_DATA = {
     }
 };
 
-// GitHub Gist同期システム（軽量化版）
+// GitHub Gist同期システム（完全修正版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -115,7 +115,7 @@ window.GistSyncManager = {
     
     loadConfig() {
         try {
-            const configStr = this._safeStorage.get('minews_gist_config');
+            const configStr = localStorage.getItem('minews_gist_config');
             if (!configStr) {
                 this._log('info', '設定が見つかりません');
                 return null;
@@ -698,7 +698,7 @@ window.GistSyncManager = {
         this._isBackgroundSyncing = false;
         
         try {
-            const configStr = this._safeStorage.get('minews_gist_config');
+            const configStr = localStorage.getItem('minews_gist_config');
             if (configStr) {
                 const config = this._jsonSafe.parse(configStr);
                 if (config && config.encryptedToken && config.gistId) {
@@ -872,7 +872,7 @@ window.GistSyncManager = {
     
     saveGistId(gistId) {
         try {
-            const currentConfigStr = this._safeStorage.get('minews_gist_config');
+            const currentConfigStr = localStorage.getItem('minews_gist_config');
             if (!currentConfigStr) {
                 this._log('warn', '設定が見つからないためGistID保存をスキップ');
                 return;
@@ -906,7 +906,7 @@ window.GistSyncManager = {
         };
 
         try {
-            const configStr = this._safeStorage.get('minews_gist_config');
+            const configStr = localStorage.getItem('minews_gist_config');
             diagnostics.results.push({
                 test: 'LocalStorage存在確認',
                 status: configStr ? 'PASS' : 'FAIL',
