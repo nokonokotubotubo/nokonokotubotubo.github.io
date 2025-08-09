@@ -1,13 +1,10 @@
-// Minews PWA - データ管理・処理レイヤー（負荷軽減・最適化版）
+// Minews PWA - データ管理・処理レイヤー（軽量化版）
 
 (function() {
 
 'use strict';
 
-// ===========================================
 // 定数・設定
-// ===========================================
-
 window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
@@ -23,11 +20,10 @@ window.CONFIG = {
     RETRY_DELAY: 3000
 };
 
-// 【修正】フォルダデフォルトデータを追加
 window.DEFAULT_DATA = {
     articles: [],
-    folders: [], // 既存のCONFIG.STORAGE_KEYS.FOLDERSに対応するデフォルトデータを追加
-    feeds: [], // フィード情報も追加
+    folders: [],
+    feeds: [],
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
@@ -41,106 +37,115 @@ window.DEFAULT_DATA = {
     }
 };
 
-// ===========================================
-// 改良版GitHub Gist同期システム（負荷軽減・最適化版）
-// ===========================================
-
+// GitHub Gist同期システム（軽量化版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
     isEnabled: false,
     isSyncing: false,
     lastSyncTime: null,
-    
-    // 定期同期システム（双方向対応）
     periodicSyncEnabled: false,
     periodicSyncInterval: null,
     pendingChanges: false,
     lastChangeTime: null,
-    
-    // 【NEW】シンプル化された内部状態管理
     _isBackgroundSyncing: false,
-    
-    // 【NEW】設定消失防止フラグ
     _configValidated: false,
     _lastValidConfig: null,
     
-    // 【改良】暗号化機能（エラー耐性強化）
-    _encrypt(text, key = 'minews_secret_key') {
+    // 統合暗号化処理（軽量化版）
+    _cryptoOp(text, isEncrypt, key = 'minews_secret_key') {
         if (!text) return '';
         try {
+            const input = isEncrypt ? text : atob(text);
             let result = '';
-            for (let i = 0; i < text.length; i++) {
-                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            for (let i = 0; i < input.length; i++) {
+                result += String.fromCharCode(input.charCodeAt(i) ^ key.charCodeAt(i % key.length));
             }
-            return btoa(result);
+            result = isEncrypt ? btoa(result) : result;
+            if (!isEncrypt && (result.length < 10 || !/^[a-zA-Z0-9_]+$/.test(result))) {
+                throw new Error('復号化データが無効です');
+            }
+            return result;
         } catch (error) {
-            console.error('暗号化エラー:', error);
-            throw new Error('暗号化処理に失敗しました');
+            console.error(`${isEncrypt ? '暗号化' : '復号化'}エラー:`, error);
+            throw new Error(`${isEncrypt ? '暗号化' : '復号化'}処理に失敗しました`);
+        }
+    },
+    _encrypt(text, key) { return this._cryptoOp(text, true, key); },
+    _decrypt(text, key) { return this._cryptoOp(text, false, key); },
+
+    // 統合エラーハンドリング（軽量化版）
+    _safeStorage: {
+        get(key, defaultValue = null) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            } catch (error) {
+                console.warn(`Storage読み込みエラー[${key}]:`, error.message);
+                return defaultValue;
+            }
+        },
+        set(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                return true;
+            } catch (error) {
+                console.warn(`Storage保存エラー[${key}]:`, error.message);
+                return false;
+            }
         }
     },
 
-    // 【根本修正】復号化機能（失敗時の設定保持）
-    _decrypt(encryptedText, key = 'minews_secret_key') {
-        if (!encryptedText) return '';
-        try {
-            const text = atob(encryptedText);
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-            }
-            
-            // 復号化結果の妥当性チェック
-            if (result.length < 10 || !/^[a-zA-Z0-9_]+$/.test(result)) {
-                console.warn('復号化結果が不正です:', result.substring(0, 10));
-                throw new Error('復号化データが無効です');
-            }
-            
-            return result;
-        } catch (error) {
-            console.error('復号化エラー:', error);
-            throw new Error('復号化に失敗しました');
+    // 開発時のみ詳細ログ、本番では簡潔化
+    _log(level, msg, data = null) {
+        if (level === 'error' || (typeof window !== 'undefined' && window.location?.hostname === 'localhost')) {
+            console[level](msg, data);
+        }
+    },
+
+    // JSON処理統合（軽量化版）
+    _jsonSafe: {
+        str(obj, format = false) { 
+            return JSON.stringify(obj, null, format ? 2 : 0); 
+        },
+        parse(str, def = null) { 
+            try { return JSON.parse(str); } catch { return def; } 
         }
     },
     
-    // 【根本修正】設定読み込み（消失防止版）
     loadConfig() {
         try {
-            const configStr = localStorage.getItem('minews_gist_config');
+            const configStr = this._safeStorage.get('minews_gist_config');
             if (!configStr) {
-                console.log('設定が見つかりません');
+                this._log('info', '設定が見つかりません');
                 return null;
             }
 
-            let parsed;
-            try {
-                parsed = JSON.parse(configStr);
-            } catch (parseError) {
-                console.error('設定のJSONパースに失敗:', parseError);
+            let parsed = this._jsonSafe.parse(configStr);
+            if (!parsed) {
                 if (this._lastValidConfig) {
-                    console.log('前回の有効な設定を使用します');
+                    this._log('info', '前回の有効な設定を使用します');
                     return this._lastValidConfig;
                 }
-                throw parseError;
+                throw new Error('設定解析に失敗しました');
             }
 
-            // トークン復号化試行（失敗しても設定は保持）
             let decryptedToken = null;
             if (parsed.encryptedToken) {
                 try {
                     decryptedToken = this._decrypt(parsed.encryptedToken);
-                    console.log('トークンの復号化に成功しました');
+                    this._log('info', 'トークンの復号化に成功しました');
                 } catch (decryptError) {
-                    console.warn('トークンの復号化に失敗しました:', decryptError.message);
+                    this._log('warn', 'トークンの復号化に失敗しました');
                     
                     if (this._lastValidConfig && this._lastValidConfig.hasToken) {
-                        console.log('前回の有効なトークンを継続使用します');
+                        this._log('info', '前回の有効なトークンを継続使用します');
                         this.token = this.token;
                         this.isEnabled = true;
                     } else {
                         this.token = null;
                         this.isEnabled = false;
-                        console.log('トークンは無効ですが、その他の設定は保持します');
+                        this._log('info', 'トークンは無効ですが、その他の設定は保持します');
                     }
                 }
             } else {
@@ -148,7 +153,6 @@ window.GistSyncManager = {
                 this.isEnabled = false;
             }
 
-            // 設定適用
             if (decryptedToken) {
                 this.token = decryptedToken;
                 this.isEnabled = true;
@@ -168,14 +172,14 @@ window.GistSyncManager = {
             this._lastValidConfig = validConfig;
             this._configValidated = true;
 
-            console.log('設定読み込み完了:', validConfig);
+            this._log('info', '設定読み込み完了');
             return validConfig;
 
         } catch (error) {
             console.error('設定読み込み中の重大エラー:', error);
             
             if (this._lastValidConfig) {
-                console.log('エラー発生のため、前回の有効設定を使用します');
+                this._log('info', 'エラー発生のため、前回の有効設定を使用します');
                 return this._lastValidConfig;
             }
             
@@ -190,13 +194,11 @@ window.GistSyncManager = {
         }
     },
 
-    // 【改良】初期化（設定保持強化版）
     init(token, gistId = null) {
         if (!token || typeof token !== 'string' || token.trim().length === 0) {
             throw new Error('有効なトークンが必要です');
         }
 
-        // 暗号化テスト
         let encryptedToken;
         try {
             encryptedToken = this._encrypt(token.trim());
@@ -224,20 +226,11 @@ window.GistSyncManager = {
             version: '1.2'
         };
 
-        try {
-            const configString = JSON.stringify(configData);
-            localStorage.setItem('minews_gist_config', configString);
-            
-            const savedConfig = localStorage.getItem('minews_gist_config');
-            if (!savedConfig || JSON.parse(savedConfig).encryptedToken !== encryptedToken) {
-                throw new Error('設定の保存確認に失敗');
-            }
-            
-            console.log('GitHub同期設定を正常に保存しました');
-        } catch (saveError) {
-            console.error('設定保存エラー:', saveError);
-            throw new Error('設定の保存に失敗しました: ' + saveError.message);
+        if (!this._safeStorage.set('minews_gist_config', configData)) {
+            throw new Error('設定の保存に失敗しました');
         }
+        
+        this._log('info', 'GitHub同期設定を正常に保存しました');
 
         this._lastValidConfig = {
             hasToken: true,
@@ -248,7 +241,6 @@ window.GistSyncManager = {
         };
         this._configValidated = true;
 
-        // 【NEW】内部フラグ初期化
         this._initializeSafely();
 
         if (this.isEnabled) {
@@ -256,7 +248,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 定期同期の開始
     startPeriodicSync(intervalSeconds = 60) {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
@@ -269,7 +260,6 @@ window.GistSyncManager = {
         }, intervalSeconds * 1000);
     },
 
-    // 定期同期の停止
     stopPeriodicSync() {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
@@ -278,22 +268,18 @@ window.GistSyncManager = {
         this.periodicSyncEnabled = false;
     },
 
-    // 変更フラグの設定
     markAsChanged() {
         this.pendingChanges = true;
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【改善2】内部フラグによる状態管理（window.state操作を排除）
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
         }
         
         this.isSyncing = true;
-        
-        // 【重要】window.stateは一切触らない
-        this._isBackgroundSyncing = true;  // 内部フラグのみ
+        this._isBackgroundSyncing = true;
         
         try {
             const cloudData = await this.syncFromCloud();
@@ -304,15 +290,10 @@ window.GistSyncManager = {
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                // 【重要】一括データ更新
                 await this._applyMergedDataSilentBatch(mergedData);
-                
-                // 【重要】設定更新も含めて一括処理
                 await this._updateConfigSafely(new Date().toISOString());
-                
                 this.pendingChanges = false;
-                
-                console.log('シンプル完全サイレント同期完了:', new Date().toLocaleString());
+                this._log('info', 'シンプル完全サイレント同期完了');
                 return true;
             }
             
@@ -326,24 +307,20 @@ window.GistSyncManager = {
         }
     },
 
-    // データマージ機能
     _mergeData(localData, cloudData) {
         if (!cloudData) {
             return localData;
         }
         
-        const mergedData = {
+        return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: new Date().toISOString(),
             aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
             wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
             articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates)
         };
-        
-        return mergedData;
     },
 
-    // AI学習データマージ
     _mergeAILearning(localAI, cloudAI) {
         if (!cloudAI) return localAI;
         if (!localAI) return cloudAI;
@@ -379,7 +356,6 @@ window.GistSyncManager = {
         };
     },
 
-    // ワードフィルターマージ
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
@@ -406,12 +382,10 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正3】記事状態マージの最適化
     _mergeArticleStates(localStates, cloudStates) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
         
-        // 【改善1】現在存在する記事IDのみを対象にする
         const articlesHook = window.DataHooks.useArticles();
         const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
         
@@ -420,14 +394,12 @@ window.GistSyncManager = {
         let localWinCount = 0;
         let cloudWinCount = 0;
         
-        // 【改善2】現在存在する記事IDのみをマージ対象にする
         const allRelevantIds = new Set([
             ...Object.keys(localStates),
             ...Object.keys(cloudStates)
         ]);
         
         allRelevantIds.forEach(articleId => {
-            // 現在存在しない記事IDはスキップ
             if (!currentArticleIds.has(articleId)) {
                 return;
             }
@@ -456,18 +428,15 @@ window.GistSyncManager = {
             mergeCount++;
         });
         
-        // 【改善3】ログを簡潔にまとめる
-        console.log(`記事状態マージ完了: ${mergeCount}件（ローカル優先: ${localWinCount}件、クラウド優先: ${cloudWinCount}件）`);
+        this._log('info', `記事状態マージ完了: ${mergeCount}件`);
         
         return mergedStates;
     },
 
-    // 【完全版】完全同期対応一括データ更新（AIスコア再計算付き）
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
             
-            // AI学習データとワードフィルターを先に更新
             if (mergedData.aiLearning) {
                 batchUpdates.aiLearning = mergedData.aiLearning;
             }
@@ -480,7 +449,6 @@ window.GistSyncManager = {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
                 
-                // 【新規追加】同期後のAI学習データとワードフィルターを使用してAIスコアを再計算
                 const aiLearningData = mergedData.aiLearning || window.DataHooksCache.aiLearning;
                 const wordFiltersData = mergedData.wordFilters || window.DataHooksCache.wordFilters;
                 
@@ -498,7 +466,6 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    // 【重要】AIスコアを同期後のデータで再計算
                     if (aiLearningData && wordFiltersData) {
                         updatedArticle.aiScore = window.AIScoring.calculateScore(
                             updatedArticle, 
@@ -515,7 +482,7 @@ window.GistSyncManager = {
             
             await this._executeBatchUpdate(batchUpdates);
             
-            console.log('完全同期対応一括更新完了（AIスコア再計算済み）');
+            this._log('info', '完全同期対応一括更新完了');
             return true;
         } catch (error) {
             console.error('完全同期一括更新エラー:', error);
@@ -523,9 +490,7 @@ window.GistSyncManager = {
         }
     },
 
-    // 【新規】一括更新実行関数
     async _executeBatchUpdate(batchUpdates) {
-        // 順次実行で競合を完全に回避
         const updateSequence = [
             { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
             { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' },
@@ -534,11 +499,9 @@ window.GistSyncManager = {
         
         for (const update of updateSequence) {
             if (batchUpdates[update.key]) {
-                // 一つずつ確実に実行
                 window.LocalStorageManager.setItem(update.storageKey, batchUpdates[update.key]);
                 window.DataHooksCache.clear(update.cacheKey);
                 
-                // 記事データの場合は追加処理
                 if (update.key === 'articles') {
                     window.DataHooksCache.articles = batchUpdates[update.key];
                     if (window.state) {
@@ -546,30 +509,17 @@ window.GistSyncManager = {
                     }
                 }
                 
-                // 次の更新まで最小限の間隔
                 await new Promise(resolve => setTimeout(resolve, 10));
             }
         }
     },
 
-    // 【改善3】設定更新の安全化（競合回避版）
     async _updateConfigSafely(timestamp) {
         try {
-            // 【重要】一度だけ設定を読み込み
-            let currentConfig = null;
+            let currentConfig = this._safeStorage.get('minews_gist_config');
             
-            try {
-                const configStr = localStorage.getItem('minews_gist_config');
-                if (configStr) {
-                    currentConfig = JSON.parse(configStr);
-                }
-            } catch (parseError) {
-                console.warn('設定解析エラー:', parseError);
-            }
-            
-            // 設定が見つからない場合の再作成
             if (!currentConfig && this.token && this.gistId && this.isEnabled) {
-                console.log('設定を再作成します');
+                this._log('info', '設定を再作成します');
                 currentConfig = {
                     encryptedToken: this._encrypt(this.token),
                     gistId: this.gistId,
@@ -581,24 +531,21 @@ window.GistSyncManager = {
             }
             
             if (currentConfig) {
-                // タイムスタンプ更新
                 currentConfig.lastSyncTime = timestamp;
                 currentConfig.lastUpdated = new Date().toISOString();
                 
-                // 【重要】一度だけ保存
-                localStorage.setItem('minews_gist_config', JSON.stringify(currentConfig));
-                
+                this._safeStorage.set('minews_gist_config', currentConfig);
                 this.lastSyncTime = timestamp;
                 
                 if (this._lastValidConfig) {
                     this._lastValidConfig.lastSyncTime = timestamp;
                 }
                 
-                console.log('設定更新完了:', timestamp);
+                this._log('info', '設定更新完了');
                 return true;
             }
             
-            console.warn('設定更新をスキップ: 設定の再作成に失敗');
+            this._log('warn', '設定更新をスキップ: 設定の再作成に失敗');
             return false;
             
         } catch (error) {
@@ -607,10 +554,8 @@ window.GistSyncManager = {
         }
     },
 
-    // 【改良版】手動同期用完全データ適用（AIスコア再計算強化）
     async _applyMergedDataToLocal(mergedData) {
         try {
-            // 【修正1】AI学習データとワードフィルターを先に適用
             if (mergedData.aiLearning) {
                 window.LocalStorageManager.setItem(
                     window.CONFIG.STORAGE_KEYS.AI_LEARNING, 
@@ -633,7 +578,6 @@ window.GistSyncManager = {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
                 
-                // 【修正2】更新されたAI学習データとワードフィルターを取得
                 const aiLearningData = window.DataHooksCache.aiLearning || window.DataHooks.useAILearning().aiLearning;
                 const wordFiltersData = window.DataHooksCache.wordFilters || window.DataHooks.useWordFilters().wordFilters;
                 
@@ -651,7 +595,6 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    // 【重要修正】必ずAIスコアを最新データで再計算
                     updatedArticle.aiScore = window.AIScoring.calculateScore(
                         updatedArticle, 
                         aiLearningData, 
@@ -672,20 +615,18 @@ window.GistSyncManager = {
                     window.state.articles = updatedArticles;
                 }
                 
-                // 【修正3】確実な画面更新（2段階実行）
                 if (window.render) {
                     window.render();
-                    // 追加の確実な更新（100ms後）
                     setTimeout(() => {
                         if (window.render) {
                             window.render();
-                            console.log('手動同期：最終画面更新完了（AIスコア完全同期）');
+                            this._log('info', '手動同期：最終画面更新完了');
                         }
                     }, 100);
                 }
             }
             
-            console.log('手動同期ローカルデータ更新完了（AIスコア再計算済み）');
+            this._log('info', '手動同期ローカルデータ更新完了');
             return true;
         } catch (error) {
             console.error('手動同期ローカルデータ更新エラー:', error);
@@ -693,7 +634,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 【NEW】手動同期（ソート抑制対応版）
     async autoSync(triggerType = 'manual') {
         if (!this.isEnabled || !this.token) {
             return { success: false, reason: 'disabled_or_not_configured' };
@@ -707,13 +647,11 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
-    // 【改良】手動同期実行（明示的画面更新版）
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
         }
         
-        // 【重要】手動同期は明示的に画面更新を行う
         if (window.setState) {
             window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         }
@@ -729,14 +667,13 @@ window.GistSyncManager = {
             const uploadResult = await this.syncToCloud(mergedData);
             
             if (uploadResult) {
-                // 手動同期は通常の適用（画面更新あり）
                 await this._applyMergedDataToLocal(mergedData);
                 
                 this.lastSyncTime = new Date().toISOString();
                 await this._updateConfigSafely(this.lastSyncTime);
                 this.pendingChanges = false;
                 
-                console.log('手動同期完了:', new Date().toLocaleString());
+                this._log('info', '手動同期完了');
                 return { success: true, triggerType: 'manual' };
             }
             
@@ -753,27 +690,23 @@ window.GistSyncManager = {
         }
     },
 
-    // 【改善4】内部フラグによる同期状態確認
     _isCurrentlyBackgroundSyncing() {
         return this._isBackgroundSyncing || false;
     },
 
-    // 【改善5】シンプルな初期化（設定消失防止）
     _initializeSafely() {
-        // 内部フラグ初期化
         this._isBackgroundSyncing = false;
         
-        // 設定整合性チェック
         try {
-            const configStr = localStorage.getItem('minews_gist_config');
+            const configStr = this._safeStorage.get('minews_gist_config');
             if (configStr) {
-                const config = JSON.parse(configStr);
-                if (config.encryptedToken && config.gistId) {
-                    console.log('設定整合性確認: OK');
+                const config = this._jsonSafe.parse(configStr);
+                if (config && config.encryptedToken && config.gistId) {
+                    this._log('info', '設定整合性確認: OK');
                     return true;
                 }
             }
-            console.warn('設定整合性確認: 不完全な設定が検出されました');
+            this._log('warn', '設定整合性確認: 不完全な設定が検出されました');
             return false;
         } catch (error) {
             console.error('設定整合性確認エラー:', error);
@@ -781,7 +714,6 @@ window.GistSyncManager = {
         }
     },
 
-    // タイムスタンプ比較判定
     _shouldPullFromCloud(cloudTimestamp) {
         if (!cloudTimestamp || !this.lastSyncTime) {
             return true;
@@ -796,7 +728,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正2】同期対象データ収集（負荷軽減版）
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -805,12 +736,9 @@ window.GistSyncManager = {
         const articleStates = {};
         const currentTime = new Date().toISOString();
         
-        // 【重要】現在存在する記事IDのセットを作成
         const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
         
-        // 【改善1】現在存在する記事のみを同期対象にする
         articlesHook.articles.forEach(article => {
-            // デフォルト値と異なる場合のみ同期対象に追加
             const hasCustomState = 
                 article.readStatus === 'read' || 
                 (article.userRating && article.userRating > 0) || 
@@ -826,10 +754,9 @@ window.GistSyncManager = {
             }
         });
         
-        // 【改善2】既存の同期データから古い記事IDを除外
         this._cleanupOldArticleStates(currentArticleIds);
         
-        console.log(`同期対象記事状態: ${Object.keys(articleStates).length}件（全記事: ${articlesHook.articles.length}件）`);
+        this._log('info', `同期対象記事状態: ${Object.keys(articleStates).length}件`);
         
         return {
             version: window.CONFIG.DATA_VERSION,
@@ -840,20 +767,16 @@ window.GistSyncManager = {
         };
     },
 
-    // 【新規追加】古い記事状態のクリーンアップ機能
     _cleanupOldArticleStates(currentArticleIds) {
         try {
-            // 前回の同期データから古いIDを検出・削除
             const lastCleanupKey = 'minews_last_cleanup';
-            const lastCleanup = localStorage.getItem(lastCleanupKey);
+            const lastCleanup = this._safeStorage.get(lastCleanupKey);
             const now = Date.now();
             
-            // 1日に1回だけクリーンアップを実行
             if (lastCleanup && (now - parseInt(lastCleanup)) < 86400000) {
                 return;
             }
             
-            // 記事データから古いIDを削除
             const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, []);
             if (Array.isArray(articlesData)) {
                 const validArticles = articlesData.filter(article => currentArticleIds.has(article.id));
@@ -861,19 +784,17 @@ window.GistSyncManager = {
                 
                 if (removedCount > 0) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, validArticles);
-                    console.log(`古い記事データをクリーンアップ: ${removedCount}件削除`);
+                    this._log('info', `古い記事データをクリーンアップ: ${removedCount}件削除`);
                 }
             }
             
-            // クリーンアップ実行時刻を記録
-            localStorage.setItem(lastCleanupKey, now.toString());
+            this._safeStorage.set(lastCleanupKey, now.toString());
             
         } catch (error) {
-            console.warn('記事状態クリーンアップエラー:', error);
+            this._log('warn', '記事状態クリーンアップエラー');
         }
     },
 
-    // クラウド同期（アップロード）
     async syncToCloud(data) {
         if (!this.token) {
             return false;
@@ -884,7 +805,7 @@ window.GistSyncManager = {
             public: false,
             files: {
                 "minews_data.json": {
-                    content: JSON.stringify(data, null, 2)
+                    content: this._jsonSafe.str(data, true)
                 }
             }
         };
@@ -903,7 +824,7 @@ window.GistSyncManager = {
                     'Content-Type': 'application/json',
                     'Accept': 'application/vnd.github.v3+json'
                 },
-                body: JSON.stringify(payload)
+                body: this._jsonSafe.str(payload)
             });
             
             if (response.ok) {
@@ -924,7 +845,6 @@ window.GistSyncManager = {
         }
     },
     
-    // クラウド同期（ダウンロード）
     async syncFromCloud() {
         if (!this.token || !this.gistId) return null;
         
@@ -940,7 +860,7 @@ window.GistSyncManager = {
                 const gist = await response.json();
                 if (gist.files && gist.files['minews_data.json']) {
                     const content = gist.files['minews_data.json'].content;
-                    return JSON.parse(content);
+                    return this._jsonSafe.parse(content);
                 }
             }
             return null;
@@ -950,35 +870,35 @@ window.GistSyncManager = {
         }
     },
     
-    // GistID保存
     saveGistId(gistId) {
         try {
-            const currentConfigStr = localStorage.getItem('minews_gist_config');
+            const currentConfigStr = this._safeStorage.get('minews_gist_config');
             if (!currentConfigStr) {
-                console.warn('設定が見つからないためGistID保存をスキップ');
+                this._log('warn', '設定が見つからないためGistID保存をスキップ');
                 return;
             }
 
-            const config = JSON.parse(currentConfigStr);
-            config.gistId = gistId;
-            config.lastSyncTime = this.lastSyncTime || null;
+            const config = this._jsonSafe.parse(currentConfigStr);
+            if (config) {
+                config.gistId = gistId;
+                config.lastSyncTime = this.lastSyncTime || null;
 
-            localStorage.setItem('minews_gist_config', JSON.stringify(config));
-            
-            this.gistId = gistId;
-            
-            if (this._lastValidConfig) {
-                this._lastValidConfig.gistId = gistId;
+                this._safeStorage.set('minews_gist_config', config);
+                
+                this.gistId = gistId;
+                
+                if (this._lastValidConfig) {
+                    this._lastValidConfig.gistId = gistId;
+                }
+                
+                this._log('info', 'Gist IDを保存');
             }
-            
-            console.log('Gist IDを保存:', gistId);
         } catch (error) {
             console.error('GistID保存エラー:', error);
             this.gistId = gistId;
         }
     },
 
-    // 設定診断機能
     validateCurrentConfig() {
         const diagnostics = {
             timestamp: new Date().toISOString(),
@@ -986,7 +906,7 @@ window.GistSyncManager = {
         };
 
         try {
-            const configStr = localStorage.getItem('minews_gist_config');
+            const configStr = this._safeStorage.get('minews_gist_config');
             diagnostics.results.push({
                 test: 'LocalStorage存在確認',
                 status: configStr ? 'PASS' : 'FAIL',
@@ -994,8 +914,8 @@ window.GistSyncManager = {
             });
 
             if (configStr) {
-                try {
-                    const config = JSON.parse(configStr);
+                const config = this._jsonSafe.parse(configStr);
+                if (config) {
                     diagnostics.results.push({
                         test: 'JSON解析',
                         status: 'PASS',
@@ -1018,11 +938,11 @@ window.GistSyncManager = {
                             });
                         }
                     }
-                } catch (parseError) {
+                } else {
                     diagnostics.results.push({
                         test: 'JSON解析',
                         status: 'FAIL',
-                        details: parseError.message
+                        details: 'JSON解析に失敗しました'
                     });
                 }
             }
@@ -1037,7 +957,6 @@ window.GistSyncManager = {
         return diagnostics;
     },
 
-    // 同期テスト
     async testSync() {
         const testResults = {
             timestamp: new Date().toISOString(),
@@ -1077,15 +996,12 @@ window.GistSyncManager = {
     }
 };
 
-// ===========================================
 // キャッシュシステム
-// ===========================================
-
 window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
     folders: null,
-    feeds: null, // 【追加】フィード情報キャッシュ
+    feeds: null,
     aiLearning: null,
     wordFilters: null,
     lastUpdate: {
@@ -1106,10 +1022,7 @@ window.DataHooksCache = {
     }
 };
 
-// ===========================================
-// JSON記事データ読み込みシステム（フォルダ対応版）
-// ===========================================
-
+// JSON記事データ読み込みシステム
 window.ArticleLoader = {
     async loadArticlesFromJSON() {
         try {
@@ -1119,13 +1032,11 @@ window.ArticleLoader = {
             }
             const data = await response.json();
             
-            // 【修正】既存のCONFIG.STORAGE_KEYS.FOLDERSを活用してフォルダデータを保存
             if (data.folders) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, data.folders);
-                window.DataHooksCache.folders = data.folders; // 既存のキャッシュを活用
+                window.DataHooksCache.folders = data.folders;
             }
             
-            // 【追加】フィード情報の保存
             if (data.feeds) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, data.feeds);
                 window.DataHooksCache.feeds = data.feeds;
@@ -1151,33 +1062,22 @@ window.ArticleLoader = {
     }
 };
 
-// ===========================================
 // AI学習システム
-// ===========================================
-
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
-        // 生スコア計算（制限なし）
         let rawScore = 0;
         
-        // 【新機能】多次元嗜好マッピング統合版キーワードスコア
         if (article.keywords && aiLearning.wordWeights && article.keywords.length > 0) {
-            // Step 1: AI学習重みによる上位3つのキーワードを選択
             const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
-            
-            // Step 2: 多次元スコア計算
             const multidimensionalScore = this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
-            
             rawScore += multidimensionalScore;
         }
         
-        // ソーススコア（既存維持）
         if (article.rssSource && aiLearning.sourceWeights) {
             const weight = aiLearning.sourceWeights[article.rssSource] || 0;
             rawScore += weight;
         }
         
-        // 興味ワードスコア（既存維持）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1190,28 +1090,23 @@ window.AIScoring = {
             }
         }
         
-        // ユーザー評価（既存維持）
         if (article.userRating > 0) {
             const ratingImpact = (article.userRating - 3) * 25;
             rawScore += ratingImpact;
         }
         
-        // シグモイド正規化（既存維持）
         const normalizedScore = this._sigmoidNormalization(rawScore);
         
         return Math.round(normalizedScore);
     },
     
-    // 【新機能】AI学習重みによる上位3つのキーワード選択
     _getTopKeywordsByAIWeights(keywords, wordWeights) {
-        // キーワードをAI学習重み順でソート
         const keywordsWithWeights = keywords.map(keyword => ({
             keyword: keyword,
-            weight: Math.abs(wordWeights[keyword] || 0), // 絶対値で影響力を判定
+            weight: Math.abs(wordWeights[keyword] || 0),
             originalWeight: wordWeights[keyword] || 0
         }));
         
-        // 重みの絶対値順でソートし、上位3つを選択
         const topKeywords = keywordsWithWeights
             .sort((a, b) => b.weight - a.weight)
             .slice(0, 3);
@@ -1219,67 +1114,53 @@ window.AIScoring = {
         return topKeywords;
     },
     
-    // 【新機能】多次元キーワードスコア計算（バランス重視版）
     _calculateMultidimensionalKeywordScore(topKeywords, aiLearning) {
         if (topKeywords.length === 0) return 0;
         
         let totalScore = 0;
         
-        // 1. 個別キーワードスコア（基本軸）
         let individualScore = 0;
         topKeywords.forEach(item => {
             individualScore += item.originalWeight;
         });
         
-        // 2. カテゴリ組み合わせボーナス（簡素版）
         const combinationBonus = this._calculateCombinationBonus(topKeywords);
-        
-        // 3. 嗜好強度の段階化（3段階：低・中・高）
         const intensityMultiplier = this._calculateIntensityMultiplier(topKeywords);
         
-        // 4. バランス重視の統合計算
-        // 個別スコア：60%、組み合わせ：25%、強度：15%
         totalScore = (individualScore * 0.6) + (combinationBonus * 0.25) + (individualScore * intensityMultiplier * 0.15);
         
         return totalScore;
     },
     
-    // 【新機能】カテゴリ組み合わせボーナス（軽量版）
     _calculateCombinationBonus(topKeywords) {
         if (topKeywords.length < 2) return 0;
         
-        // 事前計算されたボーナステーブル（実装コスト軽減）
         const bonusTable = {
-            2: 3,  // 2つの組み合わせ：+3点
-            3: 8   // 3つの組み合わせ：+8点
+            2: 3,
+            3: 8
         };
         
         const keywordCount = topKeywords.length;
         let bonus = bonusTable[keywordCount] || 0;
         
-        // 重みの相乗効果を簡易計算
         const avgWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
         const synergy = avgWeight > 5 ? 1.5 : (avgWeight > 2 ? 1.2 : 1.0);
         
         return bonus * synergy;
     },
     
-    // 【新機能】嗜好強度の段階化（3段階）
     _calculateIntensityMultiplier(topKeywords) {
-        // 上位キーワードの重みの絶対値平均で強度を判定
         const avgAbsWeight = topKeywords.reduce((sum, item) => sum + item.weight, 0) / topKeywords.length;
         
-        // 3段階の強度分類（バランス重視の閾値）
         if (avgAbsWeight >= 8) {
-            return 0.25;  // 高強度：25%の追加影響
+            return 0.25;
         } else if (avgAbsWeight >= 3) {
-            return 0.15;  // 中強度：15%の追加影響
+            return 0.15;
         } else {
-            return 0.05;  // 低強度：5%の追加影響
+            return 0.05;
         }
     },
     
-    // 既存機能：シグモイド正規化（維持）
     _sigmoidNormalization(rawScore) {
         const sigmoid = 1 / (1 + Math.exp(-rawScore / 20));
         const centered = (sigmoid - 0.5) * 2;
@@ -1289,21 +1170,18 @@ window.AIScoring = {
         return Math.max(0, Math.min(100, targetScore));
     },
     
-    // 【改良】学習機能強化版
     updateLearning(article, rating, aiLearning, isRevert = false) {
         const weights = [0, -1, -0.5, 0, 0.5, 1];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
         if (article.keywords) {
-            // 【新機能】多次元学習：上位3つのキーワードをより重点的に学習
             const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
             const topKeywordNames = topKeywords.map(item => item.keyword);
             
             article.keywords.forEach(keyword => {
                 const currentWeight = aiLearning.wordWeights[keyword] || 0;
                 
-                // 上位3つのキーワードは1.3倍で学習（重点学習）
                 const learningMultiplier = topKeywordNames.includes(keyword) ? 1.3 : 1.0;
                 const adjustedWeight = weight * learningMultiplier;
                 
@@ -1325,10 +1203,7 @@ window.AIScoring = {
     }
 };
 
-// ===========================================
 // ワードフィルター管理
-// ===========================================
-
 window.WordFilterManager = {
     addWord(word, type, wordFilters) {
         word = word.trim();
@@ -1365,10 +1240,7 @@ window.WordFilterManager = {
     }
 };
 
-// ===========================================
 // ローカルストレージ管理
-// ===========================================
-
 window.LocalStorageManager = {
     setItem(key, data) {
         try {
@@ -1442,10 +1314,7 @@ window.LocalStorageManager = {
     }
 };
 
-// ===========================================
-// データ操作フック（フォルダ対応版）
-// ===========================================
-
+// データ操作フック
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1677,20 +1546,14 @@ window.DataHooks = {
     }
 };
 
-// ===========================================
-// エクスポート・インポート機能（最終修正版）
-// ===========================================
-
-// 【完全版】評価状態+AIスコア完全エクスポート機能
+// エクスポート・インポート機能
 window.exportMinewsData = function() {
     const aiHook = window.DataHooks.useAILearning();
     const wordHook = window.DataHooks.useWordFilters();
     const articlesHook = window.DataHooks.useArticles();
     
-    // 【修正1】すべての記事状態を詳細エクスポート（AIスコア含む）
     const articleStates = {};
     articlesHook.articles.forEach(article => {
-        // 【新規追加】現在のAIスコアも含めてエクスポート
         const currentAIScore = article.aiScore || window.AIScoring.calculateScore(
             article, 
             aiHook.aiLearning, 
@@ -1702,12 +1565,11 @@ window.exportMinewsData = function() {
             userRating: article.userRating || 0,
             readLater: article.readLater || false,
             lastModified: article.lastModified || new Date().toISOString(),
-            aiScore: currentAIScore, // 【新規追加】AIスコアをエクスポート
-            // 検証用フィールド
+            aiScore: currentAIScore,
             title: article.title,
             url: article.url,
-            keywords: article.keywords || [], // 【新規追加】キーワードも保存
-            rssSource: article.rssSource || '' // 【新規追加】ソースも保存
+            keywords: article.keywords || [],
+            rssSource: article.rssSource || ''
         };
     });
     
@@ -1744,7 +1606,6 @@ window.exportMinewsData = function() {
     alert(`完全な評価状態データのエクスポートが完了しました\n記事状態: ${exportData.statistics.totalArticles}件\n評価済み: ${exportData.statistics.statesWithRating}件`);
 };
 
-// 【完全版】記事状態の確実な復元（AIスコア再計算付き）
 window.importMinewsData = async function(file) {
     try {
         const text = await file.text();
@@ -1758,7 +1619,6 @@ window.importMinewsData = async function(file) {
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
         
-        // 【修正1】AI学習データの完全置換
         aiHook.aiLearning.wordWeights = {};
         aiHook.aiLearning.sourceWeights = {};
         
@@ -1772,7 +1632,6 @@ window.importMinewsData = async function(file) {
             aiHook.aiLearning.sourceWeights[source] = Math.max(-20, Math.min(20, weight));
         });
         
-        // 【修正2】ワードフィルターの完全置換
         wordHook.wordFilters.interestWords.length = 0;
         wordHook.wordFilters.ngWords.length = 0;
         
@@ -1788,7 +1647,6 @@ window.importMinewsData = async function(file) {
             }
         });
         
-        // 【完全版】記事状態の確実な復元（AIスコア再計算付き）
         if (importData.articleStates && typeof importData.articleStates === 'object') {
             const currentArticles = articlesHook.articles;
             let restoredCount = 0;
@@ -1814,7 +1672,6 @@ window.importMinewsData = async function(file) {
                         lastModified: state.lastModified || article.lastModified || new Date().toISOString()
                     };
                     
-                    // 【重要修正】インポート後にAIスコアを最新の学習データで再計算
                     const newAIScore = window.AIScoring.calculateScore(
                         updatedArticle, 
                         aiHook.aiLearning, 
@@ -1823,7 +1680,6 @@ window.importMinewsData = async function(file) {
                     
                     updatedArticle.aiScore = newAIScore;
                     
-                    // 【新規追加】AIスコアが変更された場合のカウント
                     if (Math.abs((state.aiScore || 0) - newAIScore) > 1) {
                         aiScoreRestoredCount++;
                     }
@@ -1831,7 +1687,6 @@ window.importMinewsData = async function(file) {
                     return updatedArticle;
                 }
                 
-                // 状態がない記事でもAIスコアを再計算
                 const recalculatedArticle = { ...article };
                 recalculatedArticle.aiScore = window.AIScoring.calculateScore(
                     recalculatedArticle, 
@@ -1843,7 +1698,6 @@ window.importMinewsData = async function(file) {
             
             console.log(`記事状態復元完了: ${restoredCount}件中、評価復元: ${ratingRestoredCount}件、AIスコア更新: ${aiScoreRestoredCount}件`);
             
-            // 【重要】確実な保存と同期処理
             window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
             window.DataHooksCache.articles = updatedArticles;
             window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
@@ -1853,25 +1707,20 @@ window.importMinewsData = async function(file) {
             }
         }
         
-        // 【修正4】学習データとワードフィルターの確実な保存
         aiHook.aiLearning.lastUpdated = new Date().toISOString();
         wordHook.wordFilters.lastUpdated = new Date().toISOString();
         
         window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiHook.aiLearning);
         window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordHook.wordFilters);
         
-        // 【修正5】キャッシュの完全更新
         window.DataHooksCache.clear('aiLearning');
         window.DataHooksCache.clear('wordFilters');
         window.DataHooksCache.aiLearning = aiHook.aiLearning;
         window.DataHooksCache.wordFilters = wordHook.wordFilters;
         
-        // 【重要】確実な画面更新と点数再計算
         if (window.render) {
-            // 即座に実行
             window.render();
             
-            // 追加の確実な更新（100ms後）
             setTimeout(() => {
                 if (window.render) {
                     window.render();
@@ -1880,7 +1729,6 @@ window.importMinewsData = async function(file) {
             }, 100);
         }
         
-        // 成功メッセージ
         const stats = importData.statistics || {};
         alert(`✅ 評価状態の完全復元が成功しました！\n\n` +
               `📊 復元統計:\n` +
@@ -1896,7 +1744,6 @@ window.importMinewsData = async function(file) {
     }
 };
 
-// UI層との互換性維持用のエイリアス関数
 window.handleExportLearningData = window.exportMinewsData;
 window.handleImportLearningData = (event) => {
     const file = event.target.files[0];
