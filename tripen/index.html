@@ -20,7 +20,13 @@
 <button class="cloud-write-btn" @click="manualSync" title="手動書き込み" :disabled="gistSync.isSyncing" :class="{ loading: gistSync.isSyncing, error: gistSync.hasError }">
 <i class="fas fa-cloud-upload-alt"></i>
 </button>
-<h1><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+<h1 v-if="!tripInitialized"><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+<h1 v-else class="trip-title-header" @click="editTripTitle" title="旅行タイトルを編集">
+    <i class="fas fa-snowflake penguin-icon"></i>
+    <span class="editable-title">{{ tripTitle || 'タイトル未設定（クリックして編集）' }}</span>
+    <i class="fas fa-edit edit-icon"></i>
+</h1>
+
 <button class="settings-btn" @click="openSettingsModal" title="設定">
 <i class="fas fa-cog"></i>
 </button>
