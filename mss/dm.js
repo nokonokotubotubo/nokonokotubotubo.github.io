@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（完全修正版）
+// Minews PWA - データ管理・処理レイヤー（バランス調整修正版）
 
 (function() {
 
@@ -1062,7 +1062,7 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム
+// AI学習システム（バランス調整修正版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1095,7 +1095,8 @@ window.AIScoring = {
             rawScore += ratingImpact;
         }
         
-        const normalizedScore = this._sigmoidNormalization(rawScore);
+        // 【修正】線形正規化を使用
+        const normalizedScore = this._linearNormalization(rawScore);
         
         return Math.round(normalizedScore);
     },
@@ -1127,7 +1128,8 @@ window.AIScoring = {
         const combinationBonus = this._calculateCombinationBonus(topKeywords);
         const intensityMultiplier = this._calculateIntensityMultiplier(topKeywords);
         
-        totalScore = (individualScore * 0.6) + (combinationBonus * 0.25) + (individualScore * intensityMultiplier * 0.15);
+        // 【修正】係数を調整（個別スコア60%→50%, 組み合わせボーナス25%→20%, 強度乗数15%→12%）
+        totalScore = (individualScore * 0.5) + (combinationBonus * 0.2) + (individualScore * intensityMultiplier * 0.12);
         
         return totalScore;
     },
@@ -1161,17 +1163,24 @@ window.AIScoring = {
         }
     },
     
-    _sigmoidNormalization(rawScore) {
-        const sigmoid = 1 / (1 + Math.exp(-rawScore / 20));
-        const centered = (sigmoid - 0.5) * 2;
-        const gaussianFactor = Math.exp(-Math.pow(centered, 2) * 0.5);
-        const targetScore = 50 + (centered * 15 * gaussianFactor) + (centered * 35 * (1 - gaussianFactor));
+    // 【修正】シグモイド正規化から線形正規化に変更
+    _linearNormalization(rawScore) {
+        // ベースライン50点から開始
+        const baseScore = 50;
         
-        return Math.max(0, Math.min(100, targetScore));
+        // rawScoreを直接反映（-100 to +100の範囲を想定）
+        const adjustedScore = baseScore + (rawScore * 0.4);
+        
+        // 0-100の範囲にクランプ（ソフトクランプで自然な分布）
+        if (adjustedScore < 10) return Math.max(5, adjustedScore * 0.5 + 5);
+        if (adjustedScore > 90) return Math.min(95, 90 + (adjustedScore - 90) * 0.2);
+        
+        return Math.round(adjustedScore);
     },
     
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        const weights = [0, -1, -0.5, 0, 0.5, 1];
+        // 【修正】学習増分を調整（±1.0 → ±0.8）
+        const weights = [0, -0.8, -0.4, 0, 0.4, 0.8];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
         
@@ -1186,7 +1195,8 @@ window.AIScoring = {
                 const adjustedWeight = weight * learningMultiplier;
                 
                 const newWeight = currentWeight + adjustedWeight;
-                aiLearning.wordWeights[keyword] = Math.max(-15, Math.min(15, newWeight));
+                // 【修正】キーワード重み制限を調整（±15 → ±20）
+                aiLearning.wordWeights[keyword] = Math.max(-20, Math.min(20, newWeight));
             });
         }
         
@@ -1195,7 +1205,8 @@ window.AIScoring = {
             const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
             const newWeight = currentWeight + sourceWeight;
             
-            aiLearning.sourceWeights[article.rssSource] = Math.max(-16, Math.min(16, newWeight));
+            // 【修正】ソース重み制限を調整（±16 → ±15）
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-15, Math.min(15, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
