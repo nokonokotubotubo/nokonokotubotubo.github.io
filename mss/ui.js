@@ -1,6 +1,99 @@
-// Minews PWA - UI・表示レイヤー（負荷軽減・最適化版）
+// Minews PWA - UI・表示レイヤー（フィルター設定統合版）
 (function() {
     'use strict';
+
+    // ===========================================
+    // フィルター設定管理
+    // ===========================================
+
+    // フィルター設定をLocalStorageから復元
+    const getFilterSettings = () => {
+        try {
+            const stored = localStorage.getItem('minews_filterSettings');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (error) {
+            console.warn('フィルター設定の復元に失敗:', error);
+        }
+        
+        // デフォルト値（全範囲対象）
+        return {
+            scoreMin: 0,
+            scoreMax: 100,
+            dateMin: 0,
+            dateMax: 14
+        };
+    };
+
+    // フィルター設定をLocalStorageに保存
+    const saveFilterSettings = (settings) => {
+        try {
+            localStorage.setItem('minews_filterSettings', JSON.stringify(settings));
+        } catch (error) {
+            console.warn('フィルター設定の保存に失敗:', error);
+        }
+    };
+
+    // AIスコアフィルター更新
+    const updateScoreFilter = (type, value) => {
+        const settings = getFilterSettings();
+        const numValue = parseInt(value);
+        
+        if (type === 'min') {
+            settings.scoreMin = Math.min(numValue, settings.scoreMax);
+            document.getElementById('scoreMinValue').textContent = settings.scoreMin;
+        } else {
+            settings.scoreMax = Math.max(numValue, settings.scoreMin);
+            document.getElementById('scoreMaxValue').textContent = settings.scoreMax;
+        }
+        
+        // 範囲表示の更新
+        const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
+        if (display) {
+            display.textContent = `${settings.scoreMin}点 - ${settings.scoreMax}点`;
+        }
+        
+        saveFilterSettings(settings);
+        updateArticleListOnly(); // 記事一覧の即座更新
+    };
+
+    // 日付フィルター更新
+    const updateDateFilter = (type, value) => {
+        const settings = getFilterSettings();
+        const numValue = parseInt(value);
+        
+        if (type === 'min') {
+            settings.dateMin = Math.min(numValue, settings.dateMax);
+            document.getElementById('dateMinValue').textContent = settings.dateMin;
+        } else {
+            settings.dateMax = Math.max(numValue, settings.dateMin);
+            document.getElementById('dateMaxValue').textContent = settings.dateMax;
+        }
+        
+        // 範囲表示の更新
+        const displays = document.querySelectorAll('.filter-range-display');
+        if (displays.length >= 2) {
+            displays[1].textContent = `${settings.dateMin}日前 - ${settings.dateMax}日前`;
+        }
+        
+        saveFilterSettings(settings);
+        updateArticleListOnly(); // 記事一覧の即座更新
+    };
+
+    // フィルター設定リセット
+    const resetFilterSettings = () => {
+        const defaultSettings = {
+            scoreMin: 0,
+            scoreMax: 100,
+            dateMin: 0,
+            dateMax: 14
+        };
+        
+        saveFilterSettings(defaultSettings);
+        window.render(); // 全体を再レンダリング
+        alert('フィルター設定をリセットしました');
+    };
 
     // ===========================================
     // ユニークID生成機能（日本語対応）
@@ -182,7 +275,7 @@
     // 部分更新関数（DOM再構築回避用）
     // ===========================================
 
-    // ナビゲーションの件数表示のみ更新する関数（NEW）
+    // ナビゲーションの件数表示のみ更新する関数
     const updateArticleCount = () => {
         const count = getFilteredArticles().length;
         
@@ -199,13 +292,13 @@
         }
     };
 
-    // 記事一覧のみ更新する関数（件数表示も同時更新するよう修正）
+    // 記事一覧のみ更新する関数（件数表示も同時更新）
     const updateArticleListOnly = () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
             
-            // 件数表示も更新（NEW）
+            // 件数表示も更新
             updateArticleCount();
             
             // 星評価のイベントリスナーを再設定
@@ -280,7 +373,7 @@
     };
 
     // ===========================================
-    // 一括既読化処理（NEW）
+    // 一括既読化処理
     // ===========================================
 
     const handleBulkMarkAsRead = () => {
@@ -1051,12 +1144,30 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // フィルタリングロジックを OR 条件に変更
-        // 「選択されたフォルダ内の記事」OR「選択されたフィードの記事」
+        // フィルタリングロジック（OR条件）
         filtered = filtered.filter(article => 
             window.state.selectedFolders.includes(article.folderName) || 
             window.state.selectedFeeds.includes(article.rssSource)
         );
+
+        // フィルター設定による追加フィルタリング
+        const filterSettings = getFilterSettings();
+        const aiHook = window.DataHooks.useAILearning();
+        const wordHook = window.DataHooks.useWordFilters();
+        
+        // AIスコア範囲フィルター
+        filtered = filtered.filter(article => {
+            const aiScore = window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters);
+            return aiScore >= filterSettings.scoreMin && aiScore <= filterSettings.scoreMax;
+        });
+
+        // 日付範囲フィルター
+        const now = new Date();
+        filtered = filtered.filter(article => {
+            const articleDate = new Date(article.publishDate);
+            const daysDiff = Math.floor((now - articleDate) / (1000 * 60 * 60 * 24));
+            return daysDiff >= filterSettings.dateMin && daysDiff <= filterSettings.dateMax;
+        });
 
         switch (window.state.viewMode) {
             case 'unread':
@@ -1070,14 +1181,12 @@
                 break;
         }
 
-        const wordHook = window.DataHooks.useWordFilters();
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
             return filtered;
         }
 
-        const aiHook = window.DataHooks.useAILearning();
         const articlesWithScores = filtered.map(article => ({
             ...article,
             aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
@@ -1159,6 +1268,9 @@
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
         
+        // フィルター設定の取得
+        const filterSettings = getFilterSettings();
+        
         const interestWords = wordHook.wordFilters.interestWords.map(word => 
             `<span class="word-tag interest">
                 ${word}
@@ -1181,6 +1293,46 @@
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
+                        <div class="modal-section-group">
+                            <h3 class="group-title">記事フィルター設定</h3>
+                            
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>AIスコア範囲</h3>
+                                    <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
+                                </div>
+                                <div class="slider-container">
+                                    <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
+                                    <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" 
+                                           oninput="updateScoreFilter('min', this.value)" class="filter-slider">
+                                    
+                                    <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
+                                    <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" 
+                                           oninput="updateScoreFilter('max', this.value)" class="filter-slider">
+                                </div>
+                            </div>
+
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>記事日付範囲</h3>
+                                    <span class="filter-range-display">${filterSettings.dateMin}日前 - ${filterSettings.dateMax}日前</span>
+                                </div>
+                                <div class="slider-container">
+                                    <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
+                                    <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" 
+                                           oninput="updateDateFilter('min', this.value)" class="filter-slider">
+                                    
+                                    <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
+                                    <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" 
+                                           oninput="updateDateFilter('max', this.value)" class="filter-slider">
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
+                            </div>
+                        </div>
+                        
                         <div class="modal-section-group">
                             <h3 class="group-title">クラウド同期</h3>
                             <div class="word-section">
@@ -1251,7 +1403,7 @@
                                 `}
                             </div>
                         </div>
-
+                        
                         <div class="modal-section-group">
                             <h3 class="group-title">ワード設定</h3>
                             <div class="word-section">
@@ -1327,7 +1479,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        負荷軽減・最適化版
+                                        フィルター設定統合版
                                     </p>
                                 </div>
                             </div>
@@ -1379,7 +1531,7 @@
     };
 
     // ===========================================
-    // 初期化
+    // グローバル関数の追加
     // ===========================================
 
     window.handleFilterChange = handleFilterChange;
@@ -1395,6 +1547,16 @@
     window.handleSelectAllFolders = handleSelectAllFolders;
     window.toggleFolderDropdown = toggleFolderDropdown;
     window.handleBulkMarkAsRead = handleBulkMarkAsRead;
+    
+    // フィルター設定関数をグローバルに追加
+    window.updateScoreFilter = updateScoreFilter;
+    window.updateDateFilter = updateDateFilter;
+    window.resetFilterSettings = resetFilterSettings;
+    window.getFilterSettings = getFilterSettings;
+
+    // ===========================================
+    // 初期化
+    // ===========================================
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
