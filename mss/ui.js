@@ -1,9 +1,9 @@
-// Minews PWA - UI・表示レイヤー（フィルター設定統合版）
+// Minews PWA - UI・表示レイヤー（シンプルフィルター設定統合版）
 (function() {
     'use strict';
 
     // ===========================================
-    // フィルター設定管理
+    // シンプルなフィルター設定管理
     // ===========================================
 
     // フィルター設定をLocalStorageから復元
@@ -35,53 +35,97 @@
         }
     };
 
-    // AIスコアフィルター更新
-    const updateScoreFilter = (type, value) => {
-        const settings = getFilterSettings();
+    // スライダー値の表示のみ更新（フィルター適用なし）
+    const updateScoreDisplay = (type, value) => {
         const numValue = parseInt(value);
         
         if (type === 'min') {
-            settings.scoreMin = Math.min(numValue, settings.scoreMax);
-            document.getElementById('scoreMinValue').textContent = settings.scoreMin;
+            const maxSlider = document.getElementById('scoreMaxSlider');
+            const maxValue = parseInt(maxSlider.value);
+            const adjustedMin = Math.min(numValue, maxValue);
+            
+            document.getElementById('scoreMinValue').textContent = adjustedMin;
+            document.getElementById('scoreMinSlider').value = adjustedMin;
+            
+            // 範囲表示の更新
+            const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
+            if (display) {
+                display.textContent = `${adjustedMin}点 - ${maxValue}点`;
+            }
         } else {
-            settings.scoreMax = Math.max(numValue, settings.scoreMin);
-            document.getElementById('scoreMaxValue').textContent = settings.scoreMax;
+            const minSlider = document.getElementById('scoreMinSlider');
+            const minValue = parseInt(minSlider.value);
+            const adjustedMax = Math.max(numValue, minValue);
+            
+            document.getElementById('scoreMaxValue').textContent = adjustedMax;
+            document.getElementById('scoreMaxSlider').value = adjustedMax;
+            
+            // 範囲表示の更新
+            const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
+            if (display) {
+                display.textContent = `${minValue}点 - ${adjustedMax}点`;
+            }
         }
-        
-        // 範囲表示の更新
-        const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
-        if (display) {
-            display.textContent = `${settings.scoreMin}点 - ${settings.scoreMax}点`;
-        }
-        
-        saveFilterSettings(settings);
-        updateArticleListOnly(); // 記事一覧の即座更新
     };
 
-    // 日付フィルター更新
-    const updateDateFilter = (type, value) => {
-        const settings = getFilterSettings();
+    // スライダー値の表示のみ更新（フィルター適用なし）
+    const updateDateDisplay = (type, value) => {
         const numValue = parseInt(value);
         
         if (type === 'min') {
-            settings.dateMin = Math.min(numValue, settings.dateMax);
-            document.getElementById('dateMinValue').textContent = settings.dateMin;
+            const maxSlider = document.getElementById('dateMaxSlider');
+            const maxValue = parseInt(maxSlider.value);
+            const adjustedMin = Math.min(numValue, maxValue);
+            
+            document.getElementById('dateMinValue').textContent = adjustedMin;
+            document.getElementById('dateMinSlider').value = adjustedMin;
+            
+            // 範囲表示の更新
+            const displays = document.querySelectorAll('.filter-range-display');
+            if (displays.length >= 2) {
+                displays[1].textContent = `${adjustedMin}日前 - ${maxValue}日前`;
+            }
         } else {
-            settings.dateMax = Math.max(numValue, settings.dateMin);
-            document.getElementById('dateMaxValue').textContent = settings.dateMax;
+            const minSlider = document.getElementById('dateMinSlider');
+            const minValue = parseInt(minSlider.value);
+            const adjustedMax = Math.max(numValue, minValue);
+            
+            document.getElementById('dateMaxValue').textContent = adjustedMax;
+            document.getElementById('dateMaxSlider').value = adjustedMax;
+            
+            // 範囲表示の更新
+            const displays = document.querySelectorAll('.filter-range-display');
+            if (displays.length >= 2) {
+                displays[1].textContent = `${minValue}日前 - ${adjustedMax}日前`;
+            }
         }
-        
-        // 範囲表示の更新
-        const displays = document.querySelectorAll('.filter-range-display');
-        if (displays.length >= 2) {
-            displays[1].textContent = `${settings.dateMin}日前 - ${settings.dateMax}日前`;
-        }
-        
-        saveFilterSettings(settings);
-        updateArticleListOnly(); // 記事一覧の即座更新
     };
 
-    // フィルター設定リセット
+    // 設定適用（ボタンクリック時のみ実行）
+    const applyFilterSettings = () => {
+        // 現在のスライダー値を直接取得
+        const scoreMin = parseInt(document.getElementById('scoreMinSlider').value);
+        const scoreMax = parseInt(document.getElementById('scoreMaxSlider').value);
+        const dateMin = parseInt(document.getElementById('dateMinSlider').value);
+        const dateMax = parseInt(document.getElementById('dateMaxSlider').value);
+        
+        // 設定を保存
+        const newSettings = {
+            scoreMin: scoreMin,
+            scoreMax: scoreMax,
+            dateMin: dateMin,
+            dateMax: dateMax
+        };
+        
+        saveFilterSettings(newSettings);
+        
+        // 記事一覧に反映
+        updateArticleListOnly();
+        
+        alert('フィルター設定を適用しました');
+    };
+
+    // リセット機能（シンプル版）
     const resetFilterSettings = () => {
         const defaultSettings = {
             scoreMin: 0,
@@ -90,8 +134,32 @@
             dateMax: 14
         };
         
+        // 設定を保存
         saveFilterSettings(defaultSettings);
-        window.render(); // 全体を再レンダリング
+        
+        // スライダーと表示を初期値に戻す
+        document.getElementById('scoreMinSlider').value = 0;
+        document.getElementById('scoreMaxSlider').value = 100;
+        document.getElementById('dateMinSlider').value = 0;
+        document.getElementById('dateMaxSlider').value = 14;
+        
+        document.getElementById('scoreMinValue').textContent = 0;
+        document.getElementById('scoreMaxValue').textContent = 100;
+        document.getElementById('dateMinValue').textContent = 0;
+        document.getElementById('dateMaxValue').textContent = 14;
+        
+        // 範囲表示も更新
+        const displays = document.querySelectorAll('.filter-range-display');
+        if (displays.length >= 1) {
+            displays[0].textContent = '0点 - 100点';
+        }
+        if (displays.length >= 2) {
+            displays[1].textContent = '0日前 - 14日前';
+        }
+        
+        // 記事一覧に反映
+        updateArticleListOnly();
+        
         alert('フィルター設定をリセットしました');
     };
 
@@ -275,33 +343,27 @@
     // 部分更新関数（DOM再構築回避用）
     // ===========================================
 
-    // ナビゲーションの件数表示のみ更新する関数
     const updateArticleCount = () => {
         const count = getFilteredArticles().length;
         
-        // モバイル版の件数表示を更新
         const mobileUpdate = document.querySelector('.last-update-mobile');
         if (mobileUpdate) {
             mobileUpdate.textContent = `表示中: ${count}件`;
         }
         
-        // デスクトップ版の件数表示を更新
         const desktopUpdate = document.querySelector('.last-update');
         if (desktopUpdate) {
             desktopUpdate.textContent = `表示中: ${count}件`;
         }
     };
 
-    // 記事一覧のみ更新する関数（件数表示も同時更新）
     const updateArticleListOnly = () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
             
-            // 件数表示も更新
             updateArticleCount();
             
-            // 星評価のイベントリスナーを再設定
             if (!window._starClickHandler) {
                 window._starClickHandler = (e) => {
                     handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
@@ -315,7 +377,6 @@
         }
     };
 
-    // フォルダボタンの選択数表示更新
     const updateFolderButtonCount = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         
@@ -325,19 +386,15 @@
             if (textNode && textNode.nodeType === Node.TEXT_NODE) {
                 textNode.textContent = countText;
             } else {
-                // テキストノードが見つからない場合は内部のテキストを更新
                 btn.innerHTML = `${countText}<span class="dropdown-arrow">▼</span>`;
             }
         });
     };
 
-    // フィードチェックボックス状態の更新
     const updateFeedCheckboxStates = () => {
         document.querySelectorAll('.folder-dropdown-content').forEach(dropdown => {
-            // 各フィードチェックボックスの状態を更新
             const feedCheckboxes = dropdown.querySelectorAll('[id*="feed_"]');
             feedCheckboxes.forEach(checkbox => {
-                // チェックボックスのIDからフィード名を逆算
                 const feedElement = checkbox.closest('label').querySelector('.feed-name');
                 if (feedElement) {
                     const feedName = feedElement.textContent.trim();
@@ -347,19 +404,16 @@
         });
     };
 
-    // チェックボックス状態の更新
     const updateFolderCheckboxStates = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         
         document.querySelectorAll('.folder-dropdown-content').forEach(dropdown => {
-            // すべてのフォルダチェックボックス
             const selectAllCheckbox = dropdown.querySelector('[id$="selectAllFolders"]');
             if (selectAllCheckbox) {
                 const allSelected = folders.every(folder => window.state.selectedFolders.includes(folder));
                 selectAllCheckbox.checked = allSelected;
             }
             
-            // 個別フォルダチェックボックス
             folders.forEach(folder => {
                 const checkbox = dropdown.querySelector(`[id$="folder_${encodeToValidId(folder)}"]`);
                 if (checkbox) {
@@ -368,7 +422,6 @@
             });
         });
         
-        // フィードチェックボックスも更新
         updateFeedCheckboxStates();
     };
 
@@ -394,10 +447,8 @@
         });
         
         if (updatedCount > 0) {
-            // 記事一覧のみ更新
             updateArticleListOnly();
             
-            // GitHub同期フラグ設定
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
@@ -421,17 +472,13 @@
         const selectedFeeds = [...window.state.selectedFeeds];
         const index = selectedFolders.indexOf(folderName);
         
-        // フォルダ内のすべてのフィードを取得
         const feedsInFolder = [...new Set(window.state.articles
             .filter(article => article.folderName === folderName)
             .map(article => article.rssSource)
         )];
         
         if (index > -1) {
-            // フォルダのチェックを外す場合
             selectedFolders.splice(index, 1);
-            
-            // フォルダ内のフィードもすべてチェックを外す
             feedsInFolder.forEach(feed => {
                 const feedIndex = selectedFeeds.indexOf(feed);
                 if (feedIndex > -1) {
@@ -439,10 +486,7 @@
                 }
             });
         } else {
-            // フォルダのチェックを付ける場合
             selectedFolders.push(folderName);
-            
-            // フォルダ内のフィードもすべてチェックを付ける
             feedsInFolder.forEach(feed => {
                 if (!selectedFeeds.includes(feed)) {
                     selectedFeeds.push(feed);
@@ -450,12 +494,10 @@
             });
         }
         
-        // 状態を更新
         window.state.selectedFolders = selectedFolders;
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
-        // 表示を更新
         updateArticleListOnly();
         updateFolderButtonCount();
         updateFolderCheckboxStates();
@@ -475,17 +517,11 @@
             selectedFeeds.push(feedName);
         }
         
-        // DOM再構築を避けるため、直接状態更新
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds);
         
-        // 記事一覧のみ再レンダリング
         updateArticleListOnly();
-        
-        // フォルダ選択数の表示更新
         updateFolderButtonCount();
-        
-        // チェックボックス状態の更新
         updateFeedCheckboxStates();
     };
 
@@ -506,22 +542,15 @@
             selectedFeeds = [];
         }
         
-        // DOM再構築を避けるため、直接状態更新
         window.state.selectedFolders = selectedFolders;
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
-        // 記事一覧のみ再レンダリング
         updateArticleListOnly();
-        
-        // フォルダ選択数の表示更新
         updateFolderButtonCount();
-        
-        // チェックボックス状態の更新
         updateFolderCheckboxStates();
     };
 
-    // フォルダドロップダウンレンダリング関数
     const renderFolderDropdown = (prefix = '') => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const uniqueIds = generateUniqueIds(window.state.articles, prefix);
@@ -583,7 +612,6 @@
         `;
     };
 
-    // ドロップダウンの開閉
     const toggleFolderDropdown = (prefix = '') => {
         const content = document.getElementById(`${prefix}folderDropdownContent`);
         if (!content) return;
@@ -592,7 +620,6 @@
         
         if (isVisible) {
             content.style.display = 'none';
-            // 既存の外部クリックイベントを削除
             if (window._currentCloseHandler) {
                 document.removeEventListener('click', window._currentCloseHandler);
                 window._currentCloseHandler = null;
@@ -600,10 +627,8 @@
         } else {
             content.style.display = 'block';
 
-            // 外部クリック時にのみ閉じるイベントを設定
             setTimeout(() => {
                 const closeOnOutsideClick = (event) => {
-                    // より厳密な判定
                     const isInsideDropdown = content.contains(event.target);
                     const isDropdownButton = event.target.closest('.folder-dropdown-btn');
                     
@@ -614,7 +639,6 @@
                     }
                 };
                 
-                // 既存のハンドラーがあれば削除
                 if (window._currentCloseHandler) {
                     document.removeEventListener('click', window._currentCloseHandler);
                 }
@@ -1144,7 +1168,6 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
-        // フィルタリングロジック（OR条件）
         filtered = filtered.filter(article => 
             window.state.selectedFolders.includes(article.folderName) || 
             window.state.selectedFeeds.includes(article.rssSource)
@@ -1268,7 +1291,7 @@
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
         
-        // フィルター設定の取得
+        // フィルター設定の取得（現在保存されている設定）
         const filterSettings = getFilterSettings();
         
         const interestWords = wordHook.wordFilters.interestWords.map(word => 
@@ -1304,11 +1327,11 @@
                                 <div class="slider-container">
                                     <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
                                     <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" 
-                                           oninput="updateScoreFilter('min', this.value)" class="filter-slider">
+                                           oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
                                     
                                     <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
                                     <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" 
-                                           oninput="updateScoreFilter('max', this.value)" class="filter-slider">
+                                           oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
                                 </div>
                             </div>
 
@@ -1320,16 +1343,17 @@
                                 <div class="slider-container">
                                     <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
                                     <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" 
-                                           oninput="updateDateFilter('min', this.value)" class="filter-slider">
+                                           oninput="updateDateDisplay('min', this.value)" class="filter-slider">
                                     
                                     <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
                                     <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" 
-                                           oninput="updateDateFilter('max', this.value)" class="filter-slider">
+                                           oninput="updateDateDisplay('max', this.value)" class="filter-slider">
                                 </div>
                             </div>
 
                             <div class="modal-actions">
                                 <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
+                                <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
                             </div>
                         </div>
                         
@@ -1479,7 +1503,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        フィルター設定統合版
+                                        シンプルフィルター設定統合版
                                     </p>
                                 </div>
                             </div>
@@ -1517,7 +1541,6 @@
             </div>
         `;
 
-        // 星評価のイベントリスナー設定のみ
         if (!window._starClickHandler) {
             window._starClickHandler = (e) => {
                 handleArticleClick(e, e.target.getAttribute('data-article-id'), 'rating');
@@ -1548,9 +1571,10 @@
     window.toggleFolderDropdown = toggleFolderDropdown;
     window.handleBulkMarkAsRead = handleBulkMarkAsRead;
     
-    // フィルター設定関数をグローバルに追加
-    window.updateScoreFilter = updateScoreFilter;
-    window.updateDateFilter = updateDateFilter;
+    // シンプルフィルター設定関数をグローバルに追加
+    window.updateScoreDisplay = updateScoreDisplay;
+    window.updateDateDisplay = updateDateDisplay;
+    window.applyFilterSettings = applyFilterSettings;
     window.resetFilterSettings = resetFilterSettings;
     window.getFilterSettings = getFilterSettings;
 
