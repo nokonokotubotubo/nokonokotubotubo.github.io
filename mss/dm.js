@@ -1195,7 +1195,7 @@ window.AIScoring = {
             const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
             const newWeight = currentWeight + sourceWeight;
             
-            aiLearning.sourceWeights[article.rssSource] = Math.max(-8, Math.min(8, newWeight));
+            aiLearning.sourceWeights[article.rssSource] = Math.max(-16, Math.min(16, newWeight));
         }
         
         aiLearning.lastUpdated = new Date().toISOString();
