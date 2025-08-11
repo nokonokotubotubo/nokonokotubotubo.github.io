@@ -1152,3 +1152,38 @@ width: 100%;
     font-weight: normal;
 }
 
+/* NGワード範囲表示用スタイル */
+.word-scope {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    font-weight: normal;
+    margin-left: 0.3rem;
+}
+
+/* ラジオボタン用スタイル */
+.modal-body input[type="radio"] {
+    margin-right: 0.5rem;
+}
+
+.modal-body label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0;
+}
+
+/* NGワード入力フィールド */
+#ngWordInput {
+    font-size: 1rem;
+    padding: 0.6rem;
+    border: 1px solid #4b5563;
+    background: #374151;
+    color: #e2e8f0;
+    border-radius: 4px;
+}
+
+#ngWordInput:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(74, 144, 164, 0.25);
+}
