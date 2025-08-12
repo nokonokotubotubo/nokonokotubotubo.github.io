@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（NGワード無限増加問題修正版）
+// Minews PWA - データ管理・処理レイヤー（全修正統合版）
 
 (function() {
 
@@ -37,7 +37,7 @@ window.DEFAULT_DATA = {
     }
 };
 
-// GitHub Gist同期システム（NGワード無限増加問題修正版）
+// GitHub Gist同期システム（全修正統合版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -1226,52 +1226,137 @@ window.AIScoring = {
     }
 };
 
-// ワードフィルター管理（NGワード無限増加問題修正版）
+// ワードフィルター管理（NGワード範囲選択機能統合版）
 window.WordFilterManager = {
-    addWord(word, type, wordFilters) {
+    addWord(word, type, wordFilters, scope = 'all', target = null) {
         word = word.trim();
         if (!word) return false;
         
-        const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
-        const exists = targetArray.some(existingWord => existingWord.toLowerCase() === word.toLowerCase());
-        
-        if (!exists) {
-            targetArray.push(word);
-            wordFilters.lastUpdated = new Date().toISOString();
-            return true;
+        if (type === 'interest') {
+            const exists = wordFilters.interestWords.some(existingWord => existingWord.toLowerCase() === word.toLowerCase());
+            if (!exists) {
+                wordFilters.interestWords.push(word);
+                wordFilters.lastUpdated = new Date().toISOString();
+                return true;
+            }
+        } else {
+            // 【修正】旧形式の自動変換を確実に実行
+            this.migrateNGWordsFormat(wordFilters);
+            
+            // 【修正】デバッグログとスコープ正規化
+            console.log('NGワード追加:', { word, scope, target });
+            
+            // スコープの正規化
+            const normalizedScope = scope || 'all';
+            const normalizedTarget = normalizedScope === 'all' ? null : (target || null);
+            
+            // NGワードの新形式チェック
+            const exists = wordFilters.ngWords.some(ngWordObj => 
+                ngWordObj.word.toLowerCase() === word.toLowerCase() &&
+                ngWordObj.scope === normalizedScope &&
+                ngWordObj.target === normalizedTarget
+            );
+            
+            if (!exists) {
+                const newNGWord = {
+                    word: word,
+                    scope: normalizedScope, // 'all', 'folder', 'feed'
+                    target: normalizedTarget // フォルダ名またはフィード名（scopeが'all'の場合はnull）
+                };
+                
+                wordFilters.ngWords.push(newNGWord);
+                wordFilters.lastUpdated = new Date().toISOString();
+                
+                console.log('NGワード追加完了:', newNGWord);
+                return true;
+            }
         }
         return false;
     },
     
-    // 【修正】NGワード削除時の同期マーク強化
-    removeWord(word, type, wordFilters) {
+    removeWord(word, type, wordFilters, scope = null, target = null) {
         word = word.trim();
-        const targetArray = type === 'interest' ? wordFilters.interestWords : wordFilters.ngWords;
-        const index = targetArray.indexOf(word);
         
-        if (index > -1) {
-            targetArray.splice(index, 1);
-            // 【修正】削除操作時のタイムスタンプ更新を強制し、ログ出力
-            wordFilters.lastUpdated = new Date().toISOString();
-            console.log(`${type === 'interest' ? '興味' : 'NG'}ワード削除: "${word}" (${wordFilters.lastUpdated})`);
-            
-            // 【追加】クラウド同期フラグ設定
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-                console.log(`${type === 'interest' ? '興味' : 'NG'}ワード削除によりクラウド同期をマーク`);
+        if (type === 'interest') {
+            const index = wordFilters.interestWords.indexOf(word);
+            if (index > -1) {
+                wordFilters.interestWords.splice(index, 1);
+                wordFilters.lastUpdated = new Date().toISOString();
+                console.log(`興味ワード削除: "${word}" (${wordFilters.lastUpdated})`);
+                
+                // 【追加】クラウド同期フラグ設定
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                    console.log('興味ワード削除によりクラウド同期をマーク');
+                }
+                
+                return true;
             }
+        } else {
+            // NGワード削除（scope/target も考慮）
+            const index = wordFilters.ngWords.findIndex(ngWordObj => 
+                ngWordObj.word === word &&
+                (scope === null || ngWordObj.scope === scope) &&
+                (target === null || ngWordObj.target === target)
+            );
             
-            return true;
+            if (index > -1) {
+                wordFilters.ngWords.splice(index, 1);
+                // 【修正】削除操作時のタイムスタンプ更新を強制し、ログ出力
+                wordFilters.lastUpdated = new Date().toISOString();
+                console.log(`NGワード削除: "${word}" scope="${scope || 'all'}" target="${target || 'null'}" (${wordFilters.lastUpdated})`);
+                
+                // 【追加】クラウド同期フラグ設定
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                    console.log('NGワード削除によりクラウド同期をマーク');
+                }
+                
+                return true;
+            }
         }
         return false;
     },
     
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords.length) return articles;
+        
         return articles.filter(article => {
             const text = (article.title + ' ' + article.content).toLowerCase();
-            return !wordFilters.ngWords.some(ngWord => text.includes(ngWord.toLowerCase()));
+            
+            // 各NGワードに対して範囲チェック
+            return !wordFilters.ngWords.some(ngWordObj => {
+                // テキストマッチチェック
+                if (!text.includes(ngWordObj.word.toLowerCase())) {
+                    return false;
+                }
+                
+                // 範囲チェック
+                switch (ngWordObj.scope) {
+                    case 'all':
+                        return true; // 全体対象なのでマッチ
+                    case 'folder':
+                        return article.folderName === ngWordObj.target;
+                    case 'feed':
+                        return article.rssSource === ngWordObj.target;
+                    default:
+                        return false;
+                }
+            });
         });
+    },
+    
+    // 互換性のための旧形式変換機能
+    migrateNGWordsFormat(wordFilters) {
+        if (wordFilters.ngWords.length > 0 && typeof wordFilters.ngWords[0] === 'string') {
+            // 旧形式を新形式に変換
+            wordFilters.ngWords = wordFilters.ngWords.map(word => ({
+                word: word,
+                scope: 'all',
+                target: null
+            }));
+            wordFilters.lastUpdated = new Date().toISOString();
+        }
     }
 };
 
@@ -1349,7 +1434,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック
+// データ操作フック（NGワード範囲選択機能統合版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1521,9 +1606,12 @@ window.DataHooks = {
                 }
                 return false;
             },
-            addNGWord(word) {
+            addNGWord(word, scope = 'all', target = null) {
                 const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.addWord(word, 'ng', updated)) {
+                // 旧形式の変換処理を追加
+                window.WordFilterManager.migrateNGWordsFormat(updated);
+                
+                if (window.WordFilterManager.addWord(word, 'ng', updated, scope, target)) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
                     window.DataHooksCache.wordFilters = updated;
                     window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
@@ -1541,9 +1629,9 @@ window.DataHooks = {
                 }
                 return false;
             },
-            removeNGWord(word) {
+            removeNGWord(word, scope = null, target = null) {
                 const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.removeWord(word, 'ng', updated)) {
+                if (window.WordFilterManager.removeWord(word, 'ng', updated, scope, target)) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
                     window.DataHooksCache.wordFilters = updated;
                     window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
