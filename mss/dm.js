@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（記事ID安定化対応版）
+// Minews PWA - データ管理・処理レイヤー（軽量化版）
 
 (function() {
 
@@ -37,15 +37,13 @@ window.DEFAULT_DATA = {
     }
 };
 
-// 【新規追加】安定したID生成システム
+// 【軽量化】安定ID生成システム（マイグレーション機能削除版）
 window.StableIDGenerator = {
-    // URL+タイトルベースの安定したハッシュID生成
     generateStableId(url, title, publishDate = null) {
         const baseString = `${url.trim().toLowerCase()}|${title.trim()}${publishDate ? '|' + publishDate : ''}`;
         return this._simpleHash(baseString);
     },
     
-    // シンプルなハッシュ関数（安定性重視）
     _simpleHash(str) {
         let hash = 0;
         if (str.length === 0) return 'stable_' + Date.now();
@@ -53,37 +51,15 @@ window.StableIDGenerator = {
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // 32bit整数に変換
+            hash = hash & hash;
         }
         
         const hashStr = Math.abs(hash).toString(36);
         return `stable_${hashStr}_${str.length}`;
-    },
-    
-    // 既存記事の安定ID移行処理
-    migrateToStableIds(articles) {
-        const migrated = articles.map(article => {
-            // 既に安定IDの場合はスキップ
-            if (article.id && article.id.startsWith('stable_')) {
-                return article;
-            }
-            
-            // 新しい安定IDを生成
-            const newId = this.generateStableId(article.url, article.title, article.publishDate);
-            return {
-                ...article,
-                id: newId,
-                originalId: article.id, // 旧IDを保持（デバッグ用）
-                migratedAt: new Date().toISOString()
-            };
-        });
-        
-        console.log(`記事ID安定化完了: ${migrated.length}件を処理`);
-        return migrated;
     }
 };
 
-// GitHub Gist同期システム（全修正統合版）
+// GitHub Gist同期システム（軽量化統合版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -402,7 +378,6 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】NGワード無限増加問題解決版
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
@@ -410,21 +385,17 @@ window.GistSyncManager = {
         const localTime = new Date(localWords.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
         
-        // 【修正】最新のタイムスタンプを持つデータを基準として採用（上書き方式）
         let baseWords, baseTime;
         if (localTime >= cloudTime) {
-            // ローカルが新しい場合はローカルを採用
             baseWords = localWords;
             baseTime = localTime;
             this._log('info', 'ワードフィルターマージ: ローカルデータを採用');
         } else {
-            // クラウドが新しい場合はクラウドを採用
             baseWords = cloudWords;
             baseTime = cloudTime;
             this._log('info', 'ワードフィルターマージ: クラウドデータを採用');
         }
         
-        // 新しいタイムスタンプのデータをそのまま返す（追加ではなく上書き）
         return {
             interestWords: [...(baseWords.interestWords || [])],
             ngWords: [...(baseWords.ngWords || [])],
@@ -483,7 +454,6 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【修正】順序安定化対応の同期適用処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -517,7 +487,7 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    // 【修正】バックグラウンド同期時はAIスコア再計算を回避
+                    // バックグラウンド同期時はAIスコア再計算を回避
                     if (!this._isBackgroundSyncing && aiLearningData && wordFiltersData) {
                         updatedArticle.aiScore = window.AIScoring.calculateScore(
                             updatedArticle, 
@@ -780,7 +750,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】collectSyncData - 完全な同期対象範囲版
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -791,10 +760,10 @@ window.GistSyncManager = {
         
         const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
         
-        // 【重要修正】すべての記事状態変更を同期対象に含める
+        // すべての記事状態変更を同期対象に含める
         articlesHook.articles.forEach(article => {
             const hasAnyCustomState = 
-                article.readStatus !== 'unread' ||  // 既読・未読問わず状態変更を検知
+                article.readStatus !== 'unread' ||
                 (article.userRating && article.userRating > 0) || 
                 article.readLater === true;
                 
@@ -810,7 +779,6 @@ window.GistSyncManager = {
         
         this._cleanupOldArticleStates(currentArticleIds);
         
-        // 【修正】ワードフィルターデータにタイムスタンプを強制更新
         const updatedWordFilters = {
             ...wordHook.wordFilters,
             lastUpdated: currentTime
@@ -1083,7 +1051,7 @@ window.DataHooksCache = {
     }
 };
 
-// JSON記事データ読み込みシステム
+// 【軽量化】記事データ読み込み（マイグレーション処理削除版）
 window.ArticleLoader = {
     async loadArticlesFromJSON() {
         try {
@@ -1092,15 +1060,6 @@ window.ArticleLoader = {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
-            
-            // 【新規追加】既存記事の安定ID移行処理
-            if (data.articles && data.articles.length > 0) {
-                const firstArticle = data.articles[0];
-                if (firstArticle.id && !firstArticle.id.startsWith('stable_')) {
-                    console.log('記事ID安定化移行を実行します...');
-                    data.articles = window.StableIDGenerator.migrateToStableIds(data.articles);
-                }
-            }
             
             if (data.folders) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, data.folders);
@@ -1165,7 +1124,6 @@ window.AIScoring = {
             rawScore += ratingImpact;
         }
         
-        // 【修正】線形正規化を使用
         const normalizedScore = this._linearNormalization(rawScore);
         
         return Math.round(normalizedScore);
@@ -1198,7 +1156,6 @@ window.AIScoring = {
         const combinationBonus = this._calculateCombinationBonus(topKeywords);
         const intensityMultiplier = this._calculateIntensityMultiplier(topKeywords);
         
-        // 【修正】係数を調整（個別スコア60%→50%, 組み合わせボーナス25%→20%, 強度乗数15%→12%）
         totalScore = (individualScore * 0.5) + (combinationBonus * 0.2) + (individualScore * intensityMultiplier * 0.12);
         
         return totalScore;
@@ -1233,15 +1190,10 @@ window.AIScoring = {
         }
     },
     
-    // 【修正】シグモイド正規化から線形正規化に変更
     _linearNormalization(rawScore) {
-        // ベースライン50点から開始
         const baseScore = 50;
-        
-        // rawScoreを直接反映（-100 to +100の範囲を想定）
         const adjustedScore = baseScore + (rawScore * 0.4);
         
-        // 0-100の範囲にクランプ（ソフトクランプで自然な分布）
         if (adjustedScore < 10) return Math.max(5, adjustedScore * 0.5 + 5);
         if (adjustedScore > 90) return Math.min(95, 90 + (adjustedScore - 90) * 0.2);
         
@@ -1249,7 +1201,6 @@ window.AIScoring = {
     },
     
     updateLearning(article, rating, aiLearning, isRevert = false) {
-        // 【修正】学習増分を調整（±1.0 → ±0.8）
         const weights = [0, -0.8, -0.4, 0, 0.4, 0.8];
         let weight = weights[rating] || 0;
         if (isRevert) weight = -weight;
@@ -1265,7 +1216,6 @@ window.AIScoring = {
                 const adjustedWeight = weight * learningMultiplier;
                 
                 const newWeight = currentWeight + adjustedWeight;
-                // 【修正】キーワード重み制限を調整（±15 → ±20）
                 aiLearning.wordWeights[keyword] = Math.max(-20, Math.min(20, newWeight));
             });
         }
@@ -1275,7 +1225,6 @@ window.AIScoring = {
             const currentWeight = aiLearning.sourceWeights[article.rssSource] || 0;
             const newWeight = currentWeight + sourceWeight;
             
-            // 【修正】ソース重み制限を調整（±16 → ±15）
             aiLearning.sourceWeights[article.rssSource] = Math.max(-15, Math.min(15, newWeight));
         }
         
@@ -1284,7 +1233,7 @@ window.AIScoring = {
     }
 };
 
-// ワードフィルター管理（NGワード範囲選択機能統合版）
+// 【軽量化】ワードフィルター管理（旧形式変換機能削除版）
 window.WordFilterManager = {
     addWord(word, type, wordFilters, scope = 'all', target = null) {
         word = word.trim();
@@ -1298,17 +1247,9 @@ window.WordFilterManager = {
                 return true;
             }
         } else {
-            // 【修正】旧形式の自動変換を確実に実行
-            this.migrateNGWordsFormat(wordFilters);
-            
-            // 【修正】デバッグログとスコープ正規化
-            console.log('NGワード追加:', { word, scope, target });
-            
-            // スコープの正規化
             const normalizedScope = scope || 'all';
             const normalizedTarget = normalizedScope === 'all' ? null : (target || null);
             
-            // NGワードの新形式チェック
             const exists = wordFilters.ngWords.some(ngWordObj => 
                 ngWordObj.word.toLowerCase() === word.toLowerCase() &&
                 ngWordObj.scope === normalizedScope &&
@@ -1316,16 +1257,12 @@ window.WordFilterManager = {
             );
             
             if (!exists) {
-                const newNGWord = {
+                wordFilters.ngWords.push({
                     word: word,
-                    scope: normalizedScope, // 'all', 'folder', 'feed'
-                    target: normalizedTarget // フォルダ名またはフィード名（scopeが'all'の場合はnull）
-                };
-                
-                wordFilters.ngWords.push(newNGWord);
+                    scope: normalizedScope,
+                    target: normalizedTarget
+                });
                 wordFilters.lastUpdated = new Date().toISOString();
-                
-                console.log('NGワード追加完了:', newNGWord);
                 return true;
             }
         }
@@ -1340,18 +1277,12 @@ window.WordFilterManager = {
             if (index > -1) {
                 wordFilters.interestWords.splice(index, 1);
                 wordFilters.lastUpdated = new Date().toISOString();
-                console.log(`興味ワード削除: "${word}" (${wordFilters.lastUpdated})`);
-                
-                // 【追加】クラウド同期フラグ設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
-                    console.log('興味ワード削除によりクラウド同期をマーク');
                 }
-                
                 return true;
             }
         } else {
-            // NGワード削除（scope/target も考慮）
             const index = wordFilters.ngWords.findIndex(ngWordObj => 
                 ngWordObj.word === word &&
                 (scope === null || ngWordObj.scope === scope) &&
@@ -1360,16 +1291,10 @@ window.WordFilterManager = {
             
             if (index > -1) {
                 wordFilters.ngWords.splice(index, 1);
-                // 【修正】削除操作時のタイムスタンプ更新を強制し、ログ出力
                 wordFilters.lastUpdated = new Date().toISOString();
-                console.log(`NGワード削除: "${word}" scope="${scope || 'all'}" target="${target || 'null'}" (${wordFilters.lastUpdated})`);
-                
-                // 【追加】クラウド同期フラグ設定
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
-                    console.log('NGワード削除によりクラウド同期をマーク');
                 }
-                
                 return true;
             }
         }
@@ -1382,17 +1307,14 @@ window.WordFilterManager = {
         return articles.filter(article => {
             const text = (article.title + ' ' + article.content).toLowerCase();
             
-            // 各NGワードに対して範囲チェック
             return !wordFilters.ngWords.some(ngWordObj => {
-                // テキストマッチチェック
                 if (!text.includes(ngWordObj.word.toLowerCase())) {
                     return false;
                 }
                 
-                // 範囲チェック
                 switch (ngWordObj.scope) {
                     case 'all':
-                        return true; // 全体対象なのでマッチ
+                        return true;
                     case 'folder':
                         return article.folderName === ngWordObj.target;
                     case 'feed':
@@ -1402,23 +1324,10 @@ window.WordFilterManager = {
                 }
             });
         });
-    },
-    
-    // 互換性のための旧形式変換機能
-    migrateNGWordsFormat(wordFilters) {
-        if (wordFilters.ngWords.length > 0 && typeof wordFilters.ngWords[0] === 'string') {
-            // 旧形式を新形式に変換
-            wordFilters.ngWords = wordFilters.ngWords.map(word => ({
-                word: word,
-                scope: 'all',
-                target: null
-            }));
-            wordFilters.lastUpdated = new Date().toISOString();
-        }
     }
 };
 
-// ローカルストレージ管理
+// 【軽量化】ローカルストレージ管理（互換性チェック削除版）
 window.LocalStorageManager = {
     setItem(key, data) {
         try {
@@ -1433,6 +1342,7 @@ window.LocalStorageManager = {
             return false;
         }
     },
+    
     getItem(key, defaultValue) {
         try {
             const stored = localStorage.getItem(key);
@@ -1442,16 +1352,13 @@ window.LocalStorageManager = {
             }
             
             const parsed = JSON.parse(stored);
-            if (parsed.version !== window.CONFIG.DATA_VERSION) {
-                return this.migrateData(key, parsed, defaultValue);
-            }
-            
-            return parsed.data;
+            return parsed.data || defaultValue;
         } catch (error) {
             if (defaultValue) this.setItem(key, defaultValue);
             return defaultValue;
         }
     },
+    
     removeItem(key) {
         try {
             localStorage.removeItem(key);
@@ -1460,21 +1367,7 @@ window.LocalStorageManager = {
             return false;
         }
     },
-    migrateData(key, oldData, defaultValue) {
-        if (oldData.data) {
-            if (key === window.CONFIG.STORAGE_KEYS.AI_LEARNING && oldData.data.categoryWeights) {
-                oldData.data = {
-                    ...oldData.data,
-                    sourceWeights: {},
-                    categoryWeights: undefined
-                };
-                delete oldData.data.categoryWeights;
-            }
-            this.setItem(key, oldData.data);
-            return oldData.data;
-        }
-        return defaultValue;
-    },
+    
     getStorageInfo() {
         let totalSize = 0;
         let itemCount = 0;
@@ -1492,7 +1385,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック（NGワード範囲選択機能統合版）
+// データ操作フック（軽量化版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1666,8 +1559,6 @@ window.DataHooks = {
             },
             addNGWord(word, scope = 'all', target = null) {
                 const updated = { ...window.DataHooksCache.wordFilters };
-                // 旧形式の変換処理を追加
-                window.WordFilterManager.migrateNGWordsFormat(updated);
                 
                 if (window.WordFilterManager.addWord(word, 'ng', updated, scope, target)) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
