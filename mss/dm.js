@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（軽量化版）
+// Minews PWA - データ管理・処理レイヤー（軽量化＋効率化版）
 
 (function() {
 
@@ -59,7 +59,7 @@ window.StableIDGenerator = {
     }
 };
 
-// GitHub Gist同期システム（軽量化統合版）
+// GitHub Gist同期システム（軽量化＋効率化統合版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -295,6 +295,7 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
+    // 【修正】_executePeriodicSync関数 - 非同期collectSyncData対応
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
@@ -305,7 +306,7 @@ window.GistSyncManager = {
         
         try {
             const cloudData = await this.syncFromCloud();
-            const localData = this.collectSyncData();
+            const localData = await this.collectSyncData(); // 【修正】awaitを追加
             
             const mergedData = this._mergeData(localData, cloudData);
             
@@ -339,7 +340,11 @@ window.GistSyncManager = {
             syncTime: new Date().toISOString(),
             aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
             wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
-            articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates)
+            articleStates: this._mergeArticleStates(
+                localData.articleStates, 
+                cloudData.articleStates,
+                localData.deletedArticleIds || [] // 【修正】削除対象IDを渡す
+            )
         };
     },
 
@@ -403,7 +408,8 @@ window.GistSyncManager = {
         };
     },
 
-    _mergeArticleStates(localStates, cloudStates) {
+    // 【修正】_mergeArticleStates関数 - 削除処理統合版
+    _mergeArticleStates(localStates, cloudStates, deletedIds = []) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
         
@@ -414,6 +420,7 @@ window.GistSyncManager = {
         let mergeCount = 0;
         let localWinCount = 0;
         let cloudWinCount = 0;
+        let deletedCount = 0;
         
         const allRelevantIds = new Set([
             ...Object.keys(localStates),
@@ -421,8 +428,10 @@ window.GistSyncManager = {
         ]);
         
         allRelevantIds.forEach(articleId => {
-            if (!currentArticleIds.has(articleId)) {
-                return;
+            // 【修正】削除対象または存在しない記事は除外
+            if (!currentArticleIds.has(articleId) || deletedIds.includes(articleId)) {
+                deletedCount++;
+                return; // マージ対象から除外（削除扱い）
             }
             
             const localState = localStates[articleId];
@@ -449,7 +458,7 @@ window.GistSyncManager = {
             mergeCount++;
         });
         
-        this._log('info', `記事状態マージ完了: ${mergeCount}件`);
+        this._log('info', `記事状態マージ完了: ${mergeCount}件、クラウド削除: ${deletedCount}件`);
         
         return mergedStates;
     },
@@ -669,6 +678,7 @@ window.GistSyncManager = {
         return { success: true, reason: 'marked_for_periodic_sync' };
     },
 
+    // 【修正】_executeManualSync関数 - 非同期collectSyncData対応
     async _executeManualSync() {
         if (this.isSyncing) {
             return { success: false, reason: 'already_syncing' };
@@ -682,7 +692,7 @@ window.GistSyncManager = {
         
         try {
             const cloudData = await this.syncFromCloud();
-            const localData = this.collectSyncData();
+            const localData = await this.collectSyncData(); // 【修正】awaitを追加
             
             const mergedData = this._mergeData(localData, cloudData);
             
@@ -750,7 +760,8 @@ window.GistSyncManager = {
         }
     },
     
-    collectSyncData() {
+    // 【修正】collectSyncData関数 - 非同期対応版
+    async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
@@ -779,21 +790,57 @@ window.GistSyncManager = {
         
         this._cleanupOldArticleStates(currentArticleIds);
         
+        // 【修正】クラウドとの直接比較で削除対象を収集（非同期処理）
+        const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
+        
         const updatedWordFilters = {
             ...wordHook.wordFilters,
             lastUpdated: currentTime
         };
         
         this._log('info', `同期対象記事状態: ${Object.keys(articleStates).length}件（未読への変更も含む）`);
-        this._log('info', `ワードフィルター同期: 興味ワード${updatedWordFilters.interestWords.length}件, NGワード${updatedWordFilters.ngWords.length}件`);
+        this._log('info', `クラウド削除対象: ${deletedArticleIds.length}件の古い記事データ`);
         
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: currentTime,
             aiLearning: aiHook.aiLearning,
             wordFilters: updatedWordFilters,
-            articleStates: articleStates
+            articleStates: articleStates,
+            deletedArticleIds: deletedArticleIds
         };
+    },
+
+    // 【新規追加】効率的な削除対象記事ID収集（クラウドとの直接比較）
+    async _collectDeletedArticleIds(currentArticleIds) {
+        const deletedIds = [];
+        
+        try {
+            // クラウドから現在保存されている記事IDを取得
+            const cloudData = await this.syncFromCloud();
+            if (!cloudData || !cloudData.articleStates) {
+                this._log('info', 'クラウドデータが存在しないか、記事状態が空です');
+                return deletedIds;
+            }
+            
+            const cloudArticleIds = Object.keys(cloudData.articleStates);
+            
+            // クラウドに存在するが現在の記事リストにない記事IDを削除対象とする
+            cloudArticleIds.forEach(articleId => {
+                if (!currentArticleIds.has(articleId)) {
+                    deletedIds.push(articleId);
+                    this._log('info', `削除対象記事を特定: ${articleId}`);
+                }
+            });
+            
+            this._log('info', `クラウド削除対象記事ID特定完了: ${deletedIds.length}件`);
+            
+        } catch (error) {
+            this._log('warn', 'クラウドからの削除対象記事ID収集エラー:', error);
+            // エラー時は安全のため空配列を返す
+        }
+        
+        return deletedIds;
     },
 
     _cleanupOldArticleStates(currentArticleIds) {
