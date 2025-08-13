@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（全修正統合版）
+// Minews PWA - データ管理・処理レイヤー（記事ID安定化対応版）
 
 (function() {
 
@@ -34,6 +34,52 @@ window.DEFAULT_DATA = {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
+    }
+};
+
+// 【新規追加】安定したID生成システム
+window.StableIDGenerator = {
+    // URL+タイトルベースの安定したハッシュID生成
+    generateStableId(url, title, publishDate = null) {
+        const baseString = `${url.trim().toLowerCase()}|${title.trim()}${publishDate ? '|' + publishDate : ''}`;
+        return this._simpleHash(baseString);
+    },
+    
+    // シンプルなハッシュ関数（安定性重視）
+    _simpleHash(str) {
+        let hash = 0;
+        if (str.length === 0) return 'stable_' + Date.now();
+        
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 32bit整数に変換
+        }
+        
+        const hashStr = Math.abs(hash).toString(36);
+        return `stable_${hashStr}_${str.length}`;
+    },
+    
+    // 既存記事の安定ID移行処理
+    migrateToStableIds(articles) {
+        const migrated = articles.map(article => {
+            // 既に安定IDの場合はスキップ
+            if (article.id && article.id.startsWith('stable_')) {
+                return article;
+            }
+            
+            // 新しい安定IDを生成
+            const newId = this.generateStableId(article.url, article.title, article.publishDate);
+            return {
+                ...article,
+                id: newId,
+                originalId: article.id, // 旧IDを保持（デバッグ用）
+                migratedAt: new Date().toISOString()
+            };
+        });
+        
+        console.log(`記事ID安定化完了: ${migrated.length}件を処理`);
+        return migrated;
     }
 };
 
@@ -437,6 +483,7 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
+    // 【修正】順序安定化対応の同期適用処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -470,7 +517,8 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    if (aiLearningData && wordFiltersData) {
+                    // 【修正】バックグラウンド同期時はAIスコア再計算を回避
+                    if (!this._isBackgroundSyncing && aiLearningData && wordFiltersData) {
                         updatedArticle.aiScore = window.AIScoring.calculateScore(
                             updatedArticle, 
                             aiLearningData, 
@@ -486,10 +534,10 @@ window.GistSyncManager = {
             
             await this._executeBatchUpdate(batchUpdates);
             
-            this._log('info', '完全同期対応一括更新完了');
+            this._log('info', '順序安定化対応一括更新完了');
             return true;
         } catch (error) {
-            console.error('完全同期一括更新エラー:', error);
+            console.error('順序安定化一括更新エラー:', error);
             return false;
         }
     },
@@ -732,7 +780,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】collectSyncData - ワードフィルターのタイムスタンプ強制更新
+    // 【修正】collectSyncData - 完全な同期対象範囲版
     collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -743,15 +791,16 @@ window.GistSyncManager = {
         
         const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
         
+        // 【重要修正】すべての記事状態変更を同期対象に含める
         articlesHook.articles.forEach(article => {
-            const hasCustomState = 
-                article.readStatus === 'read' || 
+            const hasAnyCustomState = 
+                article.readStatus !== 'unread' ||  // 既読・未読問わず状態変更を検知
                 (article.userRating && article.userRating > 0) || 
                 article.readLater === true;
                 
-            if (hasCustomState) {
+            if (hasAnyCustomState) {
                 articleStates[article.id] = {
-                    readStatus: article.readStatus,
+                    readStatus: article.readStatus || 'unread',
                     userRating: article.userRating || 0,
                     readLater: article.readLater || false,
                     lastModified: article.lastModified || currentTime
@@ -767,7 +816,7 @@ window.GistSyncManager = {
             lastUpdated: currentTime
         };
         
-        this._log('info', `同期対象記事状態: ${Object.keys(articleStates).length}件`);
+        this._log('info', `同期対象記事状態: ${Object.keys(articleStates).length}件（未読への変更も含む）`);
         this._log('info', `ワードフィルター同期: 興味ワード${updatedWordFilters.interestWords.length}件, NGワード${updatedWordFilters.ngWords.length}件`);
         
         return {
@@ -1043,6 +1092,15 @@ window.ArticleLoader = {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
+            
+            // 【新規追加】既存記事の安定ID移行処理
+            if (data.articles && data.articles.length > 0) {
+                const firstArticle = data.articles[0];
+                if (firstArticle.id && !firstArticle.id.startsWith('stable_')) {
+                    console.log('記事ID安定化移行を実行します...');
+                    data.articles = window.StableIDGenerator.migrateToStableIds(data.articles);
+                }
+            }
             
             if (data.folders) {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, data.folders);
@@ -1657,7 +1715,7 @@ window.DataHooks = {
     useFeeds() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
+
         if (!window.DataHooksCache.feeds || window.DataHooksCache.lastUpdate.feeds !== timestamp) {
             window.DataHooksCache.feeds = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.feeds);
             window.DataHooksCache.lastUpdate.feeds = timestamp;
