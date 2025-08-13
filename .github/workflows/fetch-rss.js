@@ -1,5 +1,5 @@
-// エラー詳細出力版
-console.log('🔍 fetch-rss.js実行開始');
+// エラー詳細出力版（記事ID安定化対応）
+console.log('🔍 fetch-rss.js実行開始（記事ID安定化対応版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -36,10 +36,22 @@ const Mecab = require('mecab-async');
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// 🔧 修正: より安全なID生成関数を追加
-function generateUniqueId() {
-    return `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${Math.random().toString(36).substr(2, 5)}`;
+// 【新規追加】RSS用安定ID生成関数
+function generateStableIdForRSS(url, title, publishDate) {
+    const baseString = `${url.trim().toLowerCase()}|${title.trim()}|${publishDate}`;
+    let hash = 0;
+    
+    for (let i = 0; i < baseString.length; i++) {
+        const char = baseString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    
+    const hashStr = Math.abs(hash).toString(36);
+    return `stable_${hashStr}_${baseString.length}`;
 }
+
+// 【修正】旧generateUniqueId関数は削除し、安定ID生成のみ使用
 
 async function setupMecab() {
   console.log('🔍 MeCab辞書パス検索開始...');
@@ -122,7 +134,7 @@ async function loadOPML() {
         console.log(`📂 フォルダ処理: ${folderName}`);
         outline.outline.forEach(feed => {
           feeds.push({
-            id: generateUniqueId(),
+            id: generateStableIdForRSS(feed.$.xmlUrl, feed.$.title, new Date().toISOString()),
             url: feed.$.xmlUrl,
             title: feed.$.title,
             folderName: folderName,
@@ -134,7 +146,7 @@ async function loadOPML() {
         // フォルダなしのフィード
         console.log(`📄 単体フィード処理: ${outline.$.title}`);
         feeds.push({
-          id: generateUniqueId(),
+          id: generateStableIdForRSS(outline.$.xmlUrl, outline.$.title, new Date().toISOString()),
           url: outline.$.xmlUrl,
           title: outline.$.title,
           folderName: 'その他',
@@ -264,62 +276,43 @@ function extractUrlFromItem(item) {
   return null;
 }
 
+// 【重要修正】安定ID生成版のparseRSSItem関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     console.log(`🔍 [${feedTitle}] 記事解析開始`);
     console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
     const title = cleanText(item.title || '');
     const link = extractUrlFromItem(item);
-
     const description = cleanText(item.description || item.summary || item.content?._ || item.content || '');
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
-    // 🔥 2週間制限フィルター＋未来日付除外
+    // 日付フィルター処理は既存通り
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const now = new Date();
     const publishDate = parseDate(pubDate);
     const articleDate = new Date(publishDate);
 
-    // 2週間を超えて古い記事は除外
-    if (articleDate < twoWeeksAgo) {
-      console.log(`❌ [${feedTitle}] 記事除外（2週間超過）: "${title.substring(0, 30)}..."`);
-      return null;
-    }
-
-    // 未来の日付の記事は除外
-    if (articleDate > now) {
-      console.log(`❌ [${feedTitle}] 記事除外（未来日付）: "${title.substring(0, 30)}..."`);
+    if (articleDate < twoWeeksAgo || articleDate > now) {
       return null;
     }
     
-    console.log(`   タイトル: "${title}" (長さ: ${title.length})`);
-    console.log(`   リンク: "${link}" (型: ${typeof link}, 長さ: ${link ? link.length : 0})`);
-    console.log(`   説明: "${description.substring(0, 50)}..." (長さ: ${description.length})`);
-
     if (!title || !link) {
-      console.log(`❌ [${feedTitle}] 記事除外: タイトル="${title || 'なし'}", リンク="${link || 'なし'}"`);
-      if (!title) {
-        console.log(`   タイトル候補:`, JSON.stringify(item.title));
-      }
-      if (!link) {
-        console.log(`   リンク候補:`, JSON.stringify(item.link));
-        console.log(`   url:`, JSON.stringify(item.url));
-        console.log(`   guid:`, JSON.stringify(item.guid));
-        console.log(`   id:`, JSON.stringify(item.id));
-        console.log(`   rdf:about:`, JSON.stringify(item["rdf:about"]));
-      }
       return null;
     }
-    console.log(`✅ [${feedTitle}] 記事解析成功: "${title}"`);
+    
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
     const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
+    
+    // 【重要修正】安定したID生成に変更
+    const stableId = generateStableIdForRSS(link, title, publishDate);
+    
     return {
-      id: generateUniqueId(),
+      id: stableId, // 安定したIDを使用
       title: title.trim(),
       url: link.trim(),
       content: cleanDescription,
-      publishDate: parseDate(pubDate),
+      publishDate: publishDate,
       rssSource: feedTitle,
       category: category.trim(),
       readStatus: 'unread',
@@ -330,7 +323,6 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     };
   } catch (error) {
     console.error(`❌ [${feedTitle}] 記事解析エラー:`, error);
-    console.error(`   エラー発生時のアイテムデータ:`, JSON.stringify(item, null, 2).substring(0, 500));
     return null;
   }
 }
@@ -404,7 +396,7 @@ async function extractKeywordsWithMecab(text) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (フォルダ構造対応版)');
+    console.log('🚀 RSS記事取得開始 (記事ID安定化対応版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -518,7 +510,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.3-フォルダ構造対応版'
+        debugVersion: 'v1.4-記事ID安定化対応版'
       }
     };
     
@@ -537,6 +529,7 @@ async function main() {
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
+    console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -549,7 +542,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始');
+console.log('🚀 スクリプト実行開始（記事ID安定化対応版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
