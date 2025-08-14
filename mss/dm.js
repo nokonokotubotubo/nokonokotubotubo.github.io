@@ -8,7 +8,7 @@
 window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
-        RSS_FEEDS: 'minews_rssFeeds',
+        RSS_FEEDS: 'minews_rssFeeds', 
         FOLDERS: 'minews_folders',
         AI_LEARNING: 'minews_aiLearning',
         WORD_FILTERS: 'minews_wordFilters'
@@ -253,7 +253,6 @@ window.GistSyncManager = {
         }
         
         this._log('info', 'GitHub同期設定を正常に保存しました');
-
         this._lastValidConfig = {
             hasToken: true,
             gistId: this.gistId,
@@ -1432,7 +1431,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック（軽量化版）
+// データ操作フック（軽量化＋全量置換対応版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1445,6 +1444,64 @@ window.DataHooks = {
         
         return {
             articles: window.DataHooksCache.articles,
+            // 【追加】全量置き換えメソッド
+            replaceAllArticles(newArticles) {
+                const currentArticles = window.DataHooksCache.articles || [];
+                
+                // 既存記事の状態を保存（ID→状態のマップ）
+                const existingStates = {};
+                currentArticles.forEach(article => {
+                    if (article.readStatus !== 'unread' || 
+                        (article.userRating && article.userRating > 0) || 
+                        article.readLater === true) {
+                        existingStates[article.id] = {
+                            readStatus: article.readStatus,
+                            userRating: article.userRating,
+                            readLater: article.readLater,
+                            lastModified: article.lastModified
+                        };
+                    }
+                });
+                
+                // 新しい記事に既存の状態を適用
+                const updatedArticles = newArticles.map(newArticle => {
+                    const existingState = existingStates[newArticle.id];
+                    if (existingState) {
+                        return {
+                            ...newArticle,
+                            readStatus: existingState.readStatus,
+                            userRating: existingState.userRating,
+                            readLater: existingState.readLater,
+                            lastModified: existingState.lastModified
+                        };
+                    }
+                    return newArticle;
+                });
+                
+                // 記事数制限の適用
+                let finalArticles = updatedArticles;
+                if (finalArticles.length > window.CONFIG.MAX_ARTICLES) {
+                    // 最新記事を優先して制限数まで削減
+                    finalArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+                    finalArticles = finalArticles.slice(0, window.CONFIG.MAX_ARTICLES);
+                }
+                
+                // ストレージとキャッシュを更新
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, finalArticles);
+                window.DataHooksCache.articles = finalArticles;
+                window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
+                
+                // 状態を更新
+                if (window.state) {
+                    window.state.articles = finalArticles;
+                }
+                
+                console.log(`記事を全量置き換え: ${finalArticles.length}件（状態保持: ${Object.keys(existingStates).length}件）`);
+                return {
+                    totalReplaced: finalArticles.length,
+                    statesPreserved: Object.keys(existingStates).length
+                };
+            },
             addArticle(newArticle) {
                 const updatedArticles = [...window.DataHooksCache.articles];
                 const exists = updatedArticles.find(article => {
@@ -1517,15 +1574,10 @@ window.DataHooks = {
                 const articlesHook = window.DataHooks.useArticles();
                 try {
                     const data = await window.ArticleLoader.loadArticlesFromJSON();
-                    let addedCount = 0;
-                    let skippedCount = 0;
-                    data.articles.forEach(article => {
-                        if (articlesHook.addArticle(article)) {
-                            addedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    });
+                    
+                    // 【修正】全量置き換え方式に変更
+                    const replaceResult = articlesHook.replaceAllArticles(data.articles);
+                    
                     if (data.folders && window.state) {
                         window.state.folders = data.folders;
                     }
@@ -1533,15 +1585,15 @@ window.DataHooks = {
                         window.state.feeds = data.feeds;
                     }
                     return {
-                        totalAdded: addedCount,
-                        totalSkipped: skippedCount,
+                        totalAdded: replaceResult.totalReplaced,
+                        totalSkipped: 0,
                         totalErrors: 0,
                         totalFeeds: 1,
                         feedResults: [{
                             name: 'GitHub Actions RSS',
                             success: true,
-                            added: addedCount,
-                            skipped: skippedCount,
+                            added: replaceResult.totalReplaced,
+                            skipped: 0,
                             total: data.articles.length
                         }],
                         lastUpdated: data.lastUpdated
