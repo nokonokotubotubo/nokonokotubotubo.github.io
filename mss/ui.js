@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（星評価機能削除版）
+// Minews PWA - UI・表示レイヤー（キーワード星評価機能追加版）
 (function() {
     'use strict';
 
@@ -161,6 +161,142 @@
         updateArticleListOnly();
         
         alert('フィルター設定をリセットしました');
+    };
+
+    // ===========================================
+    // 【新規追加】キーワード星評価機能
+    // ===========================================
+
+    // キーワードに星評価UI を生成
+    const renderKeywordRating = (keyword) => {
+        const currentRating = window.KeywordRatingManager.getKeywordRating(keyword);
+        
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            const isActive = i <= currentRating;
+            starsHtml += `<span class="keyword-star ${isActive ? 'active' : ''}" 
+                                data-keyword="${keyword}" 
+                                data-rating="${i}" 
+                                onclick="handleKeywordRating('${keyword.replace(/'/g, "\\'")}', ${i})"
+                                title="${i}星">★</span>`;
+        }
+        
+        return `<div class="keyword-rating" title="このキーワードを評価">${starsHtml}</div>`;
+    };
+
+    // キーワード星評価変更処理
+    const handleKeywordRating = (keyword, rating) => {
+        try {
+            const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+            
+            if (success) {
+                // 星の表示を更新
+                updateKeywordStarsDisplay(keyword, rating);
+                
+                // 記事スコアを再計算してリストを更新
+                setTimeout(() => {
+                    updateArticleListOnly();
+                }, 100);
+                
+                // GitHub同期マーク
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
+                
+                console.log(`キーワード「${keyword}」を${rating}星に評価しました`);
+            }
+        } catch (error) {
+            console.error('キーワード評価の保存に失敗:', error);
+            alert('キーワード評価の保存に失敗しました');
+        }
+    };
+
+    // 特定キーワードの星表示を更新
+    const updateKeywordStarsDisplay = (keyword, newRating) => {
+        const keywordElements = document.querySelectorAll(`[data-keyword="${keyword}"]`);
+        
+        keywordElements.forEach(element => {
+            if (element.classList.contains('keyword-star')) {
+                const starRating = parseInt(element.dataset.rating);
+                if (starRating <= newRating) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            }
+        });
+    };
+
+    // キーワード評価一覧の描画（設定モーダル用）
+    const renderKeywordRatings = () => {
+        const allRatings = window.KeywordRatingManager.getAllRatings();
+        
+        if (Object.keys(allRatings).length === 0) {
+            return '<div class="text-muted">まだキーワードの評価がありません</div>';
+        }
+        
+        const sortedKeywords = Object.keys(allRatings).sort();
+        
+        return sortedKeywords.map(keyword => {
+            const rating = allRatings[keyword];
+            const weightMapping = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
+            const weight = weightMapping[rating] || 0;
+            
+            let starsDisplay = '';
+            for (let i = 1; i <= 5; i++) {
+                const isActive = i <= rating;
+                starsDisplay += `<span class="keyword-star ${isActive ? 'active' : ''}" 
+                                       data-keyword="${keyword}" 
+                                       data-rating="${i}" 
+                                       onclick="handleKeywordRating('${keyword.replace(/'/g, "\\'")}', ${i})"
+                                       title="${i}星">★</span>`;
+            }
+            
+            return `
+                <div class="keyword-rating-item">
+                    <div class="keyword-info">
+                        <span class="keyword-name">${keyword}</span>
+                        <span class="keyword-weight">(AI重み: ${weight > 0 ? '+' : ''}${weight})</span>
+                    </div>
+                    <div class="keyword-stars">${starsDisplay}</div>
+                    <button class="keyword-remove-btn" 
+                            onclick="handleRemoveKeywordRating('${keyword.replace(/'/g, "\\'")}')">削除</button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    // キーワード評価削除処理
+    const handleRemoveKeywordRating = (keyword) => {
+        if (!confirm(`キーワード「${keyword}」の評価を削除しますか？`)) {
+            return;
+        }
+        
+        try {
+            const success = window.KeywordRatingManager.saveKeywordRating(keyword, 0);
+            
+            if (success) {
+                // 設定モーダルを更新
+                if (window.state.showModal === 'settings') {
+                    window.render();
+                }
+                
+                // 記事リストを更新
+                setTimeout(() => {
+                    updateArticleListOnly();
+                }, 100);
+                
+                // GitHub同期マーク
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
+                
+                console.log(`キーワード「${keyword}」の評価を削除しました`);
+            }
+        } catch (error) {
+            console.error('キーワード評価の削除に失敗:', error);
+            alert('キーワード評価の削除に失敗しました');
+        }
     };
 
     // ===========================================
@@ -1355,10 +1491,19 @@
         });
     };
 
+    // 【修正版】記事カード描画（キーワード星評価機能追加）
     const renderArticleCard = (article) => {
-        const keywords = (article.keywords || []).map(keyword => 
-            `<span class="keyword">${keyword}</span>`
-        ).join('');
+        const keywords = (article.keywords || []).map(keyword => {
+            const rating = window.KeywordRatingManager.getKeywordRating(keyword);
+            const ratingDisplay = rating > 0 ? renderKeywordRating(keyword) : '';
+            
+            return `
+                <div class="keyword-container">
+                    <span class="keyword">${keyword}</span>
+                    ${ratingDisplay}
+                </div>
+            `;
+        }).join('');
 
         return `
             <div class="article-card" data-read-status="${article.readStatus}">
@@ -1415,7 +1560,7 @@
         `;
     };
 
-    // 【修正版】設定モーダル（NGワード範囲表示対応）
+    // 【修正版】設定モーダル（キーワード評価セクション追加）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
@@ -1495,6 +1640,28 @@
                             <div class="modal-actions">
                                 <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
                                 <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
+                            </div>
+                        </div>
+
+                        <div class="modal-section-group">
+                            <h3 class="group-title">キーワード星評価</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>評価済みキーワード</h3>
+                                </div>
+                                <div class="keyword-ratings-list">
+                                    ${renderKeywordRatings()}
+                                </div>
+                                <div class="word-help">
+                                    <h4>キーワード評価について</h4>
+                                    <ul>
+                                        <li><strong>1星:</strong> AI重み -10 (低評価)</li>
+                                        <li><strong>2星:</strong> AI重み -5 (やや低評価)</li>
+                                        <li><strong>3星:</strong> AI重み 0 (中立)</li>
+                                        <li><strong>4星:</strong> AI重み +5 (やや高評価)</li>
+                                        <li><strong>5星:</strong> AI重み +10 (高評価)</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                         
@@ -1644,7 +1811,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        星評価機能削除版
+                                        キーワード星評価機能搭載版
                                     </p>
                                 </div>
                             </div>
@@ -1716,6 +1883,11 @@
     window.handleNGWordScopeChange = handleNGWordScopeChange;
     window.handleSubmitNGWord = handleSubmitNGWord;
     window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
+
+    // 【新規追加】キーワード星評価機能をグローバルに追加
+    window.handleKeywordRating = handleKeywordRating;
+    window.handleRemoveKeywordRating = handleRemoveKeywordRating;
+    window.renderKeywordRating = renderKeywordRating;
 
     // ===========================================
     // 初期化
