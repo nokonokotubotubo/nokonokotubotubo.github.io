@@ -1,18 +1,17 @@
-// Minews PWA - データ管理・処理レイヤー（キーワード評価機能対応版）
+// Minews PWA - データ管理・処理レイヤー（星評価機能削除版）
 
 (function() {
 
 'use strict';
 
-// 定数・設定（キーワード評価追加）
+// 定数・設定
 window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
         RSS_FEEDS: 'minews_rssFeeds',
         FOLDERS: 'minews_folders',
         AI_LEARNING: 'minews_aiLearning',
-        WORD_FILTERS: 'minews_wordFilters',
-        KEYWORD_RATINGS: 'minews_keywordRatings'  // 【追加】キーワード評価用
+        WORD_FILTERS: 'minews_wordFilters'
     },
     MAX_ARTICLES: 1000,
     DATA_VERSION: '1.0',
@@ -35,96 +34,6 @@ window.DEFAULT_DATA = {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
-    },
-    // 【追加】キーワード評価データ
-    keywordRatings: {
-        version: window.CONFIG.DATA_VERSION,
-        ratings: {},  // { keyword: rating(1-5) }
-        lastUpdated: new Date().toISOString()
-    }
-};
-
-// 【追加】キーワード評価管理システム
-window.KeywordRatingManager = {
-    // キーワード評価を設定
-    setRating(keyword, rating) {
-        if (!keyword || !keyword.trim()) return false;
-        if (rating < 1 || rating > 5) return false;
-        
-        const keywordRatings = window.LocalStorageManager.getItem(
-            window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-            window.DEFAULT_DATA.keywordRatings
-        );
-        
-        keywordRatings.ratings[keyword.trim()] = parseInt(rating);
-        keywordRatings.lastUpdated = new Date().toISOString();
-        
-        window.LocalStorageManager.setItem(
-            window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-            keywordRatings
-        );
-        
-        // キャッシュ更新
-        window.DataHooksCache.keywordRatings = keywordRatings;
-        window.DataHooksCache.lastUpdate.keywordRatings = new Date().toISOString();
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-        
-        return true;
-    },
-    
-    // キーワード評価を取得
-    getRating(keyword) {
-        if (!keyword || !keyword.trim()) return 0;
-        
-        const keywordRatings = window.LocalStorageManager.getItem(
-            window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-            window.DEFAULT_DATA.keywordRatings
-        );
-        
-        return keywordRatings.ratings[keyword.trim()] || 0;
-    },
-    
-    // 全ての評価を取得
-    getAllRatings() {
-        return window.LocalStorageManager.getItem(
-            window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-            window.DEFAULT_DATA.keywordRatings
-        );
-    },
-    
-    // キーワード評価を削除
-    removeRating(keyword) {
-        if (!keyword || !keyword.trim()) return false;
-        
-        const keywordRatings = window.LocalStorageManager.getItem(
-            window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-            window.DEFAULT_DATA.keywordRatings
-        );
-        
-        if (keywordRatings.ratings[keyword.trim()]) {
-            delete keywordRatings.ratings[keyword.trim()];
-            keywordRatings.lastUpdated = new Date().toISOString();
-            
-            window.LocalStorageManager.setItem(
-                window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-                keywordRatings
-            );
-            
-            // キャッシュ更新
-            window.DataHooksCache.keywordRatings = keywordRatings;
-            window.DataHooksCache.lastUpdate.keywordRatings = new Date().toISOString();
-            
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
-            
-            return true;
-        }
-        
-        return false;
     }
 };
 
@@ -150,7 +59,7 @@ window.StableIDGenerator = {
     }
 };
 
-// GitHub Gist同期システム（キーワード評価対応版）
+// GitHub Gist同期システム（軽量化＋効率化統合版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -344,7 +253,7 @@ window.GistSyncManager = {
         }
         
         this._log('info', 'GitHub同期設定を正常に保存しました');
-        
+
         this._lastValidConfig = {
             hasToken: true,
             gistId: this.gistId,
@@ -430,7 +339,6 @@ window.GistSyncManager = {
             syncTime: new Date().toISOString(),
             aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
             wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
-            keywordRatings: this._mergeKeywordRatings(localData.keywordRatings, cloudData.keywordRatings),  // 【追加】
             articleStates: this._mergeArticleStates(
                 localData.articleStates, 
                 cloudData.articleStates,
@@ -499,30 +407,6 @@ window.GistSyncManager = {
         };
     },
 
-    // 【追加】キーワード評価データのマージ処理
-    _mergeKeywordRatings(localRatings, cloudRatings) {
-        if (!cloudRatings) return localRatings;
-        if (!localRatings) return cloudRatings;
-        
-        const localTime = new Date(localRatings.lastUpdated || 0).getTime();
-        const cloudTime = new Date(cloudRatings.lastUpdated || 0).getTime();
-        
-        // より新しいタイムスタンプを持つデータを優先
-        if (localTime >= cloudTime) {
-            this._log('info', 'キーワード評価マージ: ローカルデータを採用');
-            return {
-                ...localRatings,
-                lastUpdated: new Date().toISOString()
-            };
-        } else {
-            this._log('info', 'キーワード評価マージ: クラウドデータを採用');
-            return {
-                ...cloudRatings,
-                lastUpdated: new Date().toISOString()
-            };
-        }
-    },
-
     // 【修正】_mergeArticleStates関数 - 削除処理統合版（星評価削除対応）
     _mergeArticleStates(localStates, cloudStates, deletedIds = []) {
         if (!cloudStates) return localStates;
@@ -588,11 +472,6 @@ window.GistSyncManager = {
             if (mergedData.wordFilters) {
                 batchUpdates.wordFilters = mergedData.wordFilters;
             }
-
-            // 【追加】キーワード評価データのバッチ更新対応
-            if (mergedData.keywordRatings) {
-                batchUpdates.keywordRatings = mergedData.keywordRatings;
-            }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
@@ -600,7 +479,6 @@ window.GistSyncManager = {
                 
                 const aiLearningData = mergedData.aiLearning || window.DataHooksCache.aiLearning;
                 const wordFiltersData = mergedData.wordFilters || window.DataHooksCache.wordFilters;
-                const keywordRatingsData = mergedData.keywordRatings || window.DataHooksCache.keywordRatings;  // 【追加】
                 
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
@@ -620,8 +498,7 @@ window.GistSyncManager = {
                         updatedArticle.aiScore = window.AIScoring.calculateScore(
                             updatedArticle, 
                             aiLearningData, 
-                            wordFiltersData,
-                            keywordRatingsData  // 【追加】キーワード評価データを渡す
+                            wordFiltersData
                         );
                     }
                     
@@ -645,7 +522,6 @@ window.GistSyncManager = {
         const updateSequence = [
             { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
             { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' },
-            { key: 'keywordRatings', storageKey: window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, cacheKey: 'keywordRatings' },  // 【追加】
             { key: 'articles', storageKey: window.CONFIG.STORAGE_KEYS.ARTICLES, cacheKey: 'articles' }
         ];
         
@@ -725,16 +601,6 @@ window.GistSyncManager = {
                 window.DataHooksCache.clear('wordFilters');
                 window.DataHooksCache.wordFilters = mergedData.wordFilters;
             }
-
-            // 【追加】キーワード評価データの手動同期処理
-            if (mergedData.keywordRatings) {
-                window.LocalStorageManager.setItem(
-                    window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, 
-                    mergedData.keywordRatings
-                );
-                window.DataHooksCache.clear('keywordRatings');
-                window.DataHooksCache.keywordRatings = mergedData.keywordRatings;
-            }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
@@ -742,7 +608,6 @@ window.GistSyncManager = {
                 
                 const aiLearningData = window.DataHooksCache.aiLearning || window.DataHooks.useAILearning().aiLearning;
                 const wordFiltersData = window.DataHooksCache.wordFilters || window.DataHooks.useWordFilters().wordFilters;
-                const keywordRatingsData = window.DataHooksCache.keywordRatings || window.DataHooks.useKeywordRatings().keywordRatings;  // 【追加】
                 
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
@@ -760,8 +625,7 @@ window.GistSyncManager = {
                     updatedArticle.aiScore = window.AIScoring.calculateScore(
                         updatedArticle, 
                         aiLearningData, 
-                        wordFiltersData,
-                        keywordRatingsData  // 【追加】キーワード評価データを渡す
+                        wordFiltersData
                     );
                     
                     return updatedArticle;
@@ -891,12 +755,11 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】collectSyncData関数 - キーワード評価同期対応版
+    // 【修正】collectSyncData関数 - 非同期対応版（星評価削除対応）
     async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
-        const keywordHook = window.DataHooks.useKeywordRatings();  // 【追加】
         
         const articleStates = {};
         const currentTime = new Date().toISOString();
@@ -927,22 +790,14 @@ window.GistSyncManager = {
             lastUpdated: currentTime
         };
         
-        // 【追加】キーワード評価データの同期準備
-        const updatedKeywordRatings = {
-            ...keywordHook.keywordRatings,
-            lastUpdated: currentTime
-        };
-        
         this._log('info', `同期対象記事状態: ${Object.keys(articleStates).length}件（未読への変更も含む）`);
         this._log('info', `クラウド削除対象: ${deletedArticleIds.length}件の古い記事データ`);
-        this._log('info', `キーワード評価: ${Object.keys(updatedKeywordRatings.ratings).length}件`);  // 【追加】
         
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: currentTime,
             aiLearning: aiHook.aiLearning,
             wordFilters: updatedWordFilters,
-            keywordRatings: updatedKeywordRatings,  // 【追加】
             articleStates: articleStates,
             deletedArticleIds: deletedArticleIds
         };
@@ -1086,7 +941,7 @@ window.GistSyncManager = {
                 this._log('warn', '設定が見つからないためGistID保存をスキップ');
                 return;
             }
-            
+
             const config = this._jsonSafe.parse(currentConfigStr);
             if (config) {
                 config.gistId = gistId;
@@ -1205,7 +1060,7 @@ window.GistSyncManager = {
     }
 };
 
-// キャッシュシステム（キーワード評価追加）
+// キャッシュシステム
 window.DataHooksCache = {
     articles: null,
     rssFeeds: null,
@@ -1213,9 +1068,8 @@ window.DataHooksCache = {
     feeds: null,
     aiLearning: null,
     wordFilters: null,
-    keywordRatings: null,  // 【追加】
     lastUpdate: {
-        articles: null, rssFeeds: null, folders: null, feeds: null, aiLearning: null, wordFilters: null, keywordRatings: null  // 【追加】
+        articles: null, rssFeeds: null, folders: null, feeds: null, aiLearning: null, wordFilters: null
     },
     clear(key) {
         if (key) {
@@ -1272,9 +1126,9 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム（キーワード評価連携版）
+// AI学習システム（星評価機能削除版）
 window.AIScoring = {
-    calculateScore(article, aiLearning, wordFilters, keywordRatings = null) {
+    calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
         
         if (article.keywords && aiLearning.wordWeights && article.keywords.length > 0) {
@@ -1300,38 +1154,11 @@ window.AIScoring = {
             }
         }
         
-        // 【追加】キーワード評価によるスコア計算
-        if (keywordRatings && article.keywords && article.keywords.length > 0) {
-            const keywordRatingBonus = this._calculateKeywordRatingBonus(article.keywords, keywordRatings);
-            rawScore += keywordRatingBonus;
-        }
+        // 【削除】星評価によるスコア計算部分を削除
         
         const normalizedScore = this._linearNormalization(rawScore);
         
         return Math.round(normalizedScore);
-    },
-    
-    // 【追加】キーワード評価によるボーナス計算
-    _calculateKeywordRatingBonus(keywords, keywordRatings) {
-        let totalBonus = 0;
-        let ratedKeywordCount = 0;
-        
-        keywords.forEach(keyword => {
-            const rating = keywordRatings.ratings[keyword];
-            if (rating && rating > 0) {
-                // 評価を-2〜+2の範囲に変換（3が中性、1が最低、5が最高）
-                const normalizedRating = (rating - 3) * 2;  // 1→-4, 2→-2, 3→0, 4→+2, 5→+4
-                totalBonus += normalizedRating * 5;  // 重み付け
-                ratedKeywordCount++;
-            }
-        });
-        
-        // 評価されたキーワードがある場合のみボーナスを適用
-        if (ratedKeywordCount > 0) {
-            return totalBonus;
-        }
-        
-        return 0;
     },
     
     _getTopKeywordsByAIWeights(keywords, wordWeights) {
@@ -1404,6 +1231,8 @@ window.AIScoring = {
         
         return Math.round(adjustedScore);
     }
+    
+    // 【削除】updateLearning関数を完全削除
 };
 
 // ワードフィルター管理
@@ -1558,7 +1387,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック（キーワード評価機能追加版）
+// データ操作フック（星評価機能削除版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1700,6 +1529,7 @@ window.DataHooks = {
         
         return {
             aiLearning: window.DataHooksCache.aiLearning
+            // 【削除】updateLearningData関数を削除
         };
     },
     useWordFilters() {
@@ -1756,31 +1586,6 @@ window.DataHooks = {
             }
         };
     },
-    
-    // 【追加】キーワード評価フック
-    useKeywordRatings() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.keywordRatings || window.DataHooksCache.lastUpdate.keywordRatings !== timestamp) {
-            window.DataHooksCache.keywordRatings = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, window.DEFAULT_DATA.keywordRatings);
-            window.DataHooksCache.lastUpdate.keywordRatings = timestamp;
-        }
-        
-        return {
-            keywordRatings: window.DataHooksCache.keywordRatings,
-            setRating(keyword, rating) {
-                return window.KeywordRatingManager.setRating(keyword, rating);
-            },
-            getRating(keyword) {
-                return window.KeywordRatingManager.getRating(keyword);
-            },
-            removeRating(keyword) {
-                return window.KeywordRatingManager.removeRating(keyword);
-            }
-        };
-    },
-    
     useFolders() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
@@ -1797,7 +1602,7 @@ window.DataHooks = {
     useFeeds() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
+
         if (!window.DataHooksCache.feeds || window.DataHooksCache.lastUpdate.feeds !== timestamp) {
             window.DataHooksCache.feeds = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.feeds);
             window.DataHooksCache.lastUpdate.feeds = timestamp;
@@ -1809,21 +1614,18 @@ window.DataHooks = {
     }
 };
 
-// エクスポート・インポート機能（キーワード評価対応）
+// エクスポート・インポート機能（星評価削除対応）
 window.exportMinewsData = function() {
     const aiHook = window.DataHooks.useAILearning();
     const wordHook = window.DataHooks.useWordFilters();
     const articlesHook = window.DataHooks.useArticles();
-    const keywordHook = window.DataHooks.useKeywordRatings();  // 【追加】
     
     const articleStates = {};
     articlesHook.articles.forEach(article => {
-        const keywordRatings = keywordHook.keywordRatings;  // 【追加】
         const currentAIScore = article.aiScore || window.AIScoring.calculateScore(
             article, 
             aiHook.aiLearning, 
-            wordHook.wordFilters,
-            keywordRatings  // 【追加】
+            wordHook.wordFilters
         );
         
         articleStates[article.id] = {
@@ -1852,16 +1654,11 @@ window.exportMinewsData = function() {
             interestWords: [...wordHook.wordFilters.interestWords],
             ngWords: [...wordHook.wordFilters.ngWords]
         },
-        keywordRatings: {  // 【追加】
-            ...keywordHook.keywordRatings,
-            ratings: { ...keywordHook.keywordRatings.ratings }
-        },
         articleStates: articleStates,
         statistics: {
             totalArticles: articlesHook.articles.length,
             statesRead: Object.values(articleStates).filter(s => s.readStatus === 'read').length,
-            statesReadLater: Object.values(articleStates).filter(s => s.readLater === true).length,
-            keywordRatingsCount: Object.keys(keywordHook.keywordRatings.ratings).length  // 【追加】
+            statesReadLater: Object.values(articleStates).filter(s => s.readLater === true).length
         }
     };
     
@@ -1872,7 +1669,7 @@ window.exportMinewsData = function() {
     link.download = `minews_complete_state_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
-    alert(`完全な評価状態データのエクスポートが完了しました\n記事状態: ${exportData.statistics.totalArticles}件\n既読: ${exportData.statistics.statesRead}件\nキーワード評価: ${exportData.statistics.keywordRatingsCount}件`);  // 【修正】
+    alert(`完全な評価状態データのエクスポートが完了しました\n記事状態: ${exportData.statistics.totalArticles}件\n既読: ${exportData.statistics.statesRead}件`);
 };
 
 window.importMinewsData = async function(file) {
@@ -1887,7 +1684,6 @@ window.importMinewsData = async function(file) {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
-        const keywordHook = window.DataHooks.useKeywordRatings();  // 【追加】
         
         aiHook.aiLearning.wordWeights = {};
         aiHook.aiLearning.sourceWeights = {};
@@ -1916,22 +1712,6 @@ window.importMinewsData = async function(file) {
                 wordHook.wordFilters.ngWords.push(word);
             }
         });
-
-        // 【追加】キーワード評価データのインポート
-        if (importData.keywordRatings && importData.keywordRatings.ratings) {
-            keywordHook.keywordRatings.ratings = {};
-            Object.keys(importData.keywordRatings.ratings).forEach(keyword => {
-                const rating = importData.keywordRatings.ratings[keyword];
-                if (rating >= 1 && rating <= 5) {
-                    keywordHook.keywordRatings.ratings[keyword] = rating;
-                }
-            });
-            keywordHook.keywordRatings.lastUpdated = new Date().toISOString();
-            
-            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, keywordHook.keywordRatings);
-            window.DataHooksCache.clear('keywordRatings');
-            window.DataHooksCache.keywordRatings = keywordHook.keywordRatings;
-        }
         
         if (importData.articleStates && typeof importData.articleStates === 'object') {
             const currentArticles = articlesHook.articles;
@@ -1953,8 +1733,7 @@ window.importMinewsData = async function(file) {
                     const newAIScore = window.AIScoring.calculateScore(
                         updatedArticle, 
                         aiHook.aiLearning, 
-                        wordHook.wordFilters,
-                        keywordHook.keywordRatings  // 【追加】
+                        wordHook.wordFilters
                     );
                     
                     updatedArticle.aiScore = newAIScore;
@@ -1970,8 +1749,7 @@ window.importMinewsData = async function(file) {
                 recalculatedArticle.aiScore = window.AIScoring.calculateScore(
                     recalculatedArticle, 
                     aiHook.aiLearning, 
-                    wordHook.wordFilters,
-                    keywordHook.keywordRatings  // 【追加】
+                    wordHook.wordFilters
                 );
                 return recalculatedArticle;
             });
@@ -2007,7 +1785,7 @@ window.importMinewsData = async function(file) {
             setTimeout(() => {
                 if (window.render) {
                     window.render();
-                    console.log('最終画面更新完了 - キーワード評価・点数計算が反映されました');  // 【修正】
+                    console.log('最終画面更新完了 - 点数計算が反映されました');
                 }
             }, 100);
         }
@@ -2017,8 +1795,7 @@ window.importMinewsData = async function(file) {
               `📊 復元統計:\n` +
               `• 総記事数: ${stats.totalArticles || '不明'}\n` +
               `• 既読記事: ${stats.statesRead || '不明'}\n` +
-              `• 後で読む記事: ${stats.statesReadLater || '不明'}\n` +
-              `• キーワード評価: ${stats.keywordRatingsCount || Object.keys(keywordHook.keywordRatings.ratings).length}件\n\n` +  // 【追加】
+              `• 後で読む記事: ${stats.statesReadLater || '不明'}\n\n` +
               `🔄 点数計算が更新され、エクスポート元と同じ状態が復元されました`);
         
     } catch (error) {
