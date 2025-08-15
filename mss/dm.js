@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（星評価機能削除版）
+// Minews PWA - データ管理・処理レイヤー（キーワード星評価機能追加版）
 
 (function() {
 
@@ -34,6 +34,77 @@ window.DEFAULT_DATA = {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
         ngWords: [],
         lastUpdated: new Date().toISOString()
+    }
+};
+
+// キーワード評価管理システム（新規追加）
+window.KeywordRatingManager = {
+    STORAGE_KEY: 'minews_keyword_ratings',
+    
+    // キーワード評価を取得
+    getKeywordRating(keyword) {
+        try {
+            const ratings = localStorage.getItem(this.STORAGE_KEY);
+            if (!ratings) return 0;
+            
+            const parsed = JSON.parse(ratings);
+            return parsed[keyword] || 0;
+        } catch (error) {
+            console.warn('キーワード評価の取得に失敗:', error);
+            return 0;
+        }
+    },
+    
+    // キーワード評価を保存
+    saveKeywordRating(keyword, rating) {
+        try {
+            const ratings = this.getAllRatings();
+            ratings[keyword] = Math.max(0, Math.min(5, parseInt(rating)));
+            
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ratings));
+            
+            // AI学習データにも反映
+            this.updateAILearningFromRating(keyword, rating);
+            
+            return true;
+        } catch (error) {
+            console.error('キーワード評価の保存に失敗:', error);
+            return false;
+        }
+    },
+    
+    // すべての評価を取得
+    getAllRatings() {
+        try {
+            const ratings = localStorage.getItem(this.STORAGE_KEY);
+            return ratings ? JSON.parse(ratings) : {};
+        } catch (error) {
+            console.warn('評価データの取得に失敗:', error);
+            return {};
+        }
+    },
+    
+    // AI学習データを更新
+    updateAILearningFromRating(keyword, rating) {
+        try {
+            const aiHook = window.DataHooks.useAILearning();
+            const aiLearning = { ...aiHook.aiLearning };
+            
+            // 【修正】星評価をAI重みに変換（1星=-10, 2星=-5, 3星=0, 4星=+5, 5星=+10）
+            const weightMapping = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
+            const weight = weightMapping[rating] || 0;
+            
+            aiLearning.wordWeights[keyword] = weight;
+            aiLearning.lastUpdated = new Date().toISOString();
+            
+            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiLearning);
+            window.DataHooksCache.clear('aiLearning');
+            window.DataHooksCache.aiLearning = aiLearning;
+            
+            console.log(`キーワード「${keyword}」の評価${rating}星をAI重み${weight}に変換しました`);
+        } catch (error) {
+            console.error('AI学習データの更新に失敗:', error);
+        }
     }
 };
 
