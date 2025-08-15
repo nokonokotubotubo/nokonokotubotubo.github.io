@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（キーワード星評価機能追加版）
+// Minews PWA - UI・表示レイヤー（キーワード星評価機能修正版）
 (function() {
     'use strict';
 
@@ -164,37 +164,54 @@
     };
 
     // ===========================================
-    // 【新規追加】キーワード星評価機能
+    // 【修正版】キーワード星評価機能
     // ===========================================
 
-    // キーワードに星評価UI を生成
+    // 【修正版】キーワードに星評価UI を生成（デバッグ機能付き）
     const renderKeywordRating = (keyword) => {
-        const currentRating = window.KeywordRatingManager.getKeywordRating(keyword);
+        const currentRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+        
+        console.log(`キーワード「${keyword}」の現在の評価: ${currentRating}`); // デバッグログ
         
         let starsHtml = '';
         for (let i = 1; i <= 5; i++) {
             const isActive = i <= currentRating;
+            const escapedKeyword = keyword.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
             starsHtml += `<span class="keyword-star ${isActive ? 'active' : ''}" 
-                                data-keyword="${keyword}" 
+                                data-keyword="${escapedKeyword}" 
                                 data-rating="${i}" 
-                                onclick="handleKeywordRating('${keyword.replace(/'/g, "\\'")}', ${i})"
-                                title="${i}星">★</span>`;
+                                onclick="window.handleKeywordRating('${escapedKeyword}', ${i})"
+                                title="${i}星で評価">★</span>`;
         }
         
         return `<div class="keyword-rating" title="このキーワードを評価">${starsHtml}</div>`;
     };
 
-    // キーワード星評価変更処理
+    // 【修正版】キーワード星評価変更処理（デバッグ機能付き）
     const handleKeywordRating = (keyword, rating) => {
+        console.log(`キーワード評価関数が呼び出されました: ${keyword}, ${rating}星`); // デバッグログ
+        
         try {
-            const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+            // HTMLエンティティをデコード
+            const decodedKeyword = keyword.replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+            console.log(`デコード後のキーワード: ${decodedKeyword}`); // デバッグログ
+            
+            if (!window.KeywordRatingManager) {
+                console.error('KeywordRatingManagerが見つかりません');
+                alert('キーワード評価システムが初期化されていません');
+                return;
+            }
+            
+            const success = window.KeywordRatingManager.saveKeywordRating(decodedKeyword, rating);
+            console.log(`評価保存結果: ${success}`); // デバッグログ
             
             if (success) {
                 // 星の表示を更新
-                updateKeywordStarsDisplay(keyword, rating);
+                updateKeywordStarsDisplay(decodedKeyword, rating);
                 
                 // 記事スコアを再計算してリストを更新
                 setTimeout(() => {
+                    console.log('記事リストを更新中...'); // デバッグログ
                     updateArticleListOnly();
                 }, 100);
                 
@@ -203,17 +220,49 @@
                     window.GistSyncManager.markAsChanged();
                 }
                 
-                console.log(`キーワード「${keyword}」を${rating}星に評価しました`);
+                console.log(`✅ キーワード「${decodedKeyword}」を${rating}星に評価しました`);
+                
+                // 成功時の視覚的フィードバック
+                const toast = document.createElement('div');
+                toast.style.cssText = `
+                    position: fixed; 
+                    top: 20px; 
+                    right: 20px; 
+                    background: #4caf50; 
+                    color: white; 
+                    padding: 10px 20px; 
+                    border-radius: 6px; 
+                    z-index: 10000;
+                    font-size: 14px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                `;
+                toast.textContent = `「${decodedKeyword}」を${rating}星に評価しました`;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 2000);
+                
+            } else {
+                console.error('キーワード評価の保存に失敗しました');
+                alert('キーワード評価の保存に失敗しました');
             }
         } catch (error) {
-            console.error('キーワード評価の保存に失敗:', error);
-            alert('キーワード評価の保存に失敗しました');
+            console.error('キーワード評価処理中にエラーが発生:', error);
+            alert('キーワード評価処理中にエラーが発生しました: ' + error.message);
         }
     };
 
-    // 特定キーワードの星表示を更新
+    // 【修正版】特定キーワードの星表示を更新（デバッグ機能付き）
     const updateKeywordStarsDisplay = (keyword, newRating) => {
-        const keywordElements = document.querySelectorAll(`[data-keyword="${keyword}"]`);
+        console.log(`星表示更新: ${keyword}, ${newRating}星`); // デバッグログ
+        
+        const escapedKeyword = keyword.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+        const keywordElements = document.querySelectorAll(`[data-keyword="${escapedKeyword}"]`);
+        
+        console.log(`更新対象の星要素数: ${keywordElements.length}`); // デバッグログ
         
         keywordElements.forEach(element => {
             if (element.classList.contains('keyword-star')) {
@@ -223,13 +272,14 @@
                 } else {
                     element.classList.remove('active');
                 }
+                console.log(`星${starRating}: ${starRating <= newRating ? 'アクティブ' : '非アクティブ'}`); // デバッグログ
             }
         });
     };
 
     // キーワード評価一覧の描画（設定モーダル用）
     const renderKeywordRatings = () => {
-        const allRatings = window.KeywordRatingManager.getAllRatings();
+        const allRatings = window.KeywordRatingManager?.getAllRatings() || {};
         
         if (Object.keys(allRatings).length === 0) {
             return '<div class="text-muted">まだキーワードの評価がありません</div>';
@@ -239,16 +289,17 @@
         
         return sortedKeywords.map(keyword => {
             const rating = allRatings[keyword];
-            const weightMapping = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
+            const weightMapping = { 0: 0, 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
             const weight = weightMapping[rating] || 0;
             
             let starsDisplay = '';
             for (let i = 1; i <= 5; i++) {
                 const isActive = i <= rating;
+                const escapedKeyword = keyword.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                 starsDisplay += `<span class="keyword-star ${isActive ? 'active' : ''}" 
-                                       data-keyword="${keyword}" 
+                                       data-keyword="${escapedKeyword}" 
                                        data-rating="${i}" 
-                                       onclick="handleKeywordRating('${keyword.replace(/'/g, "\\'")}', ${i})"
+                                       onclick="window.handleKeywordRating('${escapedKeyword}', ${i})"
                                        title="${i}星">★</span>`;
             }
             
@@ -273,7 +324,7 @@
         }
         
         try {
-            const success = window.KeywordRatingManager.saveKeywordRating(keyword, 0);
+            const success = window.KeywordRatingManager?.saveKeywordRating(keyword, 0);
             
             if (success) {
                 // 設定モーダルを更新
@@ -1491,15 +1542,27 @@
         });
     };
 
-    // 【修正版】記事カード描画（キーワード星評価機能追加）
+    // 【修正版】記事カード描画（キーワード星評価機能修正版）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => {
-            const rating = window.KeywordRatingManager.getKeywordRating(keyword);
-            const ratingDisplay = rating > 0 ? renderKeywordRating(keyword) : '';
+            // キーワードのサニタイズ
+            const sanitizedKeyword = keyword.replace(/[<>"'&]/g, function(match) {
+                const escapeChars = {
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                    '&': '&amp;'
+                };
+                return escapeChars[match];
+            });
+            
+            const rating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+            const ratingDisplay = renderKeywordRating(keyword);
             
             return `
-                <div class="keyword-container">
-                    <span class="keyword">${keyword}</span>
+                <div class="keyword-container" data-keyword-container="${sanitizedKeyword}">
+                    <span class="keyword">${sanitizedKeyword}</span>
                     ${ratingDisplay}
                 </div>
             `;
@@ -1521,7 +1584,7 @@
                         <span class="source">${article.rssSource}</span>
                         <span class="ai-score">AI: ${article.aiScore || 0}</span>
                     </div>
-                </div>
+                                </div>
 
                 <div class="article-content">
                     ${window.truncateText(article.content)}
@@ -1906,3 +1969,4 @@
     }
 
 })();
+
