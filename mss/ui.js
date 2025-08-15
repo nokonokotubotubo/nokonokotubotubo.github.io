@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（キーワード評価機能対応版）
+// Minews PWA - UI・表示レイヤー（星評価機能削除版）
 (function() {
     'use strict';
 
@@ -164,225 +164,6 @@
     };
 
     // ===========================================
-    // キーワード評価ポップアップ機能（完全実装版）
-    // ===========================================
-
-    // キーワードクリック時のポップアップ表示
-    const handleKeywordClick = (event, keyword) => {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // 既存のポップアップを閉じる
-        closeKeywordPopup();
-        
-        const keywordRating = window.DataHooks.useKeywordRatings();
-        const currentRating = keywordRating.getRating(keyword);
-        
-        // ポップアップ要素を作成
-        const popup = document.createElement('div');
-        popup.id = 'keyword-rating-popup';
-        popup.className = 'keyword-popup';
-        popup.innerHTML = `
-            <div class="keyword-popup-content">
-                <div class="keyword-popup-header">
-                    <span class="keyword-popup-title">${keyword}</span>
-                    <button class="keyword-popup-close" onclick="closeKeywordPopup()">×</button>
-                </div>
-                <div class="keyword-popup-body">
-                    <div class="rating-section">
-                        <div class="rating-label">興味レベル (1-5):</div>
-                        <div class="rating-stars">
-                            ${[1, 2, 3, 4, 5].map(rating => `
-                                <button class="rating-star ${currentRating >= rating ? 'active' : ''}" 
-                                        data-rating="${rating}"
-                                        onclick="setKeywordRating('${keyword.replace(/'/g, "\\'")}', ${rating})">
-                                    ★
-                                </button>
-                            `).join('')}
-                        </div>
-                        <div class="rating-description">
-                            ${getRatingDescription(currentRating)}
-                        </div>
-                    </div>
-                    <div class="popup-actions">
-                        <button class="popup-action-btn danger" onclick="addKeywordToNGList('${keyword.replace(/'/g, "\\'")}')">
-                            NGワードに追加
-                        </button>
-                        ${currentRating > 0 ? `
-                            <button class="popup-action-btn" onclick="removeKeywordRating('${keyword.replace(/'/g, "\\'")}')">${currentRating > 0 ? '評価削除' : ''}</button>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // ポップアップをbodyに追加
-        document.body.appendChild(popup);
-        
-        // モバイル・デスクトップ対応の位置調整
-        positionKeywordPopup(popup, event.target);
-        
-        // 外側クリックで閉じる
-        setTimeout(() => {
-            const handleOutsideClick = (e) => {
-                if (!popup.contains(e.target)) {
-                    closeKeywordPopup();
-                    document.removeEventListener('click', handleOutsideClick);
-                }
-            };
-            document.addEventListener('click', handleOutsideClick);
-        }, 100);
-    };
-
-    // ポップアップの位置調整（モバイル対応）
-    const positionKeywordPopup = (popup, targetElement) => {
-        const rect = targetElement.getBoundingClientRect();
-        const isMobile = window.innerWidth < 768;
-        
-        if (isMobile) {
-            // モバイル: 画面中央に表示
-            popup.style.position = 'fixed';
-            popup.style.top = '50%';
-            popup.style.left = '50%';
-            popup.style.transform = 'translate(-50%, -50%)';
-            popup.style.zIndex = '10000';
-        } else {
-            // デスクトップ: キーワード近くに表示
-            popup.style.position = 'absolute';
-            popup.style.top = `${rect.bottom + window.scrollY + 5}px`;
-            popup.style.left = `${rect.left + window.scrollX}px`;
-            popup.style.zIndex = '10000';
-            
-            // 画面外に出る場合の調整
-            setTimeout(() => {
-                const popupRect = popup.getBoundingClientRect();
-                if (popupRect.right > window.innerWidth) {
-                    popup.style.left = `${window.innerWidth - popupRect.width - 10}px`;
-                }
-                if (popupRect.bottom > window.innerHeight) {
-                    popup.style.top = `${rect.top + window.scrollY - popupRect.height - 5}px`;
-                }
-            }, 10);
-        }
-    };
-
-    // 評価説明文の取得
-    const getRatingDescription = (rating) => {
-        const descriptions = {
-            0: '未評価',
-            1: '全く興味なし',
-            2: '興味なし', 
-            3: '普通',
-            4: '興味あり',
-            5: '非常に興味あり'
-        };
-        return descriptions[rating] || '未評価';
-    };
-
-    // キーワード評価の設定
-    const setKeywordRating = (keyword, rating) => {
-        const keywordRatingHook = window.DataHooks.useKeywordRatings();
-        const success = keywordRatingHook.setRating(keyword, rating);
-        
-        if (success) {
-            // ポップアップ内の星を更新
-            const popup = document.getElementById('keyword-rating-popup');
-            if (popup) {
-                const stars = popup.querySelectorAll('.rating-star');
-                stars.forEach((star, index) => {
-                    if (index + 1 <= rating) {
-                        star.classList.add('active');
-                    } else {
-                        star.classList.remove('active');
-                    }
-                });
-                
-                // 説明文を更新
-                const description = popup.querySelector('.rating-description');
-                if (description) {
-                    description.textContent = getRatingDescription(rating);
-                }
-            }
-            
-            // 記事のAIスコアを再計算・更新
-            updateArticleScoresAfterRating();
-            
-            console.log(`キーワード「${keyword}」の評価を${rating}に設定しました`);
-        }
-    };
-
-    // キーワード評価削除
-    const removeKeywordRating = (keyword) => {
-        if (!confirm(`「${keyword}」の評価を削除しますか？`)) return;
-        
-        const keywordRatingHook = window.DataHooks.useKeywordRatings();
-        const success = keywordRatingHook.removeRating(keyword);
-        
-        if (success) {
-            closeKeywordPopup();
-            updateArticleScoresAfterRating();
-            console.log(`キーワード「${keyword}」の評価を削除しました`);
-        }
-    };
-
-    // NGワード追加（キーワードから）
-    const addKeywordToNGList = (keyword) => {
-        closeKeywordPopup();
-        
-        // NGワード追加モーダルを開く（キーワード自動入力）
-        window.setState({ showModal: 'addNGWord' });
-        
-        // モーダル描画後にキーワードを自動入力
-        setTimeout(() => {
-            const ngWordInput = document.getElementById('ngWordInput');
-            if (ngWordInput) {
-                ngWordInput.value = keyword;
-            }
-        }, 100);
-    };
-
-    // ポップアップを閉じる
-    const closeKeywordPopup = () => {
-        const popup = document.getElementById('keyword-rating-popup');
-        if (popup) {
-            popup.remove();
-        }
-    };
-
-    // キーワード評価後のスコア再計算
-    const updateArticleScoresAfterRating = () => {
-        const articlesHook = window.DataHooks.useArticles();
-        const aiHook = window.DataHooks.useAILearning();
-        const wordHook = window.DataHooks.useWordFilters();
-        const keywordHook = window.DataHooks.useKeywordRatings();
-        
-        const updatedArticles = articlesHook.articles.map(article => {
-            const newScore = window.AIScoring.calculateScore(
-                article, 
-                aiHook.aiLearning, 
-                wordHook.wordFilters, 
-                keywordHook.keywordRatings
-            );
-            return { ...article, aiScore: newScore };
-        });
-        
-        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-        window.DataHooksCache.articles = updatedArticles;
-        window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
-        
-        if (window.state) {
-            window.state.articles = updatedArticles;
-        }
-        
-        // 表示を更新
-        updateArticleListOnly();
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-    };
-
-    // ===========================================
     // ユニークID生成機能（日本語対応）
     // ===========================================
 
@@ -487,18 +268,15 @@
         window.render();
     };
 
-    // データ初期化処理の更新（キーワード評価対応）
     const initializeData = () => {
         const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles);
         const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
         const wordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
-        const keywordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, window.DEFAULT_DATA.keywordRatings);  // 【追加】
 
         Object.assign(window.DataHooksCache, {
             articles: articlesData,
             aiLearning: aiData,
-            wordFilters: wordData,
-            keywordRatings: keywordData  // 【追加】
+            wordFilters: wordData
         });
 
         window.state.articles = articlesData;
@@ -1131,12 +909,6 @@
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
                 window.DataHooksCache.clear('wordFilters');
             }
-
-            // 【追加】キーワード評価データの復元
-            if (cloudData.keywordRatings) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.KEYWORD_RATINGS, cloudData.keywordRatings);
-                window.DataHooksCache.clear('keywordRatings');
-            }
             
             if (cloudData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
@@ -1537,11 +1309,10 @@
         const filterSettings = getFilterSettings();
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
-        const keywordHook = window.DataHooks.useKeywordRatings();  // 【追加】
         
         // AIスコア範囲フィルター
         filtered = filtered.filter(article => {
-            const aiScore = window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters, keywordHook.keywordRatings);
+            const aiScore = window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters);
             return aiScore >= filterSettings.scoreMin && aiScore <= filterSettings.scoreMax;
         });
 
@@ -1573,7 +1344,7 @@
 
         const articlesWithScores = filtered.map(article => ({
             ...article,
-            aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters, keywordHook.keywordRatings)
+            aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
         }));
 
         return articlesWithScores.sort((a, b) => {
@@ -1584,15 +1355,10 @@
         });
     };
 
-    // 記事カード描画の修正（キーワードクリック対応）
     const renderArticleCard = (article) => {
-        const keywordRatingHook = window.DataHooks.useKeywordRatings();
-        
-        const keywords = (article.keywords || []).map(keyword => {
-            const rating = keywordRatingHook.getRating(keyword);
-            const ratingClass = rating > 0 ? `keyword-rated rating-${rating}` : '';
-            return `<span class="keyword ${ratingClass}" onclick="handleKeywordClick(event, '${keyword.replace(/'/g, "\\'")}')" data-rating="${rating}">${keyword}</span>`;
-        }).join('');
+        const keywords = (article.keywords || []).map(keyword => 
+            `<span class="keyword">${keyword}</span>`
+        ).join('');
 
         return `
             <div class="article-card" data-read-status="${article.readStatus}">
@@ -1649,11 +1415,10 @@
         `;
     };
 
-    // 【修正版】設定モーダル（キーワード評価セクション追加）
+    // 【修正版】設定モーダル（NGワード範囲表示対応）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
-        const keywordHook = window.DataHooks.useKeywordRatings();  // 【追加】
         
         // フィルター設定の取得（現在保存されている設定）
         const filterSettings = getFilterSettings();
@@ -1683,14 +1448,6 @@
                 </span>`;
             }
         }).join('');
-
-        // 【追加】キーワード評価表示
-        const keywordRatings = Object.entries(keywordHook.keywordRatings.ratings || {}).map(([keyword, rating]) => 
-            `<span class="word-tag rating rating-${rating}">
-                ${keyword} <span class="word-rating">[${rating}★]</span>
-                <button class="word-remove" onclick="removeKeywordRating('${keyword.replace(/'/g, "\\'")}')">×</button>
-            </span>`
-        ).join('');
         
         return `
             <div class="modal-overlay" onclick="handleCloseModal()">
@@ -1757,7 +1514,7 @@
                                 </p>
                                 
                                 <p class="text-muted mb-3">
-                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルター、キーワード評価が定期的（1分間隔）に自動で同期されます。
+                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが定期的（1分間隔）に自動で同期されます。
                                 </p>
                                 
                                 ${window.GistSyncManager?.isEnabled ? `
@@ -1834,21 +1591,11 @@
                                 </div>
                             </div>
 
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>キーワード評価 (1-5★)</h3>
-                                </div>
-                                <div class="word-list">
-                                    ${keywordRatings || '<div class="text-muted">評価されたキーワードはありません<br><small>記事のキーワードをクリックして評価してください</small></div>'}
-                                </div>
-                            </div>
-
                             <div class="word-help">
                                 <h4>ヘルプ</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
-                                    <li><strong>キーワード評価:</strong> 1-5段階で評価。高評価ほどAIスコアが上がります</li>
                                     <li>大文字・小文字は区別されません</li>
                                     <li>部分一致で動作します</li>
                                 </ul>
@@ -1861,7 +1608,7 @@
                                 <div class="word-section-header">
                                     <h3>学習データ管理</h3>
                                 </div>
-                                <p class="text-muted mb-3">AI学習データ、ワードフィルター、キーワード評価をバックアップ・復元できます</p>
+                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
                                 
                                 <div class="modal-actions">
                                     <button class="action-btn success" onclick="handleExportLearningData()">
@@ -1897,7 +1644,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        キーワード評価機能対応版
+                                        星評価機能削除版
                                     </p>
                                 </div>
                             </div>
@@ -1969,14 +1716,6 @@
     window.handleNGWordScopeChange = handleNGWordScopeChange;
     window.handleSubmitNGWord = handleSubmitNGWord;
     window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
-
-    // 【追加】キーワード評価機能をグローバルに追加
-    window.handleKeywordClick = handleKeywordClick;
-    window.setKeywordRating = setKeywordRating;
-    window.removeKeywordRating = removeKeywordRating;
-    window.addKeywordToNGList = addKeywordToNGList;
-    window.closeKeywordPopup = closeKeywordPopup;
-    window.updateArticleScoresAfterRating = updateArticleScoresAfterRating;
 
     // ===========================================
     // 初期化
