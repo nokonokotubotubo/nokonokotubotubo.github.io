@@ -1209,17 +1209,37 @@
     window.DataHooksCache.clear('wordFilters');
 }
 
-// 【追加】キーワード評価データの同期復元処理
-if (cloudData.keywordRatings && window.KeywordRatingManager) {
-    console.log('キーワード評価データを復元中:', Object.keys(cloudData.keywordRatings).length, '件');
+// 【修正】aiLearning.wordWeightsからキーワード評価を復元
+if (cloudData.aiLearning && cloudData.aiLearning.wordWeights && window.KeywordRatingManager) {
+    console.log('AI学習データからキーワード評価を復元中...');
     
-    // 全てのキーワード評価を復元
-    Object.entries(cloudData.keywordRatings).forEach(([keyword, rating]) => {
-        window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+    // AI重みから星評価に変換するマップ
+    const weightToRating = {
+        "-10": 1,  // 1星: 低評価
+        "-5": 2,   // 2星: やや低評価
+        "0": 3,    // 3星: 中立
+        "5": 4,    // 4星: やや高評価
+        "10": 5    // 5星: 高評価
+    };
+    
+    let restoredCount = 0;
+    Object.entries(cloudData.aiLearning.wordWeights).forEach(([keyword, weight]) => {
+        const rating = weightToRating[weight.toString()];
+        if (rating) {
+            const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+            if (success) {
+                restoredCount++;
+            }
+        }
     });
     
-    console.log('キーワード評価データの復元が完了しました');
+    if (restoredCount > 0) {
+        console.log(`キーワード評価を復元しました: ${restoredCount}件`);
+        // UI更新を強制実行
+        window.render();
+    }
 }
+
 
 if (cloudData.articleStates) {
     const articlesHook = window.DataHooks.useArticles();
