@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（キーワードクリック星評価機能版）
+// Minews PWA - UI・表示レイヤー（キーワード評価状態完全同期対応版）
 (function() {
     'use strict';
 
@@ -164,14 +164,37 @@
     };
 
     // ===========================================
-    // 【新規】キーワードクリック星評価ポップアップ機能
+    // 【修正】キーワードクリック星評価ポップアップ機能（完全同期対応版）
     // ===========================================
 
-    // キーワードクリック時のポップアップ表示
+    // 【修正】キーワードクリック時のポップアップ表示 - 整合性確保版
     const showKeywordRatingModal = (keyword) => {
-        const currentRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+        // 【修正】AI学習データから現在の評価を取得
+        const aiHook = window.DataHooks.useAILearning();
+        const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
+        
+        // AI重みから星評価に変換
+        const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, [5]: 4, : 5 };
+        const currentRating = weightToRating[aiWeight] || 0;
+        
+        // KeywordRatingManagerとの整合性確保
+        const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+        if (ratingManagerRating !== currentRating && currentRating > 0) {
+            console.log(`評価整合性修正: "${keyword}" ${ratingManagerRating} → ${currentRating}`);
+            if (window.KeywordRatingManager) {
+                window.KeywordRatingManager.saveKeywordRating(keyword, currentRating);
+            }
+        }
         
         console.log(`キーワード評価ポップアップを表示: ${keyword}, 現在の評価: ${currentRating}`);
+        
+        // 【修正】重複評価の確認を強化
+        if (currentRating > 0) {
+            const confirmChange = confirm(`「${keyword}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？\n（変更しない場合はキャンセルを選択してください）`);
+            if (!confirmChange) {
+                return; // ユーザーがキャンセルした場合は処理終了
+            }
+        }
         
         // ポップアップモーダルを作成
         const modal = document.createElement('div');
@@ -204,6 +227,11 @@
             `;
         }
         
+        // 【修正】評価済みの場合の表示を強化
+        const statusMessage = currentRating > 0 
+            ? `<div style="color: #fbbf24; font-weight: 600;">現在の評価: ${currentRating}星 (AI重み: ${aiWeight})</div>`
+            : `<div style="color: #9ca3af;">評価なし</div>`;
+        
         modal.innerHTML = `
             <div class="keyword-rating-popup" onclick="event.stopPropagation()" style="
                 background: #24323d;
@@ -215,8 +243,11 @@
                 color: #e0e6eb;
             ">
                 <h3 style="margin: 0 0 1rem 0; color: #4eb3d3;">キーワード評価</h3>
-                <div style="margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
                     <span style="font-size: 1.1rem; font-weight: 600;">${keyword}</span>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    ${statusMessage}
                 </div>
                 <div class="rating-stars" style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 0.5rem;">
                     ${starsHtml}
@@ -289,7 +320,7 @@
         });
     };
 
-    // 評価を選択
+    // 【修正】評価を選択 - 重複防止とGIST同期完全対応版
     const selectRating = (keyword, rating) => {
         try {
             if (!window.KeywordRatingManager) {
@@ -298,23 +329,71 @@
                 return;
             }
             
+            // 【修正】現在の評価をAI学習データから取得して重複チェック
+            const aiHook = window.DataHooks.useAILearning();
+            const currentAIWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
+            const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, : 4, : 5 };
+            const currentRating = weightToRating[currentAIWeight] || 0;
+            
+            // 【修正】同じ評価の重複を防止
+            if (currentRating === rating && rating > 0) {
+                console.log(`「${keyword}」は既に${rating}星で評価済みです`);
+                alert(`「${keyword}」は既に${rating}星で評価済みです`);
+                closeKeywordRatingModal();
+                return;
+            }
+            
+            // 【修正】評価削除の確認
+            if (rating === 0 && currentRating > 0) {
+                const confirmDelete = confirm(`「${keyword}」の${currentRating}星評価を削除しますか？`);
+                if (!confirmDelete) {
+                    closeKeywordRatingModal();
+                    return;
+                }
+            }
+            
             const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
             
             if (success) {
-                // 記事スコアを再計算してリストを更新
+                // 【修正】記事スコアを再計算してリストを更新
                 setTimeout(() => {
                     updateArticleListOnly();
+                    
+                    // 【追加】キーワード表示も更新（評価状態反映）
+                    const keywordElements = document.querySelectorAll(`.keyword`);
+                    keywordElements.forEach(element => {
+                        if (element.textContent.includes(keyword)) {
+                            // 評価クラスを更新
+                            element.className = `keyword ${rating > 0 ? `rated-${rating}` : ''}`;
+                            // 星表示を更新
+                            const keywordText = keyword + (rating > 0 ? ` ★${rating}` : '');
+                            element.innerHTML = keywordText;
+                            // ツールチップを更新
+                            element.title = `クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
+                        }
+                    });
+                    
                 }, 100);
                 
-                // GitHub同期マーク
+                // 【修正】GIST同期マークを確実に実行
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
+                    console.log(`GIST同期マーク: キーワード「${keyword}」評価変更 ${currentRating} → ${rating}`);
+                    
+                    // 【追加】即座に同期を試行（バックグラウンド）
+                    setTimeout(() => {
+                        if (window.GistSyncManager?.isEnabled && !window.GistSyncManager.isSyncing) {
+                            window.GistSyncManager.autoSync('background');
+                        }
+                    }, 2000);
                 }
                 
                 // 成功通知
                 const message = rating === 0 
                     ? `「${keyword}」の評価を削除しました`
-                    : `「${keyword}」を${rating}星に評価しました`;
+                    : currentRating > 0 
+                        ? `「${keyword}」の評価を${currentRating}星から${rating}星に変更しました`
+                        : `「${keyword}」を${rating}星に評価しました`;
                 
                 const toast = document.createElement('div');
                 toast.style.cssText = `
@@ -323,11 +402,13 @@
                     right: 20px; 
                     background: ${rating === 0 ? '#f44336' : '#4caf50'}; 
                     color: white; 
-                    padding: 10px 20px; 
+                    padding: 12px 20px; 
                     border-radius: 6px; 
                     z-index: 10001;
                     font-size: 14px;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    max-width: 300px;
+                    word-wrap: break-word;
                 `;
                 toast.textContent = message;
                 document.body.appendChild(toast);
@@ -336,7 +417,7 @@
                     if (toast.parentNode) {
                         toast.parentNode.removeChild(toast);
                     }
-                }, 2000);
+                }, 3000); // 3秒表示
                 
                 console.log(`✅ ${message}`);
             } else {
@@ -1204,7 +1285,7 @@
     };
 
     window.handleImportLearningData = (event) => {
-        const file = event.target.files[0];
+        const file = event.target.files;
         if (!file) return;
 
         const reader = new FileReader();
@@ -1525,7 +1606,7 @@
         });
     };
 
-    // 【修正版】記事カード描画（キーワードクリック対応）
+    // 【修正】記事カード描画（キーワード評価状態正確反映版）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => {
             // キーワードのサニタイズ
@@ -1540,8 +1621,26 @@
                 return escapeChars[match];
             });
             
-            // 現在の評価を取得して背景色を設定
-            const rating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+            // 【修正】AI学習データから直接評価を取得
+            const aiHook = window.DataHooks.useAILearning();
+            const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
+            
+            // 【修正】AI重みから星評価に逆変換
+            let rating = 0;
+            const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, : 4, : 5 };
+            rating = weightToRating[aiWeight] || 0;
+            
+            // 【修正】KeywordRatingManagerからも取得して整合性確保
+            const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
+            
+            // 【修正】不整合がある場合はAI学習データを優先し、KeywordRatingManagerを更新
+            if (ratingManagerRating !== rating && rating > 0) {
+                console.log(`キーワード評価不整合を修正: "${keyword}" KRM:${ratingManagerRating} → AI:${rating}`);
+                if (window.KeywordRatingManager) {
+                    window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+                }
+            }
+            
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             return `
@@ -1836,7 +1935,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        キーワードクリック星評価機能搭載版
+                                        キーワード評価状態完全同期対応版
                                     </p>
                                 </div>
                             </div>
@@ -1908,7 +2007,7 @@
     window.handleSubmitNGWord = handleSubmitNGWord;
     window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
 
-    // 【新規追加】キーワードクリック星評価機能をグローバルに追加
+    // 【修正】キーワードクリック星評価機能をグローバルに追加（完全同期対応版）
     window.showKeywordRatingModal = showKeywordRatingModal;
     window.closeKeywordRatingModal = closeKeywordRatingModal;
     window.highlightStars = highlightStars;
