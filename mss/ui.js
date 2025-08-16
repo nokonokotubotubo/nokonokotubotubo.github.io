@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（キーワード評価状態完全同期対応版）
+// Minews PWA - UI・表示レイヤー（構文エラー修正版）
 (function() {
     'use strict';
 
@@ -164,18 +164,18 @@
     };
 
     // ===========================================
-    // 【修正】キーワードクリック星評価ポップアップ機能（完全同期対応版）
+    // 【修正】キーワードクリック星評価ポップアップ機能（構文エラー修正版）
     // ===========================================
 
-    // 【修正】キーワードクリック時のポップアップ表示 - 整合性確保版
+    // 【修正】キーワードクリック時のポップアップ表示 - 構文エラー修正版
     const showKeywordRatingModal = (keyword) => {
         // 【修正】AI学習データから現在の評価を取得
         const aiHook = window.DataHooks.useAILearning();
         const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
         
-        // AI重みから星評価に変換
-        const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, [5]: 4, : 5 };
-        const currentRating = weightToRating[aiWeight] || 0;
+        // 【修正】AI重みから星評価に変換（文字列キー使用）
+        const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
+        const currentRating = weightToRating[aiWeight.toString()] || 0;
         
         // KeywordRatingManagerとの整合性確保
         const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
@@ -320,7 +320,7 @@
         });
     };
 
-    // 【修正】評価を選択 - 重複防止とGIST同期完全対応版
+    // 【修正】評価を選択 - 構文エラー修正版
     const selectRating = (keyword, rating) => {
         try {
             if (!window.KeywordRatingManager) {
@@ -332,8 +332,8 @@
             // 【修正】現在の評価をAI学習データから取得して重複チェック
             const aiHook = window.DataHooks.useAILearning();
             const currentAIWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
-            const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, : 4, : 5 };
-            const currentRating = weightToRating[currentAIWeight] || 0;
+            const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
+            const currentRating = weightToRating[currentAIWeight.toString()] || 0;
             
             // 【修正】同じ評価の重複を防止
             if (currentRating === rating && rating > 0) {
@@ -1606,7 +1606,7 @@
         });
     };
 
-    // 【修正】記事カード描画（キーワード評価状態正確反映版）
+    // 【修正】記事カード描画（構文エラー修正版）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => {
             // キーワードのサニタイズ
@@ -1625,11 +1625,10 @@
             const aiHook = window.DataHooks.useAILearning();
             const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
             
-            // 【修正】AI重みから星評価に逆変換
-let rating = 0;
-const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
-rating = weightToRating[aiWeight.toString()] || 0;
-
+            // 【修正】AI重みから星評価に逆変換（文字列キー使用）
+            let rating = 0;
+            const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
+            rating = weightToRating[aiWeight.toString()] || 0;
             
             // 【修正】KeywordRatingManagerからも取得して整合性確保
             const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
@@ -1936,7 +1935,7 @@ rating = weightToRating[aiWeight.toString()] || 0;
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        キーワード評価状態完全同期対応版
+                                        構文エラー修正版
                                     </p>
                                 </div>
                             </div>
@@ -2008,7 +2007,7 @@ rating = weightToRating[aiWeight.toString()] || 0;
     window.handleSubmitNGWord = handleSubmitNGWord;
     window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
 
-    // 【修正】キーワードクリック星評価機能をグローバルに追加（完全同期対応版）
+    // 【修正】キーワードクリック星評価機能をグローバルに追加（構文エラー修正版）
     window.showKeywordRatingModal = showKeywordRatingModal;
     window.closeKeywordRatingModal = closeKeywordRatingModal;
     window.highlightStars = highlightStars;
