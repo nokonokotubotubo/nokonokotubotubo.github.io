@@ -1228,13 +1228,13 @@
     
     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
     window.DataHooksCache.clear('articles');
-    window.state.articles = updatedArticles;
+    
+    // 【修正】直接代入ではなくsetStateで状態管理経由する
+    window.setState({ articles: updatedArticles });
     
     console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
-    
-    // 【追加】データ更新後に表示を最新化
-    window.render();
 }
+
 
 alert('クラウドからデータを復元しました');
 
