@@ -1205,11 +1205,23 @@
             }
             
             if (cloudData.wordFilters) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-            }
-            
-            if (cloudData.articleStates) {
+    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+    window.DataHooksCache.clear('wordFilters');
+}
+
+// 【追加】キーワード評価データの同期復元処理
+if (cloudData.keywordRatings && window.KeywordRatingManager) {
+    console.log('キーワード評価データを復元中:', Object.keys(cloudData.keywordRatings).length, '件');
+    
+    // 全てのキーワード評価を復元
+    Object.entries(cloudData.keywordRatings).forEach(([keyword, rating]) => {
+        window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+    });
+    
+    console.log('キーワード評価データの復元が完了しました');
+}
+
+if (cloudData.articleStates) {
     const articlesHook = window.DataHooks.useArticles();
     const currentArticles = articlesHook.articles;
     
