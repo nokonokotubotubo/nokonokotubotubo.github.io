@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（キーワード星評価機能追加版）
+// Minews PWA - データ管理・処理レイヤー（組み合わせボーナス符号修正＋RSS配信元重み削除版）
 
 (function() {
 
@@ -20,6 +20,7 @@ window.CONFIG = {
     RETRY_DELAY: 3000
 };
 
+// 【修正】DEFAULT_DATA - sourceWeights削除
 window.DEFAULT_DATA = {
     articles: [],
     folders: [],
@@ -27,7 +28,6 @@ window.DEFAULT_DATA = {
     aiLearning: {
         version: window.CONFIG.DATA_VERSION,
         wordWeights: {},
-        sourceWeights: {},
         lastUpdated: new Date().toISOString()
     },
     wordFilters: {
@@ -418,6 +418,7 @@ window.GistSyncManager = {
         };
     },
 
+    // 【修正】_mergeAILearning - sourceWeights処理削除
     _mergeAILearning(localAI, cloudAI) {
         if (!cloudAI) return localAI;
         if (!localAI) return cloudAI;
@@ -429,7 +430,6 @@ window.GistSyncManager = {
         const otherAI = cloudTime > localTime ? localAI : cloudAI;
         
         const mergedWordWeights = { ...baseAI.wordWeights };
-        const mergedSourceWeights = { ...baseAI.sourceWeights };
         
         Object.keys(otherAI.wordWeights || {}).forEach(word => {
             const baseWeight = mergedWordWeights[word] || 0;
@@ -438,17 +438,9 @@ window.GistSyncManager = {
             mergedWordWeights[word] = Math.max(-60, Math.min(60, merged));
         });
         
-        Object.keys(otherAI.sourceWeights || {}).forEach(source => {
-            const baseWeight = mergedSourceWeights[source] || 0;
-            const otherWeight = otherAI.sourceWeights[source] || 0;
-            const merged = baseWeight + (otherWeight * 0.5);
-            mergedSourceWeights[source] = Math.max(-20, Math.min(20, merged));
-        });
-        
         return {
             version: window.CONFIG.DATA_VERSION,
             wordWeights: mergedWordWeights,
-            sourceWeights: mergedSourceWeights,
             lastUpdated: new Date().toISOString()
         };
     },
@@ -1197,7 +1189,7 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム（星評価機能削除版）
+// 【修正】AI学習システム（RSS配信元重み削除＋組み合わせボーナス符号修正版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1208,10 +1200,7 @@ window.AIScoring = {
             rawScore += multidimensionalScore;
         }
         
-        if (article.rssSource && aiLearning.sourceWeights) {
-            const weight = aiLearning.sourceWeights[article.rssSource] || 0;
-            rawScore += weight;
-        }
+        // 【削除】RSS配信元重み処理を完全削除
         
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
@@ -1224,8 +1213,6 @@ window.AIScoring = {
                 rawScore += interestBonus;
             }
         }
-        
-        // 【削除】星評価によるスコア計算部分を削除
         
         const normalizedScore = this._linearNormalization(rawScore);
         
@@ -1264,6 +1251,7 @@ window.AIScoring = {
         return totalScore;
     },
     
+    // 【修正】組み合わせボーナス - 符号保持版
     _calculateCombinationBonus(topKeywords) {
         if (topKeywords.length < 2) return 0;
         
@@ -1273,12 +1261,18 @@ window.AIScoring = {
         };
         
         const keywordCount = topKeywords.length;
-        let bonus = bonusTable[keywordCount] || 0;
+        let baseBonus = bonusTable[keywordCount] || 0;
         
-        const avgWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
-        const synergy = avgWeight > 5 ? 1.5 : (avgWeight > 2 ? 1.2 : 1.0);
+        // 【修正】プラス・マイナスを保持した平均重みを計算
+        const avgWeight = topKeywords.reduce((sum, item) => sum + item.originalWeight, 0) / keywordCount;
+        const avgAbsWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
         
-        return bonus * synergy;
+        // 強度に基づく相乗効果（絶対値で判定）
+        const synergy = avgAbsWeight > 5 ? 1.5 : (avgAbsWeight > 2 ? 1.2 : 1.0);
+        
+        // 【修正】平均重みの符号を保持してボーナスに適用
+        const bonus = baseBonus * synergy;
+        return avgWeight >= 0 ? bonus : -bonus;
     },
     
     _calculateIntensityMultiplier(topKeywords) {
@@ -1302,8 +1296,6 @@ window.AIScoring = {
         
         return Math.round(adjustedScore);
     }
-    
-    // 【削除】updateLearning関数を完全削除
 };
 
 // ワードフィルター管理
@@ -1600,7 +1592,6 @@ window.DataHooks = {
         
         return {
             aiLearning: window.DataHooksCache.aiLearning
-            // 【削除】updateLearningData関数を削除
         };
     },
     useWordFilters() {
@@ -1685,7 +1676,7 @@ window.DataHooks = {
     }
 };
 
-// エクスポート・インポート機能（星評価削除対応）
+// 【修正】エクスポート・インポート機能（sourceWeights削除対応）
 window.exportMinewsData = function() {
     const aiHook = window.DataHooks.useAILearning();
     const wordHook = window.DataHooks.useWordFilters();
@@ -1717,8 +1708,8 @@ window.exportMinewsData = function() {
         exportType: 'complete_evaluation_state',
         aiLearning: {
             ...aiHook.aiLearning,
-            wordWeights: { ...aiHook.aiLearning.wordWeights },
-            sourceWeights: { ...aiHook.aiLearning.sourceWeights }
+            wordWeights: { ...aiHook.aiLearning.wordWeights }
+            // 【削除】sourceWeightsを削除
         },
         wordFilters: {
             ...wordHook.wordFilters,
@@ -1757,17 +1748,13 @@ window.importMinewsData = async function(file) {
         const articlesHook = window.DataHooks.useArticles();
         
         aiHook.aiLearning.wordWeights = {};
-        aiHook.aiLearning.sourceWeights = {};
         
         Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
             const weight = importData.aiLearning.wordWeights[word];
             aiHook.aiLearning.wordWeights[word] = Math.max(-60, Math.min(60, weight));
         });
         
-        Object.keys(importData.aiLearning.sourceWeights || {}).forEach(source => {
-            const weight = importData.aiLearning.sourceWeights[source];
-            aiHook.aiLearning.sourceWeights[source] = Math.max(-20, Math.min(20, weight));
-        });
+        // 【削除】sourceWeights処理を削除
         
         wordHook.wordFilters.interestWords.length = 0;
         wordHook.wordFilters.ngWords.length = 0;
