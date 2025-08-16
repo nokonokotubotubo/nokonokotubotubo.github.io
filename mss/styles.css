@@ -1,4 +1,4 @@
-/* Minews PWA - 軽量化版スタイル（キーワード星評価機能対応版） */
+/* Minews PWA - キーワードクリック星評価機能対応版スタイル */
 
 :root {
 --primary-blue: #1e2a32;
@@ -311,7 +311,7 @@ font-size: 0.95rem;
 font-weight: 500;
 }
 
-/* ────────────── 【新規追加】キーワード星評価スタイル ────────────── */
+/* ────────────── 【修正】キーワードクリック対応スタイル ────────────── */
 .article-keywords {
 margin-bottom: 1rem;
 display: flex;
@@ -319,134 +319,131 @@ flex-wrap: wrap;
 gap: 0.5rem;
 }
 
-.keyword-container {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 0.2rem;
-background: #374151;
-border: 1px solid #4b5563;
-border-radius: 6px;
-padding: 0.4rem;
-transition: var(--transition);
-}
-
-.keyword-container:hover {
-background: #4b5563;
-transform: translateY(-1px);
-}
-
-.keyword {
+.article-keywords .keyword {
 display: inline-block;
+background: #374151;
 color: #9ca3af;
-font-size: 0.7rem;
-font-weight: 400;
-text-align: center;
+padding: 0.3rem 0.6rem;
+margin: 0;
+border-radius: 4px;
+font-size: 0.75rem;
+cursor: pointer;
+transition: all 0.2s ease;
+border: 1px solid #4b5563;
+user-select: none;
 }
 
-.keyword-rating {
-display: flex;
-gap: 1px;
-margin-top: 0.2rem;
+.article-keywords .keyword:hover {
+background: #4b5563;
+color: #e5e7eb;
+transform: translateY(-1px);
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.keyword-star {
-font-size: 0.8rem;
+/* 評価済みキーワードの背景色 */
+.keyword.rated-1 { 
+    background: #7f1d1d; 
+    border-color: #991b1b; 
+    color: #fca5a5; 
+}
+
+.keyword.rated-1:hover { 
+    background: #991b1b; 
+    color: #fecaca; 
+}
+
+.keyword.rated-2 { 
+    background: #92400e; 
+    border-color: #b45309; 
+    color: #fed7aa; 
+}
+
+.keyword.rated-2:hover { 
+    background: #b45309; 
+    color: #fde68a; 
+}
+
+.keyword.rated-3 { 
+    background: #374151; 
+    border-color: #4b5563; 
+    color: #9ca3af; 
+}
+
+.keyword.rated-3:hover { 
+    background: #4b5563; 
+    color: #d1d5db; 
+}
+
+.keyword.rated-4 { 
+    background: #064e3b; 
+    border-color: #065f46; 
+    color: #a7f3d0; 
+}
+
+.keyword.rated-4:hover { 
+    background: #065f46; 
+    color: #6ee7b7; 
+}
+
+.keyword.rated-5 { 
+    background: #14532d; 
+    border-color: #166534; 
+    color: #bbf7d0; 
+}
+
+.keyword.rated-5:hover { 
+    background: #166534; 
+    color: #86efac; 
+}
+
+/* ────────────── 【新規追加】ポップアップ星評価スタイル ────────────── */
+.popup-star {
+background: none;
+border: none;
+font-size: 2rem;
 color: var(--star-inactive);
 cursor: pointer;
-transition: var(--transition);
-user-select: none;
-padding: 1px 2px;
-border-radius: 2px;
-}
-
-.keyword-star:hover {
-color: var(--star-color);
-background: rgba(255, 215, 0, 0.1);
-transform: scale(1.1);
-}
-
-.keyword-star.active {
-color: var(--star-color);
-text-shadow: 0 0 3px rgba(255, 215, 0, 0.5);
-}
-
-.keyword-star.active:hover {
-transform: scale(1.2);
-}
-
-/* ────────────── 【新規追加】キーワード評価管理スタイル ────────────── */
-.keyword-ratings-list {
-max-height: 300px;
-overflow-y: auto;
-border: 1px solid #4b5563;
-border-radius: 6px;
-padding: 1rem;
-background: #1f2937;
-margin-bottom: 1rem;
-}
-
-.keyword-rating-item {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 0.75rem;
-margin-bottom: 0.5rem;
-background: #374151;
-border-radius: 6px;
-gap: 1rem;
-}
-
-.keyword-rating-item:last-child {
-margin-bottom: 0;
-}
-
-.keyword-info {
-display: flex;
-flex-direction: column;
-gap: 0.2rem;
-flex: 1;
-min-width: 0;
-}
-
-.keyword-name {
-font-weight: 600;
-color: var(--text-color);
-word-break: break-word;
-}
-
-.keyword-weight {
-font-size: 0.8rem;
-color: #9ca3af;
-font-style: italic;
-}
-
-.keyword-stars {
-display: flex;
-gap: 2px;
-margin: 0 0.5rem;
-}
-
-.keyword-stars .keyword-star {
-font-size: 1rem;
-padding: 2px 4px;
-}
-
-.keyword-remove-btn {
-background: var(--danger-color);
-color: white;
-border: none;
-padding: 0.3rem 0.6rem;
+padding: 0.25rem;
 border-radius: 4px;
-font-size: 0.8rem;
-cursor: pointer;
-transition: var(--transition);
-flex-shrink: 0;
+transition: all 0.3s ease;
+user-select: none;
 }
 
-.keyword-remove-btn:hover {
-background: #d32f2f;
-transform: translateY(-1px);
+.popup-star:hover {
+color: var(--star-color);
+text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+transform: scale(1.1);
+background: rgba(255, 215, 0, 0.1);
+}
+
+.popup-star.active {
+color: var(--star-color);
+text-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+}
+
+.popup-star.active:hover {
+transform: scale(1.15);
+text-shadow: 0 0 10px rgba(255, 215, 0, 0.9);
+}
+
+/* キーワード評価ポップアップのアニメーション */
+@keyframes starPulse {
+0% {
+    transform: scale(1);
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+}
+50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 12px rgba(255, 215, 0, 1);
+}
+100% {
+    transform: scale(1);
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+}
+}
+
+.popup-star.active {
+animation: starPulse 2s ease-in-out infinite;
 }
 
 /* ────────────── 記事アクション ────────────── */
@@ -876,23 +873,6 @@ opacity: 1;
 }
 }
 
-/* ────────────── 【新規追加】キーワード星評価のアニメーション ────────────── */
-@keyframes starGlow {
-0% {
-    text-shadow: 0 0 3px rgba(255, 215, 0, 0.5);
-}
-50% {
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
-}
-100% {
-    text-shadow: 0 0 3px rgba(255, 215, 0, 0.5);
-}
-}
-
-.keyword-star.active:hover {
-animation: starGlow 0.5s ease-in-out;
-}
-
 /* ────────────── レスポンシブデザイン（モバイル） ────────────── */
 @media (max-width: 768px) {
 /* デスクトップ専用を非表示 */
@@ -1017,46 +997,16 @@ font-size: 0.75rem;
 padding: 0.3rem 0.6rem;
 }
 
-/* ────────────── 【新規追加】モバイル用キーワード星評価スタイル ────────────── */
-.keyword-container {
-    padding: 0.3rem;
-    gap: 0.15rem;
-}
-
-.keyword {
-    font-size: 0.65rem;
-}
-
-.keyword-star {
-    font-size: 0.7rem;
-    padding: 1px;
-}
-
-.keyword-ratings-list {
-    max-height: 200px;
-    padding: 0.75rem;
-}
-
-.keyword-rating-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.5rem;
-}
-
-.keyword-info {
-    width: 100%;
-}
-
-.keyword-stars {
-    justify-content: center;
-    width: 100%;
-}
-
-.keyword-remove-btn {
-    align-self: flex-end;
-    font-size: 0.75rem;
+/* ────────────── 【修正】モバイル用キーワードクリックスタイル ────────────── */
+.article-keywords .keyword {
     padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    margin: 0.1rem 0.2rem 0.1rem 0;
+}
+
+.popup-star {
+    font-size: 1.8rem;
+    padding: 0.2rem;
 }
 
 .modal {
@@ -1157,26 +1107,16 @@ padding: 0.75rem;
 font-size: 1.1rem;
 }
 
-/* ────────────── 【新規追加】極小画面用キーワード星評価スタイル ────────────── */
-.keyword-container {
-    min-width: 80px;
-    padding: 0.25rem;
-}
-
-.keyword {
-    font-size: 0.6rem;
-}
-
-.keyword-star {
+/* ────────────── 【修正】極小画面用キーワードクリックスタイル ────────────── */
+.article-keywords .keyword {
+    min-width: 60px;
+    padding: 0.2rem 0.4rem;
     font-size: 0.65rem;
+    text-align: center;
 }
 
-.keyword-rating-item {
-    padding: 0.4rem;
-}
-
-.keyword-stars .keyword-star {
-    font-size: 0.9rem;
+.popup-star {
+    font-size: 1.6rem;
 }
 }
 
@@ -1191,7 +1131,7 @@ border: 0.5px solid rgba(255, 255, 255, 0.1);
 border-width: 0.5px;
 }
 
-.keyword-star {
+.keyword {
     text-rendering: optimizeLegibility;
 }
 }
@@ -1204,7 +1144,7 @@ animation-iteration-count: 1 !important;
 transition-duration: 0.01ms !important;
 }
 
-.keyword-star.active:hover {
+.popup-star.active {
     animation: none;
 }
 }
@@ -1217,17 +1157,21 @@ outline: 2px solid var(--accent-blue);
 outline-offset: 2px;
 }
 
-.keyword-star:focus-visible {
-outline: 1px solid var(--star-color);
+.keyword:focus-visible {
+outline: 1px solid var(--accent-blue);
 outline-offset: 1px;
+}
+
+.popup-star:focus-visible {
+outline: 2px solid var(--star-color);
+outline-offset: 2px;
 }
 
 /* ────────────── 印刷用スタイル ────────────── */
 @media print {
 .nav,
 .modal-overlay,
-.article-actions,
-.keyword-rating {
+.article-actions {
 display: none !important;
 }
 
@@ -1252,40 +1196,44 @@ text-decoration: underline !important;
 
 .keyword {
 color: #666 !important;
-}
-
-.keyword-container {
 background: #f5f5f5 !important;
 border-color: #ccc !important;
 }
 }
 
-/* ────────────── 【新規追加】ダークテーマ特有の星評価強調 ────────────── */
+/* ────────────── ダークテーマ特有の強調 ────────────── */
 @media (prefers-color-scheme: dark) {
-.keyword-star.active {
-    filter: drop-shadow(0 0 2px var(--star-color));
+.keyword.rated-1,
+.keyword.rated-2,
+.keyword.rated-4,
+.keyword.rated-5 {
+    filter: brightness(1.1);
 }
 
-.keyword-container:hover .keyword-star:not(.active) {
-    color: #888;
+.popup-star.active {
+    filter: drop-shadow(0 0 3px var(--star-color));
 }
 }
 
-/* ────────────── 【新規追加】ホバー可能デバイス用の追加効果 ────────────── */
+/* ────────────── ホバー可能デバイス用の追加効果 ────────────── */
 @media (hover: hover) {
-.keyword-star:hover::before {
+.keyword:hover::before {
     content: '';
     position: absolute;
     top: -2px;
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
+    background: radial-gradient(circle, rgba(78, 179, 211, 0.1) 0%, transparent 70%);
+    border-radius: 6px;
     z-index: -1;
 }
 
-.keyword-star {
+.keyword {
     position: relative;
+}
+
+.popup-star:hover {
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
 }
 }
