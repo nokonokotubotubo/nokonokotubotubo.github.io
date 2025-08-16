@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（組み合わせボーナス符号修正＋RSS配信元重み削除版）
+// Minews PWA - データ管理・処理レイヤー（GIST同期時点数不整合修正版）
 
 (function() {
 
@@ -130,7 +130,7 @@ window.StableIDGenerator = {
     }
 };
 
-// GitHub Gist同期システム（軽量化＋効率化統合版）
+// 【修正】GitHub Gist同期システム（GIST同期時点数不整合修正版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -366,11 +366,13 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
+    // 【修正】バックグラウンド同期処理の改善
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
         }
         
+        // 【修正】同期状態のロック強化
         this.isSyncing = true;
         this._isBackgroundSyncing = true;
         
@@ -386,6 +388,15 @@ window.GistSyncManager = {
                 await this._applyMergedDataSilentBatch(mergedData);
                 await this._updateConfigSafely(new Date().toISOString());
                 this.pendingChanges = false;
+                
+                // 【修正】背景同期完了後に画面更新を実行
+                if (window.render) {
+                    setTimeout(() => {
+                        window.render();
+                        this._log('info', '背景同期後の画面更新完了');
+                    }, 100);
+                }
+                
                 this._log('info', 'シンプル完全サイレント同期完了');
                 return true;
             }
@@ -418,7 +429,7 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】_mergeAILearning - sourceWeights処理削除
+    // 【修正】AI学習データマージの単純化（重み変更を回避）
     _mergeAILearning(localAI, cloudAI) {
         if (!cloudAI) return localAI;
         if (!localAI) return cloudAI;
@@ -426,23 +437,20 @@ window.GistSyncManager = {
         const localTime = new Date(localAI.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudAI.lastUpdated || 0).getTime();
         
-        const baseAI = cloudTime > localTime ? cloudAI : localAI;
-        const otherAI = cloudTime > localTime ? localAI : cloudAI;
-        
-        const mergedWordWeights = { ...baseAI.wordWeights };
-        
-        Object.keys(otherAI.wordWeights || {}).forEach(word => {
-            const baseWeight = mergedWordWeights[word] || 0;
-            const otherWeight = otherAI.wordWeights[word] || 0;
-            const merged = baseWeight + (otherWeight * 0.5);
-            mergedWordWeights[word] = Math.max(-60, Math.min(60, merged));
-        });
-        
-        return {
-            version: window.CONFIG.DATA_VERSION,
-            wordWeights: mergedWordWeights,
-            lastUpdated: new Date().toISOString()
-        };
+        // 【修正】より新しいタイムスタンプのデータを優先（重みを変更しない）
+        if (cloudTime > localTime) {
+            return {
+                version: window.CONFIG.DATA_VERSION,
+                wordWeights: { ...cloudAI.wordWeights },
+                lastUpdated: new Date().toISOString()
+            };
+        } else {
+            return {
+                version: window.CONFIG.DATA_VERSION,
+                wordWeights: { ...localAI.wordWeights },
+                lastUpdated: new Date().toISOString()
+            };
+        }
     },
 
     _mergeWordFilters(localWords, cloudWords) {
@@ -524,6 +532,7 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
+    // 【修正】バックグラウンド同期時のデータ適用処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -556,14 +565,12 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    // バックグラウンド同期時はAIスコア再計算を回避
-                    if (!this._isBackgroundSyncing && aiLearningData && wordFiltersData) {
-                        updatedArticle.aiScore = window.AIScoring.calculateScore(
-                            updatedArticle, 
-                            aiLearningData, 
-                            wordFiltersData
-                        );
-                    }
+                    // 【修正】常にAIスコアを再計算（同期方法による不整合を防ぐ）
+                    updatedArticle.aiScore = window.AIScoring.calculateScore(
+                        updatedArticle, 
+                        aiLearningData, 
+                        wordFiltersData
+                    );
                     
                     return updatedArticle;
                 });
@@ -581,26 +588,41 @@ window.GistSyncManager = {
         }
     },
 
+    // 【修正】データ適用順序の改善
     async _executeBatchUpdate(batchUpdates) {
+        // 【修正】依存関係を考慮した更新順序
         const updateSequence = [
             { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
-            { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' },
-            { key: 'articles', storageKey: window.CONFIG.STORAGE_KEYS.ARTICLES, cacheKey: 'articles' }
+            { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' }
         ];
         
+        // aiLearningとwordFiltersを先に更新
         for (const update of updateSequence) {
             if (batchUpdates[update.key]) {
                 window.LocalStorageManager.setItem(update.storageKey, batchUpdates[update.key]);
                 window.DataHooksCache.clear(update.cacheKey);
-                
-                if (update.key === 'articles') {
-                    window.DataHooksCache.articles = batchUpdates[update.key];
-                    if (window.state) {
-                        window.state.articles = batchUpdates[update.key];
-                    }
-                }
+                window.DataHooksCache[update.cacheKey] = batchUpdates[update.key];
                 
                 await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
+        
+        // 【修正】最新のaiLearningとwordFiltersでarticlesを更新
+        if (batchUpdates.articles) {
+            const updatedAILearning = window.DataHooksCache.aiLearning;
+            const updatedWordFilters = window.DataHooksCache.wordFilters;
+            
+            const recalculatedArticles = batchUpdates.articles.map(article => ({
+                ...article,
+                aiScore: window.AIScoring.calculateScore(article, updatedAILearning, updatedWordFilters)
+            }));
+            
+            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, recalculatedArticles);
+            window.DataHooksCache.clear('articles');
+            window.DataHooksCache.articles = recalculatedArticles;
+            
+            if (window.state) {
+                window.state.articles = recalculatedArticles;
             }
         }
     },
