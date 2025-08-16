@@ -1626,9 +1626,10 @@
             const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
             
             // 【修正】AI重みから星評価に逆変換
-            let rating = 0;
-            const weightToRating = { [-10]: 1, [-5]: 2, [0]: 3, : 4, : 5 };
-            rating = weightToRating[aiWeight] || 0;
+let rating = 0;
+const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
+rating = weightToRating[aiWeight.toString()] || 0;
+
             
             // 【修正】KeywordRatingManagerからも取得して整合性確保
             const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
