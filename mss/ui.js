@@ -1210,30 +1210,34 @@
             }
             
             if (cloudData.articleStates) {
-                const articlesHook = window.DataHooks.useArticles();
-                const currentArticles = articlesHook.articles;
-                
-                const updatedArticles = currentArticles.map(article => {
-                    const state = cloudData.articleStates[article.id];
-                    if (state) {
-                        return {
-                            ...article,
-                            readStatus: state.readStatus,
-                            readLater: state.readLater,
-                            lastModified: state.lastModified || article.lastModified
-                        };
-                    }
-                    return article;
-                });
-                
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-                window.DataHooksCache.clear('articles');
-                window.state.articles = updatedArticles;
-                
-                console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
-            }
-            
-            alert('クラウドからデータを復元しました');
+    const articlesHook = window.DataHooks.useArticles();
+    const currentArticles = articlesHook.articles;
+    
+    const updatedArticles = currentArticles.map(article => {
+        const state = cloudData.articleStates[article.id];
+        if (state) {
+            return {
+                ...article,
+                readStatus: state.readStatus,
+                readLater: state.readLater,
+                lastModified: state.lastModified || article.lastModified
+            };
+        }
+        return article;
+    });
+    
+    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+    window.DataHooksCache.clear('articles');
+    window.state.articles = updatedArticles;
+    
+    console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
+    
+    // 【追加】データ更新後に表示を最新化
+    window.render();
+}
+
+alert('クラウドからデータを復元しました');
+
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
         } finally {
