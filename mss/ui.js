@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（構文エラー修正版）
+// Minews PWA - UI・表示レイヤー（最適化統合版）
 (function() {
     'use strict';
 
@@ -164,31 +164,90 @@
     };
 
     // ===========================================
-    // 【修正】キーワードクリック星評価ポップアップ機能（構文エラー修正版）
+    // 【最適化】軽量トースト通知関数
     // ===========================================
 
-    // 【修正】キーワードクリック時のポップアップ表示 - 構文エラー修正版
-    const showKeywordRatingModal = (keyword) => {
-        // 【修正】AI学習データから現在の評価を取得
-        const aiHook = window.DataHooks.useAILearning();
-        const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
-        
-        // 【修正】AI重みから星評価に変換（文字列キー使用）
-        const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
-        const currentRating = weightToRating[aiWeight.toString()] || 0;
-        
-        // KeywordRatingManagerとの整合性確保
-        const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
-        if (ratingManagerRating !== currentRating && currentRating > 0) {
-            console.log(`評価整合性修正: "${keyword}" ${ratingManagerRating} → ${currentRating}`);
-            if (window.KeywordRatingManager) {
-                window.KeywordRatingManager.saveKeywordRating(keyword, currentRating);
-            }
+    // 【最適化】軽量トースト通知関数
+    const showToastNotification = (message, type = 'success') => {
+        // 既存のトーストがあれば削除
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) {
+            existingToast.remove();
         }
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.style.cssText = `
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: ${type === 'error' ? '#f44336' : '#4caf50'}; 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            z-index: 10001;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            max-width: 300px;
+            word-wrap: break-word;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        // アニメーション表示
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        });
+        
+        // 自動削除
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 2500); // 2.5秒表示
+    };
+
+    // 【最適化】評価済みキーワードのみ取得する関数
+    const getRatedKeywords = () => {
+        if (!window.KeywordRatingManager) return {};
+        
+        const ratedKeywords = {};
+        // KeywordRatingManagerから全評価データを取得（実装されていると仮定）
+        try {
+            const allRatings = window.KeywordRatingManager.getAllRatings?.() || {};
+            Object.keys(allRatings).forEach(keyword => {
+                const rating = allRatings[keyword];
+                if (rating > 0) {
+                    ratedKeywords[keyword] = rating;
+                }
+            });
+        } catch (error) {
+            console.warn('評価済みキーワード取得に失敗:', error);
+        }
+        
+        return ratedKeywords;
+    };
+
+    // ===========================================
+    // 【最適化】キーワードクリック星評価ポップアップ機能（軽量化版）
+    // ===========================================
+
+    // 【最適化】キーワードクリック時のポップアップ表示 - 軽量化版
+    const showKeywordRatingModal = (keyword) => {
+        // 【最適化】KeywordRatingManagerから直接取得（最高速）
+        const currentRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
         
         console.log(`キーワード評価ポップアップを表示: ${keyword}, 現在の評価: ${currentRating}`);
         
-        // 【修正】重複評価の確認を強化
+        // 【最適化】重複評価の確認（簡素化）
         if (currentRating > 0) {
             const confirmChange = confirm(`「${keyword}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？\n（変更しない場合はキャンセルを選択してください）`);
             if (!confirmChange) {
@@ -227,10 +286,15 @@
             `;
         }
         
-        // 【修正】評価済みの場合の表示を強化
-        const statusMessage = currentRating > 0 
-            ? `<div style="color: #fbbf24; font-weight: 600;">現在の評価: ${currentRating}星 (AI重み: ${aiWeight})</div>`
-            : `<div style="color: #9ca3af;">評価なし</div>`;
+        // 【最適化】AI重み表示は評価済みの場合のみ
+        let statusMessage;
+        if (currentRating > 0) {
+            const aiHook = window.DataHooks.useAILearning();
+            const aiWeight = aiHook.aiLearning.wordWeights[keyword];
+            statusMessage = `<div style="color: #fbbf24; font-weight: 600;">現在の評価: ${currentRating}星${aiWeight !== undefined ? ` (AI重み: ${aiWeight})` : ''}</div>`;
+        } else {
+            statusMessage = `<div style="color: #9ca3af;">評価なし</div>`;
+        }
         
         modal.innerHTML = `
             <div class="keyword-rating-popup" onclick="event.stopPropagation()" style="
@@ -320,7 +384,7 @@
         });
     };
 
-    // 【修正】評価を選択 - 構文エラー修正版
+    // 【最適化】評価を選択 - 軽量化版
     const selectRating = (keyword, rating) => {
         try {
             if (!window.KeywordRatingManager) {
@@ -329,13 +393,10 @@
                 return;
             }
             
-            // 【修正】現在の評価をAI学習データから取得して重複チェック
-            const aiHook = window.DataHooks.useAILearning();
-            const currentAIWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
-            const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
-            const currentRating = weightToRating[currentAIWeight.toString()] || 0;
+            // 【最適化】現在の評価をKeywordRatingManagerから直接取得
+            const currentRating = window.KeywordRatingManager.getKeywordRating(keyword) || 0;
             
-            // 【修正】同じ評価の重複を防止
+            // 【最適化】同じ評価の重複を防止（シンプル）
             if (currentRating === rating && rating > 0) {
                 console.log(`「${keyword}」は既に${rating}星で評価済みです`);
                 alert(`「${keyword}」は既に${rating}星で評価済みです`);
@@ -343,7 +404,7 @@
                 return;
             }
             
-            // 【修正】評価削除の確認
+            // 【最適化】評価削除の確認（シンプル）
             if (rating === 0 && currentRating > 0) {
                 const confirmDelete = confirm(`「${keyword}」の${currentRating}星評価を削除しますか？`);
                 if (!confirmDelete) {
@@ -355,14 +416,16 @@
             const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
             
             if (success) {
-                // 【修正】記事スコアを再計算してリストを更新
+                // 【最適化】記事スコア再計算と表示更新を非同期実行
                 setTimeout(() => {
                     updateArticleListOnly();
                     
-                    // 【追加】キーワード表示も更新（評価状態反映）
+                    // 【最適化】該当キーワード要素のみ更新（全体検索を避ける）
                     const keywordElements = document.querySelectorAll(`.keyword`);
                     keywordElements.forEach(element => {
-                        if (element.textContent.includes(keyword)) {
+                        // テキスト内容の完全一致チェック（部分一致を避ける）
+                        const elementText = element.textContent.replace(/\s★\d+$/, ''); // 星を除去してチェック
+                        if (elementText === keyword) {
                             // 評価クラスを更新
                             element.className = `keyword ${rating > 0 ? `rated-${rating}` : ''}`;
                             // 星表示を更新
@@ -373,19 +436,23 @@
                         }
                     });
                     
-                }, 100);
+                }, 50); // UI更新を少し遅延して応答性を向上
                 
-                // 【修正】GIST同期マークを確実に実行
+                // 【最適化】GIST同期マーク（評価変更時のみ）
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                     console.log(`GIST同期マーク: キーワード「${keyword}」評価変更 ${currentRating} → ${rating}`);
                     
-                    // 【追加】即座に同期を試行（バックグラウンド）
-                    setTimeout(() => {
+                    // 【最適化】バックグラウンド同期をデバウンス（連続評価時の負荷軽減）
+                    if (window._syncTimeout) {
+                        clearTimeout(window._syncTimeout);
+                    }
+                    window._syncTimeout = setTimeout(() => {
                         if (window.GistSyncManager?.isEnabled && !window.GistSyncManager.isSyncing) {
                             window.GistSyncManager.autoSync('background');
                         }
-                    }, 2000);
+                        window._syncTimeout = null;
+                    }, 3000); // 3秒後に同期（連続操作時はキャンセルされる）
                 }
                 
                 // 成功通知
@@ -395,29 +462,8 @@
                         ? `「${keyword}」の評価を${currentRating}星から${rating}星に変更しました`
                         : `「${keyword}」を${rating}星に評価しました`;
                 
-                const toast = document.createElement('div');
-                toast.style.cssText = `
-                    position: fixed; 
-                    top: 20px; 
-                    right: 20px; 
-                    background: ${rating === 0 ? '#f44336' : '#4caf50'}; 
-                    color: white; 
-                    padding: 12px 20px; 
-                    border-radius: 6px; 
-                    z-index: 10001;
-                    font-size: 14px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                    max-width: 300px;
-                    word-wrap: break-word;
-                `;
-                toast.textContent = message;
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 3000); // 3秒表示
+                // 【最適化】トースト通知を軽量化
+                showToastNotification(message, rating === 0 ? 'error' : 'success');
                 
                 console.log(`✅ ${message}`);
             } else {
@@ -1285,7 +1331,7 @@
     };
 
     window.handleImportLearningData = (event) => {
-        const file = event.target.files;
+        const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
@@ -1606,7 +1652,7 @@
         });
     };
 
-    // 【修正】記事カード描画（構文エラー修正版）
+    // 【最適化】記事カード描画（評価済みキーワードのみ処理版）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => {
             // キーワードのサニタイズ
@@ -1621,23 +1667,31 @@
                 return escapeChars[match];
             });
             
-            // 【修正】AI学習データから直接評価を取得
-            const aiHook = window.DataHooks.useAILearning();
-            const aiWeight = aiHook.aiLearning.wordWeights[keyword] || 0;
-            
-            // 【修正】AI重みから星評価に逆変換（文字列キー使用）
-            let rating = 0;
-            const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
-            rating = weightToRating[aiWeight.toString()] || 0;
-            
-            // 【修正】KeywordRatingManagerからも取得して整合性確保
+            // 【最適化】KeywordRatingManagerから評価済みかチェック（高速）
             const ratingManagerRating = window.KeywordRatingManager?.getKeywordRating(keyword) || 0;
             
-            // 【修正】不整合がある場合はAI学習データを優先し、KeywordRatingManagerを更新
-            if (ratingManagerRating !== rating && rating > 0) {
-                console.log(`キーワード評価不整合を修正: "${keyword}" KRM:${ratingManagerRating} → AI:${rating}`);
-                if (window.KeywordRatingManager) {
-                    window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+            // 【最適化】評価済みの場合のみAI学習データと照合
+            let rating = ratingManagerRating;
+            if (ratingManagerRating > 0) {
+                const aiHook = window.DataHooks.useAILearning();
+                const aiWeight = aiHook.aiLearning.wordWeights[keyword];
+                
+                // AI学習データに存在する場合のみ整合性チェック
+                if (aiWeight !== undefined) {
+                    const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
+                    const aiRating = weightToRating[aiWeight.toString()] || 0;
+                    
+                    // 不整合がある場合のみ修正（ログ出力も最小限）
+                    if (aiRating !== ratingManagerRating && aiRating > 0) {
+                        console.log(`評価整合性修正: "${keyword}" ${ratingManagerRating} → ${aiRating}`);
+                        rating = aiRating;
+                        // 非同期で修正（UI描画を遅延させない）
+                        setTimeout(() => {
+                            if (window.KeywordRatingManager) {
+                                window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+                            }
+                        }, 0);
+                    }
                 }
             }
             
@@ -1708,7 +1762,7 @@
         `;
     };
 
-    // 【修正版】設定モーダル（キーワード評価セクション削除版）
+    // 設定モーダル
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
@@ -1935,7 +1989,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        構文エラー修正版
+                                        最適化統合版
                                     </p>
                                 </div>
                             </div>
@@ -2007,12 +2061,16 @@
     window.handleSubmitNGWord = handleSubmitNGWord;
     window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
 
-    // 【修正】キーワードクリック星評価機能をグローバルに追加（構文エラー修正版）
+    // 【最適化】キーワードクリック星評価機能をグローバルに追加（軽量化版）
     window.showKeywordRatingModal = showKeywordRatingModal;
     window.closeKeywordRatingModal = closeKeywordRatingModal;
     window.highlightStars = highlightStars;
     window.resetStars = resetStars;
     window.selectRating = selectRating;
+
+    // 【最適化】新規追加関数
+    window.showToastNotification = showToastNotification;
+    window.getRatedKeywords = getRatedKeywords;
 
     // ===========================================
     // 初期化
