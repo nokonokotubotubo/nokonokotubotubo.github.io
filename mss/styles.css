@@ -1238,7 +1238,27 @@ border-color: #ccc !important;
 }
 }
 
-/* ────────────── テキスト選択メニュー ────────────── */
+/* ────────────── 【修正】テキスト選択メニュー ────────────── */
+/* 記事カード内でのテキスト選択を有効化 */
+.article-card .article-content,
+.article-card .article-title {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* 選択中のテキストのハイライト */
+.article-card ::selection {
+    background: rgba(78, 179, 211, 0.3);
+    color: #ffffff;
+}
+
+.article-card ::-moz-selection {
+    background: rgba(78, 179, 211, 0.3);
+    color: #ffffff;
+}
+
 .text-selection-menu {
     animation: fadeInScale 0.2s ease-out;
 }
@@ -1266,6 +1286,8 @@ border-color: #ccc !important;
     transition: var(--transition);
     min-width: 70px;
     text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .selection-btn:hover {
