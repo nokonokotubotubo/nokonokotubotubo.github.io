@@ -1,32 +1,17 @@
-// Minews PWA - UI・表示レイヤー（キーワード評価統合最適化版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版）
 (function() {
     'use strict';
 
-    // ===========================================
-    // シンプルなフィルター設定管理
-    // ===========================================
-
-    // フィルター設定をLocalStorageから復元
+    // フィルター設定管理（軽量化版）
     const getFilterSettings = () => {
         try {
             const stored = localStorage.getItem('minews_filterSettings');
-            if (stored) {
-                return JSON.parse(stored);
-            }
-        } catch (error) {
-            console.warn('フィルター設定の復元に失敗:', error);
+            return stored ? JSON.parse(stored) : { scoreMin: 0, scoreMax: 100, dateMin: 0, dateMax: 14 };
+        } catch {
+            return { scoreMin: 0, scoreMax: 100, dateMin: 0, dateMax: 14 };
         }
-        
-        // デフォルト値（全範囲対象）
-        return {
-            scoreMin: 0,
-            scoreMax: 100,
-            dateMin: 0,
-            dateMax: 14
-        };
     };
 
-    // フィルター設定をLocalStorageに保存
     const saveFilterSettings = (settings) => {
         try {
             localStorage.setItem('minews_filterSettings', JSON.stringify(settings));
@@ -35,309 +20,145 @@
         }
     };
 
-    // スライダー値の表示のみ更新（フィルター適用なし）
     const updateScoreDisplay = (type, value) => {
         const numValue = parseInt(value);
+        const isMin = type === 'min';
+        const otherSlider = document.getElementById(isMin ? 'scoreMaxSlider' : 'scoreMinSlider');
+        const otherValue = parseInt(otherSlider.value);
+        const adjustedValue = isMin ? Math.min(numValue, otherValue) : Math.max(numValue, otherValue);
         
-        if (type === 'min') {
-            const maxSlider = document.getElementById('scoreMaxSlider');
-            const maxValue = parseInt(maxSlider.value);
-            const adjustedMin = Math.min(numValue, maxValue);
-            
-            document.getElementById('scoreMinValue').textContent = adjustedMin;
-            document.getElementById('scoreMinSlider').value = adjustedMin;
-            
-            // 範囲表示の更新
-            const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
-            if (display) {
-                display.textContent = `${adjustedMin}点 - ${maxValue}点`;
-            }
-        } else {
-            const minSlider = document.getElementById('scoreMinSlider');
-            const minValue = parseInt(minSlider.value);
-            const adjustedMax = Math.max(numValue, minValue);
-            
-            document.getElementById('scoreMaxValue').textContent = adjustedMax;
-            document.getElementById('scoreMaxSlider').value = adjustedMax;
-            
-            // 範囲表示の更新
-            const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
-            if (display) {
-                display.textContent = `${minValue}点 - ${adjustedMax}点`;
-            }
+        document.getElementById(`score${type === 'min' ? 'Min' : 'Max'}Value`).textContent = adjustedValue;
+        document.getElementById(`score${type === 'min' ? 'Min' : 'Max'}Slider`).value = adjustedValue;
+        
+        const display = document.querySelector('.modal-section-group:first-child .filter-range-display');
+        if (display) {
+            const minVal = isMin ? adjustedValue : otherValue;
+            const maxVal = isMin ? otherValue : adjustedValue;
+            display.textContent = `${minVal}点 - ${maxVal}点`;
         }
     };
 
-    // スライダー値の表示のみ更新（フィルター適用なし）
     const updateDateDisplay = (type, value) => {
         const numValue = parseInt(value);
+        const isMin = type === 'min';
+        const otherSlider = document.getElementById(isMin ? 'dateMaxSlider' : 'dateMinSlider');
+        const otherValue = parseInt(otherSlider.value);
+        const adjustedValue = isMin ? Math.min(numValue, otherValue) : Math.max(numValue, otherValue);
         
-        if (type === 'min') {
-            const maxSlider = document.getElementById('dateMaxSlider');
-            const maxValue = parseInt(maxSlider.value);
-            const adjustedMin = Math.min(numValue, maxValue);
-            
-            document.getElementById('dateMinValue').textContent = adjustedMin;
-            document.getElementById('dateMinSlider').value = adjustedMin;
-            
-            // 範囲表示の更新
-            const displays = document.querySelectorAll('.filter-range-display');
-            if (displays.length >= 2) {
-                displays[1].textContent = `${adjustedMin}日前 - ${maxValue}日前`;
-            }
-        } else {
-            const minSlider = document.getElementById('dateMinSlider');
-            const minValue = parseInt(minSlider.value);
-            const adjustedMax = Math.max(numValue, minValue);
-            
-            document.getElementById('dateMaxValue').textContent = adjustedMax;
-            document.getElementById('dateMaxSlider').value = adjustedMax;
-            
-            // 範囲表示の更新
-            const displays = document.querySelectorAll('.filter-range-display');
-            if (displays.length >= 2) {
-                displays[1].textContent = `${minValue}日前 - ${adjustedMax}日前`;
-            }
+        document.getElementById(`date${type === 'min' ? 'Min' : 'Max'}Value`).textContent = adjustedValue;
+        document.getElementById(`date${type === 'min' ? 'Min' : 'Max'}Slider`).value = adjustedValue;
+        
+        const displays = document.querySelectorAll('.filter-range-display');
+        if (displays.length >= 2) {
+            const minVal = isMin ? adjustedValue : otherValue;
+            const maxVal = isMin ? otherValue : adjustedValue;
+            displays[1].textContent = `${minVal}日前 - ${maxVal}日前`;
         }
     };
 
-    // 設定適用（ボタンクリック時のみ実行）
     const applyFilterSettings = () => {
-        // 現在のスライダー値を直接取得
-        const scoreMin = parseInt(document.getElementById('scoreMinSlider').value);
-        const scoreMax = parseInt(document.getElementById('scoreMaxSlider').value);
-        const dateMin = parseInt(document.getElementById('dateMinSlider').value);
-        const dateMax = parseInt(document.getElementById('dateMaxSlider').value);
-        
-        // 設定を保存
-        const newSettings = {
-            scoreMin: scoreMin,
-            scoreMax: scoreMax,
-            dateMin: dateMin,
-            dateMax: dateMax
+        const settings = {
+            scoreMin: parseInt(document.getElementById('scoreMinSlider').value),
+            scoreMax: parseInt(document.getElementById('scoreMaxSlider').value),
+            dateMin: parseInt(document.getElementById('dateMinSlider').value),
+            dateMax: parseInt(document.getElementById('dateMaxSlider').value)
         };
         
-        saveFilterSettings(newSettings);
-        
-        // 記事一覧に反映
+        saveFilterSettings(settings);
         updateArticleListOnly();
-        
         alert('フィルター設定を適用しました');
     };
 
-    // リセット機能（シンプル版）
     const resetFilterSettings = () => {
-        const defaultSettings = {
-            scoreMin: 0,
-            scoreMax: 100,
-            dateMin: 0,
-            dateMax: 14
-        };
-        
-        // 設定を保存
+        const defaultSettings = { scoreMin: 0, scoreMax: 100, dateMin: 0, dateMax: 14 };
         saveFilterSettings(defaultSettings);
         
-        // スライダーと表示を初期値に戻す
-        document.getElementById('scoreMinSlider').value = 0;
-        document.getElementById('scoreMaxSlider').value = 100;
-        document.getElementById('dateMinSlider').value = 0;
-        document.getElementById('dateMaxSlider').value = 14;
+        ['scoreMin', 'scoreMax', 'dateMin', 'dateMax'].forEach(key => {
+            const value = defaultSettings[key];
+            document.getElementById(key + 'Slider').value = value;
+            document.getElementById(key + 'Value').textContent = value;
+        });
         
-        document.getElementById('scoreMinValue').textContent = 0;
-        document.getElementById('scoreMaxValue').textContent = 100;
-        document.getElementById('dateMinValue').textContent = 0;
-        document.getElementById('dateMaxValue').textContent = 14;
-        
-        // 範囲表示も更新
         const displays = document.querySelectorAll('.filter-range-display');
-        if (displays.length >= 1) {
-            displays[0].textContent = '0点 - 100点';
-        }
-        if (displays.length >= 2) {
-            displays[1].textContent = '0日前 - 14日前';
-        }
+        if (displays[0]) displays[0].textContent = '0点 - 100点';
+        if (displays[1]) displays[1].textContent = '0日前 - 14日前';
         
-        // 記事一覧に反映
         updateArticleListOnly();
-        
         alert('フィルター設定をリセットしました');
     };
 
-    // ===========================================
-    // 【最適化】軽量トースト通知関数
-    // ===========================================
-
+    // 軽量トースト通知
     const showToastNotification = (message, type = 'success') => {
-        // 既存のトーストがあれば削除
         const existingToast = document.querySelector('.toast-notification');
-        if (existingToast) {
-            existingToast.remove();
-        }
+        if (existingToast) existingToast.remove();
         
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
-        toast.style.cssText = `
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            background: ${type === 'error' ? '#f44336' : '#4caf50'}; 
-            color: white; 
-            padding: 12px 20px; 
-            border-radius: 6px; 
-            z-index: 10001;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            max-width: 300px;
-            word-wrap: break-word;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        `;
+        toast.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${type === 'error' ? '#f44336' : '#4caf50'}; color: white; padding: 12px 20px; border-radius: 6px; z-index: 10001; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); max-width: 300px; word-wrap: break-word; opacity: 0; transform: translateX(100%); transition: opacity 0.3s ease, transform 0.3s ease;`;
         toast.textContent = message;
         document.body.appendChild(toast);
         
-        // アニメーション表示
         requestAnimationFrame(() => {
             toast.style.opacity = '1';
             toast.style.transform = 'translateX(0)';
         });
         
-        // 自動削除
         setTimeout(() => {
             toast.style.opacity = '0';
             toast.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 300);
-        }, 2500); // 2.5秒表示
+            setTimeout(() => toast.parentNode?.removeChild(toast), 300);
+        }, 2500);
     };
 
-    // ===========================================
-    // 【統合】ワード評価ポップアップ機能（統合最適化版）
-    // ===========================================
-
-    // 【統合】ワード評価モーダル表示（記事キーワード・興味ワード共通）
+    // ワード評価モーダル（統合最適化版）
     const showWordRatingModal = (word, source = 'keyword') => {
-        // 【統合】WordRatingManagerから統一取得
         const currentRating = window.WordRatingManager?.getWordRating(word) || 0;
         
-        console.log(`ワード評価ポップアップを表示: ${word}, 現在の評価: ${currentRating}, ソース: ${source}`);
-        
-        // 重複評価の確認
         if (currentRating > 0) {
-            const confirmChange = confirm(`「${word}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？\n（変更しない場合はキャンセルを選択してください）`);
-            if (!confirmChange) {
-                return; // ユーザーがキャンセルした場合は処理終了
-            }
+            const confirmChange = confirm(`「${word}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？`);
+            if (!confirmChange) return;
         }
         
-        // ポップアップモーダルを作成
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            backdrop-filter: blur(3px);
-        `;
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(3px);';
         
-        let starsHtml = '';
-        for (let i = 1; i <= 5; i++) {
-            const isActive = i <= currentRating;
-            starsHtml += `
-                <button class="popup-star ${isActive ? 'active' : ''}" 
-                        data-rating="${i}" 
-                        onmouseover="highlightStars(${i})"
-                        onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})"
-                        onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${i}, '${source}')">
-                    ★
-                </button>
-            `;
-        }
+        const starsHtml = Array.from({length: 5}, (_, i) => {
+            const rating = i + 1;
+            const isActive = rating <= currentRating;
+            return `<button class="popup-star ${isActive ? 'active' : ''}" data-rating="${rating}" onmouseover="highlightStars(${rating})" onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})" onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${rating}, '${source}')">★</button>`;
+        }).join('');
         
-        // 【統合】統一されたステータス表示
-        let statusMessage;
-        if (currentRating > 0) {
-            const aiHook = window.DataHooks.useAILearning();
-            const aiWeight = aiHook.aiLearning.wordWeights[word];
-            statusMessage = `<div style="color: #fbbf24; font-weight: 600;">現在の評価: ${currentRating}星${aiWeight !== undefined ? ` (AI重み: ${aiWeight})` : ''}</div>`;
-        } else {
-            statusMessage = `<div style="color: #9ca3af;">評価なし</div>`;
-        }
+        const statusMessage = currentRating > 0 
+            ? `<div style="color: #fbbf24; font-weight: 600;">現在の評価: ${currentRating}星</div>`
+            : `<div style="color: #9ca3af;">評価なし</div>`;
         
-        // 【統合】ソースに応じたタイトルと説明
         const isInterestWord = source === 'interest';
         const modalTitle = isInterestWord ? 'ワード評価（興味ワード）' : 'ワード評価（記事キーワード）';
         const modalColor = isInterestWord ? '#4caf50' : '#4eb3d3';
         const ratingDescription = isInterestWord 
-            ? '<div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div><div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div><div style="font-size: 0.8rem; margin-top: 0.5rem;">※興味ワードボーナスに加算されます</div>'
+            ? '<div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div><div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div>'
             : '<div>1星: 低評価 (-10) | 2星: やや低評価 (-5) | 3星: 中立 (0)</div><div>4星: やや高評価 (+5) | 5星: 高評価 (+10)</div>';
         
         modal.innerHTML = `
-            <div class="keyword-rating-popup" onclick="event.stopPropagation()" style="
-                background: #24323d;
-                border-radius: 12px;
-                padding: 2rem;
-                min-width: 350px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                text-align: center;
-                color: #e0e6eb;
-            ">
+            <div class="keyword-rating-popup" onclick="event.stopPropagation()" style="background: #24323d; border-radius: 12px; padding: 2rem; min-width: 350px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); text-align: center; color: #e0e6eb;">
                 <h3 style="margin: 0 0 1rem 0; color: ${modalColor};">${modalTitle}</h3>
-                <div style="margin-bottom: 1rem;">
-                    <span style="font-size: 1.1rem; font-weight: 600;">${word}</span>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    ${statusMessage}
-                </div>
-                <div class="rating-stars" style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 0.5rem;">
-                    ${starsHtml}
-                </div>
-                <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: #9ca3af;">
-                    ${ratingDescription}
-                </div>
+                <div style="margin-bottom: 1rem;"><span style="font-size: 1.1rem; font-weight: 600;">${word}</span></div>
+                <div style="margin-bottom: 1rem;">${statusMessage}</div>
+                <div class="rating-stars" style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 0.5rem;">${starsHtml}</div>
+                <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: #9ca3af;">${ratingDescription}</div>
                 <div style="display: flex; gap: 0.75rem; justify-content: center;">
-                    <button onclick="closeWordRatingModal()" style="
-                        background: #6b7280;
-                        color: white;
-                        border: none;
-                        padding: 0.5rem 1rem;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 0.9rem;
-                    ">キャンセル</button>
-                    ${currentRating > 0 ? `
-                    <button onclick="selectWordRating('${word.replace(/'/g, "\\'")}', 0, '${source}')" style="
-                        background: #f44336;
-                        color: white;
-                        border: none;
-                        padding: 0.5rem 1rem;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 0.9rem;
-                    ">評価を削除</button>
-                    ` : ''}
+                    <button onclick="closeWordRatingModal()" style="background: #6b7280; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">キャンセル</button>
+                    ${currentRating > 0 ? `<button onclick="selectWordRating('${word.replace(/'/g, "\\'")}', 0, '${source}')" style="background: #f44336; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">評価を削除</button>` : ''}
                 </div>
             </div>
         `;
         
-        // クリック外で閉じる
         modal.onclick = () => closeWordRatingModal();
-        
         document.body.appendChild(modal);
         window._currentWordModal = modal;
     };
 
-    // 【統合】ポップアップを閉じる
     const closeWordRatingModal = () => {
         if (window._currentWordModal) {
             document.body.removeChild(window._currentWordModal);
@@ -345,51 +166,35 @@
         }
     };
 
-    // 星のハイライト
     const highlightStars = (rating) => {
         const stars = document.querySelectorAll('.popup-star');
         stars.forEach((star, index) => {
-            if (index < rating) {
-                star.classList.add('active');
-            } else {
-                star.classList.remove('active');
-            }
+            star.classList.toggle('active', index < rating);
         });
     };
 
-    // 星をリセット
     const resetStars = (word, originalRating) => {
         const stars = document.querySelectorAll('.popup-star');
         stars.forEach((star, index) => {
-            if (index < originalRating) {
-                star.classList.add('active');
-            } else {
-                star.classList.remove('active');
-            }
+            star.classList.toggle('active', index < originalRating);
         });
     };
 
-    // 【統合】ワード評価を選択（統合最適化版）
     const selectWordRating = (word, rating, source = 'keyword') => {
         try {
             if (!window.WordRatingManager) {
-                console.error('WordRatingManagerが見つかりません');
                 alert('ワード評価システムが初期化されていません');
                 return;
             }
             
-            // 【統合】WordRatingManagerから統一取得
             const currentRating = window.WordRatingManager.getWordRating(word) || 0;
             
-            // 同じ評価の重複を防止
             if (currentRating === rating && rating > 0) {
-                console.log(`「${word}」は既に${rating}星で評価済みです`);
                 alert(`「${word}」は既に${rating}星で評価済みです`);
                 closeWordRatingModal();
                 return;
             }
             
-            // 評価削除の確認
             if (rating === 0 && currentRating > 0) {
                 const confirmDelete = confirm(`「${word}」の${currentRating}星評価を削除しますか？`);
                 if (!confirmDelete) {
@@ -398,51 +203,34 @@
                 }
             }
             
-            // 【統合】WordRatingManagerで統一保存（興味ワード自動追加機能付き）
             const success = window.WordRatingManager.saveWordRating(word, rating);
             
             if (success) {
-                // 【最適化】記事スコア再計算と表示更新を非同期実行
                 setTimeout(() => {
                     updateArticleListOnly();
                     
-                    // 【統合】該当ワード要素のみ更新（記事キーワード・興味ワード共通）
                     const wordElements = document.querySelectorAll(`.keyword, .word-tag.interest`);
                     wordElements.forEach(element => {
-                        // テキスト内容の完全一致チェック（部分一致を避ける）
-                        const elementText = element.textContent.replace(/\s★\d+$/, ''); // 星を除去してチェック
+                        const elementText = element.textContent.replace(/\s★\d+$/, '');
                         if (elementText === word) {
-                            // 評価クラスを更新
                             const baseClass = element.classList.contains('word-tag') ? 'word-tag interest' : 'keyword';
                             element.className = `${baseClass} ${rating > 0 ? `rated-${rating}` : ''}`;
-                            // 星表示を更新
                             const wordText = word + (rating > 0 ? ` ★${rating}` : '');
-                            // word-tagの場合は×ボタンを保持
                             if (element.classList.contains('word-tag')) {
                                 const removeButton = element.querySelector('.word-remove');
                                 element.innerHTML = wordText;
-                                if (removeButton) {
-                                    element.appendChild(removeButton);
-                                }
+                                if (removeButton) element.appendChild(removeButton);
                             } else {
                                 element.innerHTML = wordText;
                             }
-                            // ツールチップを更新
                             element.title = `クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
                         }
                     });
-                    
-                }, 50); // UI更新を少し遅延して応答性を向上
+                }, 50);
                 
-                // GIST同期マーク
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
-                    console.log(`GIST同期マーク: ワード「${word}」評価変更 ${currentRating} → ${rating}`);
-                    
-                    // バックグラウンド同期をデバウンス
-                    if (window._syncTimeout) {
-                        clearTimeout(window._syncTimeout);
-                    }
+                    if (window._syncTimeout) clearTimeout(window._syncTimeout);
                     window._syncTimeout = setTimeout(() => {
                         if (window.GistSyncManager?.isEnabled && !window.GistSyncManager.isSyncing) {
                             window.GistSyncManager.autoSync('background');
@@ -451,7 +239,6 @@
                     }, 3000);
                 }
                 
-                // 成功通知
                 const message = rating === 0 
                     ? `「${word}」の評価を削除しました`
                     : currentRating > 0 
@@ -460,18 +247,10 @@
                 
                 showToastNotification(message, rating === 0 ? 'error' : 'success');
                 
-                // 【統合】興味ワードの場合は設定画面も更新
-                if (source === 'interest' || rating > 0) {
-                    setTimeout(() => {
-                        if (window.state?.showModal === 'settings') {
-                            window.render();
-                        }
-                    }, 100);
+                if ((source === 'interest' || rating > 0) && window.state?.showModal === 'settings') {
+                    setTimeout(() => window.render(), 100);
                 }
-                
-                console.log(`✅ ${message}`);
             } else {
-                console.error('ワード評価の保存に失敗しました');
                 alert('ワード評価の保存に失敗しました');
             }
         } catch (error) {
@@ -482,13 +261,8 @@
         closeWordRatingModal();
     };
 
-    // ===========================================
-    // ユニークID生成機能（日本語対応）
-    // ===========================================
-
-    const encodeToValidId = (text) => {
-        return encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
-    };
+    // ユニークID生成機能
+    const encodeToValidId = (text) => encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
 
     const generateUniqueIds = (articles, prefix = '') => {
         const folders = [...new Set(articles.map(a => a.folderName))].sort();
@@ -510,44 +284,25 @@
         return { folderIds, feedIds };
     };
 
-    // ===========================================
-    // フィルター状態永続化機能
-    // ===========================================
-
+    // フィルター状態永続化
     const getStoredFilterState = () => {
         try {
             const stored = localStorage.getItem('minews_filterState');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                return {
-                    viewMode: parsed.viewMode || 'all',
-                    selectedFolders: parsed.selectedFolders || [],
-                    selectedFeeds: parsed.selectedFeeds || []
-                };
-            }
-        } catch (error) {
-            console.warn('フィルター状態の復元に失敗:', error);
+            return stored ? JSON.parse(stored) : { viewMode: 'all', selectedFolders: [], selectedFeeds: [] };
+        } catch {
+            return { viewMode: 'all', selectedFolders: [], selectedFeeds: [] };
         }
-        return {
-            viewMode: 'all',
-            selectedFolders: [],
-            selectedFeeds: []
-        };
     };
 
     const saveFilterState = (viewMode, selectedFolders, selectedFeeds) => {
         try {
-            const filterState = { viewMode, selectedFolders, selectedFeeds };
-            localStorage.setItem('minews_filterState', JSON.stringify(filterState));
+            localStorage.setItem('minews_filterState', JSON.stringify({ viewMode, selectedFolders, selectedFeeds }));
         } catch (error) {
             console.warn('フィルター状態の保存に失敗:', error);
         }
     };
 
-    // ===========================================
     // アプリケーション状態管理
-    // ===========================================
-
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -565,12 +320,8 @@
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
         
-        if (window.state.selectedFolders.length === 0) {
-            window.state.selectedFolders = [...folders];
-        }
-        if (window.state.selectedFeeds.length === 0) {
-            window.state.selectedFeeds = [...feeds];
-        }
+        if (window.state.selectedFolders.length === 0) window.state.selectedFolders = [...folders];
+        if (window.state.selectedFeeds.length === 0) window.state.selectedFeeds = [...feeds];
     };
 
     window.setState = (newState) => {
@@ -592,12 +343,7 @@
         const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
         const wordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
 
-        Object.assign(window.DataHooksCache, {
-            articles: articlesData,
-            aiLearning: aiData,
-            wordFilters: wordData
-        });
-
+        Object.assign(window.DataHooksCache, { articles: articlesData, aiLearning: aiData, wordFilters: wordData });
         window.state.articles = articlesData;
         initializeFolderFeeds();
     };
@@ -605,8 +351,7 @@
     const initializeGistSync = () => {
         if (window.GistSyncManager) {
             const config = window.GistSyncManager.loadConfig();
-            if (config && config.hasToken) {
-                console.log('GitHub同期設定を復元しました');
+            if (config?.hasToken) {
                 window.GistSyncManager.startPeriodicSync(60);
             }
         }
@@ -614,10 +359,7 @@
 
     window.initializeGistSync = initializeGistSync;
 
-    // ===========================================
     // ユーティリティ関数
-    // ===========================================
-
     window.formatDate = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -637,41 +379,26 @@
     const formatLastSyncTime = (isoString) => {
         try {
             const date = new Date(isoString);
-            return date.toLocaleString('ja-JP', {
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric'
-            });
-        } catch (error) {
+            return date.toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+        } catch {
             return '日時不明';
         }
     };
 
-    // ===========================================
-    // 部分更新関数（DOM再構築回避用）
-    // ===========================================
-
+    // 部分更新関数（軽量化版）
     const updateArticleCount = () => {
         const count = getFilteredArticles().length;
-        
         const mobileUpdate = document.querySelector('.last-update-mobile');
-        if (mobileUpdate) {
-            mobileUpdate.textContent = `表示中: ${count}件`;
-        }
-        
         const desktopUpdate = document.querySelector('.last-update');
-        if (desktopUpdate) {
-            desktopUpdate.textContent = `表示中: ${count}件`;
-        }
+        
+        if (mobileUpdate) mobileUpdate.textContent = `表示中: ${count}件`;
+        if (desktopUpdate) desktopUpdate.textContent = `表示中: ${count}件`;
     };
 
     const updateArticleListOnly = () => {
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
-            
             updateArticleCount();
         }
     };
@@ -682,7 +409,7 @@
         document.querySelectorAll('.folder-dropdown-btn').forEach(btn => {
             const countText = `フォルダ選択 (${window.state.selectedFolders.length}/${folders.length})`;
             const textNode = btn.childNodes[0];
-            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+            if (textNode?.nodeType === Node.TEXT_NODE) {
                 textNode.textContent = countText;
             } else {
                 btn.innerHTML = `${countText}<span class="dropdown-arrow">▼</span>`;
@@ -709,8 +436,7 @@
         document.querySelectorAll('.folder-dropdown-content').forEach(dropdown => {
             const selectAllCheckbox = dropdown.querySelector('[id$="selectAllFolders"]');
             if (selectAllCheckbox) {
-                const allSelected = folders.every(folder => window.state.selectedFolders.includes(folder));
-                selectAllCheckbox.checked = allSelected;
+                selectAllCheckbox.checked = folders.every(folder => window.state.selectedFolders.includes(folder));
             }
             
             folders.forEach(folder => {
@@ -724,15 +450,9 @@
         updateFeedCheckboxStates();
     };
 
-    // ===========================================
     // 一括既読化処理
-    // ===========================================
-
     const handleBulkMarkAsRead = () => {
-        const confirmed = confirm('表示している記事を一括で既読にしますか？');
-        if (!confirmed) {
-            return;
-        }
+        if (!confirm('表示している記事を一括で既読にしますか？')) return;
         
         const filteredArticles = getFilteredArticles();
         const articlesHook = window.DataHooks.useArticles();
@@ -747,25 +467,18 @@
         
         if (updatedCount > 0) {
             updateArticleListOnly();
-            
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
-            
             alert(`${updatedCount}件の記事を既読にしました`);
         } else {
             alert('既読にする記事がありませんでした');
         }
     };
 
-    // ===========================================
-    // フォルダ・フィード管理（フィード連動対応版）
-    // ===========================================
-
+    // フォルダ・フィード管理
     const handleFolderToggle = (folderName, event) => {
-        if (event) {
-            event.stopPropagation();
-        }
+        event?.stopPropagation();
         
         const selectedFolders = [...window.state.selectedFolders];
         const selectedFeeds = [...window.state.selectedFeeds];
@@ -780,16 +493,12 @@
             selectedFolders.splice(index, 1);
             feedsInFolder.forEach(feed => {
                 const feedIndex = selectedFeeds.indexOf(feed);
-                if (feedIndex > -1) {
-                    selectedFeeds.splice(feedIndex, 1);
-                }
+                if (feedIndex > -1) selectedFeeds.splice(feedIndex, 1);
             });
         } else {
             selectedFolders.push(folderName);
             feedsInFolder.forEach(feed => {
-                if (!selectedFeeds.includes(feed)) {
-                    selectedFeeds.push(feed);
-                }
+                if (!selectedFeeds.includes(feed)) selectedFeeds.push(feed);
             });
         }
         
@@ -803,9 +512,7 @@
     };
 
     const handleFeedToggle = (feedName, event) => {
-        if (event) {
-            event.stopPropagation();
-        }
+        event?.stopPropagation();
         
         const selectedFeeds = [...window.state.selectedFeeds];
         const index = selectedFeeds.indexOf(feedName);
@@ -825,17 +532,12 @@
     };
 
     const handleSelectAllFolders = (selectAll, event) => {
-        if (event) {
-            event.stopPropagation();
-        }
+        event?.stopPropagation();
         
-        let selectedFolders;
-        let selectedFeeds;
+        let selectedFolders, selectedFeeds;
         if (selectAll) {
-            const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
-            const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
-            selectedFolders = [...folders];
-            selectedFeeds = [...feeds];
+            selectedFolders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
+            selectedFeeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
         } else {
             selectedFolders = [];
             selectedFeeds = [];
@@ -873,9 +575,7 @@
                 <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: fixed; left: 0; top: 120px; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
                     <div class="folder-controls">
                         <label class="folder-item" for="${prefix}selectAllFolders">
-                            <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" 
-                                   ${allFoldersSelected ? 'checked' : ''} 
-                                   onchange="event.stopPropagation(); handleSelectAllFolders(this.checked, event)">
+                            <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" ${allFoldersSelected ? 'checked' : ''} onchange="event.stopPropagation(); handleSelectAllFolders(this.checked, event)">
                             <span>すべてのフォルダ</span>
                         </label>
                     </div>
@@ -885,9 +585,7 @@
                         return `
                         <div class="folder-group">
                             <label class="folder-item" for="${folderId}">
-                                <input type="checkbox" id="${folderId}" name="${folderId}" 
-                                       ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} 
-                                       onchange="event.stopPropagation(); handleFolderToggle('${folder.replace(/'/g, "\\'")}', event)">
+                                <input type="checkbox" id="${folderId}" name="${folderId}" ${window.state.selectedFolders.includes(folder) ? 'checked' : ''} onchange="event.stopPropagation(); handleFolderToggle('${folder.replace(/'/g, "\\'")}', event)">
                                 <span class="folder-name">${folder}</span>
                             </label>
                             <div class="feed-list">
@@ -895,9 +593,7 @@
                                     const feedId = uniqueIds.feedIds[folder][feed];
                                     return `
                                     <label class="feed-item" for="${feedId}">
-                                        <input type="checkbox" id="${feedId}" name="${feedId}"
-                                               ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} 
-                                               onchange="event.stopPropagation(); handleFeedToggle('${feed.replace(/'/g, "\\'")}', event)">
+                                        <input type="checkbox" id="${feedId}" name="${feedId}" ${window.state.selectedFeeds.includes(feed) ? 'checked' : ''} onchange="event.stopPropagation(); handleFeedToggle('${feed.replace(/'/g, "\\'")}', event)">
                                         <span class="feed-name">${feed}</span>
                                     </label>
                                     `;
@@ -948,10 +644,7 @@
         }
     };
 
-    // ===========================================
-    // NGワード範囲選択モーダル関数
-    // ===========================================
-
+    // NGワード範囲選択モーダル関数（軽量化版）
     const renderAddNGWordModal = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
@@ -968,55 +661,33 @@
                             <h3 class="group-title">NGワード設定</h3>
                             
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>ワード入力</h3>
-                                </div>
-                                <input type="text" id="ngWordInput" placeholder="NGワードを入力してください" 
-                                       class="filter-select" style="width: 100%; margin-bottom: 1rem;">
+                                <div class="word-section-header"><h3>ワード入力</h3></div>
+                                <input type="text" id="ngWordInput" placeholder="NGワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
                             </div>
                             
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>適用範囲</h3>
-                                </div>
+                                <div class="word-section-header"><h3>適用範囲</h3></div>
                                 <div style="margin-bottom: 1rem;">
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="all" checked 
-                                               onchange="handleNGWordScopeChange(this.value)" 
-                                               onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="ngWordScope" value="all" checked onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">全体（すべての記事に適用）</span>
                                     </label>
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="folder" 
-                                               onchange="handleNGWordScopeChange(this.value)" 
-                                               onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="ngWordScope" value="folder" onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">特定のフォルダのみ</span>
                                     </label>
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="feed" 
-                                               onchange="handleNGWordScopeChange(this.value)" 
-                                               onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="ngWordScope" value="feed" onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">特定のフィードのみ</span>
                                     </label>
                                 </div>
                             </div>
                             
                             <div class="word-section" id="ngWordTargetSection" style="display: none;">
-                                <div class="word-section-header">
-                                    <h3>対象選択</h3>
-                                </div>
+                                <div class="word-section-header"><h3>対象選択</h3></div>
                                 <select id="ngWordTargetSelect" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
                                     <option value="">選択してください</option>
                                 </select>
-                            </div>
-                            
-                            <div class="word-help">
-                                <h4>範囲設定について</h4>
-                                <ul>
-                                    <li><strong>全体:</strong> すべての記事に対してNGワードが適用されます</li>
-                                    <li><strong>フォルダ:</strong> 指定したフォルダの記事のみにNGワードが適用されます</li>
-                                    <li><strong>フィード:</strong> 指定したフィードの記事のみにNGワードが適用されます</li>
-                                </ul>
                             </div>
                             
                             <div class="modal-actions">
@@ -1034,22 +705,14 @@
         const targetSection = document.getElementById('ngWordTargetSection');
         const targetSelect = document.getElementById('ngWordTargetSelect');
         
-        if (!targetSection || !targetSelect) {
-            return;
-        }
+        if (!targetSection || !targetSelect) return;
         
         if (scope === 'all') {
             targetSection.style.display = 'none';
             targetSelect.value = '';
         } else {
             targetSection.style.display = 'block';
-            
-            targetSelect.innerHTML = '';
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = '選択してください';
-            targetSelect.appendChild(defaultOption);
+            targetSelect.innerHTML = '<option value="">選択してください</option>';
             
             if (scope === 'folder') {
                 const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
@@ -1086,7 +749,6 @@
         const scope = scopeRadio.value;
         
         let target = null;
-        
         if (scope !== 'all') {
             const targetSelect = document.getElementById('ngWordTargetSelect');
             target = targetSelect ? targetSelect.value : '';
@@ -1101,7 +763,7 @@
     };
 
     const handleAddNGWordWithScope = (word, scope, target) => {
-        if (!word || !word.trim()) return;
+        if (!word?.trim()) return;
 
         const wordHook = window.DataHooks.useWordFilters();
         const success = wordHook.addNGWord(word.trim(), scope, target);
@@ -1126,17 +788,13 @@
 
         if (success) {
             window.render();
-            
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
         }
     };
 
-    // ===========================================
-    // GitHub同期管理関数
-    // ===========================================
-
+    // GitHub同期管理関数（軽量化版）
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -1152,7 +810,6 @@
                     alert('Gist IDの形式が正しくありません');
                     return;
                 }
-                
                 window.GistSyncManager.init(token, gistId);
                 alert('GitHub同期設定を保存しました（既存のGist IDを使用）\n定期同期（1分間隔）が開始されました');
             } else {
@@ -1164,7 +821,6 @@
             document.getElementById('gistIdInput').value = '';
             window.render();
         } catch (error) {
-            console.error('GitHub設定保存エラー:', error);
             alert('設定の保存に失敗しました: ' + error.message);
         }
     };
@@ -1183,7 +839,6 @@
                 alert('クラウドへの保存に失敗しました: ' + (result.error || result.reason));
             }
         } catch (error) {
-            console.error('同期エラー:', error);
             alert('同期処理中にエラーが発生しました: ' + error.message);
         }
     };
@@ -1213,35 +868,17 @@
                 window.DataHooksCache.clear('wordFilters');
             }
 
-            // 【統合】aiLearning.wordWeightsからワード評価を復元
-            if (cloudData.aiLearning && cloudData.aiLearning.wordWeights && window.WordRatingManager) {
-                console.log('AI学習データからワード評価を復元中...');
-                
-                // AI重みから星評価に変換するマップ
-                const weightToRating = {
-                    "-10": 1,  // 1星: 低評価
-                    "-5": 2,   // 2星: やや低評価
-                    "0": 3,    // 3星: 中立
-                    "5": 4,    // 4星: やや高評価
-                    "10": 5    // 5星: 高評価
-                };
-                
+            if (cloudData.aiLearning?.wordWeights && window.WordRatingManager) {
+                const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
                 let restoredCount = 0;
                 Object.entries(cloudData.aiLearning.wordWeights).forEach(([word, weight]) => {
                     const rating = weightToRating[weight.toString()];
-                    if (rating) {
-                        const success = window.WordRatingManager.saveWordRating(word, rating);
-                        if (success) {
-                            restoredCount++;
-                        }
+                    if (rating && window.WordRatingManager.saveWordRating(word, rating)) {
+                        restoredCount++;
                     }
                 });
                 
-                if (restoredCount > 0) {
-                    console.log(`ワード評価を復元しました: ${restoredCount}件`);
-                    // UI更新を強制実行
-                    window.render();
-                }
+                if (restoredCount > 0) window.render();
             }
 
             if (cloudData.articleStates) {
@@ -1263,10 +900,7 @@
                 
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
                 window.DataHooksCache.clear('articles');
-                
                 window.setState({ articles: updatedArticles });
-                
-                console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
             }
 
             alert('クラウドからデータを復元しました');
@@ -1288,7 +922,6 @@
             const testResults = await window.GistSyncManager.testSync();
             const passedTests = testResults.tests.filter(t => t.status === 'pass').length;
             const totalTests = testResults.tests.length;
-            
             alert(`同期診断結果: ${passedTests}/${totalTests} 項目が正常です`);
         } catch (error) {
             alert('診断テストエラー: ' + error.message);
@@ -1296,9 +929,7 @@
     };
 
     window.handleClearGitHubSettings = () => {
-        if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) {
-            return;
-        }
+        if (!confirm('GitHub同期設定を解除しますか？\n定期同期も停止されます。')) return;
         
         try {
             if (window.GistSyncManager) {
@@ -1308,11 +939,13 @@
             localStorage.removeItem('minews_gist_config');
             
             if (window.GistSyncManager) {
-                window.GistSyncManager.token = null;
-                window.GistSyncManager.gistId = null;
-                window.GistSyncManager.isEnabled = false;
-                window.GistSyncManager.lastSyncTime = null;
-                window.GistSyncManager.pendingChanges = false;
+                Object.assign(window.GistSyncManager, {
+                    token: null,
+                    gistId: null,
+                    isEnabled: false,
+                    lastSyncTime: null,
+                    pendingChanges: false
+                });
             }
             
             alert('GitHub同期設定を解除しました\n定期同期も停止されました');
@@ -1342,10 +975,7 @@
         }
     };
 
-    // ===========================================
     // データ管理機能
-    // ===========================================
-
     window.handleExportLearningData = () => {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -1409,13 +1039,8 @@
         event.target.value = '';
     };
 
-    // ===========================================
-    // イベントハンドラ
-    // ===========================================
-
-    const handleFilterChange = (mode) => {
-        window.setState({ viewMode: mode });
-    };
+    // イベントハンドラ（軽量化版）
+    const handleFilterChange = (mode) => window.setState({ viewMode: mode });
 
     const handleRefresh = async () => {
         window.setState({ isLoading: true });
@@ -1425,14 +1050,11 @@
             const result = await rssHook.fetchAllFeeds();
             alert(`記事を更新しました（追加: ${result.totalAdded}件、エラー: ${result.totalErrors}件）`);
             
-            window.setState({ 
-                lastUpdate: new Date()
-            });
+            window.setState({ lastUpdate: new Date() });
             
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
-            
         } catch (error) {
             alert('記事の更新に失敗しました: ' + error.message);
         } finally {
@@ -1448,7 +1070,6 @@
 
         const articlesHook = window.DataHooks.useArticles();
         const article = articlesHook.articles.find(a => a.id === articleId);
-        
         if (!article) return;
 
         switch (actionType) {
@@ -1459,7 +1080,7 @@
                 
                 articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
                 
-                const articleCard = document.querySelector(`[data-article-id="${articleId}"]`).closest('.article-card');
+                const articleCard = document.querySelector(`[data-article-id="${articleId}"]`)?.closest('.article-card');
                 const readButton = event.target;
                 
                 if (articleCard) {
@@ -1492,7 +1113,6 @@
             case 'read':
                 if (article.readStatus !== 'read') {
                     articlesHook.updateArticle(articleId, { readStatus: 'read' });
-                    
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
                     }
@@ -1501,18 +1121,13 @@
         }
     };
 
-    const handleCloseModal = () => {
-        window.setState({ showModal: null });
-    };
-
-    const handleOpenModal = (modalType) => {
-        window.setState({ showModal: modalType });
-    };
+    const handleCloseModal = () => window.setState({ showModal: null });
+    const handleOpenModal = (modalType) => window.setState({ showModal: modalType });
 
     const handleAddWord = (type) => {
         if (type === 'interest') {
             const word = prompt('興味ワードを入力してください:');
-            if (!word || !word.trim()) return;
+            if (!word?.trim()) return;
 
             const wordHook = window.DataHooks.useWordFilters();
             const success = wordHook.addInterestWord(word.trim());
@@ -1540,17 +1155,13 @@
 
         if (success) {
             window.render();
-            
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
         }
     };
 
-        // ===========================================
-    // レンダリング
-    // ===========================================
-
+    // レンダリング（軽量化版）
     const renderNavigation = () => {
         return `
             <nav class="nav">
@@ -1560,19 +1171,13 @@
                         <span class="last-update-mobile">表示中: ${getFilteredArticles().length}件</span>
                     </div>
                     <div class="nav-actions-mobile">
-                        <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
-                                onclick="handleRefresh()" 
-                                ${window.state.isLoading ? 'disabled' : ''}>
-                            ${window.state.isLoading ? '更新中...' : '記事更新'}
-                        </button>
+                        <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}>${window.state.isLoading ? '更新中...' : '記事更新'}</button>
                         <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
                     </div>
                 </div>
                 
                 <div class="nav-filters-mobile">
-                    <div class="filter-row">
-                        ${renderFolderDropdown('mobile_')}
-                    </div>
+                    <div class="filter-row">${renderFolderDropdown('mobile_')}</div>
                     
                     <div class="filter-row">
                         <label for="viewFilterMobile">表示:</label>
@@ -1582,9 +1187,7 @@
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
                         </select>
-                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">
-                            ✓
-                        </button>
+                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">✓</button>
                     </div>
                 </div>
 
@@ -1594,9 +1197,7 @@
                 </div>
                 
                 <div class="nav-filters desktop-only">
-                    <div class="filter-group">
-                        ${renderFolderDropdown('desktop_')}
-                    </div>
+                    <div class="filter-group">${renderFolderDropdown('desktop_')}</div>
                     
                     <div class="filter-group">
                         <label for="viewFilterDesktop">表示:</label>
@@ -1606,18 +1207,12 @@
                             <option value="read" ${window.state.viewMode === 'read' ? 'selected' : ''}>既読のみ</option>
                             <option value="readLater" ${window.state.viewMode === 'readLater' ? 'selected' : ''}>後で読む</option>
                         </select>
-                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">
-                            ✓
-                        </button>
+                        <button class="action-btn bulk-read-btn" onclick="handleBulkMarkAsRead()" title="表示中の記事を一括既読">✓</button>
                     </div>
                 </div>
 
                 <div class="nav-actions desktop-only">
-                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" 
-                            onclick="handleRefresh()" 
-                            ${window.state.isLoading ? 'disabled' : ''}>
-                        ${window.state.isLoading ? '更新中...' : '記事更新'}
-                    </button>
+                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}>${window.state.isLoading ? '更新中...' : '記事更新'}</button>
                     <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
                 </div>
             </nav>
@@ -1632,18 +1227,15 @@
             window.state.selectedFeeds.includes(article.rssSource)
         );
 
-        // フィルター設定による追加フィルタリング
         const filterSettings = getFilterSettings();
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
         
-        // AIスコア範囲フィルター
         filtered = filtered.filter(article => {
             const aiScore = window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters);
             return aiScore >= filterSettings.scoreMin && aiScore <= filterSettings.scoreMax;
         });
 
-        // 日付範囲フィルター
         const now = new Date();
         filtered = filtered.filter(article => {
             const articleDate = new Date(article.publishDate);
@@ -1682,31 +1274,19 @@
         });
     };
 
-    // 【統合】記事カード描画（統合最適化版）
     const renderArticleCard = (article) => {
         const keywords = (article.keywords || []).map(keyword => {
-            // キーワードのサニタイズ
-            const sanitizedKeyword = keyword.replace(/[<>"'&]/g, function(match) {
-                const escapeChars = {
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;',
-                    '&': '&amp;'
-                };
+            const sanitizedKeyword = keyword.replace(/[<>"'&]/g, match => {
+                const escapeChars = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' };
                 return escapeChars[match];
             });
             
-            // 【統合】WordRatingManagerから統一取得
             const rating = window.WordRatingManager?.getWordRating(keyword) || 0;
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             return `
-                <span class="keyword ${ratingClass}" 
-                      onclick="showWordRatingModal('${keyword.replace(/'/g, "\\'")}', 'keyword'); event.stopPropagation();"
-                      title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
-                    ${sanitizedKeyword}
-                    ${rating > 0 ? ` ★${rating}` : ''}
+                <span class="keyword ${ratingClass}" onclick="showWordRatingModal('${keyword.replace(/'/g, "\\'")}', 'keyword'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                    ${sanitizedKeyword}${rating > 0 ? ` ★${rating}` : ''}
                 </span>
             `;
         }).join('');
@@ -1715,9 +1295,7 @@
             <div class="article-card" data-read-status="${article.readStatus}">
                 <div class="article-header">
                     <h3 class="article-title">
-                        <a href="${article.url}" target="_blank" rel="noopener noreferrer"
-                           onclick="handleArticleClick(event, '${article.id}', 'read')"
-                           onauxclick="handleArticleClick(event, '${article.id}', 'read')">
+                        <a href="${article.url}" target="_blank" rel="noopener noreferrer" onclick="handleArticleClick(event, '${article.id}', 'read')" onauxclick="handleArticleClick(event, '${article.id}', 'read')">
                             ${article.title}
                         </a>
                     </h3>
@@ -1729,22 +1307,15 @@
                     </div>
                 </div>
 
-                <div class="article-content">
-                    ${window.truncateText(article.content)}
-                </div>
+                <div class="article-content">${window.truncateText(article.content)}</div>
 
                 ${keywords ? `<div class="article-keywords">${keywords}</div>` : ''}
 
                 <div class="article-actions">
-                    <button class="simple-btn read-status" 
-                            onclick="handleArticleClick(event, '${article.id}', 'toggleRead')"
-                            data-article-id="${article.id}">
+                    <button class="simple-btn read-status" onclick="handleArticleClick(event, '${article.id}', 'toggleRead')" data-article-id="${article.id}">
                         ${article.readStatus === 'read' ? '既読' : '未読'}
                     </button>
-                    <button class="simple-btn read-later" 
-                            data-active="${article.readLater}"
-                            onclick="handleArticleClick(event, '${article.id}', 'readLater')"
-                            data-article-id="${article.id}">
+                    <button class="simple-btn read-later" data-active="${article.readLater}" onclick="handleArticleClick(event, '${article.id}', 'readLater')" data-article-id="${article.id}">
                         ${article.readLater ? '解除' : '後で'}
                     </button>
                 </div>
@@ -1759,32 +1330,21 @@
             return '<div class="empty-message">表示する記事がありません</div>';
         }
 
-        return `
-            <div class="article-grid">
-                ${articles.map(renderArticleCard).join('')}
-            </div>
-        `;
+        return `<div class="article-grid">${articles.map(renderArticleCard).join('')}</div>`;
     };
 
-    // 【統合】設定モーダル（統合最適化版）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
-        
-        // フィルター設定の取得
         const filterSettings = getFilterSettings();
         
-        // 【統合】興味ワード星評価統合表示
         const interestWords = wordHook.wordFilters.interestWords.map(word => {
             const rating = window.WordRatingManager?.getWordRating(word) || 0;
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             return `
-                <span class="word-tag interest ${ratingClass}" 
-                      onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();"
-                      title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
-                    ${word}
-                    ${rating > 0 ? ` ★${rating}` : ''}
+                <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                    ${word}${rating > 0 ? ` ★${rating}` : ''}
                     <button class="word-remove" onclick="handleRemoveWord('${word}', 'interest'); event.stopPropagation()">×</button>
                 </span>
             `;
@@ -1825,12 +1385,10 @@
                                 </div>
                                 <div class="slider-container">
                                     <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
-                                    <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" 
-                                           oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
+                                    <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
                                     
                                     <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
-                                    <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" 
-                                           oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
+                                    <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
                                 </div>
                             </div>
 
@@ -1841,12 +1399,10 @@
                                 </div>
                                 <div class="slider-container">
                                     <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
-                                    <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" 
-                                           oninput="updateDateDisplay('min', this.value)" class="filter-slider">
+                                    <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" oninput="updateDateDisplay('min', this.value)" class="filter-slider">
                                     
                                     <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
-                                    <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" 
-                                           oninput="updateDateDisplay('max', this.value)" class="filter-slider">
+                                    <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" oninput="updateDateDisplay('max', this.value)" class="filter-slider">
                                 </div>
                             </div>
 
@@ -1859,9 +1415,7 @@
                         <div class="modal-section-group">
                             <h3 class="group-title">クラウド同期</h3>
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>GitHub同期設定</h3>
-                                </div>
+                                <div class="word-section-header"><h3>GitHub同期設定</h3></div>
                                 
                                 <p class="text-muted mb-3">
                                     同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
@@ -1871,57 +1425,33 @@
                                         ''}
                                 </p>
                                 
-                                <p class="text-muted mb-3">
-                                    GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが定期的（1分間隔）に自動で同期されます。
-                                </p>
-                                
                                 ${window.GistSyncManager?.isEnabled ? `
                                     <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
-                                        <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">
-                                            GitHub同期は設定済みです。定期同期（1分間隔）が実行中。
-                                        </div>
+                                        <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">GitHub同期は設定済みです。定期同期（1分間隔）が実行中。</div>
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">
-                                                設定を解除
-                                            </button>
-                                            <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">
-                                                Gist IDコピー
-                                            </button>
+                                            <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">設定を解除</button>
+                                            <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">Gist IDコピー</button>
                                         </div>
                                     </div>
                                     
                                     <div class="modal-actions">
-                                        <button class="action-btn" onclick="handleSyncToCloud()">
-                                            手動バックアップ
-                                        </button>
-                                        <button class="action-btn" onclick="handleSyncFromCloud()">
-                                            クラウドから復元
-                                        </button>
-                                        <button class="action-btn" onclick="handleSyncDiagnostic()">
-                                            同期診断
-                                        </button>
+                                        <button class="action-btn" onclick="handleSyncToCloud()">手動バックアップ</button>
+                                        <button class="action-btn" onclick="handleSyncFromCloud()">クラウドから復元</button>
+                                        <button class="action-btn" onclick="handleSyncDiagnostic()">同期診断</button>
                                     </div>
                                 ` : `
                                     <div class="modal-actions">
                                         <div style="margin-bottom: 1rem;">
-                                            <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
-                                                GitHub Personal Access Token
-                                            </label>
-                                            <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" 
-                                                   class="filter-select" style="width: 100%;">
+                                            <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
+                                            <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
                                         </div>
                                         
                                         <div style="margin-bottom: 1rem;">
-                                            <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">
-                                                既存のGist ID（任意）
-                                            </label>
-                                            <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" 
-                                                   class="filter-select" style="width: 100%; font-family: monospace;">
+                                            <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
+                                            <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
                                         </div>
                                         
-                                        <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">
-                                            GitHub同期を開始
-                                        </button>
+                                        <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
                                     </div>
                                 `}
                             </div>
@@ -1956,8 +1486,6 @@
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして1-5星で評価可能</li>
                                     <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
-                                    <li>大文字・小文字は区別されません</li>
-                                    <li>部分一致で動作します</li>
                                 </ul>
                             </div>
                         </div>
@@ -1965,16 +1493,9 @@
                         <div class="modal-section-group">
                             <h3 class="group-title">データ管理</h3>
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>学習データ管理</h3>
-                                </div>
-                                <p class="text-muted mb-3">AI学習データとワードフィルターをバックアップ・復元できます</p>
-                                
+                                <div class="word-section-header"><h3>学習データ管理</h3></div>
                                 <div class="modal-actions">
-                                    <button class="action-btn success" onclick="handleExportLearningData()">
-                                        学習データエクスポート
-                                    </button>
-                                    
+                                    <button class="action-btn success" onclick="handleExportLearningData()">学習データエクスポート</button>
                                     <label class="action-btn" style="cursor: pointer; display: inline-block;">
                                         学習データインポート
                                         <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
@@ -1986,9 +1507,7 @@
                         <div class="modal-section-group">
                             <h3 class="group-title">システム情報</h3>
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>ストレージ使用量</h3>
-                                </div>
+                                <div class="word-section-header"><h3>ストレージ使用量</h3></div>
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
@@ -1998,9 +1517,7 @@
                             </div>
 
                             <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>バージョン情報</h3>
-                                </div>
+                                <div class="word-section-header"><h3>バージョン情報</h3></div>
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
@@ -2017,19 +1534,13 @@
 
     const renderModal = () => {
         switch (window.state.showModal) {
-            case 'settings':
-                return renderSettingsModal();
-            case 'addNGWord':
-                return renderAddNGWordModal();
-            default:
-                return '';
+            case 'settings': return renderSettingsModal();
+            case 'addNGWord': return renderAddNGWordModal();
+            default: return '';
         }
     };
 
-    // ===========================================
     // メインレンダー関数
-    // ===========================================
-
     window.render = () => {
         const app = document.getElementById('app');
         if (!app) return;
@@ -2037,59 +1548,24 @@
         app.innerHTML = `
             <div class="app">
                 ${renderNavigation()}
-                <main class="main-content">
-                    ${renderArticleList()}
-                </main>
+                <main class="main-content">${renderArticleList()}</main>
                 ${renderModal()}
             </div>
         `;
     };
 
-    // ===========================================
-    // グローバル関数の追加
-    // ===========================================
+    // グローバル関数の追加（軽量化版）
+    Object.assign(window, {
+        handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
+        handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
+        handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
+        updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
+        handleAddNGWordWithScope, handleNGWordScopeChange, handleSubmitNGWord, handleRemoveNGWordWithScope,
+        showWordRatingModal, closeWordRatingModal, highlightStars, resetStars, selectWordRating,
+        showToastNotification
+    });
 
-    window.handleFilterChange = handleFilterChange;
-    window.handleRefresh = handleRefresh;
-    window.handleArticleClick = handleArticleClick;
-    window.handleCloseModal = handleCloseModal;
-    window.handleOpenModal = handleOpenModal;
-    window.handleAddWord = handleAddWord;
-    window.handleRemoveWord = handleRemoveWord;
-    window.initializeGistSync = initializeGistSync;
-    window.handleFolderToggle = handleFolderToggle;
-    window.handleFeedToggle = handleFeedToggle;
-    window.handleSelectAllFolders = handleSelectAllFolders;
-    window.toggleFolderDropdown = toggleFolderDropdown;
-    window.handleBulkMarkAsRead = handleBulkMarkAsRead;
-    
-    // シンプルフィルター設定関数をグローバルに追加
-    window.updateScoreDisplay = updateScoreDisplay;
-    window.updateDateDisplay = updateDateDisplay;
-    window.applyFilterSettings = applyFilterSettings;
-    window.resetFilterSettings = resetFilterSettings;
-    window.getFilterSettings = getFilterSettings;
-
-    // NGワード範囲選択機能をグローバルに追加
-    window.handleAddNGWordWithScope = handleAddNGWordWithScope;
-    window.handleNGWordScopeChange = handleNGWordScopeChange;
-    window.handleSubmitNGWord = handleSubmitNGWord;
-    window.handleRemoveNGWordWithScope = handleRemoveNGWordWithScope;
-
-    // 【統合】ワード評価機能をグローバルに追加（統合最適化版）
-    window.showWordRatingModal = showWordRatingModal;
-    window.closeWordRatingModal = closeWordRatingModal;
-    window.highlightStars = highlightStars;
-    window.resetStars = resetStars;
-    window.selectWordRating = selectWordRating;
-
-    // 【統合】新規追加関数
-    window.showToastNotification = showToastNotification;
-
-    // ===========================================
     // 初期化
-    // ===========================================
-
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
