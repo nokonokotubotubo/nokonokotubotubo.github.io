@@ -1057,14 +1057,16 @@ window.AIScoring = {
                 const baseBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
                 rawScore += baseBonus;
                 
+                // 【修正】AI学習の重みを使用（正しい評価反映）
                 let starRatingBonus = 0;
                 matchedWords.forEach(word => {
-                    const rating = window.WordRatingManager.getWordRating(word) || 0;
-                    if (rating > 0) {
-                        starRatingBonus += rating * 2;
-                    }
+                    const aiWeight = aiLearning.wordWeights[word] || 0;
+                    // AI重み: -10(1星), -5(2星), 0(3星), +5(4星), +10(5星)
+                    starRatingBonus += aiWeight;
                 });
                 rawScore += starRatingBonus;
+                
+                console.log(`興味ワードボーナス: 基本${baseBonus} + AI重み${starRatingBonus} = ${baseBonus + starRatingBonus}`);
             }
         }
         
@@ -1123,6 +1125,7 @@ window.AIScoring = {
         return Math.round(adjustedScore);
     }
 };
+
 
 // ワードフィルター管理
 window.WordFilterManager = {
