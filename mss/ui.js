@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（最適化統合版）
+// Minews PWA - UI・表示レイヤー（興味ワード星評価統合版）
 (function() {
     'use strict';
 
@@ -476,6 +476,153 @@
         }
         
         closeKeywordRatingModal();
+    };
+
+    // ===========================================
+    // 【新規追加】興味ワード星評価ポップアップ機能
+    // ===========================================
+
+    // 【新規追加】興味ワード星評価モーダル表示
+    const showInterestWordRatingModal = (word) => {
+        const currentRating = window.InterestWordRatingManager?.getInterestWordRating(word) || 0;
+        
+        console.log(`興味ワード評価ポップアップを表示: ${word}, 現在の評価: ${currentRating}`);
+        
+        // 重複評価の確認
+        if (currentRating > 0) {
+            const confirmChange = confirm(`興味ワード「${word}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？`);
+            if (!confirmChange) {
+                return;
+            }
+        }
+        
+        // ポップアップモーダルを作成
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(3px);
+        `;
+        
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            const isActive = i <= currentRating;
+            starsHtml += `
+                <button class="popup-star ${isActive ? 'active' : ''}" 
+                        data-rating="${i}" 
+                        onmouseover="highlightStars(${i})"
+                        onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})"
+                        onclick="selectInterestWordRating('${word.replace(/'/g, "\\'")}', ${i})">
+                    ★
+                </button>
+            `;
+        }
+        
+        const statusMessage = currentRating > 0 
+            ? `<div style="color: #4caf50; font-weight: 600;">現在の評価: ${currentRating}星 (興味ワード + 星評価)</div>`
+            : `<div style="color: #9ca3af;">評価なし (興味ワードのみ)</div>`;
+        
+        modal.innerHTML = `
+            <div class="keyword-rating-popup" onclick="event.stopPropagation()" style="
+                background: #24323d;
+                border-radius: 12px;
+                padding: 2rem;
+                min-width: 350px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                text-align: center;
+                color: #e0e6eb;
+            ">
+                <h3 style="margin: 0 0 1rem 0; color: #4caf50;">興味ワード評価</h3>
+                <div style="margin-bottom: 1rem;">
+                    <span style="font-size: 1.1rem; font-weight: 600;">${word}</span>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    ${statusMessage}
+                </div>
+                <div class="rating-stars" style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 0.5rem;">
+                    ${starsHtml}
+                </div>
+                <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: #9ca3af;">
+                    <div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div>
+                    <div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem;">※興味ワードボーナスに加算されます</div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                    <button onclick="closeInterestWordRatingModal()" style="
+                        background: #6b7280;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                    ">キャンセル</button>
+                    ${currentRating > 0 ? `
+                    <button onclick="selectInterestWordRating('${word.replace(/'/g, "\\'")}', 0)" style="
+                        background: #f44336;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                    ">評価を削除</button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        modal.onclick = () => closeInterestWordRatingModal();
+        
+        document.body.appendChild(modal);
+        window._currentInterestWordModal = modal;
+    };
+
+    // 興味ワード評価モーダルを閉じる
+    const closeInterestWordRatingModal = () => {
+        if (window._currentInterestWordModal) {
+            document.body.removeChild(window._currentInterestWordModal);
+            window._currentInterestWordModal = null;
+        }
+    };
+
+    // 興味ワード評価を選択
+    const selectInterestWordRating = (word, rating) => {
+        try {
+            const success = window.InterestWordRatingManager.setInterestWordRating(word, rating);
+            
+            if (success) {
+                // 成功通知
+                const message = rating === 0 
+                    ? `興味ワード「${word}」の星評価を削除しました`
+                    : `興味ワード「${word}」を${rating}星に評価しました`;
+                
+                showToastNotification(message, rating === 0 ? 'error' : 'success');
+                
+                // 設定モーダルを再描画
+                setTimeout(() => {
+                    window.render();
+                }, 100);
+                
+                console.log(`✅ ${message}`);
+            } else {
+                alert('興味ワード評価の保存に失敗しました');
+            }
+        } catch (error) {
+            console.error('興味ワード評価処理中にエラーが発生:', error);
+            alert('興味ワード評価処理中にエラーが発生しました: ' + error.message);
+        }
+        
+        closeInterestWordRatingModal();
     };
 
     // ===========================================
@@ -1205,70 +1352,68 @@
             }
             
             if (cloudData.wordFilters) {
-    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
-    window.DataHooksCache.clear('wordFilters');
-}
-
-// 【修正】aiLearning.wordWeightsからキーワード評価を復元
-if (cloudData.aiLearning && cloudData.aiLearning.wordWeights && window.KeywordRatingManager) {
-    console.log('AI学習データからキーワード評価を復元中...');
-    
-    // AI重みから星評価に変換するマップ
-    const weightToRating = {
-        "-10": 1,  // 1星: 低評価
-        "-5": 2,   // 2星: やや低評価
-        "0": 3,    // 3星: 中立
-        "5": 4,    // 4星: やや高評価
-        "10": 5    // 5星: 高評価
-    };
-    
-    let restoredCount = 0;
-    Object.entries(cloudData.aiLearning.wordWeights).forEach(([keyword, weight]) => {
-        const rating = weightToRating[weight.toString()];
-        if (rating) {
-            const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
-            if (success) {
-                restoredCount++;
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+                window.DataHooksCache.clear('wordFilters');
             }
-        }
-    });
-    
-    if (restoredCount > 0) {
-        console.log(`キーワード評価を復元しました: ${restoredCount}件`);
-        // UI更新を強制実行
-        window.render();
-    }
-}
 
+            // 【修正】aiLearning.wordWeightsからキーワード評価を復元
+            if (cloudData.aiLearning && cloudData.aiLearning.wordWeights && window.KeywordRatingManager) {
+                console.log('AI学習データからキーワード評価を復元中...');
+                
+                // AI重みから星評価に変換するマップ
+                const weightToRating = {
+                    "-10": 1,  // 1星: 低評価
+                    "-5": 2,   // 2星: やや低評価
+                    "0": 3,    // 3星: 中立
+                    "5": 4,    // 4星: やや高評価
+                    "10": 5    // 5星: 高評価
+                };
+                
+                let restoredCount = 0;
+                Object.entries(cloudData.aiLearning.wordWeights).forEach(([keyword, weight]) => {
+                    const rating = weightToRating[weight.toString()];
+                    if (rating) {
+                        const success = window.KeywordRatingManager.saveKeywordRating(keyword, rating);
+                        if (success) {
+                            restoredCount++;
+                        }
+                    }
+                });
+                
+                if (restoredCount > 0) {
+                    console.log(`キーワード評価を復元しました: ${restoredCount}件`);
+                    // UI更新を強制実行
+                    window.render();
+                }
+            }
 
-if (cloudData.articleStates) {
-    const articlesHook = window.DataHooks.useArticles();
-    const currentArticles = articlesHook.articles;
-    
-    const updatedArticles = currentArticles.map(article => {
-        const state = cloudData.articleStates[article.id];
-        if (state) {
-            return {
-                ...article,
-                readStatus: state.readStatus,
-                readLater: state.readLater,
-                lastModified: state.lastModified || article.lastModified
-            };
-        }
-        return article;
-    });
-    
-    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-    window.DataHooksCache.clear('articles');
-    
-    // 【修正】直接代入ではなくsetStateで状態管理経由する
-    window.setState({ articles: updatedArticles });
-    
-    console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
-}
+            if (cloudData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                const updatedArticles = currentArticles.map(article => {
+                    const state = cloudData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus,
+                            readLater: state.readLater,
+                            lastModified: state.lastModified || article.lastModified
+                        };
+                    }
+                    return article;
+                });
+                
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+                window.DataHooksCache.clear('articles');
+                
+                // 【修正】直接代入ではなくsetStateで状態管理経由する
+                window.setState({ articles: updatedArticles });
+                
+                console.log('記事状態情報を復元しました:', Object.keys(cloudData.articleStates).length, '件');
+            }
 
-
-alert('クラウドからデータを復元しました');
+            alert('クラウドからデータを復元しました');
 
         } catch (error) {
             alert('データの復元に失敗しました: ' + error.message);
@@ -1806,12 +1951,21 @@ alert('クラウドからデータを復元しました');
         // フィルター設定の取得
         const filterSettings = getFilterSettings();
         
-        const interestWords = wordHook.wordFilters.interestWords.map(word => 
-            `<span class="word-tag interest">
-                ${word}
-                <button class="word-remove" onclick="handleRemoveWord('${word}', 'interest')">×</button>
-            </span>`
-        ).join('');
+        // 【修正】興味ワード星評価対応表示
+        const interestWords = wordHook.wordFilters.interestWords.map(word => {
+            const rating = window.InterestWordRatingManager?.getInterestWordRating(word) || 0;
+            const ratingClass = rating > 0 ? `rated-${rating}` : '';
+            
+            return `
+                <span class="word-tag interest ${ratingClass}" 
+                      onclick="showInterestWordRatingModal('${word.replace(/'/g, "\\'")}'); event.stopPropagation();"
+                      title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                    ${word}
+                    ${rating > 0 ? ` ★${rating}` : ''}
+                    <button class="word-remove" onclick="handleRemoveWord('${word}', 'interest'); event.stopPropagation()">×</button>
+                </span>
+            `;
+        }).join('');
 
         const ngWords = wordHook.wordFilters.ngWords.map(ngWordObj => {
             if (typeof ngWordObj === 'string') {
@@ -1894,7 +2048,7 @@ alert('クラウドからデータを復元しました');
                                         ''}
                                 </p>
                                 
-                                <p class="text-muted mb-3">
+                                                                <p class="text-muted mb-3">
                                     GitHub Personal Access Tokenを設定すると、記事の既読・評価・後で読む状態、AI学習データ、ワードフィルターが定期的（1分間隔）に自動で同期されます。
                                 </p>
                                 
@@ -1975,7 +2129,8 @@ alert('クラウドからデータを復元しました');
                             <div class="word-help">
                                 <h4>ヘルプ</h4>
                                 <ul>
-                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（さらに星評価でボーナス加算）</li>
+                                    <li><strong>キーワード評価:</strong> 記事内のキーワードをクリックして1-5星で評価できます</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
                                     <li>大文字・小文字は区別されません</li>
                                     <li>部分一致で動作します</li>
@@ -2025,7 +2180,7 @@ alert('クラウドからデータを復元しました');
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        最適化統合版
+                                        興味ワード星評価統合版
                                     </p>
                                 </div>
                             </div>
@@ -2103,6 +2258,11 @@ alert('クラウドからデータを復元しました');
     window.highlightStars = highlightStars;
     window.resetStars = resetStars;
     window.selectRating = selectRating;
+
+    // 【新規追加】興味ワード星評価機能をグローバルに追加
+    window.showInterestWordRatingModal = showInterestWordRatingModal;
+    window.closeInterestWordRatingModal = closeInterestWordRatingModal;
+    window.selectInterestWordRating = selectInterestWordRating;
 
     // 【最適化】新規追加関数
     window.showToastNotification = showToastNotification;
