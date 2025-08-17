@@ -35,9 +35,10 @@ window.DEFAULT_DATA = {
     }
 };
 
-// ワード評価管理システム（統合最適化版）
+// ワード評価管理システム（根本修正版）
 window.WordRatingManager = {
     STORAGE_KEY: 'minews_keyword_ratings',
+    AUTO_ADDED_KEY: 'minews_auto_added_words', // 自動追加ワード記録
     
     getWordRating(word) {
         try {
@@ -51,13 +52,27 @@ window.WordRatingManager = {
     saveWordRating(word, rating) {
         try {
             const ratings = this.getAllRatings();
+            const autoAdded = this.getAutoAddedWords();
             const normalizedRating = Math.max(0, Math.min(5, parseInt(rating)));
             
             if (normalizedRating > 0) {
                 ratings[word] = normalizedRating;
-                this._addToInterestWords(word);
+                
+                // 【修正】自動追加の記録
+                if (this._addToInterestWords(word)) {
+                    autoAdded[word] = true; // 自動追加されたことを記録
+                    localStorage.setItem(this.AUTO_ADDED_KEY, JSON.stringify(autoAdded));
+                }
             } else {
+                // 【修正】評価削除時の処理
                 delete ratings[word];
+                
+                // 自動追加されたワードの場合は興味ワードからも削除
+                if (autoAdded[word]) {
+                    this._removeFromInterestWords(word);
+                    delete autoAdded[word];
+                    localStorage.setItem(this.AUTO_ADDED_KEY, JSON.stringify(autoAdded));
+                }
             }
             
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ratings));
@@ -77,6 +92,15 @@ window.WordRatingManager = {
         }
     },
     
+    getAutoAddedWords() {
+        try {
+            const autoAdded = localStorage.getItem(this.AUTO_ADDED_KEY);
+            return autoAdded ? JSON.parse(autoAdded) : {};
+        } catch {
+            return {};
+        }
+    },
+    
     _addToInterestWords(word) {
         try {
             const wordHook = window.DataHooks.useWordFilters();
@@ -88,9 +112,36 @@ window.WordRatingManager = {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
                 window.DataHooksCache.clear('wordFilters');
                 window.DataHooksCache.wordFilters = wordFilters;
+                console.log(`自動追加: 興味ワード「${word}」`);
+                return true; // 新規追加された
             }
+            return false; // 既に存在していた
         } catch (error) {
             console.error('興味ワード自動追加エラー:', error);
+            return false;
+        }
+    },
+    
+    // 【新規】興味ワードから削除する機能
+    _removeFromInterestWords(word) {
+        try {
+            const wordHook = window.DataHooks.useWordFilters();
+            const wordFilters = { ...wordHook.wordFilters };
+            
+            const index = wordFilters.interestWords.indexOf(word);
+            if (index > -1) {
+                wordFilters.interestWords.splice(index, 1);
+                wordFilters.lastUpdated = new Date().toISOString();
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
+                window.DataHooksCache.clear('wordFilters');
+                window.DataHooksCache.wordFilters = wordFilters;
+                console.log(`自動削除: 興味ワード「${word}」`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('興味ワード自動削除エラー:', error);
+            return false;
         }
     },
     
