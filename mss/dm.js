@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（GIST同期時点数不整合修正版）
+// Minews PWA - データ管理・処理レイヤー（興味ワード星評価統合版）
 
 (function() {
 
@@ -105,6 +105,45 @@ window.KeywordRatingManager = {
         } catch (error) {
             console.error('AI学習データの更新に失敗:', error);
         }
+    }
+};
+
+// 【新規追加】興味ワード星評価管理システム
+window.InterestWordRatingManager = {
+    // 興味ワードに星評価を設定
+    setInterestWordRating(word, rating) {
+        try {
+            // KeywordRatingManagerを使用して評価を保存
+            const success = window.KeywordRatingManager.saveKeywordRating(word, rating);
+            
+            if (success) {
+                console.log(`興味ワード「${word}」を${rating}星に評価しました`);
+                
+                // GitHub同期マーク
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
+            }
+            
+            return success;
+        } catch (error) {
+            console.error('興味ワード評価設定エラー:', error);
+            return false;
+        }
+    },
+    
+    // 興味ワードの星評価を取得
+    getInterestWordRating(word) {
+        return window.KeywordRatingManager?.getKeywordRating(word) || 0;
+    },
+    
+    // すべての興味ワードの評価状態を取得
+    getAllInterestWordRatings(interestWords) {
+        const ratings = {};
+        interestWords.forEach(word => {
+            ratings[word] = this.getInterestWordRating(word);
+        });
+        return ratings;
     }
 };
 
@@ -1211,7 +1250,7 @@ window.ArticleLoader = {
     }
 };
 
-// 【修正】AI学習システム（RSS配信元重み削除＋組み合わせボーナス符号修正版）
+// 【修正】AI学習システム（興味ワード星評価統合版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1222,8 +1261,7 @@ window.AIScoring = {
             rawScore += multidimensionalScore;
         }
         
-        // 【削除】RSS配信元重み処理を完全削除
-        
+        // 【修正】興味ワード統合評価処理
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1231,8 +1269,22 @@ window.AIScoring = {
             );
             
             if (matchedWords.length > 0) {
-                const interestBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
-                rawScore += interestBonus;
+                // 基本興味ワードボーナス（従来通り）
+                const baseBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
+                rawScore += baseBonus;
+                
+                // 興味ワード個別星評価ボーナス（新規追加）
+                let starRatingBonus = 0;
+                matchedWords.forEach(word => {
+                    const rating = window.InterestWordRatingManager?.getInterestWordRating(word) || 0;
+                    if (rating > 0) {
+                        // 星評価に応じたボーナス（1星=+2, 2星=+4, 3星=+6, 4星=+8, 5星=+10）
+                        starRatingBonus += rating * 2;
+                    }
+                });
+                rawScore += starRatingBonus;
+                
+                console.log(`興味ワードボーナス: 基本${baseBonus} + 星評価${starRatingBonus} = ${baseBonus + starRatingBonus}`);
             }
         }
         
