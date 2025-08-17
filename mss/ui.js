@@ -110,160 +110,219 @@
         }, 2500);
     };
 
-    // テキスト選択コンテキストメニュー機能
-    const TextSelectionManager = {
-        selectedText: '',
-        selectionMenu: null,
+    // テキスト選択コンテキストメニュー機能（修正版）
+const TextSelectionManager = {
+    selectedText: '',
+    selectionMenu: null,
+    isTouch: false,
+    
+    init() {
+        // デスクトップ用：右クリックメニュー抑止とコンテキストメニュー表示
+        document.addEventListener('contextmenu', this.handleRightClick.bind(this));
         
-        init() {
-            // マウスアップイベントでテキスト選択を検出
-            document.addEventListener('mouseup', this.handleTextSelection.bind(this));
-            // クリックでメニューを隠す
-            document.addEventListener('click', this.hideSelectionMenu.bind(this));
-            // ESCキーでメニューを隠す
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') this.hideSelectionMenu();
-            });
-        },
+        // モバイル用：タッチイベント処理
+        document.addEventListener('touchstart', this.handleTouchStart.bind(this));
+        document.addEventListener('touchend', this.handleTouchEnd.bind(this));
         
-        handleTextSelection(event) {
-            // モーダルが開いている場合は無視
-            if (window.state.showModal) return;
-            
-            const selection = window.getSelection();
-            const selectedText = selection.toString().trim();
-            
-            // 選択テキストが空、短すぎる、長すぎる場合は無視
-            if (!selectedText || selectedText.length < 2 || selectedText.length > 50) {
-                this.hideSelectionMenu();
-                return;
-            }
-            
-            // 記事カード内のテキスト選択かチェック
-            const articleCard = event.target.closest('.article-card');
-            if (!articleCard) {
-                this.hideSelectionMenu();
-                return;
-            }
-            
+        // 共通：選択変更イベント
+        document.addEventListener('selectionchange', this.handleSelectionChange.bind(this));
+        
+        // クリックでメニューを隠す
+        document.addEventListener('click', this.hideSelectionMenu.bind(this));
+        
+        // ESCキーでメニューを隠す
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.hideSelectionMenu();
+        });
+    },
+    
+    handleRightClick(event) {
+        // モーダルが開いている場合は無視
+        if (window.state.showModal) return;
+        
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        
+        // 記事カード内でない場合は通常の右クリックメニューを表示
+        const articleCard = event.target.closest('.article-card');
+        if (!articleCard) return;
+        
+        // 選択テキストがある場合のみ右クリックメニューを抑止
+        if (selectedText && selectedText.length >= 2 && selectedText.length <= 50) {
+            event.preventDefault();
+            event.stopPropagation();
             this.selectedText = selectedText;
             this.showSelectionMenu(event.pageX, event.pageY);
-        },
-        
-        showSelectionMenu(x, y) {
-            this.hideSelectionMenu(); // 既存メニューを削除
-            
-            const menu = document.createElement('div');
-            menu.className = 'text-selection-menu';
-            menu.onclick = (e) => e.stopPropagation();
-            
-            // メニュー位置の調整
-            const menuWidth = 200;
-            const menuHeight = 100;
-            const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
-            const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
-            
-            menu.style.cssText = `
-                position: fixed;
-                left: ${adjustedX}px;
-                top: ${adjustedY}px;
-                background: #24323d;
-                border: 1px solid #4eb3d3;
-                border-radius: 8px;
-                padding: 0.5rem;
-                z-index: 10002;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                min-width: 180px;
-            `;
-            
-            menu.innerHTML = `
-                <div style="color: #e0e6eb; font-size: 0.8rem; margin-bottom: 0.5rem; text-align: center;">
-                    「${this.selectedText}」
-                </div>
-                <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    <button class="selection-btn interest-btn" onclick="TextSelectionManager.addAsInterestWord()">
-                        興味ワード
-                    </button>
-                    <button class="selection-btn ng-btn" onclick="TextSelectionManager.addAsNGWord()">
-                        NGワード
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(menu);
-            this.selectionMenu = menu;
-        },
-        
-        hideSelectionMenu() {
-            if (this.selectionMenu) {
-                document.body.removeChild(this.selectionMenu);
-                this.selectionMenu = null;
-            }
-            
-            // テキスト選択を解除
-            if (window.getSelection) {
-                window.getSelection().removeAllRanges();
-            }
-        },
-        
-        addAsInterestWord() {
-            if (!this.selectedText) return;
-            
-            const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.addInterestWord(this.selectedText);
-            
-            if (success) {
-                showToastNotification(`「${this.selectedText}」を興味ワードに追加しました`, 'success');
-                
-                // 設定モーダルが開いている場合は再描画
-                if (window.state.showModal === 'settings') {
-                    window.render();
-                }
-                
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-            } else {
-                showToastNotification(`「${this.selectedText}」は既に興味ワードに登録されています`, 'error');
-            }
-            
-            this.hideSelectionMenu();
-        },
-        
-        addAsNGWord() {
-            if (!this.selectedText) return;
-            
-            // NGワード追加確認
-            const confirmAdd = confirm(`「${this.selectedText}」をNGワードとして追加しますか？\n\n該当する記事は表示されなくなります。`);
-            if (!confirmAdd) {
-                this.hideSelectionMenu();
-                return;
-            }
-            
-            const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.addNGWord(this.selectedText, 'all', null);
-            
-            if (success) {
-                showToastNotification(`「${this.selectedText}」をNGワードに追加しました`, 'success');
-                
-                // 記事一覧の更新
-                updateArticleListOnly();
-                
-                // 設定モーダルが開いている場合は再描画
-                if (window.state.showModal === 'settings') {
-                    window.render();
-                }
-                
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-            } else {
-                showToastNotification(`「${this.selectedText}」は既にNGワードに登録されています`, 'error');
-            }
-            
-            this.hideSelectionMenu();
         }
-    };
+    },
+    
+    handleTouchStart(event) {
+        this.isTouch = true;
+    },
+    
+    handleTouchEnd(event) {
+        if (!this.isTouch) return;
+        
+        // 少し遅延させてselectionchangeを待つ
+        setTimeout(() => {
+            this.handleSelectionChange();
+        }, 100);
+    },
+    
+    handleSelectionChange() {
+        // モーダルが開いている場合は無視
+        if (window.state.showModal) return;
+        
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        
+        // テキスト選択がない、短すぎる、長すぎる場合はメニューを隠す
+        if (!selectedText || selectedText.length < 2 || selectedText.length > 50) {
+            this.hideSelectionMenu();
+            return;
+        }
+        
+        // 選択された要素が記事カード内かチェック
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
+        const articleCard = element.closest('.article-card');
+        
+        if (!articleCard) {
+            this.hideSelectionMenu();
+            return;
+        }
+        
+        this.selectedText = selectedText;
+        
+        // モバイルの場合、選択範囲の位置を取得
+        if (this.isTouch) {
+            const rect = range.getBoundingClientRect();
+            const x = rect.left + (rect.width / 2);
+            const y = rect.bottom + 10; // 選択範囲の下に表示
+            this.showSelectionMenu(x, y);
+        }
+    },
+    
+    showSelectionMenu(x, y) {
+        this.hideSelectionMenu(); // 既存メニューを削除
+        
+        const menu = document.createElement('div');
+        menu.className = 'text-selection-menu';
+        menu.onclick = (e) => e.stopPropagation();
+        
+        // メニュー位置の調整
+        const menuWidth = 200;
+        const menuHeight = 100;
+        const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
+        const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
+        
+        menu.style.cssText = `
+            position: fixed;
+            left: ${adjustedX}px;
+            top: ${adjustedY}px;
+            background: #24323d;
+            border: 1px solid #4eb3d3;
+            border-radius: 8px;
+            padding: 0.5rem;
+            z-index: 10002;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 180px;
+            animation: fadeInScale 0.2s ease-out;
+        `;
+        
+        menu.innerHTML = `
+            <div style="color: #e0e6eb; font-size: 0.8rem; margin-bottom: 0.5rem; text-align: center; word-break: break-word;">
+                「${this.selectedText.substring(0, 20)}${this.selectedText.length > 20 ? '...' : ''}」
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                <button class="selection-btn interest-btn" onclick="TextSelectionManager.addAsInterestWord()">
+                    興味ワード
+                </button>
+                <button class="selection-btn ng-btn" onclick="TextSelectionManager.addAsNGWord()">
+                    NGワード
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(menu);
+        this.selectionMenu = menu;
+    },
+    
+    hideSelectionMenu() {
+        if (this.selectionMenu) {
+            document.body.removeChild(this.selectionMenu);
+            this.selectionMenu = null;
+        }
+        this.isTouch = false;
+    },
+    
+    addAsInterestWord() {
+        if (!this.selectedText) return;
+        
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.addInterestWord(this.selectedText);
+        
+        if (success) {
+            showToastNotification(`「${this.selectedText}」を興味ワードに追加しました`, 'success');
+            
+            // 設定モーダルが開いている場合は再描画
+            if (window.state.showModal === 'settings') {
+                window.render();
+            }
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+        } else {
+            showToastNotification(`「${this.selectedText}」は既に興味ワードに登録されています`, 'error');
+        }
+        
+        this.hideSelectionMenu();
+        // テキスト選択を解除
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        }
+    },
+    
+    addAsNGWord() {
+        if (!this.selectedText) return;
+        
+        // NGワード追加確認
+        const confirmAdd = confirm(`「${this.selectedText}」をNGワードとして追加しますか？\n\n該当する記事は表示されなくなります。`);
+        if (!confirmAdd) {
+            this.hideSelectionMenu();
+            return;
+        }
+        
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.addNGWord(this.selectedText, 'all', null);
+        
+        if (success) {
+            showToastNotification(`「${this.selectedText}」をNGワードに追加しました`, 'success');
+            
+            // 記事一覧の更新
+            updateArticleListOnly();
+            
+            // 設定モーダルが開いている場合は再描画
+            if (window.state.showModal === 'settings') {
+                window.render();
+            }
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+        } else {
+            showToastNotification(`「${this.selectedText}」は既にNGワードに登録されています`, 'error');
+        }
+        
+        this.hideSelectionMenu();
+        // テキスト選択を解除
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        }
+    }
+};
 
     // ワード評価モーダル（統合最適化版）
     const showWordRatingModal = (word, source = 'keyword') => {
