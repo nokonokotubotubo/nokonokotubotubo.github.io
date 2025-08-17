@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（興味ワード星評価統合版）
+// Minews PWA - データ管理・処理レイヤー（キーワード評価統合最適化版）
 
 (function() {
 
@@ -20,7 +20,7 @@ window.CONFIG = {
     RETRY_DELAY: 3000
 };
 
-// 【修正】DEFAULT_DATA - sourceWeights削除
+// DEFAULT_DATA
 window.DEFAULT_DATA = {
     articles: [],
     folders: [],
@@ -37,38 +37,48 @@ window.DEFAULT_DATA = {
     }
 };
 
-// キーワード評価管理システム（新規追加）
-window.KeywordRatingManager = {
+// 【統合】ワード評価管理システム（統合最適化版）
+window.WordRatingManager = {
     STORAGE_KEY: 'minews_keyword_ratings',
     
-    // キーワード評価を取得
-    getKeywordRating(keyword) {
+    // ワード評価を取得
+    getWordRating(word) {
         try {
             const ratings = localStorage.getItem(this.STORAGE_KEY);
             if (!ratings) return 0;
             
             const parsed = JSON.parse(ratings);
-            return parsed[keyword] || 0;
+            return parsed[word] || 0;
         } catch (error) {
-            console.warn('キーワード評価の取得に失敗:', error);
+            console.warn('ワード評価の取得に失敗:', error);
             return 0;
         }
     },
     
-    // キーワード評価を保存
-    saveKeywordRating(keyword, rating) {
+    // ワード評価を保存（興味ワード自動追加機能付き）
+    saveWordRating(word, rating) {
         try {
             const ratings = this.getAllRatings();
-            ratings[keyword] = Math.max(0, Math.min(5, parseInt(rating)));
+            const normalizedRating = Math.max(0, Math.min(5, parseInt(rating)));
+            
+            if (normalizedRating > 0) {
+                ratings[word] = normalizedRating;
+                
+                // 【統合】評価したワードを自動的に興味ワードに追加
+                this._addToInterestWords(word);
+            } else {
+                // 評価削除時はratingsから削除、興味ワードは残す
+                delete ratings[word];
+            }
             
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ratings));
             
-            // AI学習データにも反映
-            this.updateAILearningFromRating(keyword, rating);
+            // AI学習データに反映
+            this._updateAILearningFromRating(word, normalizedRating);
             
             return true;
         } catch (error) {
-            console.error('キーワード評価の保存に失敗:', error);
+            console.error('ワード評価の保存に失敗:', error);
             return false;
         }
     },
@@ -84,37 +94,61 @@ window.KeywordRatingManager = {
         }
     },
     
+    // 【統合】評価したワードを興味ワードに自動追加
+    _addToInterestWords(word) {
+        try {
+            const wordHook = window.DataHooks.useWordFilters();
+            const wordFilters = { ...wordHook.wordFilters };
+            
+            // 既に興味ワードに含まれていない場合のみ追加
+            if (!wordFilters.interestWords.includes(word)) {
+                wordFilters.interestWords.push(word);
+                wordFilters.lastUpdated = new Date().toISOString();
+                
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
+                window.DataHooksCache.clear('wordFilters');
+                window.DataHooksCache.wordFilters = wordFilters;
+                
+                console.log(`評価したワード「${word}」を興味ワードに自動追加しました`);
+            }
+        } catch (error) {
+            console.error('興味ワード自動追加エラー:', error);
+        }
+    },
+    
     // AI学習データを更新
-    updateAILearningFromRating(keyword, rating) {
+    _updateAILearningFromRating(word, rating) {
         try {
             const aiHook = window.DataHooks.useAILearning();
             const aiLearning = { ...aiHook.aiLearning };
             
-            // 【修正】星評価をAI重みに変換（1星=-10, 2星=-5, 3星=0, 4星=+5, 5星=+10）
+            // 星評価をAI重みに変換（1星=-10, 2星=-5, 3星=0, 4星=+5, 5星=+10）
             const weightMapping = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
             const weight = weightMapping[rating] || 0;
             
-            aiLearning.wordWeights[keyword] = weight;
+            if (rating > 0) {
+                aiLearning.wordWeights[word] = weight;
+            } else {
+                // 評価削除時はAI重みも削除
+                delete aiLearning.wordWeights[word];
+            }
+            
             aiLearning.lastUpdated = new Date().toISOString();
             
             window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiLearning);
             window.DataHooksCache.clear('aiLearning');
             window.DataHooksCache.aiLearning = aiLearning;
             
-            console.log(`キーワード「${keyword}」の評価${rating}星をAI重み${weight}に変換しました`);
+            console.log(`ワード「${word}」の評価${rating}星をAI重み${weight}に変換しました`);
         } catch (error) {
             console.error('AI学習データの更新に失敗:', error);
         }
-    }
-};
-
-// 【新規追加】興味ワード星評価管理システム
-window.InterestWordRatingManager = {
-    // 興味ワードに星評価を設定
+    },
+    
+    // 【統合】興味ワードに星評価を設定
     setInterestWordRating(word, rating) {
         try {
-            // KeywordRatingManagerを使用して評価を保存
-            const success = window.KeywordRatingManager.saveKeywordRating(word, rating);
+            const success = this.saveWordRating(word, rating);
             
             if (success) {
                 console.log(`興味ワード「${word}」を${rating}星に評価しました`);
@@ -132,20 +166,17 @@ window.InterestWordRatingManager = {
         }
     },
     
-    // 興味ワードの星評価を取得
-    getInterestWordRating(word) {
-        return window.KeywordRatingManager?.getKeywordRating(word) || 0;
-    },
-    
-    // すべての興味ワードの評価状態を取得
+    // 【統合】すべての興味ワードの評価状態を取得
     getAllInterestWordRatings(interestWords) {
         const ratings = {};
         interestWords.forEach(word => {
-            ratings[word] = this.getInterestWordRating(word);
+            ratings[word] = this.getWordRating(word);
         });
         return ratings;
     }
 };
+
+// 【削除】InterestWordRatingManagerとKeywordRatingManagerは統合により削除
 
 // 【軽量化】安定ID生成システム（マイグレーション機能削除版）
 window.StableIDGenerator = {
@@ -169,8 +200,9 @@ window.StableIDGenerator = {
     }
 };
 
-// 【修正】GitHub Gist同期システム（GIST同期時点数不整合修正版）
+// GitHub Gist同期システム（既存のまま - 長いので省略）
 window.GistSyncManager = {
+    // ... 既存のコードをそのまま使用
     token: null,
     gistId: null,
     isEnabled: false,
@@ -184,6 +216,7 @@ window.GistSyncManager = {
     _configValidated: false,
     _lastValidConfig: null,
     
+    // ... （既存のGistSyncManagerのコードをそのまま維持）
     // 統合暗号化処理（軽量化版）
     _cryptoOp(text, isEncrypt, key = 'minews_secret_key') {
         if (!text) return '';
@@ -206,7 +239,6 @@ window.GistSyncManager = {
     _encrypt(text, key) { return this._cryptoOp(text, true, key); },
     _decrypt(text, key) { return this._cryptoOp(text, false, key); },
 
-    // 統合エラーハンドリング（軽量化版）
     _safeStorage: {
         get(key, defaultValue = null) {
             try {
@@ -228,14 +260,12 @@ window.GistSyncManager = {
         }
     },
 
-    // 開発時のみ詳細ログ、本番では簡潔化
     _log(level, msg, data = null) {
         if (level === 'error' || (typeof window !== 'undefined' && window.location?.hostname === 'localhost')) {
             console[level](msg, data);
         }
     },
 
-    // JSON処理統合（軽量化版）
     _jsonSafe: {
         str(obj, format = false) { 
             return JSON.stringify(obj, null, format ? 2 : 0); 
@@ -379,7 +409,7 @@ window.GistSyncManager = {
             this.startPeriodicSync(60);
         }
     },
-    
+
     startPeriodicSync(intervalSeconds = 60) {
         if (this.periodicSyncInterval) {
             clearInterval(this.periodicSyncInterval);
@@ -405,13 +435,11 @@ window.GistSyncManager = {
         this.lastChangeTime = new Date().toISOString();
     },
 
-    // 【修正】バックグラウンド同期処理の改善
     async _executePeriodicSync() {
         if (!this.isEnabled || !this.token || this.isSyncing) {
             return false;
         }
         
-        // 【修正】同期状態のロック強化
         this.isSyncing = true;
         this._isBackgroundSyncing = true;
         
@@ -428,7 +456,6 @@ window.GistSyncManager = {
                 await this._updateConfigSafely(new Date().toISOString());
                 this.pendingChanges = false;
                 
-                // 【修正】背景同期完了後に画面更新を実行
                 if (window.render) {
                     setTimeout(() => {
                         window.render();
@@ -468,7 +495,6 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】AI学習データマージの単純化（重み変更を回避）
     _mergeAILearning(localAI, cloudAI) {
         if (!cloudAI) return localAI;
         if (!localAI) return cloudAI;
@@ -476,7 +502,6 @@ window.GistSyncManager = {
         const localTime = new Date(localAI.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudAI.lastUpdated || 0).getTime();
         
-        // 【修正】より新しいタイムスタンプのデータを優先（重みを変更しない）
         if (cloudTime > localTime) {
             return {
                 version: window.CONFIG.DATA_VERSION,
@@ -517,7 +542,6 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】_mergeArticleStates関数 - 削除処理統合版（星評価削除対応）
     _mergeArticleStates(localStates, cloudStates, deletedIds = []) {
         if (!cloudStates) return localStates;
         if (!localStates) return cloudStates;
@@ -571,7 +595,6 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【修正】バックグラウンド同期時のデータ適用処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -604,7 +627,6 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    // 【修正】常にAIスコアを再計算（同期方法による不整合を防ぐ）
                     updatedArticle.aiScore = window.AIScoring.calculateScore(
                         updatedArticle, 
                         aiLearningData, 
@@ -627,15 +649,12 @@ window.GistSyncManager = {
         }
     },
 
-    // 【修正】データ適用順序の改善
     async _executeBatchUpdate(batchUpdates) {
-        // 【修正】依存関係を考慮した更新順序
         const updateSequence = [
             { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
             { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' }
         ];
         
-        // aiLearningとwordFiltersを先に更新
         for (const update of updateSequence) {
             if (batchUpdates[update.key]) {
                 window.LocalStorageManager.setItem(update.storageKey, batchUpdates[update.key]);
@@ -646,7 +665,6 @@ window.GistSyncManager = {
             }
         }
         
-        // 【修正】最新のaiLearningとwordFiltersでarticlesを更新
         if (batchUpdates.articles) {
             const updatedAILearning = window.DataHooksCache.aiLearning;
             const updatedWordFilters = window.DataHooksCache.wordFilters;
@@ -879,7 +897,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】collectSyncData関数 - 非同期対応版（星評価削除対応）
     async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -890,7 +907,6 @@ window.GistSyncManager = {
         
         const currentArticleIds = new Set(articlesHook.articles.map(article => article.id));
         
-        // すべての記事状態変更を同期対象に含める（星評価除外）
         articlesHook.articles.forEach(article => {
             const hasAnyCustomState = 
                 article.readStatus !== 'unread' ||
@@ -1250,7 +1266,7 @@ window.ArticleLoader = {
     }
 };
 
-// 【修正】AI学習システム（興味ワード星評価統合版）
+// 【統合】AI学習システム（興味ワード星評価統合版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1261,7 +1277,7 @@ window.AIScoring = {
             rawScore += multidimensionalScore;
         }
         
-        // 【修正】興味ワード統合評価処理
+        // 【統合】興味ワード統合評価処理
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1273,10 +1289,10 @@ window.AIScoring = {
                 const baseBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
                 rawScore += baseBonus;
                 
-                // 興味ワード個別星評価ボーナス（新規追加）
+                // 【統合】興味ワード個別星評価ボーナス
                 let starRatingBonus = 0;
                 matchedWords.forEach(word => {
-                    const rating = window.InterestWordRatingManager?.getInterestWordRating(word) || 0;
+                    const rating = window.WordRatingManager.getWordRating(word) || 0;
                     if (rating > 0) {
                         // 星評価に応じたボーナス（1星=+2, 2星=+4, 3星=+6, 4星=+8, 5星=+10）
                         starRatingBonus += rating * 2;
@@ -1325,7 +1341,6 @@ window.AIScoring = {
         return totalScore;
     },
     
-    // 【修正】組み合わせボーナス - 符号保持版
     _calculateCombinationBonus(topKeywords) {
         if (topKeywords.length < 2) return 0;
         
@@ -1337,14 +1352,11 @@ window.AIScoring = {
         const keywordCount = topKeywords.length;
         let baseBonus = bonusTable[keywordCount] || 0;
         
-        // 【修正】プラス・マイナスを保持した平均重みを計算
         const avgWeight = topKeywords.reduce((sum, item) => sum + item.originalWeight, 0) / keywordCount;
         const avgAbsWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
         
-        // 強度に基づく相乗効果（絶対値で判定）
         const synergy = avgAbsWeight > 5 ? 1.5 : (avgAbsWeight > 2 ? 1.2 : 1.0);
         
-        // 【修正】平均重みの符号を保持してボーナスに適用
         const bonus = baseBonus * synergy;
         return avgWeight >= 0 ? bonus : -bonus;
     },
@@ -1524,7 +1536,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック（星評価機能削除版）
+// データ操作フック
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1750,7 +1762,7 @@ window.DataHooks = {
     }
 };
 
-// 【修正】エクスポート・インポート機能（sourceWeights削除対応）
+// エクスポート・インポート機能
 window.exportMinewsData = function() {
     const aiHook = window.DataHooks.useAILearning();
     const wordHook = window.DataHooks.useWordFilters();
@@ -1783,7 +1795,6 @@ window.exportMinewsData = function() {
         aiLearning: {
             ...aiHook.aiLearning,
             wordWeights: { ...aiHook.aiLearning.wordWeights }
-            // 【削除】sourceWeightsを削除
         },
         wordFilters: {
             ...wordHook.wordFilters,
@@ -1827,8 +1838,6 @@ window.importMinewsData = async function(file) {
             const weight = importData.aiLearning.wordWeights[word];
             aiHook.aiLearning.wordWeights[word] = Math.max(-60, Math.min(60, weight));
         });
-        
-        // 【削除】sourceWeights処理を削除
         
         wordHook.wordFilters.interestWords.length = 0;
         wordHook.wordFilters.ngWords.length = 0;
