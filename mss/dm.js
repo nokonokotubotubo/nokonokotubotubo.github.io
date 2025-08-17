@@ -1037,16 +1037,18 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム（軽量化版）
+// AI学習システム（根本修正版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
         
+        // 1. 記事キーワードによるAI評価
         if (article.keywords?.length && aiLearning.wordWeights) {
             const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
             rawScore += this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
         }
         
+        // 2. 【根本修正】興味ワード評価システム
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1054,19 +1056,34 @@ window.AIScoring = {
             );
             
             if (matchedWords.length > 0) {
-                const baseBonus = matchedWords.length * 8 * Math.log(matchedWords.length + 1);
-                rawScore += baseBonus;
+                let totalInterestScore = 0;
                 
-                // 【修正】AI学習の重みを使用（正しい評価反映）
-                let starRatingBonus = 0;
                 matchedWords.forEach(word => {
                     const aiWeight = aiLearning.wordWeights[word] || 0;
-                    // AI重み: -10(1星), -5(2星), 0(3星), +5(4星), +10(5星)
-                    starRatingBonus += aiWeight;
+                    
+                    if (aiWeight === 0) {
+                        // 未評価の興味ワード: 従来通りの基本ボーナス
+                        totalInterestScore += 8;
+                    } else if (aiWeight > 0) {
+                        // 高評価ワード（4-5星）: 基本ボーナス + 追加ボーナス
+                        const baseBonus = 8;
+                        const ratingBonus = aiWeight; // +5 or +10
+                        totalInterestScore += baseBonus + ratingBonus;
+                    } else {
+                        // 【修正】低評価ワード（1-2星）: 負のペナルティのみ
+                        totalInterestScore += aiWeight; // -10 or -5 (基本ボーナスなし)
+                    }
                 });
-                rawScore += starRatingBonus;
                 
-                console.log(`興味ワードボーナス: 基本${baseBonus} + AI重み${starRatingBonus} = ${baseBonus + starRatingBonus}`);
+                // マッチ数による乗数効果（正の場合のみ）
+                if (totalInterestScore > 0) {
+                    const multiplier = Math.log(matchedWords.length + 1);
+                    totalInterestScore *= multiplier;
+                }
+                
+                rawScore += totalInterestScore;
+                
+                console.log(`興味ワード評価: ${matchedWords.length}件マッチ, 合計スコア: ${totalInterestScore.toFixed(1)}`);
             }
         }
         
@@ -1125,7 +1142,6 @@ window.AIScoring = {
         return Math.round(adjustedScore);
     }
 };
-
 
 // ワードフィルター管理
 window.WordFilterManager = {
