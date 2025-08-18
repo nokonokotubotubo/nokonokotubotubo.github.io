@@ -1255,18 +1255,27 @@
 
     // 興味ワード範囲付き削除処理
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
-        if (!confirm(`「${word}」を削除しますか？`)) return;
+    if (!confirm(`「${word}」を削除しますか？`)) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.removeInterestWord(word, scope, target || null);
+    const wordHook = window.DataHooks.useWordFilters();
+    const success = wordHook.removeInterestWord(word, scope, target || null);
 
-        if (success) {
-            window.render();
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
+    if (success) {
+        // 【追加】星評価も削除し、キーワード強調表示を更新
+        if (window.WordRatingManager) {
+            window.WordRatingManager.saveWordRating(word, 0);
         }
-    };
+        updateKeywordHighlighting(word, 0);
+        
+        window.render();
+        updateArticleListOnly(); // 【追加】記事表示を明示的に更新
+        
+        if (window.GistSyncManager?.isEnabled) {
+            window.GistSyncManager.markAsChanged();
+        }
+    }
+};
+
 
     const handleAddNGWordWithScope = (word, scope, target) => {
         if (!word?.trim()) return;
@@ -1287,18 +1296,21 @@
     };
 
     const handleRemoveNGWordWithScope = (word, scope, target) => {
-        if (!confirm(`「${word}」を削除しますか？`)) return;
+    if (!confirm(`「${word}」を削除しますか？`)) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.removeNGWord(word, scope, target || null);
+    const wordHook = window.DataHooks.useWordFilters();
+    const success = wordHook.removeNGWord(word, scope, target || null);
 
-        if (success) {
-            window.render();
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
+    if (success) {
+        window.render();
+        updateArticleListOnly(); // 【追加】記事表示を明示的に更新
+        
+        if (window.GistSyncManager?.isEnabled) {
+            window.GistSyncManager.markAsChanged();
         }
-    };
+    }
+};
+
 
     // GitHub同期管理機能（軽量化版）
     window.handleSaveGitHubToken = () => {
@@ -1640,28 +1652,39 @@
     };
 
     const handleRemoveWord = (wordData, type) => {
-        if (typeof wordData === 'string') {
-            if (!confirm(`「${wordData}」を削除しますか？`)) return;
+    if (typeof wordData === 'string') {
+        if (!confirm(`「${wordData}」を削除しますか？`)) return;
+        
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = type === 'interest' 
+            ? wordHook.removeInterestWord(wordData)
+            : wordHook.removeNGWord(wordData);
             
-            const wordHook = window.DataHooks.useWordFilters();
-            const success = type === 'interest' 
-                ? wordHook.removeInterestWord(wordData)
-                : wordHook.removeNGWord(wordData);
-                
-            if (success) {
-                window.render();
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
+        if (success) {
+            // 【追加】興味ワード削除時は星評価も削除し、キーワード強調表示を更新
+            if (type === 'interest' && window.WordRatingManager) {
+                window.WordRatingManager.saveWordRating(wordData, 0);
+                updateKeywordHighlighting(wordData, 0);
             }
-        } else {
-            if (type === 'interest') {
-                handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
-            } else {
-                handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
+            
+            window.render();
+            updateArticleListOnly(); // 【追加】記事リスト表示を明示的に更新
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
             }
         }
-    };
+    } else {
+        if (type === 'interest') {
+            handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
+        } else {
+            handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
+        }
+        // 【追加】記事表示を確実に更新
+        updateArticleListOnly();
+    }
+};
+
 
     // レンダリング（軽量化版）
     const renderNavigation = () => {
