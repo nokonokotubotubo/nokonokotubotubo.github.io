@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版 + 既存興味ワード削除確認統合版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版 + 既存興味ワード削除確認統合版 + 画面更新制御機能統合版）
 (function() {
     'use strict';
 
@@ -65,6 +65,8 @@
         };
         
         saveFilterSettings(settings);
+        // 【修正】明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         alert('フィルター設定を適用しました');
     };
@@ -83,6 +85,8 @@
         if (displays[0]) displays[0].textContent = '0点 - 100点';
         if (displays[1]) displays[1].textContent = '0日前 - 14日前';
         
+        // 【修正】明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         alert('フィルター設定をリセットしました');
     };
@@ -395,7 +399,7 @@
                 
                 // キーワード強調表示を更新
                 updateKeywordHighlighting(keyword, 0);
-                updateArticleListOnly();
+                // 【修正】画面更新制御: 記事リストは更新しない
                 
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
@@ -442,7 +446,6 @@
             }
         });
     };
-
     // ワード評価モーダル（統合最適化版）
     const showWordRatingModal = (word, source = 'keyword') => {
         const currentRating = window.WordRatingManager?.getWordRating(word) || 0;
@@ -459,7 +462,7 @@
         const starsHtml = Array.from({length: 5}, (_, i) => {
             const rating = i + 1;
             const isActive = rating <= currentRating;
-            return `<button class="popup-star ${isActive ? 'active' : ''}" data-rating="${rating}" onmouseover="highlightStars(${rating})" onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})" onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${rating}, '${source}')"}>★</button>`;
+            return `<button class="popup-star ${isActive ? 'active' : ''}" data-rating="${rating}" onmouseover="highlightStars(${rating})" onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})" onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${rating}, '${source}')">★</button>`;
         }).join('');
         
         const statusMessage = currentRating > 0 
@@ -542,7 +545,7 @@
                 setTimeout(() => {
                     // ★追加：キーワード強調表示を先に更新
                     updateKeywordHighlighting(word, rating);
-                    updateArticleListOnly();
+                    // 【修正】画面更新制御: 記事リストは更新しない
                     
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
@@ -661,6 +664,7 @@
             }
         });
     };
+
     // ユニークID生成機能
     const encodeToValidId = (text) => encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
 
@@ -702,7 +706,7 @@
         }
     };
 
-    // アプリケーション状態管理
+    // アプリケーション状態管理（画面更新制御フラグ追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
@@ -713,7 +717,8 @@
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,
-        isBackgroundSyncing: false
+        isBackgroundSyncing: false,
+        allowArticleUpdate: false // 【追加】記事リスト更新制御フラグ
     };
 
     const initializeFolderFeeds = () => {
@@ -785,7 +790,7 @@
         }
     };
 
-    // 部分更新関数（軽量化版）
+    // 部分更新関数（画面更新制御機能追加）
     const updateArticleCount = () => {
         const count = getFilteredArticles().length;
         const mobileUpdate = document.querySelector('.last-update-mobile');
@@ -796,11 +801,20 @@
     };
 
     const updateArticleListOnly = () => {
+        // 【追加】更新許可フラグをチェック
+        if (!window.state.allowArticleUpdate) {
+            console.log('記事リスト表示更新は保留されています');
+            return;
+        }
+
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.innerHTML = renderArticleList();
             updateArticleCount();
         }
+
+        // 【追加】更新後はフラグを戻す
+        window.state.allowArticleUpdate = false;
     };
 
     const updateFolderButtonCount = () => {
@@ -866,6 +880,8 @@
         });
         
         if (updatedCount > 0) {
+            // 【修正】明示的更新フラグを設定
+            window.state.allowArticleUpdate = true;
             updateArticleListOnly();
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
@@ -876,7 +892,7 @@
         }
     };
 
-    // フォルダ・フィード管理
+    // フォルダ・フィード管理（明示的更新フラグ設定）
     const handleFolderToggle = (folderName, event) => {
         event?.stopPropagation();
         
@@ -906,6 +922,8 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
+        // 【修正】明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
         updateFolderCheckboxStates();
@@ -926,6 +944,8 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds);
         
+        // 【修正】明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
         updateFeedCheckboxStates();
@@ -947,6 +967,8 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
         
+        // 【修正】明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
         updateFolderCheckboxStates();
@@ -1189,7 +1211,7 @@
         }
     };
 
-    // 統合ワード送信処理（星評価対応版）
+    // 統合ワード送信処理（モーダル閉じる処理追加版）
     const handleSubmitWord = (type, isEdit = false) => {
         const word = document.getElementById('wordInput').value.trim();
         if (!word) {
@@ -1222,109 +1244,110 @@
         } else {
             handleAddNGWordWithScope(word, scope, target);
         }
+        
+        // 【追加】モーダルを閉じる
         window.setState({ showModal: null });
     };
 
-    // 興味ワード範囲付き追加処理（星評価統合版）
+    // 興味ワード範囲付き追加処理（画面更新制御対応版）
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
-    if (!word?.trim()) return;
+        if (!word?.trim()) return;
 
-    const wordHook = window.DataHooks.useWordFilters();
-    const success = wordHook.addInterestWord(word.trim(), scope, target);
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.addInterestWord(word.trim(), scope, target);
 
-    if (success) {
-        if (rating > 0 && window.WordRatingManager) {
-            window.WordRatingManager.saveWordRating(word.trim(), rating);
-        }
-        
-        // 【修正】記事上からの追加時はモーダルを開かず、記事リストのみ更新
-        if (window.state?.showModal === 'settings') {
-            window.render(); // 設定モーダルが既に開いている場合のみ全体更新
-        } else {
-            // キーワード強調表示を更新
-            if (rating > 0) {
-                updateKeywordHighlighting(word.trim(), rating);
+        if (success) {
+            if (rating > 0 && window.WordRatingManager) {
+                window.WordRatingManager.saveWordRating(word.trim(), rating);
             }
-            updateArticleListOnly(); // 記事リストのみ更新
+            
+            // 【修正】記事上からの追加時はモーダルを開かず、記事リストも更新しない
+            if (window.state?.showModal === 'settings') {
+                window.render(); // 設定モーダルが既に開いている場合のみ全体更新
+            } else {
+                // 【修正】画面更新は行わず、キーワード強調表示のみ更新
+                if (rating > 0) {
+                    updateKeywordHighlighting(word.trim(), rating);
+                }
+                // updateArticleListOnly(); ←この行を削除
+            }
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+            
+            const message = rating > 0 
+                ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
+                : `「${word}」を興味ワードに追加しました`;
+            showToastNotification(message, 'success');
+            
+        } else {
+            alert('そのワードは既に同じ範囲で登録されています');
         }
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-        
-        const message = rating > 0 
-            ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
-            : `「${word}」を興味ワードに追加しました`;
-        showToastNotification(message, 'success');
-        
-    } else {
-        alert('そのワードは既に同じ範囲で登録されています');
-    }
-};
-
+    };
 
     // 興味ワード範囲付き削除処理
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
-    if (!confirm(`「${word}」を削除しますか？`)) return;
+        if (!confirm(`「${word}」を削除しますか？`)) return;
 
-    const wordHook = window.DataHooks.useWordFilters();
-    const success = wordHook.removeInterestWord(word, scope, target || null);
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.removeInterestWord(word, scope, target || null);
 
-    if (success) {
-        // 【追加】星評価も削除し、キーワード強調表示を更新
-        if (window.WordRatingManager) {
-            window.WordRatingManager.saveWordRating(word, 0);
+        if (success) {
+            // 【追加】星評価も削除し、キーワード強調表示を更新
+            if (window.WordRatingManager) {
+                window.WordRatingManager.saveWordRating(word, 0);
+            }
+            updateKeywordHighlighting(word, 0);
+            
+            window.render();
+            // 【修正】画面更新制御: 記事リストは更新しない
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
         }
-        updateKeywordHighlighting(word, 0);
-        
-        window.render();
-        updateArticleListOnly(); // 【追加】記事表示を明示的に更新
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-    }
-};
+    };
 
     const handleAddNGWordWithScope = (word, scope, target) => {
-    if (!word?.trim()) return;
+        if (!word?.trim()) return;
 
-    const wordHook = window.DataHooks.useWordFilters();
-    const success = wordHook.addNGWord(word.trim(), scope, target);
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.addNGWord(word.trim(), scope, target);
 
-    if (success) {
-        // 【修正】記事上からの追加時はモーダルを開かず、記事リストのみ更新
-        if (window.state?.showModal === 'settings') {
-            window.render(); // 設定モーダルが既に開いている場合のみ全体更新
+        if (success) {
+            // 【修正】記事上からの追加時はモーダルを開かず、記事リストも更新しない
+            if (window.state?.showModal === 'settings') {
+                window.render(); // 設定モーダルが既に開いている場合のみ全体更新
+            }
+            // 【修正】画面更新は削除、設定モーダル以外では更新しない
+            // updateArticleListOnly(); ←この行を削除
+            
+            showToastNotification(`「${word}」をNGワードに追加しました`, 'success');
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
         } else {
-            updateArticleListOnly(); // 記事リストのみ更新
+            alert('そのワードは既に同じ範囲で登録されています');
         }
-        
-        showToastNotification(`「${word}」をNGワードに追加しました`, 'success');
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-    } else {
-        alert('そのワードは既に同じ範囲で登録されています');
-    }
-};
+    };
 
     const handleRemoveNGWordWithScope = (word, scope, target) => {
-    if (!confirm(`「${word}」を削除しますか？`)) return;
+        if (!confirm(`「${word}」を削除しますか？`)) return;
 
-    const wordHook = window.DataHooks.useWordFilters();
-    const success = wordHook.removeNGWord(word, scope, target || null);
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.removeNGWord(word, scope, target || null);
 
-    if (success) {
-        window.render();
-        updateArticleListOnly(); // 【追加】記事表示を明示的に更新
-        
-        if (window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
+        if (success) {
+            window.render();
+            // 【修正】画面更新制御: 記事リストは更新しない
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
         }
-    }
-};
+    };
 
     // GitHub同期管理機能（軽量化版）
     window.handleSaveGitHubToken = () => {
@@ -1530,7 +1553,7 @@
     };
 
     window.handleImportLearningData = (event) => {
-        const file = event.target.files[0];
+        const file = event.target.files;
         if (!file) return;
 
         const reader = new FileReader();
@@ -1571,8 +1594,13 @@
         event.target.value = '';
     };
 
-    // イベントハンドラ（軽量化版）
-    const handleFilterChange = (mode) => window.setState({ viewMode: mode });
+    // イベントハンドラ（明示的更新フラグ対応版）
+    const handleFilterChange = (mode) => {
+        window.setState({ viewMode: mode });
+        // 【修正】フィルター変更は明示的更新
+        window.state.allowArticleUpdate = true;
+        updateArticleListOnly();
+    };
 
     const handleRefresh = async () => {
         window.setState({ isLoading: true });
@@ -1666,39 +1694,37 @@
     };
 
     const handleRemoveWord = (wordData, type) => {
-    if (typeof wordData === 'string') {
-        if (!confirm(`「${wordData}」を削除しますか？`)) return;
-        
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = type === 'interest' 
-            ? wordHook.removeInterestWord(wordData)
-            : wordHook.removeNGWord(wordData);
+        if (typeof wordData === 'string') {
+            if (!confirm(`「${wordData}」を削除しますか？`)) return;
             
-        if (success) {
-            // 【追加】興味ワード削除時は星評価も削除し、キーワード強調表示を更新
-            if (type === 'interest' && window.WordRatingManager) {
-                window.WordRatingManager.saveWordRating(wordData, 0);
-                updateKeywordHighlighting(wordData, 0);
+            const wordHook = window.DataHooks.useWordFilters();
+            const success = type === 'interest' 
+                ? wordHook.removeInterestWord(wordData)
+                : wordHook.removeNGWord(wordData);
+                
+            if (success) {
+                // 【追加】興味ワード削除時は星評価も削除し、キーワード強調表示を更新
+                if (type === 'interest' && window.WordRatingManager) {
+                    window.WordRatingManager.saveWordRating(wordData, 0);
+                    updateKeywordHighlighting(wordData, 0);
+                }
+                
+                window.render();
+                // 【修正】画面更新制御: 記事リストは更新しない
+                
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
             }
-            
-            window.render();
-            updateArticleListOnly(); // 【追加】記事リスト表示を明示的に更新
-            
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
-        }
-    } else {
-        if (type === 'interest') {
-            handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
         } else {
-            handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
+            if (type === 'interest') {
+                handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
+            } else {
+                handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
+            }
+            // 【修正】画面更新制御: 記事リストは更新しない
         }
-        // 【追加】記事表示を確実に更新
-        updateArticleListOnly();
-    }
-};
-
+    };
 
     // レンダリング（軽量化版）
     const renderNavigation = () => {
@@ -2005,7 +2031,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【修正統合】ワード評価設定（既存興味ワード削除確認統合版）</h3>
+                            <h3 class="group-title">【修正統合】ワード評価設定（既存興味ワード削除確認統合版 + 画面更新制御版）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -2027,7 +2053,7 @@
                             </div>
 
                             <div class="word-help">
-                                <h4>【修正統合】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認</h4>
+                               <h4>【修正統合】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
@@ -2037,6 +2063,7 @@
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
                                     <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
                                     <li><strong>削除確認:</strong> 既存興味ワードをクリックした場合は削除確認ダイアログを表示</li>
+                                    <li><strong>画面更新制御:</strong> 基本的に各種変更を加えても表示が更新されず、明示的操作時のみ並び替えが実行されます</li>
                                 </ul>
                             </div>
                         </div>
@@ -2072,7 +2099,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【修正統合】既存興味ワード削除確認統合版
+                                        【修正統合】既存興味ワード削除確認統合版 + 画面更新制御版
                                     </p>
                                 </div>
                             </div>
@@ -2113,7 +2140,7 @@
         }, 50);
     };
 
-    // グローバル関数の追加（既存興味ワード削除確認統合版）
+    // グローバル関数の追加（既存興味ワード削除確認統合版 + 画面更新制御版）
     Object.assign(window, {
         handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
         handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
