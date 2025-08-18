@@ -1709,7 +1709,7 @@ window.importMinewsData = async function(file) {
         window.DataHooksCache.aiLearning = aiHook.aiLearning;
         window.DataHooksCache.wordFilters = wordHook.wordFilters;
         
-                if (window.render) {
+        if (window.render) {
             window.render();
             setTimeout(() => {
                 if (window.render) {
@@ -1743,4 +1743,3 @@ window.handleImportLearningData = (event) => {
 };
 
 })();
-
