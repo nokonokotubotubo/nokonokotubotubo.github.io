@@ -1226,32 +1226,41 @@
 
     // 興味ワード範囲付き追加処理（星評価統合版）
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
-        if (!word?.trim()) return;
+    if (!word?.trim()) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.addInterestWord(word.trim(), scope, target);
+    const wordHook = window.DataHooks.useWordFilters();
+    const success = wordHook.addInterestWord(word.trim(), scope, target);
 
-        if (success) {
-            if (rating > 0 && window.WordRatingManager) {
-                window.WordRatingManager.saveWordRating(word.trim(), rating);
-            }
-            
-            window.setState({ showModal: 'settings' });
-            window.render();
-            
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
-            
-            const message = rating > 0 
-                ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
-                : `「${word}」を興味ワードに追加しました`;
-            showToastNotification(message, 'success');
-            
-        } else {
-            alert('そのワードは既に同じ範囲で登録されています');
+    if (success) {
+        if (rating > 0 && window.WordRatingManager) {
+            window.WordRatingManager.saveWordRating(word.trim(), rating);
         }
-    };
+        
+        // 【修正】記事上からの追加時はモーダルを開かず、記事リストのみ更新
+        if (window.state?.showModal === 'settings') {
+            window.render(); // 設定モーダルが既に開いている場合のみ全体更新
+        } else {
+            // キーワード強調表示を更新
+            if (rating > 0) {
+                updateKeywordHighlighting(word.trim(), rating);
+            }
+            updateArticleListOnly(); // 記事リストのみ更新
+        }
+        
+        if (window.GistSyncManager?.isEnabled) {
+            window.GistSyncManager.markAsChanged();
+        }
+        
+        const message = rating > 0 
+            ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
+            : `「${word}」を興味ワードに追加しました`;
+        showToastNotification(message, 'success');
+        
+    } else {
+        alert('そのワードは既に同じ範囲で登録されています');
+    }
+};
+
 
     // 興味ワード範囲付き削除処理
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
@@ -1276,24 +1285,29 @@
     }
 };
 
-
     const handleAddNGWordWithScope = (word, scope, target) => {
-        if (!word?.trim()) return;
+    if (!word?.trim()) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.addNGWord(word.trim(), scope, target);
+    const wordHook = window.DataHooks.useWordFilters();
+    const success = wordHook.addNGWord(word.trim(), scope, target);
 
-        if (success) {
-            window.setState({ showModal: 'settings' });
-            window.render();
-            
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
+    if (success) {
+        // 【修正】記事上からの追加時はモーダルを開かず、記事リストのみ更新
+        if (window.state?.showModal === 'settings') {
+            window.render(); // 設定モーダルが既に開いている場合のみ全体更新
         } else {
-            alert('そのワードは既に同じ範囲で登録されています');
+            updateArticleListOnly(); // 記事リストのみ更新
         }
-    };
+        
+        showToastNotification(`「${word}」をNGワードに追加しました`, 'success');
+        
+        if (window.GistSyncManager?.isEnabled) {
+            window.GistSyncManager.markAsChanged();
+        }
+    } else {
+        alert('そのワードは既に同じ範囲で登録されています');
+    }
+};
 
     const handleRemoveNGWordWithScope = (word, scope, target) => {
     if (!confirm(`「${word}」を削除しますか？`)) return;
@@ -1310,7 +1324,6 @@
         }
     }
 };
-
 
     // GitHub同期管理機能（軽量化版）
     window.handleSaveGitHubToken = () => {
