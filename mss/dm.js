@@ -1088,7 +1088,7 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム（根本修正版）
+// 【修正】AI学習システム（スコア計算精度向上版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1099,7 +1099,7 @@ window.AIScoring = {
             rawScore += this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
         }
         
-        // 2. 【根本修正】興味ワード評価システム
+        // 2. 【修正】興味ワード評価システム - 個別計算方式
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1107,38 +1107,51 @@ window.AIScoring = {
             );
             
             if (matchedWords.length > 0) {
-                let totalInterestScore = 0;
+                let positiveWordsScore = 0;
+                let negativeWordsScore = 0;
+                let positiveWordsCount = 0;
+                let negativeWordsCount = 0;
                 
                 matchedWords.forEach(word => {
                     const aiWeight = aiLearning.wordWeights[word] || 0;
                     
                     if (aiWeight === 0) {
-                        // 未評価の興味ワード: 従来通りの基本ボーナス
-                        totalInterestScore += 8;
+                        // 未評価の興味ワード: 基本ボーナス
+                        positiveWordsScore += 8;
+                        positiveWordsCount++;
                     } else if (aiWeight > 0) {
-                        // 高評価ワード（4-5星）: 基本ボーナス + 追加ボーナス
+                        // 高評価ワード: 基本ボーナス + 追加ボーナス
                         const baseBonus = 8;
-                        const ratingBonus = aiWeight; // +5 or +10
-                        totalInterestScore += baseBonus + ratingBonus;
+                        const ratingBonus = aiWeight;
+                        positiveWordsScore += baseBonus + ratingBonus;
+                        positiveWordsCount++;
                     } else {
-                        // 【修正】低評価ワード（1-2星）: 負のペナルティのみ
-                        totalInterestScore += aiWeight; // -10 or -5 (基本ボーナスなし)
+                        // 低評価ワード: 負のペナルティのみ
+                        negativeWordsScore += aiWeight;
+                        negativeWordsCount++;
                     }
                 });
                 
-                // マッチ数による乗数効果（正の場合のみ）
-                if (totalInterestScore > 0) {
-                    const multiplier = Math.log(matchedWords.length + 1);
-                    totalInterestScore *= multiplier;
+                // 【修正】個別乗数効果の適用
+                let finalInterestScore = 0;
+                
+                if (positiveWordsCount > 0) {
+                    const positiveMultiplier = Math.log(positiveWordsCount + 1);
+                    finalInterestScore += positiveWordsScore * positiveMultiplier;
                 }
                 
-                rawScore += totalInterestScore;
+                if (negativeWordsCount > 0) {
+                    // 負のスコアはそのまま（乗数効果なし）
+                    finalInterestScore += negativeWordsScore;
+                }
                 
-                console.log(`興味ワード評価: ${matchedWords.length}件マッチ, 合計スコア: ${totalInterestScore.toFixed(1)}`);
+                rawScore += finalInterestScore;
+                
+                console.log(`【修正】興味ワード評価詳細: 正評価${positiveWordsCount}件(${positiveWordsScore.toFixed(1)}), 負評価${negativeWordsCount}件(${negativeWordsScore.toFixed(1)}), 最終スコア: ${finalInterestScore.toFixed(2)}`);
             }
         }
         
-        return Math.round(this._linearNormalization(rawScore));
+        return Math.round(this._linearNormalization(rawScore) * 10) / 10;
     },
     
     _getTopKeywordsByAIWeights(keywords, wordWeights) {
@@ -1183,14 +1196,15 @@ window.AIScoring = {
         return 0.05;
     },
     
+    // 【修正】より精密な正規化
     _linearNormalization(rawScore) {
         const baseScore = 50;
-        const adjustedScore = baseScore + (rawScore * 0.4);
+        const adjustedScore = baseScore + (rawScore * 0.35); // 係数を0.4から0.35に調整
         
         if (adjustedScore < 10) return Math.max(5, adjustedScore * 0.5 + 5);
         if (adjustedScore > 90) return Math.min(95, 90 + (adjustedScore - 90) * 0.2);
         
-        return Math.round(adjustedScore);
+        return adjustedScore;
     }
 };
 
