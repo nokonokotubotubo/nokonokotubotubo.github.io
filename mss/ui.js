@@ -545,31 +545,50 @@
         closeWordRatingModal();
     };
 
-    // インライン星評価管理（興味ワード追加モーダル用）
-    let currentInlineRating = 0;
+    // インライン星評価管理（修正版）
+let currentInlineRating = 0;
 
-    const highlightInlineStars = (rating) => {
-        const stars = document.querySelectorAll('.inline-star');
-        stars.forEach((star, index) => {
-            star.classList.toggle('active', index < rating);
-        });
-    };
+const highlightInlineStars = (rating) => {
+    const stars = document.querySelectorAll('.inline-star');
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('active');
+            star.style.color = '#fbbf24';
+        } else {
+            star.classList.remove('active');
+            star.style.color = '#6b7280';
+        }
+    });
+};
 
-    const resetInlineStars = (originalRating) => {
-        currentInlineRating = originalRating;
-        const stars = document.querySelectorAll('.inline-star');
-        stars.forEach((star, index) => {
-            star.classList.toggle('active', index < originalRating);
-        });
-    };
+const resetInlineStars = (originalRating) => {
+    currentInlineRating = originalRating;
+    const stars = document.querySelectorAll('.inline-star');
+    stars.forEach((star, index) => {
+        if (index < originalRating) {
+            star.classList.add('active');
+            star.style.color = '#fbbf24';
+        } else {
+            star.classList.remove('active');
+            star.style.color = '#6b7280';
+        }
+    });
+};
 
-    const selectInlineRating = (rating) => {
-        currentInlineRating = rating;
-        const stars = document.querySelectorAll('.inline-star');
-        stars.forEach((star, index) => {
-            star.classList.toggle('active', index < rating);
-        });
-    };
+const selectInlineRating = (rating) => {
+    currentInlineRating = rating;
+    const stars = document.querySelectorAll('.inline-star');
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('active');
+            star.style.color = '#fbbf24';
+        } else {
+            star.classList.remove('active');
+            star.style.color = '#6b7280';
+        }
+    });
+};
+
 
     // ユニークID生成機能
     const encodeToValidId = (text) => encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
@@ -979,29 +998,30 @@
             }, 100);
         }
         
-        // 興味ワード用の星評価セクション
-        const ratingSection = type === 'interest' ? `
-            <div class="word-section">
-                <div class="word-section-header">
-                    <h3>星評価（任意）</h3>
-                    <span style="font-size: 0.9rem; color: #9ca3af;">追加後に変更も可能です</span>
-                </div>
-                <div class="inline-rating-container" style="margin-bottom: 1rem;">
-                    <div class="inline-rating-stars" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
-                        ${Array.from({length: 5}, (_, i) => {
-                            const rating = i + 1;
-                            const isActive = rating <= currentRating;
-                            return `<button type="button" class="inline-star ${isActive ? 'active' : ''}" data-rating="${rating}" onclick="selectInlineRating(${rating})" onmouseover="highlightInlineStars(${rating})" onmouseout="resetInlineStars(${currentRating})" style="background: none; border: none; font-size: 1.5rem; color: ${isActive ? '#fbbf24' : '#6b7280'}; cursor: pointer; padding: 0.25rem; transition: color 0.2s;">★</button>`;
-                        }).join('')}
-                        <button type="button" class="inline-star-clear" onclick="selectInlineRating(0)" title="評価をクリア" style="background: none; border: none; font-size: 1.2rem; color: #ef4444; cursor: pointer; padding: 0.25rem; margin-left: 0.5rem;">×</button>
-                    </div>
-                    <div class="inline-rating-description" style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
-                        <div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div>
-                        <div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div>
-                    </div>
-                </div>
+        // 興味ワード用の星評価セクション（修正版）
+const ratingSection = type === 'interest' ? `
+    <div class="word-section">
+        <div class="word-section-header">
+            <h3>星評価（任意）</h3>
+            <span style="font-size: 0.9rem; color: #9ca3af;">追加後に変更も可能です</span>
+        </div>
+        <div class="inline-rating-container" style="margin-bottom: 1rem;">
+            <div class="inline-rating-stars" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                ${Array.from({length: 5}, (_, i) => {
+                    const rating = i + 1;
+                    const isActive = rating <= currentRating;
+                    return `<button type="button" class="inline-star ${isActive ? 'active' : ''}" data-rating="${rating}" onclick="event.stopPropagation(); selectInlineRating(${rating});" onmouseover="event.stopPropagation(); highlightInlineStars(${rating});" onmouseout="event.stopPropagation(); resetInlineStars(${currentRating});" style="background: none; border: none; font-size: 1.5rem; color: ${isActive ? '#fbbf24' : '#6b7280'}; cursor: pointer; padding: 0.25rem; transition: color 0.2s; outline: none;">★</button>`;
+                }).join('')}
+                <button type="button" class="inline-star-clear" onclick="event.stopPropagation(); selectInlineRating(0);" title="評価をクリア" style="background: none; border: none; font-size: 1.2rem; color: #ef4444; cursor: pointer; padding: 0.25rem; margin-left: 0.5rem; outline: none;">×</button>
             </div>
-        ` : '';
+            <div class="inline-rating-description" style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
+                <div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div>
+                <div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div>
+            </div>
+        </div>
+    </div>
+` : '';
+
         
         return `
             <div class="modal-overlay" onclick="handleCloseModal()">
