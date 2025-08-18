@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版 + 既存興味ワード削除確認統合版 + 画面更新制御機能統合版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版 + 既存興味ワード削除確認統合版 + 画面更新制御機能統合版 + 根本修正完了版）
 (function() {
     'use strict';
 
@@ -399,7 +399,6 @@
                 
                 // キーワード強調表示を更新
                 updateKeywordHighlighting(keyword, 0);
-                // 【修正】画面更新制御: 記事リストは更新しない
                 
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
@@ -545,7 +544,6 @@
                 setTimeout(() => {
                     // ★追加：キーワード強調表示を先に更新
                     updateKeywordHighlighting(word, rating);
-                    // 【修正】画面更新制御: 記事リストは更新しない
                     
                     if (window.GistSyncManager?.isEnabled) {
                         window.GistSyncManager.markAsChanged();
@@ -816,7 +814,6 @@
         // 【追加】更新後はフラグを戻す
         window.state.allowArticleUpdate = false;
     };
-
     const updateFolderButtonCount = () => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         
@@ -1211,7 +1208,7 @@
         }
     };
 
-    // 統合ワード送信処理（モーダル閉じる処理追加版）
+    // 【根本修正】統合ワード送信処理（モーダル閉じる処理修正版）
     const handleSubmitWord = (type, isEdit = false) => {
         const word = document.getElementById('wordInput').value.trim();
         if (!word) {
@@ -1245,11 +1242,13 @@
             handleAddNGWordWithScope(word, scope, target);
         }
         
-        // 【追加】モーダルを閉じる
-        window.setState({ showModal: null });
+        // 【根本修正】モーダルを直接閉じる（window.setStateを使わない）
+        window.state.showModal = null;
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) modal.remove();
     };
 
-    // 興味ワード範囲付き追加処理（画面更新制御対応版）
+    // 【根本修正】興味ワード範囲付き追加処理（完全画面更新制御版）
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
         if (!word?.trim()) return;
 
@@ -1261,15 +1260,10 @@
                 window.WordRatingManager.saveWordRating(word.trim(), rating);
             }
             
-            // 【修正】記事上からの追加時はモーダルを開かず、記事リストも更新しない
-            if (window.state?.showModal === 'settings') {
-                window.render(); // 設定モーダルが既に開いている場合のみ全体更新
-            } else {
-                // 【修正】画面更新は行わず、キーワード強調表示のみ更新
-                if (rating > 0) {
-                    updateKeywordHighlighting(word.trim(), rating);
-                }
-                // updateArticleListOnly(); ←この行を削除
+            // 【根本修正】どんな場合でも記事リストは更新しない
+            // キーワード強調表示のみ更新
+            if (rating > 0) {
+                updateKeywordHighlighting(word.trim(), rating);
             }
             
             if (window.GistSyncManager?.isEnabled) {
@@ -1286,7 +1280,6 @@
         }
     };
 
-    // 興味ワード範囲付き削除処理
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
         if (!confirm(`「${word}」を削除しますか？`)) return;
 
@@ -1294,14 +1287,12 @@
         const success = wordHook.removeInterestWord(word, scope, target || null);
 
         if (success) {
-            // 【追加】星評価も削除し、キーワード強調表示を更新
             if (window.WordRatingManager) {
                 window.WordRatingManager.saveWordRating(word, 0);
             }
             updateKeywordHighlighting(word, 0);
             
             window.render();
-            // 【修正】画面更新制御: 記事リストは更新しない
             
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
@@ -1309,6 +1300,7 @@
         }
     };
 
+    // 【根本修正】NGワード範囲付き追加処理（完全画面更新制御版）
     const handleAddNGWordWithScope = (word, scope, target) => {
         if (!word?.trim()) return;
 
@@ -1316,13 +1308,7 @@
         const success = wordHook.addNGWord(word.trim(), scope, target);
 
         if (success) {
-            // 【修正】記事上からの追加時はモーダルを開かず、記事リストも更新しない
-            if (window.state?.showModal === 'settings') {
-                window.render(); // 設定モーダルが既に開いている場合のみ全体更新
-            }
-            // 【修正】画面更新は削除、設定モーダル以外では更新しない
-            // updateArticleListOnly(); ←この行を削除
-            
+            // 【根本修正】どんな場合でも記事リストは更新しない
             showToastNotification(`「${word}」をNGワードに追加しました`, 'success');
             
             if (window.GistSyncManager?.isEnabled) {
@@ -1341,7 +1327,6 @@
 
         if (success) {
             window.render();
-            // 【修正】画面更新制御: 記事リストは更新しない
             
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
@@ -1553,7 +1538,7 @@
     };
 
     window.handleImportLearningData = (event) => {
-        const file = event.target.files;
+        const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
@@ -1693,6 +1678,7 @@
         window.setState({ showModal: `add${type === 'interest' ? 'Interest' : 'NG'}Word` });
     };
 
+    // 【修正】handleRemoveWord - 設定モーダル内でのみ再レンダリング
     const handleRemoveWord = (wordData, type) => {
         if (typeof wordData === 'string') {
             if (!confirm(`「${wordData}」を削除しますか？`)) return;
@@ -1709,8 +1695,10 @@
                     updateKeywordHighlighting(wordData, 0);
                 }
                 
-                window.render();
-                // 【修正】画面更新制御: 記事リストは更新しない
+                // 【修正】設定モーダル内でのみ再レンダリング
+                if (window.state?.showModal === 'settings') {
+                    window.render(); // 設定モーダルが開いている場合のみ全体更新
+                }
                 
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
@@ -1722,7 +1710,6 @@
             } else {
                 handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
             }
-            // 【修正】画面更新制御: 記事リストは更新しない
         }
     };
 
@@ -2031,7 +2018,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【修正統合】ワード評価設定（既存興味ワード削除確認統合版 + 画面更新制御版）</h3>
+                            <h3 class="group-title">【修正統合】ワード評価設定（根本修正完了版）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -2053,7 +2040,7 @@
                             </div>
 
                             <div class="word-help">
-                               <h4>【修正統合】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御</h4>
+                                <h4>【根本修正完了】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御 + 自動並び替え防止</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
@@ -2063,7 +2050,7 @@
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
                                     <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
                                     <li><strong>削除確認:</strong> 既存興味ワードをクリックした場合は削除確認ダイアログを表示</li>
-                                    <li><strong>画面更新制御:</strong> 基本的に各種変更を加えても表示が更新されず、明示的操作時のみ並び替えが実行されます</li>
+                                    <li><strong>【根本修正完了】自動並び替え防止:</strong> 興味ワード・NGワード追加時に記事が勝手に並び替えされることはありません</li>
                                 </ul>
                             </div>
                         </div>
@@ -2099,7 +2086,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【修正統合】既存興味ワード削除確認統合版 + 画面更新制御版
+                                        【根本修正完了版】自動並び替え防止 + 既存興味ワード削除確認統合版 + 画面更新制御版
                                     </p>
                                 </div>
                             </div>
@@ -2140,7 +2127,7 @@
         }, 50);
     };
 
-    // グローバル関数の追加（既存興味ワード削除確認統合版 + 画面更新制御版）
+    // グローバル関数の追加（根本修正完了版）
     Object.assign(window, {
         handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
         handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
@@ -2153,7 +2140,7 @@
         showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord, handleKeywordRemoveFromInterest,
         // インライン星評価関連（修正版）
         initializeInlineStarEvents, highlightInlineStars, resetInlineStars, selectInlineRating,
-        // ★追加：キーワード強調表示更新関数
+        // キーワード強調表示更新関数
         updateKeywordHighlighting
     });
 
