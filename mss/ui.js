@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版 + 既存興味ワード削除確認統合版）
 (function() {
     'use strict';
 
@@ -268,7 +268,7 @@
         }
     };
 
-    // キーワード選択メニュー機能
+    // 【修正統合】キーワード選択メニュー機能（既存興味ワードの削除確認対応版）
     const showKeywordSelectionMenu = (keyword, event) => {
         event.stopPropagation();
         
@@ -304,10 +304,21 @@
         const currentRating = window.WordRatingManager?.getWordRating(keyword) || 0;
         const ratingInfo = currentRating > 0 ? ` (現在: ${currentRating}星)` : '';
         
-        menu.innerHTML = `
-            <div style="color: #e0e6eb; font-size: 0.8rem; margin-bottom: 0.5rem; text-align: center; word-break: break-word;">
-                「${keyword.substring(0, 20)}${keyword.length > 20 ? '...' : ''}」${ratingInfo}
+        // 【修正】既に興味ワードに登録されているかチェック
+        const wordHook = window.DataHooks.useWordFilters();
+        const isAlreadyInterestWord = wordHook.wordFilters.interestWords.includes(keyword);
+        
+        // 【修正】既存興味ワードの場合は削除ボタンのみ表示
+        const buttonSection = isAlreadyInterestWord ? `
+            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                <button class="selection-btn interest-btn" onclick="handleKeywordRemoveFromInterest('${keyword.replace(/'/g, "\\'")}')">
+                    興味ワードから削除
+                </button>
+                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')">
+                    NGワード
+                </button>
             </div>
+        ` : `
             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
                 <button class="selection-btn interest-btn" onclick="handleKeywordAsInterestWord('${keyword.replace(/'/g, "\\'")}')">
                     興味ワード
@@ -316,6 +327,13 @@
                     NGワード
                 </button>
             </div>
+        `;
+        
+        menu.innerHTML = `
+            <div style="color: #e0e6eb; font-size: 0.8rem; margin-bottom: 0.5rem; text-align: center; word-break: break-word;">
+                「${keyword.substring(0, 20)}${keyword.length > 20 ? '...' : ''}」${ratingInfo}
+            </div>
+            ${buttonSection}
             ${currentRating > 0 ? `
             <div style="text-align: center; border-top: 1px solid #4eb3d3; padding-top: 0.5rem; margin-top: 0.5rem;">
                 <button class="selection-btn rating-btn" onclick="showWordRatingModal('${keyword.replace(/'/g, "\\'")}', 'keyword')" style="background: #fbbf24; color: #000;">
@@ -355,6 +373,46 @@
         
         window._pendingTextSelection = { word: keyword, type: 'ng' };
         window.setState({ showModal: 'addNGWord' });
+    };
+
+    // 【新規追加】既存興味ワードから削除する関数
+    const handleKeywordRemoveFromInterest = (keyword) => {
+        const menu = document.querySelector('.keyword-selection-menu');
+        if (menu) menu.remove();
+        
+        const confirmRemove = confirm(`「${keyword}」を興味ワードから削除しますか？\n\n星評価も同時に削除されます。`);
+        if (!confirmRemove) return;
+        
+        try {
+            const wordHook = window.DataHooks.useWordFilters();
+            const success = wordHook.removeInterestWord(keyword);
+            
+            if (success) {
+                // 星評価も削除
+                if (window.WordRatingManager) {
+                    window.WordRatingManager.saveWordRating(keyword, 0);
+                }
+                
+                // キーワード強調表示を更新
+                updateKeywordHighlighting(keyword, 0);
+                updateArticleListOnly();
+                
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
+                
+                showToastNotification(`「${keyword}」を興味ワードから削除しました`, 'error');
+                
+                if (window.state?.showModal === 'settings') {
+                    setTimeout(() => window.render(), 150);
+                }
+            } else {
+                alert('興味ワードの削除に失敗しました');
+            }
+        } catch (error) {
+            console.error('興味ワード削除エラー:', error);
+            alert('興味ワードの削除中にエラーが発生しました: ' + error.message);
+        }
     };
 
     // ★追加：キーワード強調表示を更新する関数
@@ -401,7 +459,7 @@
         const starsHtml = Array.from({length: 5}, (_, i) => {
             const rating = i + 1;
             const isActive = rating <= currentRating;
-            return `<button class="popup-star ${isActive ? 'active' : ''}" data-rating="${rating}" onmouseover="highlightStars(${rating})" onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})" onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${rating}, '${source}')">★</button>`;
+            return `<button class="popup-star ${isActive ? 'active' : ''}" data-rating="${rating}" onmouseover="highlightStars(${rating})" onmouseout="resetStars('${word.replace(/'/g, "\\'")}', ${currentRating})" onclick="selectWordRating('${word.replace(/'/g, "\\'")}', ${rating}, '${source}')"}>★</button>`;
         }).join('');
         
         const statusMessage = currentRating > 0 
@@ -454,6 +512,7 @@
             star.classList.toggle('active', index < originalRating);
         });
     };
+
     const selectWordRating = (word, rating, source = 'keyword') => {
         try {
             if (!window.WordRatingManager) {
@@ -602,7 +661,6 @@
             }
         });
     };
-
     // ユニークID生成機能
     const encodeToValidId = (text) => encodeURIComponent(text).replace(/[^A-Za-z0-9_-]/g, '_');
 
@@ -1574,6 +1632,7 @@
         currentInlineRating = 0;
         window.setState({ showModal: null });
     };
+
     const handleOpenModal = (modalType) => window.setState({ showModal: modalType });
 
     const handleAddWord = (type) => {
@@ -1834,7 +1893,7 @@
                                     <h3>AIスコア範囲</h3>
                                     <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
                                 </div>
-                                                                <div class="slider-container">
+                                <div class="slider-container">
                                     <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
                                     <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
                                     
@@ -1909,7 +1968,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応 + 星評価統合 + 評価削除時反映修正）</h3>
+                            <h3 class="group-title">【修正統合】ワード評価設定（既存興味ワード削除確認統合版）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -1931,16 +1990,16 @@
                             </div>
 
                             <div class="word-help">
-                                <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 評価削除時反映修正</h4>
+                                <h4>【修正統合】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
-                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード・NGワードの2択メニューを表示</li>
+                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
                                     <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
                                     <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
                                     <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
-                                    <li><strong>評価削除時反映:</strong> 設定から評価を削除した際に記事内キーワードの強調表示も即座に消える</li>
+                                    <li><strong>削除確認:</strong> 既存興味ワードをクリックした場合は削除確認ダイアログを表示</li>
                                 </ul>
                             </div>
                         </div>
@@ -1976,7 +2035,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【統合最適化】適用範囲対応 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版
+                                        【修正統合】既存興味ワード削除確認統合版
                                     </p>
                                 </div>
                             </div>
@@ -2017,7 +2076,7 @@
         }, 50);
     };
 
-    // グローバル関数の追加（統合最適化 + 星評価修正 + 評価削除時反映修正版）
+    // グローバル関数の追加（既存興味ワード削除確認統合版）
     Object.assign(window, {
         handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
         handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
@@ -2026,8 +2085,8 @@
         handleAddNGWordWithScope, handleRemoveNGWordWithScope, handleAddInterestWordWithScope, handleRemoveInterestWordWithScope,
         handleWordScopeChange, handleSubmitWord, showWordRatingModal, closeWordRatingModal, 
         highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager,
-        // キーワード選択関連
-        showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord,
+        // キーワード選択関連（修正統合版）
+        showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord, handleKeywordRemoveFromInterest,
         // インライン星評価関連（修正版）
         initializeInlineStarEvents, highlightInlineStars, resetInlineStars, selectInlineRating,
         // ★追加：キーワード強調表示更新関数
