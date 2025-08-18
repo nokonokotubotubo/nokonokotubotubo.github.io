@@ -702,8 +702,40 @@
         });
     };
 
+    // 【修正】キーワード統合機能を追加したrenderArticleCard関数
     const renderArticleCard = (article) => {
-        const keywords = (article.keywords || []).map(keyword => {
+        // 【追加】興味ワードとの統合キーワード生成
+        const generateCombinedKeywords = (article) => {
+            const wordHook = window.DataHooks.useWordFilters();
+            const interestWords = wordHook.wordFilters.interestWords || [];
+            
+            // 記事本来のキーワード
+            const originalKeywords = new Set(article.keywords || []);
+            
+            // 記事のタイトル・内容を結合してテキスト検索用に準備
+            const articleText = (article.title + ' ' + article.content).toLowerCase();
+            
+            // 興味ワードのうち、記事に含まれるが元のキーワードに無いものを抽出
+            const additionalInterestKeywords = interestWords.filter(word => {
+                // 既に記事のキーワードに含まれている場合は除外
+                if (originalKeywords.has(word)) return false;
+                
+                // 記事のタイトル・内容に含まれている場合のみ追加
+                return articleText.includes(word.toLowerCase());
+            });
+            
+            // 記事キーワード + 追加興味ワードを結合（記事キーワードを優先順序）
+            const combinedKeywords = [
+                ...Array.from(originalKeywords),
+                ...additionalInterestKeywords
+            ];
+            
+            return combinedKeywords;
+        };
+        
+        // 【修正】統合キーワードを使用
+        const combinedKeywords = generateCombinedKeywords(article);
+        const keywords = combinedKeywords.map(keyword => {
             const sanitizedKeyword = keyword.replace(/[<>"'&]/g, match => {
                 const escapeChars = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' };
                 return escapeChars[match];
