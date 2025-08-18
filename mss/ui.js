@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一版）
 (function() {
     'use strict';
 
@@ -293,6 +293,106 @@
         }
     };
 
+    // キーワード選択メニュー機能（テキスト選択と同様の処理）
+    const showKeywordSelectionMenu = (keyword, event) => {
+        event.stopPropagation();
+        
+        // 既存のメニューを削除
+        const existingMenu = document.querySelector('.keyword-selection-menu');
+        if (existingMenu) existingMenu.remove();
+        
+        const menu = document.createElement('div');
+        menu.className = 'keyword-selection-menu';
+        menu.onclick = (e) => e.stopPropagation();
+        
+        // メニュー位置の計算
+        const rect = event.target.getBoundingClientRect();
+        const menuWidth = 200;
+        const menuHeight = 120;
+        const x = rect.left + (rect.width / 2) - (menuWidth / 2);
+        const y = rect.bottom + 10;
+        const adjustedX = Math.min(Math.max(x, 10), window.innerWidth - menuWidth - 10);
+        const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
+        
+        menu.style.cssText = `
+            position: fixed;
+            left: ${adjustedX}px;
+            top: ${adjustedY}px;
+            background: #24323d;
+            border: 1px solid #4eb3d3;
+            border-radius: 8px;
+            padding: 0.5rem;
+            z-index: 10002;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 180px;
+            animation: fadeInScale 0.2s ease-out;
+        `;
+        
+        // 現在の評価状況を取得
+        const currentRating = window.WordRatingManager?.getWordRating(keyword) || 0;
+        const ratingInfo = currentRating > 0 ? ` (現在: ${currentRating}星)` : '';
+        
+        menu.innerHTML = `
+            <div style="color: #e0e6eb; font-size: 0.8rem; margin-bottom: 0.5rem; text-align: center; word-break: break-word;">
+                「${keyword.substring(0, 20)}${keyword.length > 20 ? '...' : ''}」${ratingInfo}
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                <button class="selection-btn interest-btn" onclick="handleKeywordAsInterestWord('${keyword.replace(/'/g, "\\'")}')">
+                    興味ワード
+                </button>
+                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')">
+                    NGワード
+                </button>
+            </div>
+            ${currentRating > 0 ? `
+            <div style="text-align: center; border-top: 1px solid #4eb3d3; padding-top: 0.5rem; margin-top: 0.5rem;">
+                <button class="selection-btn rating-btn" onclick="showWordRatingModal('${keyword.replace(/'/g, "\\'")}', 'keyword')" style="background: #fbbf24; color: #000;">
+                    星評価を変更
+                </button>
+            </div>
+            ` : ''}
+        `;
+        
+        document.body.appendChild(menu);
+        
+        // クリック外で閉じる処理
+        setTimeout(() => {
+            const closeOnOutsideClick = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeOnOutsideClick);
+                }
+            };
+            document.addEventListener('click', closeOnOutsideClick);
+        }, 100);
+    };
+
+    // キーワードから興味ワードに追加
+    const handleKeywordAsInterestWord = (keyword) => {
+        // メニューを閉じる
+        const menu = document.querySelector('.keyword-selection-menu');
+        if (menu) menu.remove();
+        
+        // 統合モーダルを使用して範囲選択可能に
+        window._pendingTextSelection = { word: keyword, type: 'interest' };
+        window.setState({ showModal: 'addInterestWord' });
+    };
+
+    // キーワードからNGワードに追加
+    const handleKeywordAsNGWord = (keyword) => {
+        // メニューを閉じる
+        const menu = document.querySelector('.keyword-selection-menu');
+        if (menu) menu.remove();
+        
+        // NGワード追加確認
+        const confirmAdd = confirm(`「${keyword}」をNGワードとして追加しますか？\n\n該当する記事は表示されなくなります。`);
+        if (!confirmAdd) return;
+        
+        // 統合モーダルを使用して範囲選択可能に
+        window._pendingTextSelection = { word: keyword, type: 'ng' };
+        window.setState({ showModal: 'addNGWord' });
+    };
+
     // ワード評価モーダル（統合最適化版）
     const showWordRatingModal = (word, source = 'keyword') => {
         const currentRating = window.WordRatingManager?.getWordRating(word) || 0;
@@ -406,7 +506,7 @@
                             } else {
                                 element.innerHTML = wordText;
                             }
-                            element.title = `クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
+                            element.title = `クリックして操作 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
                         }
                     });
                 }, 50);
@@ -443,6 +543,32 @@
         }
         
         closeWordRatingModal();
+    };
+
+    // インライン星評価管理（興味ワード追加モーダル用）
+    let currentInlineRating = 0;
+
+    const highlightInlineStars = (rating) => {
+        const stars = document.querySelectorAll('.inline-star');
+        stars.forEach((star, index) => {
+            star.classList.toggle('active', index < rating);
+        });
+    };
+
+    const resetInlineStars = (originalRating) => {
+        currentInlineRating = originalRating;
+        const stars = document.querySelectorAll('.inline-star');
+        stars.forEach((star, index) => {
+            star.classList.toggle('active', index < originalRating);
+        });
+    };
+
+    const selectInlineRating = (rating) => {
+        currentInlineRating = rating;
+        const stars = document.querySelectorAll('.inline-star');
+        stars.forEach((star, index) => {
+            star.classList.toggle('active', index < rating);
+        });
     };
 
     // ユニークID生成機能
@@ -828,7 +954,7 @@
         }
     };
 
-    // 統合ワード設定モーダル（興味ワード・NGワード共通 + 適用範囲統合最適化版）
+    // 統合ワード設定モーダル（興味ワード・NGワード共通 + 適用範囲統合最適化 + 星評価統合版）
     const renderWordSettingModal = (type, editWord = null) => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
@@ -842,6 +968,40 @@
         const initialWord = window._pendingTextSelection?.word || (editWord ? (editWord.word || editWord) : '');
         const initialScope = editWord && typeof editWord === 'object' ? editWord.scope : 'all';
         const initialTarget = editWord && typeof editWord === 'object' ? editWord.target : '';
+        
+        // 興味ワードの場合の初期評価取得
+        const currentRating = type === 'interest' && initialWord ? (window.WordRatingManager?.getWordRating(initialWord) || 0) : 0;
+        
+        // モーダル表示時に初期評価を設定
+        if (type === 'interest') {
+            setTimeout(() => {
+                currentInlineRating = currentRating;
+            }, 100);
+        }
+        
+        // 興味ワード用の星評価セクション
+        const ratingSection = type === 'interest' ? `
+            <div class="word-section">
+                <div class="word-section-header">
+                    <h3>星評価（任意）</h3>
+                    <span style="font-size: 0.9rem; color: #9ca3af;">追加後に変更も可能です</span>
+                </div>
+                <div class="inline-rating-container" style="margin-bottom: 1rem;">
+                    <div class="inline-rating-stars" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
+                        ${Array.from({length: 5}, (_, i) => {
+                            const rating = i + 1;
+                            const isActive = rating <= currentRating;
+                            return `<button type="button" class="inline-star ${isActive ? 'active' : ''}" data-rating="${rating}" onclick="selectInlineRating(${rating})" onmouseover="highlightInlineStars(${rating})" onmouseout="resetInlineStars(${currentRating})" style="background: none; border: none; font-size: 1.5rem; color: ${isActive ? '#fbbf24' : '#6b7280'}; cursor: pointer; padding: 0.25rem; transition: color 0.2s;">★</button>`;
+                        }).join('')}
+                        <button type="button" class="inline-star-clear" onclick="selectInlineRating(0)" title="評価をクリア" style="background: none; border: none; font-size: 1.2rem; color: #ef4444; cursor: pointer; padding: 0.25rem; margin-left: 0.5rem;">×</button>
+                    </div>
+                    <div class="inline-rating-description" style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
+                        <div>1星: 低関心 (+2) | 2星: やや関心 (+4) | 3星: 普通関心 (+6)</div>
+                        <div>4星: 高関心 (+8) | 5星: 最高関心 (+10)</div>
+                    </div>
+                </div>
+            </div>
+        ` : '';
         
         return `
             <div class="modal-overlay" onclick="handleCloseModal()">
@@ -858,6 +1018,8 @@
                                 <div class="word-section-header"><h3>ワード入力</h3></div>
                                 <input type="text" id="wordInput" placeholder="${type === 'interest' ? '興味' : 'NG'}ワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;" value="${initialWord}">
                             </div>
+                            
+                            ${ratingSection}
                             
                             <div class="word-section">
                                 <div class="word-section-header"><h3>適用範囲</h3></div>
@@ -935,7 +1097,7 @@
         }
     };
 
-    // 統合ワード送信処理
+    // 統合ワード送信処理（星評価対応版）
     const handleSubmitWord = (type, isEdit = false) => {
         const word = document.getElementById('wordInput').value.trim();
         if (!word) {
@@ -965,20 +1127,26 @@
         window._pendingTextSelection = null;
         
         if (type === 'interest') {
-            handleAddInterestWordWithScope(word, scope, target, isEdit);
+            // 興味ワードの場合は星評価も一緒に処理
+            handleAddInterestWordWithScope(word, scope, target, isEdit, currentInlineRating);
         } else {
             handleAddNGWordWithScope(word, scope, target);
         }
     };
 
-    // 興味ワード範囲付き追加処理
-    const handleAddInterestWordWithScope = (word, scope, target, isEdit = false) => {
+    // 興味ワード範囲付き追加処理（星評価統合版）
+    const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
         if (!word?.trim()) return;
 
         const wordHook = window.DataHooks.useWordFilters();
         const success = wordHook.addInterestWord(word.trim(), scope, target);
 
         if (success) {
+            // 星評価が設定されている場合は保存
+            if (rating > 0 && window.WordRatingManager) {
+                window.WordRatingManager.saveWordRating(word.trim(), rating);
+            }
+            
             window.setState({ showModal: 'settings' });
             window.render();
             
@@ -986,10 +1154,11 @@
                 window.GistSyncManager.markAsChanged();
             }
             
-            // 評価モーダルを表示
-            setTimeout(() => {
-                showWordRatingModal(word.trim(), 'interest');
-            }, 100);
+            // 成功メッセージ
+            const message = rating > 0 
+                ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
+                : `「${word}」を興味ワードに追加しました`;
+            showToastNotification(message, 'success');
             
         } else {
             alert('そのワードは既に同じ範囲で登録されています');
@@ -1373,6 +1542,8 @@
     const handleCloseModal = () => {
         // テキスト選択情報をクリア
         window._pendingTextSelection = null;
+        // インライン星評価をリセット
+        currentInlineRating = 0;
         window.setState({ showModal: null });
     };
     const handleOpenModal = (modalType) => window.setState({ showModal: modalType });
@@ -1533,7 +1704,7 @@
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             return `
-                <span class="keyword ${ratingClass}" onclick="showWordRatingModal('${keyword.replace(/'/g, "\\'")}', 'keyword'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                <span class="keyword ${ratingClass}" onclick="showKeywordSelectionMenu('${keyword.replace(/'/g, "\\'")}', event)" title="クリックして操作 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
                     ${sanitizedKeyword}${rating > 0 ? ` ★${rating}` : ''}
                 </span>
             `;
@@ -1581,7 +1752,7 @@
         return `<div class="article-grid">${articles.map(renderArticleCard).join('')}</div>`;
     };
 
-    const renderSettingsModal = () => {
+        const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
         const filterSettings = getFilterSettings();
@@ -1715,7 +1886,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応）</h3>
+                            <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応 + 星評価統合）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -1736,15 +1907,16 @@
                                 </div>
                             </div>
 
-                                                        <div class="word-help">
-                                <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定</h4>
+                            <div class="word-help">
+                                <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一</h4>
                                 <ul>
-                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能）</li>
-                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして1-5星で評価可能</li>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
+                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード・NGワードの2択メニューを表示</li>
                                     <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
                                     <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
+                                    <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
                                 </ul>
                             </div>
                         </div>
@@ -1780,7 +1952,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【統合最適化】適用範囲対応版
+                                        【統合最適化】適用範囲対応 + 星評価統合 + キーワード選択UI統一版
                                     </p>
                                 </div>
                             </div>
@@ -1822,7 +1994,11 @@
         updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
         handleAddNGWordWithScope, handleRemoveNGWordWithScope, handleAddInterestWordWithScope, handleRemoveInterestWordWithScope,
         handleWordScopeChange, handleSubmitWord, showWordRatingModal, closeWordRatingModal, 
-        highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager
+        highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager,
+        // キーワード選択関連
+        showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord,
+        // インライン星評価関連
+        highlightInlineStars, resetInlineStars, selectInlineRating
     });
 
     // 初期化
