@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化版）
 (function() {
     'use strict';
 
@@ -260,29 +260,9 @@
         addAsInterestWord() {
             if (!this.selectedText) return;
             
-            const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.addInterestWord(this.selectedText);
-            
-            if (success) {
-                showToastNotification(`「${this.selectedText}」を興味ワードに追加しました`, 'success');
-                
-                // 設定モーダルが開いている場合は再描画
-                if (window.state.showModal === 'settings') {
-                    window.render();
-                }
-                
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-                
-                // 【追加】評価モーダルを表示
-                setTimeout(() => {
-                    showWordRatingModal(this.selectedText, 'interest');
-                }, 100);
-                
-            } else {
-                showToastNotification(`「${this.selectedText}」は既に興味ワードに登録されています`, 'error');
-            }
+            // 統合モーダルを使用して範囲選択可能に
+            window._pendingTextSelection = { word: this.selectedText, type: 'interest' };
+            window.setState({ showModal: 'addInterestWord' });
             
             this.hideSelectionMenu();
             // テキスト選択を解除
@@ -301,26 +281,9 @@
                 return;
             }
             
-            const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.addNGWord(this.selectedText, 'all', null);
-            
-            if (success) {
-                showToastNotification(`「${this.selectedText}」をNGワードに追加しました`, 'success');
-                
-                // 記事一覧の更新
-                updateArticleListOnly();
-                
-                // 設定モーダルが開いている場合は再描画
-                if (window.state.showModal === 'settings') {
-                    window.render();
-                }
-                
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-            } else {
-                showToastNotification(`「${this.selectedText}」は既にNGワードに登録されています`, 'error');
-            }
+            // 統合モーダルを使用して範囲選択可能に
+            window._pendingTextSelection = { word: this.selectedText, type: 'ng' };
+            window.setState({ showModal: 'addNGWord' });
             
             this.hideSelectionMenu();
             // テキスト選択を解除
@@ -865,55 +828,71 @@
         }
     };
 
-    // NGワード範囲選択モーダル関数（軽量化版）
-    const renderAddNGWordModal = () => {
+    // 統合ワード設定モーダル（興味ワード・NGワード共通 + 適用範囲統合最適化版）
+    const renderWordSettingModal = (type, editWord = null) => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
+        
+        const isEdit = editWord !== null;
+        const title = type === 'interest' 
+            ? (isEdit ? '興味ワード編集' : '興味ワード追加')
+            : (isEdit ? 'NGワード編集' : 'NGワード追加');
+        
+        // テキスト選択からの自動入力対応
+        const initialWord = window._pendingTextSelection?.word || (editWord ? (editWord.word || editWord) : '');
+        const initialScope = editWord && typeof editWord === 'object' ? editWord.scope : 'all';
+        const initialTarget = editWord && typeof editWord === 'object' ? editWord.target : '';
         
         return `
             <div class="modal-overlay" onclick="handleCloseModal()">
                 <div class="modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
-                        <h2>NGワード追加</h2>
+                        <h2>${title}</h2>
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
                         <div class="modal-section-group">
-                            <h3 class="group-title">NGワード設定</h3>
+                            <h3 class="group-title">${type === 'interest' ? '興味' : 'NG'}ワード設定</h3>
                             
                             <div class="word-section">
                                 <div class="word-section-header"><h3>ワード入力</h3></div>
-                                <input type="text" id="ngWordInput" placeholder="NGワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
+                                <input type="text" id="wordInput" placeholder="${type === 'interest' ? '興味' : 'NG'}ワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;" value="${initialWord}">
                             </div>
                             
                             <div class="word-section">
                                 <div class="word-section-header"><h3>適用範囲</h3></div>
                                 <div style="margin-bottom: 1rem;">
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="all" checked onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="wordScope" value="all" ${initialScope === 'all' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">全体（すべての記事に適用）</span>
                                     </label>
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="folder" onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="wordScope" value="folder" ${initialScope === 'folder' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">特定のフォルダのみ</span>
                                     </label>
                                     <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="ngWordScope" value="feed" onchange="handleNGWordScopeChange(this.value)" onclick="handleNGWordScopeChange(this.value)">
+                                        <input type="radio" name="wordScope" value="feed" ${initialScope === 'feed' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
                                         <span style="margin-left: 0.5rem;">特定のフィードのみ</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div class="word-section" id="ngWordTargetSection" style="display: none;">
+                            <div class="word-section" id="wordTargetSection" style="display: ${initialScope !== 'all' ? 'block' : 'none'};">
                                 <div class="word-section-header"><h3>対象選択</h3></div>
-                                <select id="ngWordTargetSelect" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
+                                <select id="wordTargetSelect" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
                                     <option value="">選択してください</option>
+                                    ${initialScope === 'folder' ? folders.map(folder => 
+                                        `<option value="${folder}" ${folder === initialTarget ? 'selected' : ''}>${folder}</option>`
+                                    ).join('') : ''}
+                                    ${initialScope === 'feed' ? feeds.map(feed => 
+                                        `<option value="${feed}" ${feed === initialTarget ? 'selected' : ''}>${feed}</option>`
+                                    ).join('') : ''}
                                 </select>
                             </div>
                             
                             <div class="modal-actions">
                                 <button class="action-btn" onclick="handleCloseModal()">キャンセル</button>
-                                <button class="action-btn success" onclick="handleSubmitNGWord()">NGワードを追加</button>
+                                <button class="action-btn ${type === 'interest' ? 'success' : 'danger'}" onclick="handleSubmitWord('${type}', ${isEdit})">${type === 'interest' ? '興味' : 'NG'}ワードを${isEdit ? '更新' : '追加'}</button>
                             </div>
                         </div>
                     </div>
@@ -922,9 +901,10 @@
         `;
     };
 
-    const handleNGWordScopeChange = (scope) => {
-        const targetSection = document.getElementById('ngWordTargetSection');
-        const targetSelect = document.getElementById('ngWordTargetSelect');
+    // 統合ワード範囲選択処理
+    const handleWordScopeChange = (scope) => {
+        const targetSection = document.getElementById('wordTargetSection');
+        const targetSelect = document.getElementById('wordTargetSelect');
         
         if (!targetSection || !targetSelect) return;
         
@@ -955,14 +935,15 @@
         }
     };
 
-    const handleSubmitNGWord = () => {
-        const word = document.getElementById('ngWordInput').value.trim();
+    // 統合ワード送信処理
+    const handleSubmitWord = (type, isEdit = false) => {
+        const word = document.getElementById('wordInput').value.trim();
         if (!word) {
-            alert('NGワードを入力してください');
+            alert(`${type === 'interest' ? '興味' : 'NG'}ワードを入力してください`);
             return;
         }
         
-        const scopeRadio = document.querySelector('input[name="ngWordScope"]:checked');
+        const scopeRadio = document.querySelector('input[name="wordScope"]:checked');
         if (!scopeRadio) {
             alert('範囲を選択してください');
             return;
@@ -971,7 +952,7 @@
         
         let target = null;
         if (scope !== 'all') {
-            const targetSelect = document.getElementById('ngWordTargetSelect');
+            const targetSelect = document.getElementById('wordTargetSelect');
             target = targetSelect ? targetSelect.value : '';
             
             if (!target || target === '') {
@@ -980,7 +961,54 @@
             }
         }
         
-        handleAddNGWordWithScope(word, scope, target);
+        // テキスト選択情報をクリア
+        window._pendingTextSelection = null;
+        
+        if (type === 'interest') {
+            handleAddInterestWordWithScope(word, scope, target, isEdit);
+        } else {
+            handleAddNGWordWithScope(word, scope, target);
+        }
+    };
+
+    // 興味ワード範囲付き追加処理
+    const handleAddInterestWordWithScope = (word, scope, target, isEdit = false) => {
+        if (!word?.trim()) return;
+
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.addInterestWord(word.trim(), scope, target);
+
+        if (success) {
+            window.setState({ showModal: 'settings' });
+            window.render();
+            
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+            
+            // 評価モーダルを表示
+            setTimeout(() => {
+                showWordRatingModal(word.trim(), 'interest');
+            }, 100);
+            
+        } else {
+            alert('そのワードは既に同じ範囲で登録されています');
+        }
+    };
+
+    // 興味ワード範囲付き削除処理
+    const handleRemoveInterestWordWithScope = (word, scope, target) => {
+        if (!confirm(`「${word}」を削除しますか？`)) return;
+
+        const wordHook = window.DataHooks.useWordFilters();
+        const success = wordHook.removeInterestWord(word, scope, target || null);
+
+        if (success) {
+            window.render();
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+        }
     };
 
     const handleAddNGWordWithScope = (word, scope, target) => {
@@ -1342,48 +1370,41 @@
         }
     };
 
-    const handleCloseModal = () => window.setState({ showModal: null });
+    const handleCloseModal = () => {
+        // テキスト選択情報をクリア
+        window._pendingTextSelection = null;
+        window.setState({ showModal: null });
+    };
     const handleOpenModal = (modalType) => window.setState({ showModal: modalType });
 
+    // 更新されたhandleAddWord関数
     const handleAddWord = (type) => {
-        if (type === 'interest') {
-            const word = prompt('興味ワードを入力してください:');
-            if (!word?.trim()) return;
+        window.setState({ showModal: `add${type === 'interest' ? 'Interest' : 'NG'}Word` });
+    };
 
+    // 更新されたhandleRemoveWord関数
+    const handleRemoveWord = (wordData, type) => {
+        if (typeof wordData === 'string') {
+            // 旧形式（後方互換性）
+            if (!confirm(`「${wordData}」を削除しますか？`)) return;
+            
             const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.addInterestWord(word.trim());
-
+            const success = type === 'interest' 
+                ? wordHook.removeInterestWord(wordData)
+                : wordHook.removeNGWord(wordData);
+                
             if (success) {
                 window.render();
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                 }
-                
-                // 【追加】評価モーダルを表示
-                setTimeout(() => {
-                    showWordRatingModal(word.trim(), 'interest');
-                }, 100);
-                
-            } else {
-                alert('そのワードは既に登録されています');
             }
         } else {
-            window.setState({ showModal: 'addNGWord' });
-        }
-    };
-
-    const handleRemoveWord = (word, type) => {
-        if (!confirm(`「${word}」を削除しますか？`)) return;
-
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = type === 'interest' 
-            ? wordHook.removeInterestWord(word)
-            : wordHook.removeNGWord(word);
-
-        if (success) {
-            window.render();
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
+            // 新形式（範囲付き）
+            if (type === 'interest') {
+                handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
+            } else {
+                handleRemoveNGWordWithScope(wordData.word, wordData.scope, wordData.target);
             }
         }
     };
@@ -1565,14 +1586,23 @@
         const wordHook = window.DataHooks.useWordFilters();
         const filterSettings = getFilterSettings();
         
-        const interestWords = wordHook.wordFilters.interestWords.map(word => {
+        const interestWords = wordHook.wordFilters.interestWords.map(wordObj => {
+            // 新旧両形式対応
+            const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
+            const scope = typeof wordObj === 'string' ? 'all' : wordObj.scope;
+            const target = typeof wordObj === 'string' ? null : wordObj.target;
+            
             const rating = window.WordRatingManager?.getWordRating(word) || 0;
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
+            const scopeText = scope === 'all' ? '' : 
+                             scope === 'folder' ? ` [フォルダ: ${target}]` :
+                             ` [フィード: ${target}]`;
+            
             return `
                 <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
-                    ${word}${rating > 0 ? ` ★${rating}` : ''}
-                    <button class="word-remove" onclick="handleRemoveWord('${word}', 'interest'); event.stopPropagation()">×</button>
+                    ${word}${rating > 0 ? ` ★${rating}` : ''}${scopeText}
+                    <button class="word-remove" onclick="handleRemoveWord(${JSON.stringify(wordObj).replace(/"/g, '&quot;')}, 'interest'); event.stopPropagation()">×</button>
                 </span>
             `;
         }).join('');
@@ -1685,7 +1715,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【統合】ワード評価設定</h3>
+                            <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -1706,14 +1736,15 @@
                                 </div>
                             </div>
 
-                            <div class="word-help">
-                                <h4>【統合】ワード評価システム + テキスト選択機能</h4>
+                                                        <div class="word-help">
+                                <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定</h4>
                                 <ul>
-                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算）</li>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能）</li>
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして1-5星で評価可能</li>
-                                    <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから追加可能</li>
+                                    <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
                                     <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
-                                    <li><strong>NGワード:</strong> 該当する記事は表示されません</li>
+                                    <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
+                                    <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
                                 </ul>
                             </div>
                         </div>
@@ -1749,7 +1780,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        テキスト選択機能統合版
+                                        【統合最適化】適用範囲対応版
                                     </p>
                                 </div>
                             </div>
@@ -1763,7 +1794,8 @@
     const renderModal = () => {
         switch (window.state.showModal) {
             case 'settings': return renderSettingsModal();
-            case 'addNGWord': return renderAddNGWordModal();
+            case 'addInterestWord': return renderWordSettingModal('interest');
+            case 'addNGWord': return renderWordSettingModal('ng');
             default: return '';
         }
     };
@@ -1782,15 +1814,15 @@
         `;
     };
 
-    // グローバル関数の追加（軽量化版）
+    // グローバル関数の追加（統合最適化版）
     Object.assign(window, {
         handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
         handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
         handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
         updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
-        handleAddNGWordWithScope, handleNGWordScopeChange, handleSubmitNGWord, handleRemoveNGWordWithScope,
-        showWordRatingModal, closeWordRatingModal, highlightStars, resetStars, selectWordRating,
-        showToastNotification, TextSelectionManager
+        handleAddNGWordWithScope, handleRemoveNGWordWithScope, handleAddInterestWordWithScope, handleRemoveInterestWordWithScope,
+        handleWordScopeChange, handleSubmitWord, showWordRatingModal, closeWordRatingModal, 
+        highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager
     });
 
     // 初期化
@@ -1798,13 +1830,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeData();
             initializeGistSync();
-            TextSelectionManager.init(); // 追加
+            TextSelectionManager.init();
             window.render();
         });
     } else {
         initializeData();
         initializeGistSync();
-        TextSelectionManager.init(); // 追加
+        TextSelectionManager.init();
         window.render();
     }
 
