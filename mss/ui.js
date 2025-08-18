@@ -1222,6 +1222,7 @@
         } else {
             handleAddNGWordWithScope(word, scope, target);
         }
+        window.setState({ showModal: null });
     };
 
     // 興味ワード範囲付き追加処理（星評価統合版）
