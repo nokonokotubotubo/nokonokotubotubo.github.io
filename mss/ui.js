@@ -1,4 +1,4 @@
-// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正版）
+// Minews PWA - UI・表示レイヤー（軽量化最適化版 + テキスト選択機能統合 + 評価モーダル自動表示 + 適用範囲統合最適化 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版）
 (function() {
     'use strict';
 
@@ -80,7 +80,7 @@
         });
         
         const displays = document.querySelectorAll('.filter-range-display');
-        if (displays[0]) displays.textContent = '0点 - 100点';
+        if (displays[0]) displays[0].textContent = '0点 - 100点';
         if (displays[1]) displays[1].textContent = '0日前 - 14日前';
         
         updateArticleListOnly();
@@ -117,37 +117,24 @@
         isTouch: false,
         
         init() {
-            // デスクトップ用：右クリックメニュー抑止とコンテキストメニュー表示
             document.addEventListener('contextmenu', this.handleRightClick.bind(this));
-            
-            // モバイル用：タッチイベント処理
             document.addEventListener('touchstart', this.handleTouchStart.bind(this));
             document.addEventListener('touchend', this.handleTouchEnd.bind(this));
-            
-            // 共通：選択変更イベント
             document.addEventListener('selectionchange', this.handleSelectionChange.bind(this));
-            
-            // クリックでメニューを隠す
             document.addEventListener('click', this.hideSelectionMenu.bind(this));
-            
-            // ESCキーでメニューを隠す
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') this.hideSelectionMenu();
             });
         },
         
         handleRightClick(event) {
-            // モーダルが開いている場合は無視
             if (window.state.showModal) return;
             
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
-            
-            // 記事カード内でない場合は通常の右クリックメニューを表示
             const articleCard = event.target.closest('.article-card');
             if (!articleCard) return;
             
-            // 選択テキストがある場合のみ右クリックメニューを抑止
             if (selectedText && selectedText.length >= 2 && selectedText.length <= 50) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -162,27 +149,22 @@
         
         handleTouchEnd(event) {
             if (!this.isTouch) return;
-            
-            // 少し遅延させてselectionchangeを待つ
             setTimeout(() => {
                 this.handleSelectionChange();
             }, 100);
         },
         
         handleSelectionChange() {
-            // モーダルが開いている場合は無視
             if (window.state.showModal) return;
             
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
             
-            // テキスト選択がない、短すぎる、長すぎる場合はメニューを隠す
             if (!selectedText || selectedText.length < 2 || selectedText.length > 50) {
                 this.hideSelectionMenu();
                 return;
             }
             
-            // 選択された要素が記事カード内かチェック
             const range = selection.getRangeAt(0);
             const container = range.commonAncestorContainer;
             const element = container.nodeType === Node.TEXT_NODE ? container.parentElement : container;
@@ -195,23 +177,21 @@
             
             this.selectedText = selectedText;
             
-            // モバイルの場合、選択範囲の位置を取得
             if (this.isTouch) {
                 const rect = range.getBoundingClientRect();
                 const x = rect.left + (rect.width / 2);
-                const y = rect.bottom + 10; // 選択範囲の下に表示
+                const y = rect.bottom + 10;
                 this.showSelectionMenu(x, y);
             }
         },
         
         showSelectionMenu(x, y) {
-            this.hideSelectionMenu(); // 既存メニューを削除
+            this.hideSelectionMenu();
             
             const menu = document.createElement('div');
             menu.className = 'text-selection-menu';
             menu.onclick = (e) => e.stopPropagation();
             
-            // メニュー位置の調整
             const menuWidth = 200;
             const menuHeight = 100;
             const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
@@ -260,12 +240,10 @@
         addAsInterestWord() {
             if (!this.selectedText) return;
             
-            // 統合モーダルを使用して範囲選択可能に
             window._pendingTextSelection = { word: this.selectedText, type: 'interest' };
             window.setState({ showModal: 'addInterestWord' });
             
             this.hideSelectionMenu();
-            // テキスト選択を解除
             if (window.getSelection) {
                 window.getSelection().removeAllRanges();
             }
@@ -274,30 +252,26 @@
         addAsNGWord() {
             if (!this.selectedText) return;
             
-            // NGワード追加確認
             const confirmAdd = confirm(`「${this.selectedText}」をNGワードとして追加しますか？\n\n該当する記事は表示されなくなります。`);
             if (!confirmAdd) {
                 this.hideSelectionMenu();
                 return;
             }
             
-            // 統合モーダルを使用して範囲選択可能に
             window._pendingTextSelection = { word: this.selectedText, type: 'ng' };
             window.setState({ showModal: 'addNGWord' });
             
             this.hideSelectionMenu();
-            // テキスト選択を解除
             if (window.getSelection) {
                 window.getSelection().removeAllRanges();
             }
         }
     };
 
-    // キーワード選択メニュー機能（テキスト選択と同様の処理）
+    // キーワード選択メニュー機能
     const showKeywordSelectionMenu = (keyword, event) => {
         event.stopPropagation();
         
-        // 既存のメニューを削除
         const existingMenu = document.querySelector('.keyword-selection-menu');
         if (existingMenu) existingMenu.remove();
         
@@ -305,7 +279,6 @@
         menu.className = 'keyword-selection-menu';
         menu.onclick = (e) => e.stopPropagation();
         
-        // メニュー位置の計算
         const rect = event.target.getBoundingClientRect();
         const menuWidth = 200;
         const menuHeight = 120;
@@ -328,7 +301,6 @@
             animation: fadeInScale 0.2s ease-out;
         `;
         
-        // 現在の評価状況を取得
         const currentRating = window.WordRatingManager?.getWordRating(keyword) || 0;
         const ratingInfo = currentRating > 0 ? ` (現在: ${currentRating}星)` : '';
         
@@ -355,7 +327,6 @@
         
         document.body.appendChild(menu);
         
-        // クリック外で閉じる処理
         setTimeout(() => {
             const closeOnOutsideClick = (e) => {
                 if (!menu.contains(e.target)) {
@@ -367,30 +338,51 @@
         }, 100);
     };
 
-    // キーワードから興味ワードに追加
     const handleKeywordAsInterestWord = (keyword) => {
-        // メニューを閉じる
         const menu = document.querySelector('.keyword-selection-menu');
         if (menu) menu.remove();
         
-        // 統合モーダルを使用して範囲選択可能に
         window._pendingTextSelection = { word: keyword, type: 'interest' };
         window.setState({ showModal: 'addInterestWord' });
     };
 
-    // キーワードからNGワードに追加
     const handleKeywordAsNGWord = (keyword) => {
-        // メニューを閉じる
         const menu = document.querySelector('.keyword-selection-menu');
         if (menu) menu.remove();
         
-        // NGワード追加確認
         const confirmAdd = confirm(`「${keyword}」をNGワードとして追加しますか？\n\n該当する記事は表示されなくなります。`);
         if (!confirmAdd) return;
         
-        // 統合モーダルを使用して範囲選択可能に
         window._pendingTextSelection = { word: keyword, type: 'ng' };
         window.setState({ showModal: 'addNGWord' });
+    };
+
+    // ★追加：キーワード強調表示を更新する関数
+    const updateKeywordHighlighting = (word, rating) => {
+        const wordElements = document.querySelectorAll(`.keyword, .word-tag.interest`);
+        wordElements.forEach(element => {
+            // 評価を表す★数字を削除して比較
+            const elementText = element.textContent.replace(/\s★\d+$/, '').trim();
+            if (elementText === word) {
+                // 基本クラスは「keyword」か「word-tag interest」
+                const baseClass = element.classList.contains('word-tag') ? 'word-tag interest' : 'keyword';
+                // 既存のrated-*クラスをすべて削除
+                element.className = baseClass; 
+                if (rating > 0) {
+                    element.classList.add(`rated-${rating}`);
+                }
+                // 表示文字を適切に更新
+                const wordText = word + (rating > 0 ? ` ★${rating}` : '');
+                if (element.classList.contains('word-tag')) {
+                    const removeButton = element.querySelector('.word-remove');
+                    element.innerHTML = wordText;
+                    if (removeButton) element.appendChild(removeButton);
+                } else {
+                    element.textContent = wordText;
+                }
+                element.title = `クリックして操作 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
+            }
+        });
     };
 
     // ワード評価モーダル（統合最適化版）
@@ -489,49 +481,33 @@
             
             if (success) {
                 setTimeout(() => {
+                    // ★追加：キーワード強調表示を先に更新
+                    updateKeywordHighlighting(word, rating);
                     updateArticleListOnly();
                     
-                    const wordElements = document.querySelectorAll(`.keyword, .word-tag.interest`);
-                    wordElements.forEach(element => {
-                        const elementText = element.textContent.replace(/\s★\d+$/, '');
-                        if (elementText === word) {
-                            const baseClass = element.classList.contains('word-tag') ? 'word-tag interest' : 'keyword';
-                            element.className = `${baseClass} ${rating > 0 ? `rated-${rating}` : ''}`;
-                            const wordText = word + (rating > 0 ? ` ★${rating}` : '');
-                            if (element.classList.contains('word-tag')) {
-                                const removeButton = element.querySelector('.word-remove');
-                                element.innerHTML = wordText;
-                                if (removeButton) element.appendChild(removeButton);
-                            } else {
-                                element.innerHTML = wordText;
+                    if (window.GistSyncManager?.isEnabled) {
+                        window.GistSyncManager.markAsChanged();
+                        if (window._syncTimeout) clearTimeout(window._syncTimeout);
+                        window._syncTimeout = setTimeout(() => {
+                            if (window.GistSyncManager?.isEnabled && !window.GistSyncManager.isSyncing) {
+                                window.GistSyncManager.autoSync('background');
                             }
-                            element.title = `クリックして操作 (現在: ${rating > 0 ? rating + '星' : '未評価'})`;
-                        }
-                    });
+                            window._syncTimeout = null;
+                        }, 3000);
+                    }
+                    
+                    const message = rating === 0 
+                        ? `「${word}」の評価を削除しました`
+                        : currentRating > 0 
+                            ? `「${word}」の評価を${currentRating}星から${rating}星に変更しました`
+                            : `「${word}」を${rating}星に評価しました`;
+                    
+                    showToastNotification(message, rating === 0 ? 'error' : 'success');
+                    
+                    if (window.state?.showModal === 'settings') {
+                        setTimeout(() => window.render(), 150);
+                    }
                 }, 50);
-                
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                    if (window._syncTimeout) clearTimeout(window._syncTimeout);
-                    window._syncTimeout = setTimeout(() => {
-                        if (window.GistSyncManager?.isEnabled && !window.GistSyncManager.isSyncing) {
-                            window.GistSyncManager.autoSync('background');
-                        }
-                        window._syncTimeout = null;
-                    }, 3000);
-                }
-                
-                const message = rating === 0 
-                    ? `「${word}」の評価を削除しました`
-                    : currentRating > 0 
-                        ? `「${word}」の評価を${currentRating}星から${rating}星に変更しました`
-                        : `「${word}」を${rating}星に評価しました`;
-                
-                showToastNotification(message, rating === 0 ? 'error' : 'success');
-                
-                if (window.state?.showModal === 'settings') {
-                    setTimeout(() => window.render(), 150);
-                }
             } else {
                 alert('ワード評価の保存に失敗しました');
             }
@@ -547,7 +523,6 @@
     let currentInlineRating = 0;
 
     const initializeInlineStarEvents = () => {
-        // 既存のイベントリスナーを削除
         document.querySelectorAll('.inline-star').forEach(star => {
             star.replaceWith(star.cloneNode(true));
         });
@@ -557,7 +532,6 @@
             clearButton.replaceWith(clearButton.cloneNode(true));
         }
         
-        // 新しいイベントリスナーを追加
         document.querySelectorAll('.inline-star').forEach(star => {
             const rating = parseInt(star.dataset.rating);
             
@@ -1022,15 +996,12 @@
             ? (isEdit ? '興味ワード編集' : '興味ワード追加')
             : (isEdit ? 'NGワード編集' : 'NGワード追加');
         
-        // テキスト選択からの自動入力対応
         const initialWord = window._pendingTextSelection?.word || (editWord ? (editWord.word || editWord) : '');
         const initialScope = editWord && typeof editWord === 'object' ? editWord.scope : 'all';
         const initialTarget = editWord && typeof editWord === 'object' ? editWord.target : '';
         
-        // 興味ワードの場合の初期評価取得
         const currentRating = type === 'interest' && initialWord ? (window.WordRatingManager?.getWordRating(initialWord) || 0) : 0;
         
-        // 興味ワード用の星評価セクション（修正版）
         const ratingSection = type === 'interest' ? `
             <div class="word-section">
                 <div class="word-section-header">
@@ -1113,11 +1084,9 @@
             </div>
         `;
 
-        // モーダル表示後にイベントを初期化
         setTimeout(() => {
             if (type === 'interest') {
                 initializeInlineStarEvents();
-                // 初期評価を反映
                 if (currentRating > 0) {
                     currentInlineRating = currentRating;
                     selectInlineRating(currentRating);
@@ -1188,11 +1157,9 @@
             }
         }
         
-        // テキスト選択情報をクリア
         window._pendingTextSelection = null;
         
         if (type === 'interest') {
-            // 興味ワードの場合は星評価も一緒に処理
             handleAddInterestWordWithScope(word, scope, target, isEdit, currentInlineRating);
         } else {
             handleAddNGWordWithScope(word, scope, target);
@@ -1207,7 +1174,6 @@
         const success = wordHook.addInterestWord(word.trim(), scope, target);
 
         if (success) {
-            // 星評価が設定されている場合は保存
             if (rating > 0 && window.WordRatingManager) {
                 window.WordRatingManager.saveWordRating(word.trim(), rating);
             }
@@ -1219,7 +1185,6 @@
                 window.GistSyncManager.markAsChanged();
             }
             
-            // 成功メッセージ
             const message = rating > 0 
                 ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
                 : `「${word}」を興味ワードに追加しました`;
@@ -1277,7 +1242,7 @@
         }
     };
 
-    // GitHub同期管理関数（軽量化版）
+    // GitHub同期管理機能（軽量化版）
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -1605,23 +1570,18 @@
     };
 
     const handleCloseModal = () => {
-        // テキスト選択情報をクリア
         window._pendingTextSelection = null;
-        // インライン星評価をリセット
         currentInlineRating = 0;
         window.setState({ showModal: null });
     };
     const handleOpenModal = (modalType) => window.setState({ showModal: modalType });
 
-    // 更新されたhandleAddWord関数
     const handleAddWord = (type) => {
         window.setState({ showModal: `add${type === 'interest' ? 'Interest' : 'NG'}Word` });
     };
 
-    // 更新されたhandleRemoveWord関数
     const handleRemoveWord = (wordData, type) => {
         if (typeof wordData === 'string') {
-            // 旧形式（後方互換性）
             if (!confirm(`「${wordData}」を削除しますか？`)) return;
             
             const wordHook = window.DataHooks.useWordFilters();
@@ -1636,7 +1596,6 @@
                 }
             }
         } else {
-            // 新形式（範囲付き）
             if (type === 'interest') {
                 handleRemoveInterestWordWithScope(wordData.word, wordData.scope, wordData.target);
             } else {
@@ -1823,269 +1782,271 @@
         const filterSettings = getFilterSettings();
         
         const interestWords = wordHook.wordFilters.interestWords.map(wordObj => {
-                    // 新旧両形式対応
-        const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
-        const scope = typeof wordObj === 'string' ? 'all' : wordObj.scope;
-        const target = typeof wordObj === 'string' ? null : wordObj.target;
-        
-        const rating = window.WordRatingManager?.getWordRating(word) || 0;
-        const ratingClass = rating > 0 ? `rated-${rating}` : '';
-        
-        const scopeText = scope === 'all' ? '' : 
-                         scope === 'folder' ? ` [フォルダ: ${target}]` :
-                         ` [フィード: ${target}]`;
+            const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
+            const scope = typeof wordObj === 'string' ? 'all' : wordObj.scope;
+            const target = typeof wordObj === 'string' ? null : wordObj.target;
+            
+            const rating = window.WordRatingManager?.getWordRating(word) || 0;
+            const ratingClass = rating > 0 ? `rated-${rating}` : '';
+            
+            const scopeText = scope === 'all' ? '' : 
+                             scope === 'folder' ? ` [フォルダ: ${target}]` :
+                             ` [フィード: ${target}]`;
+            
+            return `
+                <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                    ${word}${rating > 0 ? ` ★${rating}` : ''}${scopeText}
+                    <button class="word-remove" onclick="handleRemoveWord(${JSON.stringify(wordObj).replace(/"/g, '&quot;')}, 'interest'); event.stopPropagation()">×</button>
+                </span>
+            `;
+        }).join('');
+
+        const ngWords = wordHook.wordFilters.ngWords.map(ngWordObj => {
+            if (typeof ngWordObj === 'string') {
+                return `<span class="word-tag ng">
+                    ${ngWordObj} <span class="word-scope">[全体]</span>
+                    <button class="word-remove" onclick="handleRemoveWord('${ngWordObj}', 'ng')">×</button>
+                </span>`;
+            } else {
+                const scopeText = ngWordObj.scope === 'all' ? '全体' : 
+                                 ngWordObj.scope === 'folder' ? `フォルダ: ${ngWordObj.target}` :
+                                 `フィード: ${ngWordObj.target}`;
+                return `<span class="word-tag ng">
+                    ${ngWordObj.word} <span class="word-scope">[${scopeText}]</span>
+                    <button class="word-remove" onclick="handleRemoveNGWordWithScope('${ngWordObj.word}', '${ngWordObj.scope}', '${ngWordObj.target || ''}')">×</button>
+                </span>`;
+            }
+        }).join('');
         
         return `
-            <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
-                ${word}${rating > 0 ? ` ★${rating}` : ''}${scopeText}
-                <button class="word-remove" onclick="handleRemoveWord(${JSON.stringify(wordObj).replace(/"/g, '&quot;')}, 'interest'); event.stopPropagation()">×</button>
-            </span>
-        `;
-    }).join('');
-
-    const ngWords = wordHook.wordFilters.ngWords.map(ngWordObj => {
-        if (typeof ngWordObj === 'string') {
-            return `<span class="word-tag ng">
-                ${ngWordObj} <span class="word-scope">[全体]</span>
-                <button class="word-remove" onclick="handleRemoveWord('${ngWordObj}', 'ng')">×</button>
-            </span>`;
-        } else {
-            const scopeText = ngWordObj.scope === 'all' ? '全体' : 
-                             ngWordObj.scope === 'folder' ? `フォルダ: ${ngWordObj.target}` :
-                             `フィード: ${ngWordObj.target}`;
-            return `<span class="word-tag ng">
-                ${ngWordObj.word} <span class="word-scope">[${scopeText}]</span>
-                <button class="word-remove" onclick="handleRemoveNGWordWithScope('${ngWordObj.word}', '${ngWordObj.scope}', '${ngWordObj.target || ''}')">×</button>
-            </span>`;
-        }
-    }).join('');
-    
-    return `
-        <div class="modal-overlay" onclick="handleCloseModal()">
-            <div class="modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>設定</h2>
-                    <button class="modal-close" onclick="handleCloseModal()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-section-group">
-                        <h3 class="group-title">記事フィルター設定</h3>
-                        
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>AIスコア範囲</h3>
-                                <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
-                            </div>
-                            <div class="slider-container">
-                                <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
-                                <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
-                                
-                                <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
-                                <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
-                            </div>
-                        </div>
-
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>記事日付範囲</h3>
-                                <span class="filter-range-display">${filterSettings.dateMin}日前 - ${filterSettings.dateMax}日前</span>
-                            </div>
-                            <div class="slider-container">
-                                <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
-                                <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" oninput="updateDateDisplay('min', this.value)" class="filter-slider">
-                                
-                                <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
-                                <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" oninput="updateDateDisplay('max', this.value)" class="filter-slider">
-                            </div>
-                        </div>
-
-                        <div class="modal-actions">
-                            <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
-                            <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
-                        </div>
+            <div class="modal-overlay" onclick="handleCloseModal()">
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2>設定</h2>
+                        <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
-                    
-                    <div class="modal-section-group">
-                        <h3 class="group-title">クラウド同期</h3>
-                        <div class="word-section">
-                            <div class="word-section-header"><h3>GitHub同期設定</h3></div>
+                    <div class="modal-body">
+                        <div class="modal-section-group">
+                            <h3 class="group-title">記事フィルター設定</h3>
                             
-                            <p class="text-muted mb-3">
-                                同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
-                                ${window.GistSyncManager?.gistId ? `Gist ID: ${window.GistSyncManager.gistId}` : ''}
-                                ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
-                                    `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
-                                    ''}
-                            </p>
-                            
-                            ${window.GistSyncManager?.isEnabled ? `
-                                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
-                                    <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">GitHub同期は設定済みです。定期同期（1分間隔）が実行中。</div>
-                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">設定を解除</button>
-                                        <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">Gist IDコピー</button>
-                                    </div>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>AIスコア範囲</h3>
+                                    <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
                                 </div>
-                                
-                                <div class="modal-actions">
-                                    <button class="action-btn" onclick="handleSyncToCloud()">手動バックアップ</button>
-                                    <button class="action-btn" onclick="handleSyncFromCloud()">クラウドから復元</button>
-                                    <button class="action-btn" onclick="handleSyncDiagnostic()">同期診断</button>
-                                </div>
-                            ` : `
-                                <div class="modal-actions">
-                                    <div style="margin-bottom: 1rem;">
-                                        <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
-                                        <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
-                                    </div>
+                                                                <div class="slider-container">
+                                    <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
+                                    <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
                                     
-                                    <div style="margin-bottom: 1rem;">
-                                        <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
-                                        <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
-                                    </div>
-                                    
-                                    <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
+                                    <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
+                                    <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
                                 </div>
-                            `}
-                        </div>
-                    </div>
-                    
-                    <div class="modal-section-group">
-                        <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応 + 星評価統合）</h3>
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>興味ワード（クリックで星評価設定）</h3>
-                                <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
                             </div>
-                            <div class="word-list">
-                                ${interestWords || '<div class="text-muted">設定されていません</div>'}
-                            </div>
-                        </div>
 
-                        <div class="word-section">
-                            <div class="word-section-header">
-                                <h3>NGワード</h3>
-                                <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>記事日付範囲</h3>
+                                    <span class="filter-range-display">${filterSettings.dateMin}日前 - ${filterSettings.dateMax}日前</span>
+                                </div>
+                                <div class="slider-container">
+                                    <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
+                                    <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" oninput="updateDateDisplay('min', this.value)" class="filter-slider">
+                                    
+                                    <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
+                                    <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" oninput="updateDateDisplay('max', this.value)" class="filter-slider">
+                                </div>
                             </div>
-                            <div class="word-list">
-                                ${ngWords || '<div class="text-muted">設定されていません</div>'}
-                            </div>
-                        </div>
 
-                        <div class="word-help">
-                            <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一</h4>
-                            <ul>
-                                <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
-                                <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード・NGワードの2択メニューを表示</li>
-                                <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
-                                <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
-                                <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
-                                <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
-                                <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="modal-section-group">
-                        <h3 class="group-title">データ管理</h3>
-                        <div class="word-section">
-                            <div class="word-section-header"><h3>学習データ管理</h3></div>
                             <div class="modal-actions">
-                                <button class="action-btn success" onclick="handleExportLearningData()">学習データエクスポート</button>
-                                <label class="action-btn" style="cursor: pointer; display: inline-block;">
-                                    学習データインポート
-                                    <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
-                                </label>
+                                <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
+                                <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="modal-section-group">
-                        <h3 class="group-title">システム情報</h3>
-                        <div class="word-section">
-                            <div class="word-section-header"><h3>ストレージ使用量</h3></div>
-                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                <p class="text-muted" style="margin: 0;">
-                                    使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
-                                    アイテム数: ${storageInfo.itemCount}
+                        
+                        <div class="modal-section-group">
+                            <h3 class="group-title">クラウド同期</h3>
+                            <div class="word-section">
+                                <div class="word-section-header"><h3>GitHub同期設定</h3></div>
+                                
+                                <p class="text-muted mb-3">
+                                    同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
+                                    ${window.GistSyncManager?.gistId ? `Gist ID: ${window.GistSyncManager.gistId}` : ''}
+                                    ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
+                                        `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
+                                        ''}
                                 </p>
+                                
+                                ${window.GistSyncManager?.isEnabled ? `
+                                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
+                                        <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">GitHub同期は設定済みです。定期同期（1分間隔）が実行中。</div>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">設定を解除</button>
+                                            <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">Gist IDコピー</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-actions">
+                                        <button class="action-btn" onclick="handleSyncToCloud()">手動バックアップ</button>
+                                        <button class="action-btn" onclick="handleSyncFromCloud()">クラウドから復元</button>
+                                        <button class="action-btn" onclick="handleSyncDiagnostic()">同期診断</button>
+                                    </div>
+                                ` : `
+                                    <div class="modal-actions">
+                                        <div style="margin-bottom: 1rem;">
+                                            <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
+                                            <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 1rem;">
+                                            <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
+                                            <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
+                                        </div>
+                                        
+                                        <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                        
+                        <div class="modal-section-group">
+                            <h3 class="group-title">【統合最適化】ワード評価設定（適用範囲対応 + 星評価統合 + 評価削除時反映修正）</h3>
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>興味ワード（クリックで星評価設定）</h3>
+                                    <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+                                </div>
+                                <div class="word-list">
+                                    ${interestWords || '<div class="text-muted">設定されていません</div>'}
+                                </div>
+                            </div>
+
+                            <div class="word-section">
+                                <div class="word-section-header">
+                                    <h3>NGワード</h3>
+                                    <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+                                </div>
+                                <div class="word-list">
+                                    ${ngWords || '<div class="text-muted">設定されていません</div>'}
+                                </div>
+                            </div>
+
+                            <div class="word-help">
+                                <h4>【統合最適化】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 評価削除時反映修正</h4>
+                                <ul>
+                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
+                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード・NGワードの2択メニューを表示</li>
+                                    <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
+                                    <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
+                                    <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
+                                    <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
+                                    <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
+                                    <li><strong>評価削除時反映:</strong> 設定から評価を削除した際に記事内キーワードの強調表示も即座に消える</li>
+                                </ul>
                             </div>
                         </div>
 
-                        <div class="word-section">
-                            <div class="word-section-header"><h3>バージョン情報</h3></div>
-                            <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                <p class="text-muted" style="margin: 0;">
-                                    Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                    【統合最適化】適用範囲対応 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正版
-                                </p>
+                        <div class="modal-section-group">
+                            <h3 class="group-title">データ管理</h3>
+                            <div class="word-section">
+                                <div class="word-section-header"><h3>学習データ管理</h3></div>
+                                <div class="modal-actions">
+                                    <button class="action-btn success" onclick="handleExportLearningData()">学習データエクスポート</button>
+                                    <label class="action-btn" style="cursor: pointer; display: inline-block;">
+                                        学習データインポート
+                                        <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-section-group">
+                            <h3 class="group-title">システム情報</h3>
+                            <div class="word-section">
+                                <div class="word-section-header"><h3>ストレージ使用量</h3></div>
+                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                    <p class="text-muted" style="margin: 0;">
+                                        使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
+                                        アイテム数: ${storageInfo.itemCount}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="word-section">
+                                <div class="word-section-header"><h3>バージョン情報</h3></div>
+                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                    <p class="text-muted" style="margin: 0;">
+                                        Minews PWA v${window.CONFIG.DATA_VERSION}<br>
+                                        【統合最適化】適用範囲対応 + 星評価統合 + キーワード選択UI統一 + 星評価ボタン修正 + 評価削除時反映修正版
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-};
+        `;
+    };
 
-const renderModal = () => {
-    switch (window.state.showModal) {
-        case 'settings': return renderSettingsModal();
-        case 'addInterestWord': return renderWordSettingModal('interest');
-        case 'addNGWord': return renderWordSettingModal('ng');
-        default: return '';
-    }
-};
-
-// メインレンダー関数（修正版）
-window.render = () => {
-    const app = document.getElementById('app');
-    if (!app) return;
-
-    app.innerHTML = `
-        <div class="app">
-            ${renderNavigation()}
-            <main class="main-content">${renderArticleList()}</main>
-            ${renderModal()}
-        </div>
-    `;
-    
-    // モーダルが表示された後にイベントを初期化
-    setTimeout(() => {
-        if (window.state.showModal === 'addInterestWord') {
-            initializeInlineStarEvents();
+    const renderModal = () => {
+        switch (window.state.showModal) {
+            case 'settings': return renderSettingsModal();
+            case 'addInterestWord': return renderWordSettingModal('interest');
+            case 'addNGWord': return renderWordSettingModal('ng');
+            default: return '';
         }
-    }, 50);
-};
+    };
 
-// グローバル関数の追加（統合最適化 + 星評価修正版）
-Object.assign(window, {
-    handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
-    handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
-    handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
-    updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
-    handleAddNGWordWithScope, handleRemoveNGWordWithScope, handleAddInterestWordWithScope, handleRemoveInterestWordWithScope,
-    handleWordScopeChange, handleSubmitWord, showWordRatingModal, closeWordRatingModal, 
-    highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager,
-    // キーワード選択関連
-    showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord,
-    // インライン星評価関連（修正版）
-    initializeInlineStarEvents, highlightInlineStars, resetInlineStars, selectInlineRating
-});
+    // メインレンダー関数（修正版）
+    window.render = () => {
+        const app = document.getElementById('app');
+        if (!app) return;
 
-// 初期化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+        app.innerHTML = `
+            <div class="app">
+                ${renderNavigation()}
+                <main class="main-content">${renderArticleList()}</main>
+                ${renderModal()}
+            </div>
+        `;
+        
+        // モーダルが表示された後にイベントを初期化
+        setTimeout(() => {
+            if (window.state.showModal === 'addInterestWord') {
+                initializeInlineStarEvents();
+            }
+        }, 50);
+    };
+
+    // グローバル関数の追加（統合最適化 + 星評価修正 + 評価削除時反映修正版）
+    Object.assign(window, {
+        handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
+        handleAddWord, handleRemoveWord, initializeGistSync, handleFolderToggle, handleFeedToggle,
+        handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
+        updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
+        handleAddNGWordWithScope, handleRemoveNGWordWithScope, handleAddInterestWordWithScope, handleRemoveInterestWordWithScope,
+        handleWordScopeChange, handleSubmitWord, showWordRatingModal, closeWordRatingModal, 
+        highlightStars, resetStars, selectWordRating, showToastNotification, TextSelectionManager,
+        // キーワード選択関連
+        showKeywordSelectionMenu, handleKeywordAsInterestWord, handleKeywordAsNGWord,
+        // インライン星評価関連（修正版）
+        initializeInlineStarEvents, highlightInlineStars, resetInlineStars, selectInlineRating,
+        // ★追加：キーワード強調表示更新関数
+        updateKeywordHighlighting
+    });
+
+    // 初期化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeData();
+            initializeGistSync();
+            TextSelectionManager.init();
+            window.render();
+        });
+    } else {
         initializeData();
         initializeGistSync();
         TextSelectionManager.init();
         window.render();
-    });
-} else {
-    initializeData();
-    initializeGistSync();
-    TextSelectionManager.init();
-    window.render();
-}
+    }
 
 })();
