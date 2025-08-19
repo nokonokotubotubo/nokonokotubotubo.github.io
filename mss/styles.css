@@ -804,6 +804,79 @@ overflow-y: auto;
 margin-bottom: 0.5rem;
 }
 
+/* ────────────── ソート切り替えトグルスイッチ ────────────── */
+.folder-controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.sort-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.sort-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sort-toggle-container input[type="checkbox"] {
+    display: none;
+}
+
+.sort-slider {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background: #4b5563;
+    border-radius: 24px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid #6b7280;
+}
+
+.sort-slider:before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #e5e7eb;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sort-toggle-container input[type="checkbox"]:checked + .sort-slider {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.sort-toggle-container input[type="checkbox"]:checked + .sort-slider:before {
+    transform: translateX(26px);
+    background: #ffffff;
+}
+
+.sort-toggle-label {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    font-weight: 600;
+    min-width: 70px;
+    text-align: left;
+}
+
+.sort-toggle:hover .sort-slider {
+    box-shadow: 0 0 0 3px rgba(78, 179, 211, 0.2);
+}
+
 .folder-separator {
 border: none;
 height: 1px;
@@ -1017,6 +1090,40 @@ padding: 0.3rem 0.6rem;
     padding: 0.2rem;
 }
 
+/* モバイル対応（ソートトグル） */
+.folder-controls-row {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.sort-toggle {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+}
+
+.sort-slider {
+    width: 45px;
+    height: 22px;
+}
+
+.sort-slider:before {
+    width: 14px;
+    height: 14px;
+    top: 2px;
+    left: 2px;
+}
+
+.sort-toggle-container input[type="checkbox"]:checked + .sort-slider:before {
+    transform: translateX(23px);
+}
+
+.sort-toggle-label {
+    font-size: 0.75rem;
+    min-width: 65px;
+}
+
 .modal {
 min-width: 0;
 width: 95vw;
@@ -1125,6 +1232,11 @@ font-size: 1.1rem;
 
 .popup-star {
     font-size: 1.6rem;
+}
+
+.sort-toggle-label {
+    font-size: 0.7rem;
+    min-width: 60px;
 }
 }
 
