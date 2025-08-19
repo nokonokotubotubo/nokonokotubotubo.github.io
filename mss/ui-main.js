@@ -600,12 +600,14 @@
             
             articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
             
-            // 【追加】即座にDOM要素を更新
+            // 【修正】正確な角ボタン要素を取得して即座に更新
             const readStatusButton = event.target;
             readStatusButton.className = `corner-read-status ${newReadStatus}`;
             
-            // 【追加】強制的にレイアウトを再計算させる
-            void(readStatusButton.offsetHeight);
+            // 【追加】確実にレイアウトを再計算
+            readStatusButton.style.display = 'none';
+            readStatusButton.offsetHeight; // 強制reflow
+            readStatusButton.style.display = 'flex';
 
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
@@ -620,7 +622,7 @@
             
             articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
             
-            // 【追加】即座にDOM要素を更新
+            // 【修正】正確な角ボタン要素を取得して即座に更新
             const readLaterButton = event.target;
             if (newReadLater) {
                 readLaterButton.classList.add('active');
@@ -628,8 +630,10 @@
                 readLaterButton.classList.remove('active');
             }
             
-            // 【追加】強制的にレイアウトを再計算させる
-            void(readLaterButton.offsetHeight);
+            // 【追加】確実にレイアウトを再計算
+            readLaterButton.style.display = 'none';
+            readLaterButton.offsetHeight; // 強制reflow
+            readLaterButton.style.display = 'flex';
 
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
@@ -646,6 +650,7 @@
             break;
     }
 };
+
 
 
     const handleCloseModal = () => {
