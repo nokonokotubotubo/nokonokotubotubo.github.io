@@ -335,7 +335,7 @@ font-weight: 500;
 /* 右上角：後で読むボタン */
 .corner-read-later {
     top: 0;
-    right: 0;
+    right: 3;
     clip-path: polygon(100% 0%, 0% 0%, 100% 100%);
     background: rgba(255, 255, 255, 0.1);      /* 通常状態：薄いグレー */
     padding-top: 8px;
@@ -347,7 +347,7 @@ font-weight: 500;
     content: '';
     position: absolute;
     top: 8px;
-    right: 0px;
+    right: 3px;
     line-height: 1;
 }
 
@@ -384,7 +384,7 @@ font-weight: 500;
     content: '';
     position: absolute;
     bottom: 8px;
-    right: 0px;
+    right: 3px;
     line-height: 1;
 }
 
