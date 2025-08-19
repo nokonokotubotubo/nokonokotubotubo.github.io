@@ -347,7 +347,7 @@ font-weight: 500;
     content: '';
     position: absolute;
     top: 8px;
-    right: 8px;
+    right: 0px;
     line-height: 1;
 }
 
@@ -359,7 +359,7 @@ font-weight: 500;
 /* 選択状態（後で読むがON）：★を表示し、ホバー色を適用 */
 .corner-read-later.active {
     background: rgba(255, 193, 7, 0.7);       /* 選択時：ホバー色を適用 */
-    color: #000;
+    color: white;
 }
 
 .corner-read-later.active::before {
@@ -384,7 +384,7 @@ font-weight: 500;
     content: '';
     position: absolute;
     bottom: 8px;
-    right: 8px;
+    right: 0px;
     line-height: 1;
 }
 
