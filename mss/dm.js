@@ -473,7 +473,7 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】興味ワードの評価情報を考慮したマージ処理（50音順ソート対応）
+    // 【修正】冗長フィールドを削除したマージ処理（50音順ソート対応）
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
@@ -481,9 +481,9 @@ window.GistSyncManager = {
         const localTime = new Date(localWords.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
         
-        // 【修正】より詳細なマージロジック（50音順ソート対応）
+        // 【修正】シンプル化されたマージロジック
         const mergedWords = {
-            interestWords: [],
+            interestWords: [], // 従来形式との互換性のため保持
             ngWords: [],
             lastUpdated: new Date(Math.max(localTime, cloudTime)).toISOString()
         };
@@ -494,7 +494,7 @@ window.GistSyncManager = {
         // ローカルの興味ワードを処理
         (localWords.interestWords || []).forEach(word => {
             const wordStr = typeof word === 'string' ? word : word.word || word;
-            const rating = localWords.interestWordRatings?.[wordStr] || window.WordRatingManager?.getWordRating(wordStr) || 0;
+            const rating = window.WordRatingManager?.getWordRating(wordStr) || 0;
             allInterestWords.set(wordStr, {
                 word: wordStr,
                 scope: 'all',
@@ -533,36 +533,25 @@ window.GistSyncManager = {
             (cloudWords.interestWords || []).forEach(word => {
                 const wordStr = typeof word === 'string' ? word : word.word || word;
                 if (!allInterestWords.has(wordStr)) {
-                    const rating = cloudWords.interestWordRatings?.[wordStr] || 0;
                     allInterestWords.set(wordStr, {
                         word: wordStr,
                         scope: 'all',
                         target: null,
-                        rating: rating,
+                        rating: 0,
                         source: 'cloud'
                     });
                 }
             });
         }
         
-        // 【修正】最終的な興味ワードリストを50音順で生成
-        mergedWords.interestWords = Array.from(allInterestWords.values())
-            .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }))
-            .map(item => item.word);
-        
-        // 評価情報を別途保存
-        mergedWords.interestWordRatings = {};
-        allInterestWords.forEach((item, word) => {
-            if (item.rating > 0) {
-                mergedWords.interestWordRatings[word] = item.rating;
-            }
-        });
-        
-        // 【修正】詳細情報を50音順で保存
+        // 【修正】詳細情報から基本配列を生成（冗長性を排除）
         mergedWords.interestWordsDetailed = Array.from(allInterestWords.values())
             .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
         
-        // 【修正】NGワードのマージ（50音順ソート）
+        // 従来形式との互換性のため、基本配列も生成
+        mergedWords.interestWords = mergedWords.interestWordsDetailed.map(item => item.word);
+        
+        // NGワードのマージ（50音順ソート）
         const allNGWords = new Set();
         (localWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
         (cloudWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
@@ -607,7 +596,7 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【修正】興味ワードの評価情報をWordRatingManagerに反映
+    // 【修正】詳細情報からWordRatingManagerに評価を反映
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -616,10 +605,12 @@ window.GistSyncManager = {
             if (mergedData.wordFilters) {
                 batchUpdates.wordFilters = mergedData.wordFilters;
                 
-                // 【修正】興味ワードの評価情報をWordRatingManagerに反映
-                if (mergedData.wordFilters.interestWordRatings && window.WordRatingManager) {
-                    Object.entries(mergedData.wordFilters.interestWordRatings).forEach(([word, rating]) => {
-                        window.WordRatingManager.saveWordRating(word, rating);
+                // 【修正】詳細情報からWordRatingManagerに評価を反映
+                if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
+                    mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
+                        if (wordObj.rating > 0) {
+                            window.WordRatingManager.saveWordRating(wordObj.word, wordObj.rating);
+                        }
                     });
                 }
             }
@@ -861,7 +852,7 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】興味ワードの評価情報を含めた完全なワードフィルターデータを収集（50音順ソート対応）
+    // 【修正】冗長なフィールドを削除し、interestWordsDetailedのみに統一（50音順ソート対応）
     async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -885,18 +876,13 @@ window.GistSyncManager = {
         this._cleanupOldArticleStates(currentArticleIds);
         const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
         
-        // 【修正】興味ワードの評価情報を含めた完全なワードフィルターデータを収集（50音順ソート対応）
+        // 【修正】冗長なフィールドを削除し、interestWordsDetailedのみに統一
         const enrichedWordFilters = {
             ...wordHook.wordFilters,
             lastUpdated: currentTime,
-            // 興味ワードの評価情報を追加
-            interestWordRatings: {},
-            // 範囲情報を保持した興味ワード構造（50音順ソート）
+            // 【修正】詳細情報のみを保持（50音順ソート）
             interestWordsDetailed: wordHook.wordFilters.interestWords.map(word => {
                 const rating = window.WordRatingManager?.getWordRating(word) || 0;
-                if (rating > 0) {
-                    enrichedWordFilters.interestWordRatings[word] = rating;
-                }
                 return {
                     word: typeof word === 'string' ? word : word.word || word,
                     scope: typeof word === 'string' ? 'all' : word.scope || 'all',
@@ -905,14 +891,6 @@ window.GistSyncManager = {
                 };
             }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }))
         };
-        
-        // 【修正】興味ワードも50音順でソート
-        enrichedWordFilters.interestWords = [...wordHook.wordFilters.interestWords]
-            .sort((a, b) => {
-                const wordA = typeof a === 'string' ? a : a.word || a;
-                const wordB = typeof b === 'string' ? b : b.word || b;
-                return wordA.localeCompare(wordB, 'ja', { numeric: true });
-            });
         
         return {
             version: window.CONFIG.DATA_VERSION,
@@ -1275,8 +1253,6 @@ window.AIScoring = {
                 }
                 
                 rawScore += finalInterestScore;
-                
-                console.log(`【修正】興味ワード評価詳細: 正評価${positiveWordsCount}件(${positiveWordsScore.toFixed(1)}), 負評価${negativeWordsCount}件(${negativeWordsScore.toFixed(1)}), 最終スコア: ${finalInterestScore.toFixed(2)}`);
             }
         }
         
