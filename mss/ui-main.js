@@ -82,13 +82,18 @@
         });
         
         const displays = document.querySelectorAll('.filter-range-display');
-        if (displays[0]) displays[0].textContent = '0点 - 100点';
+        if (displays[0]) displays.textContent = '0点 - 100点';
         if (displays[1]) displays[1].textContent = '0日前 - 14日前';
         
         // 【修正】明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         alert('フィルター設定をリセットしました');
+    };
+
+    // ページリロード処理
+    const handlePageReload = () => {
+        window.location.reload();
     };
 
     // ユニークID生成機能
@@ -651,8 +656,6 @@
     }
 };
 
-
-
     const handleCloseModal = () => {
         window._pendingTextSelection = null;
         if (window.currentInlineRating !== undefined) {
@@ -669,7 +672,7 @@
             <nav class="nav">
                 <div class="nav-top-row">
                     <div class="nav-left-mobile">
-                        <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
+                        <h1 onclick="handlePageReload()"><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
                         <span class="last-update-mobile">表示中: ${getFilteredArticles().length}件</span>
                     </div>
                     <div class="nav-actions-mobile">
@@ -694,7 +697,7 @@
                 </div>
 
                 <div class="nav-left desktop-only">
-                    <h1><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
+                    <h1 onclick="handlePageReload()"><span class="title-mine">Mine</span><span class="title-ws">ws</span></h1>
                     <div class="last-update">表示中: ${getFilteredArticles().length}件</div>
                 </div>
                 
@@ -978,7 +981,8 @@
         initializeGistSync, handleFolderToggle, handleFeedToggle,
         handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
         updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
-        handleSortModeToggle, updateSortToggleDisplay  // 新規追加
+        handleSortModeToggle, updateSortToggleDisplay,  // 新規追加
+        handlePageReload  // 新規追加
     });
 
     // 初期化
