@@ -114,37 +114,53 @@
         return { folderIds, feedIds };
     };
 
-    // フィルター状態永続化
+    // フィルター状態永続化（sortMode追加）
     const getStoredFilterState = () => {
         try {
             const stored = localStorage.getItem('minews_filterState');
-            return stored ? JSON.parse(stored) : { viewMode: 'all', selectedFolders: [], selectedFeeds: [] };
+            return stored ? JSON.parse(stored) : { 
+                viewMode: 'all', 
+                selectedFolders: [], 
+                selectedFeeds: [], 
+                sortMode: 'aiScore' 
+            };
         } catch {
-            return { viewMode: 'all', selectedFolders: [], selectedFeeds: [] };
+            return { 
+                viewMode: 'all', 
+                selectedFolders: [], 
+                selectedFeeds: [], 
+                sortMode: 'aiScore' 
+            };
         }
     };
 
-    const saveFilterState = (viewMode, selectedFolders, selectedFeeds) => {
+    const saveFilterState = (viewMode, selectedFolders, selectedFeeds, sortMode) => {
         try {
-            localStorage.setItem('minews_filterState', JSON.stringify({ viewMode, selectedFolders, selectedFeeds }));
+            localStorage.setItem('minews_filterState', JSON.stringify({ 
+                viewMode, 
+                selectedFolders, 
+                selectedFeeds, 
+                sortMode 
+            }));
         } catch (error) {
             console.warn('フィルター状態の保存に失敗:', error);
         }
     };
 
-    // アプリケーション状態管理（画面更新制御フラグ追加）
+    // アプリケーション状態管理（sortMode追加）
     const initialFilterState = getStoredFilterState();
     window.state = {
         viewMode: initialFilterState.viewMode,
         selectedFolders: initialFilterState.selectedFolders,
         selectedFeeds: initialFilterState.selectedFeeds,
+        sortMode: initialFilterState.sortMode || 'aiScore', // デフォルトはAIスコア順
         showModal: null,
         articles: [],
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,
         isBackgroundSyncing: false,
-        allowArticleUpdate: false // 【追加】記事リスト更新制御フラグ
+        allowArticleUpdate: false // 記事リスト更新制御フラグ
     };
 
     const initializeFolderFeeds = () => {
@@ -155,14 +171,17 @@
         if (window.state.selectedFeeds.length === 0) window.state.selectedFeeds = [...feeds];
     };
 
+    // setState関数を修正（sortMode対応）
     window.setState = (newState) => {
         window.state = { ...window.state, ...newState };
         
-        if (newState.viewMode !== undefined || newState.selectedFolders !== undefined || newState.selectedFeeds !== undefined) {
+        if (newState.viewMode !== undefined || newState.selectedFolders !== undefined || 
+            newState.selectedFeeds !== undefined || newState.sortMode !== undefined) {
             saveFilterState(
                 newState.viewMode || window.state.viewMode,
                 newState.selectedFolders || window.state.selectedFolders,
-                newState.selectedFeeds || window.state.selectedFeeds
+                newState.selectedFeeds || window.state.selectedFeeds,
+                newState.sortMode || window.state.sortMode
             );
         }
         
@@ -227,7 +246,7 @@
     };
 
     const updateArticleListOnly = () => {
-        // 【追加】更新許可フラグをチェック
+        // 更新許可フラグをチェック
         if (!window.state.allowArticleUpdate) {
             console.log('記事リスト表示更新は保留されています');
             return;
@@ -239,7 +258,7 @@
             updateArticleCount();
         }
 
-        // 【追加】更新後はフラグを戻す
+        // 更新後はフラグを戻す
         window.state.allowArticleUpdate = false;
     };
 
@@ -290,6 +309,40 @@
         updateFeedCheckboxStates();
     };
 
+    // 表示順切り替えハンドラー（新規追加）
+    const handleSortModeToggle = (event) => {
+        event?.stopPropagation();
+        
+        const newSortMode = window.state.sortMode === 'aiScore' ? 'time' : 'aiScore';
+        window.state.sortMode = newSortMode;
+        
+        saveFilterState(
+            window.state.viewMode, 
+            window.state.selectedFolders, 
+            window.state.selectedFeeds, 
+            newSortMode
+        );
+        
+        // 明示的更新フラグを設定
+        window.state.allowArticleUpdate = true;
+        updateArticleListOnly();
+        
+        // トグルスイッチの表示も更新
+        updateSortToggleDisplay();
+    };
+
+    // トグル表示更新（新規追加）
+    const updateSortToggleDisplay = () => {
+        document.querySelectorAll('.sort-toggle').forEach(toggle => {
+            const checkbox = toggle.querySelector('input[type="checkbox"]');
+            const label = toggle.querySelector('.sort-toggle-label');
+            if (checkbox && label) {
+                checkbox.checked = window.state.sortMode === 'time';
+                label.textContent = window.state.sortMode === 'time' ? '時間順' : 'AIスコア順';
+            }
+        });
+    };
+
     // 一括既読化処理
     const handleBulkMarkAsRead = () => {
         if (!confirm('表示している記事を一括で既読にしますか？')) return;
@@ -306,7 +359,7 @@
         });
         
         if (updatedCount > 0) {
-            // 【修正】明示的更新フラグを設定
+            // 明示的更新フラグを設定
             window.state.allowArticleUpdate = true;
             updateArticleListOnly();
             if (window.GistSyncManager?.isEnabled) {
@@ -346,9 +399,9 @@
         
         window.state.selectedFolders = selectedFolders;
         window.state.selectedFeeds = selectedFeeds;
-        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
+        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 【修正】明示的更新フラグを設定
+        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -368,9 +421,9 @@
         }
         
         window.state.selectedFeeds = selectedFeeds;
-        saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds);
+        saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 【修正】明示的更新フラグを設定
+        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -391,9 +444,9 @@
         
         window.state.selectedFolders = selectedFolders;
         window.state.selectedFeeds = selectedFeeds;
-        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds);
+        saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 【修正】明示的更新フラグを設定
+        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -422,10 +475,19 @@
                 </button>
                 <div class="folder-dropdown-content" id="${prefix}folderDropdownContent" style="display: none; position: fixed; left: 0; top: 120px; width: 100vw; max-height: calc(100vh - 120px); overflow-y: auto; background-color: #1f2937; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 1rem;">
                     <div class="folder-controls">
-                        <label class="folder-item" for="${prefix}selectAllFolders">
-                            <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" ${allFoldersSelected ? 'checked' : ''} onchange="event.stopPropagation(); handleSelectAllFolders(this.checked, event)">
-                            <span>すべてのフォルダ</span>
-                        </label>
+                        <div class="folder-controls-row">
+                            <label class="folder-item" for="${prefix}selectAllFolders">
+                                <input type="checkbox" id="${prefix}selectAllFolders" name="${prefix}selectAllFolders" ${allFoldersSelected ? 'checked' : ''} onchange="event.stopPropagation(); handleSelectAllFolders(this.checked, event)">
+                                <span>すべてのフォルダ</span>
+                            </label>
+                            <div class="sort-toggle" onclick="event.stopPropagation()">
+                                <label class="sort-toggle-container" for="${prefix}sortToggle">
+                                    <input type="checkbox" id="${prefix}sortToggle" ${window.state.sortMode === 'time' ? 'checked' : ''} onchange="handleSortModeToggle(event)">
+                                    <span class="sort-slider"></span>
+                                    <span class="sort-toggle-label">${window.state.sortMode === 'time' ? '時間順' : 'AIスコア順'}</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <hr class="folder-separator">
                     ${folders.map((folder) => {
@@ -495,7 +557,7 @@
     // イベントハンドラ（明示的更新フラグ対応版）
     const handleFilterChange = (mode) => {
         window.setState({ viewMode: mode });
-        // 【修正】フィルター変更は明示的更新
+        // フィルター変更は明示的更新
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
     };
@@ -640,7 +702,7 @@
                 </div>
 
                 <div class="nav-actions desktop-only">
-                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}">${window.state.isLoading ? '更新中...' : '記事更新'}</button>
+                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}>${window.state.isLoading ? '更新中...' : '記事更新'}</button>
                     <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
                 </div>
             </nav>
@@ -650,11 +712,13 @@
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
+        // フォルダ・フィード フィルター
         filtered = filtered.filter(article => 
             window.state.selectedFolders.includes(article.folderName) || 
             window.state.selectedFeeds.includes(article.rssSource)
         );
 
+        // スコアフィルター
         const filterSettings = getFilterSettings();
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -664,6 +728,7 @@
             return aiScore >= filterSettings.scoreMin && aiScore <= filterSettings.scoreMax;
         });
 
+        // 日付フィルター
         const now = new Date();
         filtered = filtered.filter(article => {
             const articleDate = new Date(article.publishDate);
@@ -671,6 +736,7 @@
             return daysDiff >= filterSettings.dateMin && daysDiff <= filterSettings.dateMax;
         });
 
+        // 既読・未読フィルター
         switch (window.state.viewMode) {
             case 'unread':
                 filtered = filtered.filter(article => article.readStatus === 'unread' && !article.readLater);
@@ -683,28 +749,40 @@
                 break;
         }
 
+        // NGワードフィルター
         filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
 
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
             return filtered;
         }
 
+        // AIスコア計算
         const articlesWithScores = filtered.map(article => ({
             ...article,
             aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
         }));
 
+        // ソート処理（修正）
         return articlesWithScores.sort((a, b) => {
-            if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
-            const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
-            if (dateCompare !== 0) return dateCompare;
-            return a.id.localeCompare(b.id);
+            if (window.state.sortMode === 'time') {
+                // 時間順ソート（新しい順）
+                const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
+                if (dateCompare !== 0) return dateCompare;
+                // 日付が同じ場合はIDで安定ソート
+                return a.id.localeCompare(b.id);
+            } else {
+                // AIスコア順ソート（デフォルト）
+                if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
+                const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
+                if (dateCompare !== 0) return dateCompare;
+                return a.id.localeCompare(b.id);
+            }
         });
     };
 
-    // 【修正】キーワード統合機能を追加したrenderArticleCard関数
+    // キーワード統合機能を追加したrenderArticleCard関数
     const renderArticleCard = (article) => {
-        // 【追加】興味ワードとの統合キーワード生成
+        // 興味ワードとの統合キーワード生成
         const generateCombinedKeywords = (article) => {
             const wordHook = window.DataHooks.useWordFilters();
             const interestWords = wordHook.wordFilters.interestWords || [];
@@ -733,7 +811,7 @@
             return combinedKeywords;
         };
         
-        // 【修正】統合キーワードを使用
+        // 統合キーワードを使用
         const combinedKeywords = generateCombinedKeywords(article);
         const keywords = combinedKeywords.map(keyword => {
             const sanitizedKeyword = keyword.replace(/[<>"'&]/g, match => {
@@ -884,7 +962,8 @@
         handleFilterChange, handleRefresh, handleArticleClick, handleCloseModal, handleOpenModal,
         initializeGistSync, handleFolderToggle, handleFeedToggle,
         handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
-        updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings
+        updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
+        handleSortModeToggle, updateSortToggleDisplay  // 新規追加
     });
 
     // 初期化
