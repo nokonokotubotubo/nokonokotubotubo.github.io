@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（完全統合最適化版）
+// Minews PWA - データ管理・処理レイヤー（this参照エラー修正版）
 (function() {
 'use strict';
 
@@ -47,37 +47,48 @@ const Utils = {
     }
 };
 
-// ワード評価管理システム（最適化版）
+// ワード評価管理システム（this参照修正版）
 window.WordRatingManager = {
     STORAGE_KEY: 'minews_keyword_ratings',
     AUTO_ADDED_KEY: 'minews_auto_added_words',
     
-    getWordRating: (word) => Utils.safeJsonParse(localStorage.getItem(this.STORAGE_KEY), {})[word] || 0,
-    getAllRatings: () => Utils.safeJsonParse(localStorage.getItem(this.STORAGE_KEY), {}),
-    getAutoAddedWords: () => Utils.safeJsonParse(localStorage.getItem(this.AUTO_ADDED_KEY), {}),
+    getWordRating(word) {
+        const storageKey = window.WordRatingManager.STORAGE_KEY;
+        return Utils.safeJsonParse(localStorage.getItem(storageKey), {})[word] || 0;
+    },
+    
+    getAllRatings() {
+        const storageKey = window.WordRatingManager.STORAGE_KEY;
+        return Utils.safeJsonParse(localStorage.getItem(storageKey), {});
+    },
+    
+    getAutoAddedWords() {
+        const storageKey = window.WordRatingManager.AUTO_ADDED_KEY;
+        return Utils.safeJsonParse(localStorage.getItem(storageKey), {});
+    },
     
     saveWordRating(word, rating) {
         try {
             const normalizedRating = Utils.normalizeRating(rating);
-            const ratings = this.getAllRatings();
-            const autoAdded = this.getAutoAddedWords();
+            const ratings = window.WordRatingManager.getAllRatings();
+            const autoAdded = window.WordRatingManager.getAutoAddedWords();
             
             if (normalizedRating > 0) {
                 ratings[word] = normalizedRating;
-                if (this._updateInterestWords(word, true)) {
+                if (window.WordRatingManager._updateInterestWords(word, true)) {
                     autoAdded[word] = true;
                 }
             } else {
                 delete ratings[word];
                 if (autoAdded[word]) {
-                    this._updateInterestWords(word, false);
+                    window.WordRatingManager._updateInterestWords(word, false);
                     delete autoAdded[word];
                 }
             }
             
-            localStorage.setItem(this.STORAGE_KEY, Utils.safeJsonStringify(ratings));
-            localStorage.setItem(this.AUTO_ADDED_KEY, Utils.safeJsonStringify(autoAdded));
-            this._updateAILearningFromRating(word, normalizedRating);
+            localStorage.setItem(window.WordRatingManager.STORAGE_KEY, Utils.safeJsonStringify(ratings));
+            localStorage.setItem(window.WordRatingManager.AUTO_ADDED_KEY, Utils.safeJsonStringify(autoAdded));
+            window.WordRatingManager._updateAILearningFromRating(word, normalizedRating);
             
             return true;
         } catch (error) {
@@ -94,13 +105,13 @@ window.WordRatingManager = {
             if (isAdd && index === -1) {
                 wordFilters.interestWords.push(word);
                 wordFilters.lastUpdated = Utils.getCurrentTime();
-                this._saveWordFilters(wordFilters);
+                window.WordRatingManager._saveWordFilters(wordFilters);
                 console.log(`自動追加: 興味ワード「${word}」`);
                 return true;
             } else if (!isAdd && index > -1) {
                 wordFilters.interestWords.splice(index, 1);
                 wordFilters.lastUpdated = Utils.getCurrentTime();
-                this._saveWordFilters(wordFilters);
+                window.WordRatingManager._saveWordFilters(wordFilters);
                 console.log(`自動削除: 興味ワード「${word}」`);
                 return true;
             }
@@ -138,7 +149,7 @@ window.WordRatingManager = {
     },
     
     setInterestWordRating(word, rating) {
-        const success = this.saveWordRating(word, rating);
+        const success = window.WordRatingManager.saveWordRating(word, rating);
         if (success && window.GistSyncManager?.isEnabled) {
             window.GistSyncManager.markAsChanged();
         }
@@ -148,7 +159,7 @@ window.WordRatingManager = {
     getAllInterestWordRatings(interestWords) {
         const ratings = {};
         interestWords.forEach(word => {
-            ratings[word] = this.getWordRating(word);
+            ratings[word] = window.WordRatingManager.getWordRating(word);
         });
         return ratings;
     }
@@ -158,7 +169,7 @@ window.WordRatingManager = {
 window.StableIDGenerator = {
     generateStableId: (url, title, publishDate = null) => {
         const baseString = `${url.trim().toLowerCase()}|${title.trim()}${publishDate ? '|' + publishDate : ''}`;
-        return this._simpleHash(baseString);
+        return window.StableIDGenerator._simpleHash(baseString);
     },
     
     _simpleHash(str) {
@@ -213,37 +224,37 @@ window.GistSyncManager = {
     
     loadConfig() {
         try {
-            const parsed = this._storage.get('minews_gist_config');
-            if (!parsed) return this._lastValidConfig || null;
+            const parsed = window.GistSyncManager._storage.get('minews_gist_config');
+            if (!parsed) return window.GistSyncManager._lastValidConfig || null;
             
             let decryptedToken = null;
             if (parsed.encryptedToken) {
                 try {
-                    decryptedToken = this._cryptoOp(parsed.encryptedToken, false);
-                    this.token = decryptedToken;
-                    this.isEnabled = true;
+                    decryptedToken = window.GistSyncManager._cryptoOp(parsed.encryptedToken, false);
+                    window.GistSyncManager.token = decryptedToken;
+                    window.GistSyncManager.isEnabled = true;
                 } catch {
-                    this.token = null;
-                    this.isEnabled = false;
+                    window.GistSyncManager.token = null;
+                    window.GistSyncManager.isEnabled = false;
                 }
             }
             
-            this.gistId = parsed.gistId || this.gistId;
-            this.lastSyncTime = parsed.lastSyncTime || this.lastSyncTime;
+            window.GistSyncManager.gistId = parsed.gistId || window.GistSyncManager.gistId;
+            window.GistSyncManager.lastSyncTime = parsed.lastSyncTime || window.GistSyncManager.lastSyncTime;
             
             const validConfig = {
-                hasToken: !!this.token,
-                gistId: this.gistId,
-                isEnabled: this.isEnabled,
+                hasToken: !!window.GistSyncManager.token,
+                gistId: window.GistSyncManager.gistId,
+                isEnabled: window.GistSyncManager.isEnabled,
                 configuredAt: parsed.configuredAt,
-                lastSyncTime: this.lastSyncTime
+                lastSyncTime: window.GistSyncManager.lastSyncTime
             };
             
-            this._lastValidConfig = validConfig;
-            this._configValidated = true;
+            window.GistSyncManager._lastValidConfig = validConfig;
+            window.GistSyncManager._configValidated = true;
             return validConfig;
         } catch (error) {
-            return Utils.handleError('設定読み込み', error, this._lastValidConfig || {
+            return Utils.handleError('設定読み込み', error, window.GistSyncManager._lastValidConfig || {
                 hasToken: false,
                 gistId: null,
                 isEnabled: false,
@@ -256,85 +267,85 @@ window.GistSyncManager = {
     init(token, gistId = null) {
         if (!token?.trim()) throw new Error('有効なトークンが必要です');
         
-        const encryptedToken = this._cryptoOp(token.trim(), true);
-        const existingConfig = this.loadConfig();
+        const encryptedToken = window.GistSyncManager._cryptoOp(token.trim(), true);
+        const existingConfig = window.GistSyncManager.loadConfig();
         
-        this.token = token.trim();
-        this.gistId = gistId?.trim() || existingConfig?.gistId || null;
-        this.isEnabled = true;
+        window.GistSyncManager.token = token.trim();
+        window.GistSyncManager.gistId = gistId?.trim() || existingConfig?.gistId || null;
+        window.GistSyncManager.isEnabled = true;
         
         const configData = {
             encryptedToken,
-            gistId: this.gistId,
+            gistId: window.GistSyncManager.gistId,
             isEnabled: true,
             configuredAt: Utils.getCurrentTime(),
-            lastSyncTime: this.lastSyncTime || existingConfig?.lastSyncTime || null,
+            lastSyncTime: window.GistSyncManager.lastSyncTime || existingConfig?.lastSyncTime || null,
             version: '1.3'
         };
         
-        if (!this._storage.set('minews_gist_config', configData)) {
+        if (!window.GistSyncManager._storage.set('minews_gist_config', configData)) {
             throw new Error('設定の保存に失敗しました');
         }
         
-        this._lastValidConfig = {
+        window.GistSyncManager._lastValidConfig = {
             hasToken: true,
-            gistId: this.gistId,
+            gistId: window.GistSyncManager.gistId,
             isEnabled: true,
             configuredAt: configData.configuredAt,
-            lastSyncTime: this.lastSyncTime
+            lastSyncTime: window.GistSyncManager.lastSyncTime
         };
         
-        if (this.isEnabled) this.startPeriodicSync(60);
+        if (window.GistSyncManager.isEnabled) window.GistSyncManager.startPeriodicSync(60);
     },
     
     startPeriodicSync(intervalSeconds = 60) {
-        this.stopPeriodicSync();
-        this.periodicSyncEnabled = true;
-        this.periodicSyncInterval = setInterval(() => this._executePeriodicSync(), intervalSeconds * 1000);
+        window.GistSyncManager.stopPeriodicSync();
+        window.GistSyncManager.periodicSyncEnabled = true;
+        window.GistSyncManager.periodicSyncInterval = setInterval(() => window.GistSyncManager._executePeriodicSync(), intervalSeconds * 1000);
     },
     
     stopPeriodicSync() {
-        if (this.periodicSyncInterval) {
-            clearInterval(this.periodicSyncInterval);
-            this.periodicSyncInterval = null;
+        if (window.GistSyncManager.periodicSyncInterval) {
+            clearInterval(window.GistSyncManager.periodicSyncInterval);
+            window.GistSyncManager.periodicSyncInterval = null;
         }
-        this.periodicSyncEnabled = false;
+        window.GistSyncManager.periodicSyncEnabled = false;
     },
     
     markAsChanged() {
-        this.pendingChanges = true;
+        window.GistSyncManager.pendingChanges = true;
     },
     
     async _executePeriodicSync() {
-        if (!this.isEnabled || !this.token || this.isSyncing) return false;
+        if (!window.GistSyncManager.isEnabled || !window.GistSyncManager.token || window.GistSyncManager.isSyncing) return false;
         
-        this.isSyncing = true;
-        this._isBackgroundSyncing = true;
+        window.GistSyncManager.isSyncing = true;
+        window.GistSyncManager._isBackgroundSyncing = true;
         
         try {
-            const result = await this._performSync(true);
+            const result = await window.GistSyncManager._performSync(true);
             if (result && window.render) setTimeout(() => window.render(), 100);
             return result;
         } catch (error) {
             return Utils.handleError('定期同期', error, false);
         } finally {
-            this.isSyncing = false;
-            this._isBackgroundSyncing = false;
+            window.GistSyncManager.isSyncing = false;
+            window.GistSyncManager._isBackgroundSyncing = false;
         }
     },
     
     // 【統合】共通同期処理
     async _performSync(isBackground = false) {
         try {
-            const cloudData = await this.syncFromCloud();
-            const localData = await this.collectSyncData();
-            const mergedData = this._mergeData(localData, cloudData);
-            const uploadResult = await this.syncToCloud(mergedData);
+            const cloudData = await window.GistSyncManager.syncFromCloud();
+            const localData = await window.GistSyncManager.collectSyncData();
+            const mergedData = window.GistSyncManager._mergeData(localData, cloudData);
+            const uploadResult = await window.GistSyncManager.syncToCloud(mergedData);
             
             if (uploadResult) {
-                await this._applyMergedData(mergedData, isBackground);
-                await this._updateConfigSafely(Utils.getCurrentTime());
-                this.pendingChanges = false;
+                await window.GistSyncManager._applyMergedData(mergedData, isBackground);
+                await window.GistSyncManager._updateConfigSafely(Utils.getCurrentTime());
+                window.GistSyncManager.pendingChanges = false;
                 return true;
             }
             return false;
@@ -349,9 +360,9 @@ window.GistSyncManager = {
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: Utils.getCurrentTime(),
-            aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
-            wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
-            articleStates: this._mergeArticleStates(localData.articleStates, cloudData.articleStates, localData.deletedArticleIds || [])
+            aiLearning: window.GistSyncManager._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
+            wordFilters: window.GistSyncManager._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
+            articleStates: window.GistSyncManager._mergeArticleStates(localData.articleStates, cloudData.articleStates, localData.deletedArticleIds || [])
         };
     },
     
@@ -471,18 +482,18 @@ window.GistSyncManager = {
             const updatePromises = [];
             
             if (mergedData.aiLearning) {
-                updatePromises.push(this._updateDataCache('aiLearning', mergedData.aiLearning, window.CONFIG.STORAGE_KEYS.AI_LEARNING));
+                updatePromises.push(window.GistSyncManager._updateDataCache('aiLearning', mergedData.aiLearning, window.CONFIG.STORAGE_KEYS.AI_LEARNING));
             }
             
             if (mergedData.wordFilters) {
-                updatePromises.push(this._updateDataCache('wordFilters', mergedData.wordFilters, window.CONFIG.STORAGE_KEYS.WORD_FILTERS));
+                updatePromises.push(window.GistSyncManager._updateDataCache('wordFilters', mergedData.wordFilters, window.CONFIG.STORAGE_KEYS.WORD_FILTERS));
             }
             
             await Promise.all(updatePromises);
             
             // 3. 記事データの更新
             if (mergedData.articleStates) {
-                await this._updateArticles(mergedData);
+                await window.GistSyncManager._updateArticles(mergedData);
             }
             
             // 4. UI更新（手動同期の場合のみ即座に更新）
@@ -541,10 +552,10 @@ window.GistSyncManager = {
     
     async _updateConfigSafely(timestamp) {
         try {
-            const currentConfig = this._storage.get('minews_gist_config') || {
-                encryptedToken: this.token ? this._cryptoOp(this.token, true) : null,
-                gistId: this.gistId,
-                isEnabled: this.isEnabled,
+            const currentConfig = window.GistSyncManager._storage.get('minews_gist_config') || {
+                encryptedToken: window.GistSyncManager.token ? window.GistSyncManager._cryptoOp(window.GistSyncManager.token, true) : null,
+                gistId: window.GistSyncManager.gistId,
+                isEnabled: window.GistSyncManager.isEnabled,
                 configuredAt: Utils.getCurrentTime(),
                 version: '1.3'
             };
@@ -552,10 +563,10 @@ window.GistSyncManager = {
             currentConfig.lastSyncTime = timestamp;
             currentConfig.lastUpdated = Utils.getCurrentTime();
             
-            const success = this._storage.set('minews_gist_config', currentConfig);
+            const success = window.GistSyncManager._storage.set('minews_gist_config', currentConfig);
             if (success) {
-                this.lastSyncTime = timestamp;
-                if (this._lastValidConfig) this._lastValidConfig.lastSyncTime = timestamp;
+                window.GistSyncManager.lastSyncTime = timestamp;
+                if (window.GistSyncManager._lastValidConfig) window.GistSyncManager._lastValidConfig.lastSyncTime = timestamp;
             }
             return success;
         } catch (error) {
@@ -565,33 +576,33 @@ window.GistSyncManager = {
     
     // 手動同期用エントリポイント
     async autoSync(triggerType = 'manual') {
-        if (!this.isEnabled || !this.token) {
+        if (!window.GistSyncManager.isEnabled || !window.GistSyncManager.token) {
             return { success: false, reason: 'disabled_or_not_configured' };
         }
         
         if (triggerType !== 'manual') {
-            this.markAsChanged();
+            window.GistSyncManager.markAsChanged();
             return { success: true, reason: 'marked_for_periodic_sync' };
         }
         
-        if (this.isSyncing) return { success: false, reason: 'already_syncing' };
+        if (window.GistSyncManager.isSyncing) return { success: false, reason: 'already_syncing' };
         
         if (window.setState) window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
         
-        this.isSyncing = true;
+        window.GistSyncManager.isSyncing = true;
         
         try {
-            const result = await this._performSync(false);
+            const result = await window.GistSyncManager._performSync(false);
             if (result) {
-                this.lastSyncTime = Utils.getCurrentTime();
-                await this._updateConfigSafely(this.lastSyncTime);
+                window.GistSyncManager.lastSyncTime = Utils.getCurrentTime();
+                await window.GistSyncManager._updateConfigSafely(window.GistSyncManager.lastSyncTime);
                 return { success: true, triggerType: 'manual' };
             }
             return { success: false, error: 'sync_failed', triggerType: 'manual' };
         } catch (error) {
             return { success: false, error: 'sync_failed', triggerType: 'manual', details: error.message };
         } finally {
-            this.isSyncing = false;
+            window.GistSyncManager.isSyncing = false;
             if (window.setState) window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
         }
     },
@@ -641,16 +652,16 @@ window.GistSyncManager = {
     },
     
     async syncToCloud(data) {
-        if (!this.token) return false;
+        if (!window.GistSyncManager.token) return false;
         
-        const url = this.gistId ? `https://api.github.com/gists/${this.gistId}` : 'https://api.github.com/gists';
-        const method = this.gistId ? 'PATCH' : 'POST';
+        const url = window.GistSyncManager.gistId ? `https://api.github.com/gists/${window.GistSyncManager.gistId}` : 'https://api.github.com/gists';
+        const method = window.GistSyncManager.gistId ? 'PATCH' : 'POST';
         
         try {
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `token ${this.token}`,
+                    'Authorization': `token ${window.GistSyncManager.token}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/vnd.github.v3+json'
                 },
@@ -663,9 +674,9 @@ window.GistSyncManager = {
             
             if (response.ok) {
                 const result = await response.json();
-                if (!this.gistId) {
-                    this.gistId = result.id;
-                    this.saveGistId(result.id);
+                if (!window.GistSyncManager.gistId) {
+                    window.GistSyncManager.gistId = result.id;
+                    window.GistSyncManager.saveGistId(result.id);
                 }
                 return true;
             }
@@ -676,12 +687,12 @@ window.GistSyncManager = {
     },
     
     async syncFromCloud() {
-        if (!this.token || !this.gistId) return null;
+        if (!window.GistSyncManager.token || !window.GistSyncManager.gistId) return null;
         
         try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            const response = await fetch(`https://api.github.com/gists/${window.GistSyncManager.gistId}`, {
                 headers: {
-                    'Authorization': `token ${this.token}`,
+                    'Authorization': `token ${window.GistSyncManager.token}`,
                     'Accept': 'application/vnd.github.v3+json'
                 }
             });
@@ -698,12 +709,12 @@ window.GistSyncManager = {
     },
     
     saveGistId(gistId) {
-        const currentConfig = this._storage.get('minews_gist_config');
+        const currentConfig = window.GistSyncManager._storage.get('minews_gist_config');
         if (currentConfig) {
             currentConfig.gistId = gistId;
-            this._storage.set('minews_gist_config', currentConfig);
-            this.gistId = gistId;
-            if (this._lastValidConfig) this._lastValidConfig.gistId = gistId;
+            window.GistSyncManager._storage.set('minews_gist_config', currentConfig);
+            window.GistSyncManager.gistId = gistId;
+            if (window.GistSyncManager._lastValidConfig) window.GistSyncManager._lastValidConfig.gistId = gistId;
         }
     },
 
@@ -732,7 +743,7 @@ window.GistSyncManager = {
 
                     if (config.encryptedToken) {
                         try {
-                            const decrypted = this._cryptoOp(config.encryptedToken, false);
+                            const decrypted = window.GistSyncManager._cryptoOp(config.encryptedToken, false);
                             diagnostics.results.push({
                                 test: 'トークン復号化',
                                 status: decrypted.length > 10 ? 'PASS' : 'FAIL',
@@ -768,24 +779,24 @@ window.GistSyncManager = {
         const testResults = {
             timestamp: Utils.getCurrentTime(),
             config: {
-                hasToken: !!this.token,
-                hasGistId: !!this.gistId,
-                isEnabled: this.isEnabled
+                hasToken: !!window.GistSyncManager.token,
+                hasGistId: !!window.GistSyncManager.gistId,
+                isEnabled: window.GistSyncManager.isEnabled
             },
             tests: []
         };
         
         testResults.tests.push({
             name: '基本設定確認',
-            status: (this.token && this.gistId) ? 'pass' : 'fail',
+            status: (window.GistSyncManager.token && window.GistSyncManager.gistId) ? 'pass' : 'fail',
             details: {
-                token: this.token ? '設定済み' : '未設定',
-                gistId: this.gistId ? `${this.gistId.substring(0, 8)}...` : '未設定'
+                token: window.GistSyncManager.token ? '設定済み' : '未設定',
+                gistId: window.GistSyncManager.gistId ? `${window.GistSyncManager.gistId.substring(0, 8)}...` : '未設定'
             }
         });
         
         try {
-            const cloudData = await this.syncFromCloud();
+            const cloudData = await window.GistSyncManager.syncFromCloud();
             testResults.tests.push({
                 name: 'クラウドデータ取得',
                 status: cloudData ? 'pass' : 'fail',
@@ -854,8 +865,8 @@ window.AIScoring = {
         
         // 1. キーワード評価
         if (article.keywords?.length && aiLearning.wordWeights) {
-            const topKeywords = this._getTopKeywords(article.keywords, aiLearning.wordWeights);
-            rawScore += this._calculateKeywordScore(topKeywords);
+            const topKeywords = window.AIScoring._getTopKeywords(article.keywords, aiLearning.wordWeights);
+            rawScore += window.AIScoring._calculateKeywordScore(topKeywords);
         }
         
         // 2. 興味ワード評価
@@ -883,7 +894,7 @@ window.AIScoring = {
             }
         }
         
-        return Math.round(this._normalize(rawScore) * 10) / 10;
+        return Math.round(window.AIScoring._normalize(rawScore) * 10) / 10;
     },
     
     _getTopKeywords: (keywords, weights) => keywords
@@ -1016,12 +1027,12 @@ window.LocalStorageManager = {
         try {
             const stored = localStorage.getItem(key);
             if (!stored) {
-                if (defaultValue) this.setItem(key, defaultValue);
+                if (defaultValue) window.LocalStorageManager.setItem(key, defaultValue);
                 return defaultValue;
             }
             return Utils.safeJsonParse(stored)?.data || defaultValue;
         } catch {
-            if (defaultValue) this.setItem(key, defaultValue);
+            if (defaultValue) window.LocalStorageManager.setItem(key, defaultValue);
             return defaultValue;
         }
     },
@@ -1057,7 +1068,7 @@ window.DataHooks = {
     },
     
     useArticles() {
-        const hook = this._createHook(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles, 'articles')();
+        const hook = window.DataHooks._createHook(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles, 'articles')();
         
         return {
             ...hook,
@@ -1079,7 +1090,7 @@ window.DataHooks = {
                 }
                 
                 articles.unshift(newArticle);
-                this._updateCache('articles', articles);
+                window.DataHooks._updateCache('articles', articles);
                 return true;
             },
             
@@ -1087,7 +1098,7 @@ window.DataHooks = {
                 const articles = window.DataHooksCache.articles.map(article =>
                     article.id === articleId ? { ...article, ...updates, lastModified: Utils.getCurrentTime() } : article
                 );
-                this._updateCache('articles', articles);
+                window.DataHooks._updateCache('articles', articles);
                 if (window.render && !options.skipRender) window.render();
             }
         };
@@ -1128,20 +1139,20 @@ window.DataHooks = {
     useAILearning: () => window.DataHooks._createHook(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning, 'aiLearning')(),
     
     useWordFilters() {
-        const hook = this._createHook(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters, 'wordFilters')();
+        const hook = window.DataHooks._createHook(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters, 'wordFilters')();
         return {
             ...hook,
             _updateWordFilters(updater) {
                 const updated = { ...window.DataHooksCache.wordFilters };
                 if (updater(updated)) {
                     updated.lastUpdated = Utils.getCurrentTime();
-                    this._updateCache('wordFilters', updated);
+                    window.DataHooks._updateCache('wordFilters', updated);
                     return true;
                 }
                 return false;
             },
             
-            addInterestWord: (word) => this._updateWordFilters(wf => {
+            addInterestWord: (word) => hook.wordFilters._updateWordFilters(wf => {
                 if (!wf.interestWords.some(w => w.toLowerCase() === word.toLowerCase())) {
                     wf.interestWords.push(word);
                     return true;
@@ -1149,7 +1160,7 @@ window.DataHooks = {
                 return false;
             }),
             
-            addNGWord: (word, scope = 'all', target = null) => this._updateWordFilters(wf => {
+            addNGWord: (word, scope = 'all', target = null) => hook.wordFilters._updateWordFilters(wf => {
                 const exists = wf.ngWords.some(ngWordObj => 
                     ngWordObj.word.toLowerCase() === word.toLowerCase() && 
                     ngWordObj.scope === scope && ngWordObj.target === target);
@@ -1160,7 +1171,7 @@ window.DataHooks = {
                 return false;
             }),
             
-            removeInterestWord: (word) => this._updateWordFilters(wf => {
+            removeInterestWord: (word) => hook.wordFilters._updateWordFilters(wf => {
                 const index = wf.interestWords.indexOf(word);
                 if (index > -1) {
                     wf.interestWords.splice(index, 1);
@@ -1169,7 +1180,7 @@ window.DataHooks = {
                 return false;
             }),
             
-            removeNGWord: (word, scope = null, target = null) => this._updateWordFilters(wf => {
+            removeNGWord: (word, scope = null, target = null) => hook.wordFilters._updateWordFilters(wf => {
                 const index = wf.ngWords.findIndex(ngWordObj => 
                     ngWordObj.word === word && 
                     (scope === null || ngWordObj.scope === scope) && 
