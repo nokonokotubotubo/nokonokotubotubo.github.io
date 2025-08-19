@@ -35,9 +35,16 @@ window.DEFAULT_DATA = {
     }
 };
 
-// 共通ユーティリティ
+// 共通ユーティリティ（修正版）
 const Utils = {
-    safeJsonParse: (str, def = null) => { try { return JSON.parse(str); } catch { return def; } },
+    safeJsonParse: (str, def = null) => { 
+        try { 
+            if (str === null || str === undefined || str === '') return def;
+            return JSON.parse(str); 
+        } catch { 
+            return def; 
+        } 
+    },
     safeJsonStringify: (obj, format = false) => JSON.stringify(obj, null, format ? 2 : 0),
     getCurrentTime: () => new Date().toISOString(),
     normalizeRating: (rating) => Math.max(0, Math.min(5, parseInt(rating) || 0)),
@@ -46,6 +53,7 @@ const Utils = {
         return fallback;
     }
 };
+
 
 // ワード評価管理システム（this参照修正版）
 window.WordRatingManager = {
