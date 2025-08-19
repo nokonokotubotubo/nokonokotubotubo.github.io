@@ -583,63 +583,70 @@
     };
 
     const handleArticleClick = (event, articleId, actionType) => {
-        if (actionType !== 'read') {
+    if (actionType !== 'read') {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const articlesHook = window.DataHooks.useArticles();
+    const article = articlesHook.articles.find(a => a.id === articleId);
+    if (!article) return;
+
+    switch (actionType) {
+        case 'toggleRead':
             event.preventDefault();
             event.stopPropagation();
-        }
+            const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
+            
+            articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
+            
+            // 【追加】即座にDOM要素を更新
+            const readStatusButton = event.target;
+            readStatusButton.className = `corner-read-status ${newReadStatus}`;
+            
+            // 【追加】強制的にレイアウトを再計算させる
+            void(readStatusButton.offsetHeight);
 
-        const articlesHook = window.DataHooks.useArticles();
-        const article = articlesHook.articles.find(a => a.id === articleId);
-        if (!article) return;
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+            break;
 
-        switch (actionType) {
-            case 'toggleRead':
-                event.preventDefault();
-                event.stopPropagation();
-                const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
-                
-                articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
-                
-                const articleCard = document.querySelector(`[data-article-id="${articleId}"]`)?.closest('.article-card');
-                const readButton = event.target;
-                
-                if (articleCard) {
-                    articleCard.setAttribute('data-read-status', newReadStatus);
-                    readButton.textContent = newReadStatus === 'read' ? '既読' : '未読';
-                }
+        case 'readLater':
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const newReadLater = !article.readLater;
+            
+            articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
+            
+            // 【追加】即座にDOM要素を更新
+            const readLaterButton = event.target;
+            if (newReadLater) {
+                readLaterButton.classList.add('active');
+            } else {
+                readLaterButton.classList.remove('active');
+            }
+            
+            // 【追加】強制的にレイアウトを再計算させる
+            void(readLaterButton.offsetHeight);
 
+            if (window.GistSyncManager?.isEnabled) {
+                window.GistSyncManager.markAsChanged();
+            }
+            break;
+            
+        case 'read':
+            if (article.readStatus !== 'read') {
+                articlesHook.updateArticle(articleId, { readStatus: 'read' });
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                 }
-                break;
+            }
+            break;
+    }
+};
 
-            case 'readLater':
-                event.preventDefault();
-                event.stopPropagation();
-                
-                const newReadLater = !article.readLater;
-                
-                articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
-                
-                const readLaterButton = event.target;
-                readLaterButton.setAttribute('data-active', newReadLater);
-                readLaterButton.textContent = newReadLater ? '解除' : '後で';
-
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-                break;
-                
-            case 'read':
-                if (article.readStatus !== 'read') {
-                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
-                    if (window.GistSyncManager?.isEnabled) {
-                        window.GistSyncManager.markAsChanged();
-                    }
-                }
-                break;
-        }
-    };
 
     const handleCloseModal = () => {
         window._pendingTextSelection = null;
