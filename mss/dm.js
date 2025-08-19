@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（軽量化最適化版）
+// Minews PWA - データ管理・処理レイヤー（削除評価保護対応版）
 (function() {
 'use strict';
 
@@ -35,10 +35,11 @@ window.DEFAULT_DATA = {
     }
 };
 
-// ワード評価管理システム（根本修正版）
+// ワード評価管理システム（削除記録保護版）
 window.WordRatingManager = {
     STORAGE_KEY: 'minews_keyword_ratings',
-    AUTO_ADDED_KEY: 'minews_auto_added_words', // 自動追加ワード記録
+    AUTO_ADDED_KEY: 'minews_auto_added_words',
+    DELETED_WORDS_KEY: 'minews_deleted_ratings', // 【追加】削除記録用キー
     
     getWordRating(word) {
         try {
@@ -47,6 +48,31 @@ window.WordRatingManager = {
         } catch {
             return 0;
         }
+    },
+    
+    // 【追加】削除記録の管理
+    getDeletedWords() {
+        try {
+            const deleted = localStorage.getItem(this.DELETED_WORDS_KEY);
+            return deleted ? JSON.parse(deleted) : {};
+        } catch {
+            return {};
+        }
+    },
+    
+    markAsDeleted(word) {
+        try {
+            const deleted = this.getDeletedWords();
+            deleted[word] = new Date().toISOString();
+            localStorage.setItem(this.DELETED_WORDS_KEY, JSON.stringify(deleted));
+        } catch (error) {
+            console.error('削除記録の保存に失敗:', error);
+        }
+    },
+    
+    isDeleted(word) {
+        const deleted = this.getDeletedWords();
+        return word in deleted;
     },
     
     saveWordRating(word, rating) {
@@ -58,14 +84,22 @@ window.WordRatingManager = {
             if (normalizedRating > 0) {
                 ratings[word] = normalizedRating;
                 
-                // 【修正】自動追加の記録
+                // 削除記録から除去（再評価された場合）
+                const deleted = this.getDeletedWords();
+                if (word in deleted) {
+                    delete deleted[word];
+                    localStorage.setItem(this.DELETED_WORDS_KEY, JSON.stringify(deleted));
+                }
+                
+                // 自動追加の記録
                 if (this._addToInterestWords(word)) {
-                    autoAdded[word] = true; // 自動追加されたことを記録
+                    autoAdded[word] = true;
                     localStorage.setItem(this.AUTO_ADDED_KEY, JSON.stringify(autoAdded));
                 }
             } else {
-                // 【修正】評価削除時の処理
+                // 【修正】評価削除時の処理 - 削除記録を追加
                 delete ratings[word];
+                this.markAsDeleted(word); // 削除記録
                 
                 // 自動追加されたワードの場合は興味ワードからも削除
                 if (autoAdded[word]) {
@@ -122,7 +156,6 @@ window.WordRatingManager = {
         }
     },
     
-    // 【新規】興味ワードから削除する機能
     _removeFromInterestWords(word) {
         try {
             const wordHook = window.DataHooks.useWordFilters();
@@ -206,7 +239,7 @@ window.StableIDGenerator = {
     }
 };
 
-// GitHub Gist同期システム（軽量化版）
+// GitHub Gist同期システム（削除評価保護版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -473,7 +506,6 @@ window.GistSyncManager = {
         };
     },
 
-    // 【修正】冗長フィールドを削除したマージ処理（50音順ソート対応）
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
@@ -481,9 +513,8 @@ window.GistSyncManager = {
         const localTime = new Date(localWords.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
         
-        // 【修正】シンプル化されたマージロジック
         const mergedWords = {
-            interestWords: [], // 従来形式との互換性のため保持
+            interestWords: [],
             ngWords: [],
             lastUpdated: new Date(Math.max(localTime, cloudTime)).toISOString()
         };
@@ -544,14 +575,14 @@ window.GistSyncManager = {
             });
         }
         
-        // 【修正】詳細情報から基本配列を生成（冗長性を排除）
+        // 詳細情報から基本配列を生成
         mergedWords.interestWordsDetailed = Array.from(allInterestWords.values())
             .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
         
         // 従来形式との互換性のため、基本配列も生成
         mergedWords.interestWords = mergedWords.interestWordsDetailed.map(item => item.word);
         
-        // NGワードのマージ（50音順ソート）
+        // NGワードのマージ
         const allNGWords = new Set();
         (localWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
         (cloudWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
@@ -596,7 +627,7 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【修正】詳細情報からWordRatingManagerに評価を反映
+    // 【修正】削除された評価を考慮した同期処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
@@ -605,11 +636,25 @@ window.GistSyncManager = {
             if (mergedData.wordFilters) {
                 batchUpdates.wordFilters = mergedData.wordFilters;
                 
-                // 【修正】詳細情報からWordRatingManagerに評価を反映
+                // 【修正】削除された評価を考慮した同期処理
                 if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
+                    // 現在のローカル評価を取得
+                    const currentRatings = window.WordRatingManager.getAllRatings();
+                    const deletedWords = window.WordRatingManager.getDeletedWords();
+                    
+                    // クラウドの評価データを処理
                     mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
-                        if (wordObj.rating > 0) {
-                            window.WordRatingManager.saveWordRating(wordObj.word, wordObj.rating);
+                        const word = wordObj.word;
+                        const cloudRating = wordObj.rating || 0;
+                        
+                        // ローカルで削除されたワードはクラウドデータを無視
+                        if (!deletedWords[word] && cloudRating > 0) {
+                            const localRating = currentRatings[word] || 0;
+                            // より新しい評価または高い評価を採用
+                            const finalRating = Math.max(localRating, cloudRating);
+                            if (finalRating > 0) {
+                                window.WordRatingManager.saveWordRating(word, finalRating);
+                            }
                         }
                     });
                 }
@@ -718,7 +763,7 @@ window.GistSyncManager = {
         }
     },
 
-    // 【修正】手動同期でも評価情報を復元
+    // 【修正】手動同期での削除評価保護処理
     async _applyMergedDataToLocal(mergedData) {
         try {
             if (mergedData.aiLearning) {
@@ -732,11 +777,22 @@ window.GistSyncManager = {
                 window.DataHooksCache.clear('wordFilters');
                 window.DataHooksCache.wordFilters = mergedData.wordFilters;
                 
-                // 【追加】評価情報をWordRatingManagerに反映
+                // 【修正】削除された評価を保護する同期処理
                 if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
+                    // 現在のローカル削除記録を確認
+                    const deletedWords = window.WordRatingManager.getDeletedWords();
+                    const currentRatings = window.WordRatingManager.getAllRatings();
+                    
                     mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
-                        if (wordObj.rating > 0) {
-                            window.WordRatingManager.saveWordRating(wordObj.word, wordObj.rating);
+                        const word = wordObj.word;
+                        const cloudRating = wordObj.rating || 0;
+                        
+                        // ローカルで削除されたワードは同期しない
+                        if (!deletedWords[word]) {
+                            // ローカルに評価が存在しない場合のみクラウドの評価を適用
+                            if (!(word in currentRatings) && cloudRating > 0) {
+                                window.WordRatingManager.saveWordRating(word, cloudRating);
+                            }
                         }
                     });
                 }
@@ -862,7 +918,6 @@ window.GistSyncManager = {
         }
     },
     
-    // 【修正】冗長なフィールドを削除し、interestWordsDetailedのみに統一（50音順ソート対応）
     async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -886,11 +941,9 @@ window.GistSyncManager = {
         this._cleanupOldArticleStates(currentArticleIds);
         const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
         
-        // 【修正】冗長なフィールドを削除し、interestWordsDetailedのみに統一
         const enrichedWordFilters = {
             ...wordHook.wordFilters,
             lastUpdated: currentTime,
-            // 【修正】詳細情報のみを保持（50音順ソート）
             interestWordsDetailed: wordHook.wordFilters.interestWords.map(word => {
                 const rating = window.WordRatingManager?.getWordRating(word) || 0;
                 return {
@@ -1205,7 +1258,7 @@ window.ArticleLoader = {
     }
 };
 
-// 【修正】AI学習システム（スコア計算精度向上版）
+// AI学習システム（スコア計算精度向上版）
 window.AIScoring = {
     calculateScore(article, aiLearning, wordFilters) {
         let rawScore = 0;
@@ -1216,7 +1269,7 @@ window.AIScoring = {
             rawScore += this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
         }
         
-        // 2. 【修正】興味ワード評価システム - 個別計算方式
+        // 2. 興味ワード評価システム - 個別計算方式
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
             const matchedWords = wordFilters.interestWords.filter(word => 
@@ -1249,7 +1302,7 @@ window.AIScoring = {
                     }
                 });
                 
-                // 【修正】個別乗数効果の適用
+                // 個別乗数効果の適用
                 let finalInterestScore = 0;
                 
                 if (positiveWordsCount > 0) {
@@ -1311,10 +1364,9 @@ window.AIScoring = {
         return 0.05;
     },
     
-    // 【修正】より精密な正規化
     _linearNormalization(rawScore) {
         const baseScore = 50;
-        const adjustedScore = baseScore + (rawScore * 0.35); // 係数を0.4から0.35に調整
+        const adjustedScore = baseScore + (rawScore * 0.35);
         
         if (adjustedScore < 10) return Math.max(5, adjustedScore * 0.5 + 5);
         if (adjustedScore > 90) return Math.min(95, 90 + (adjustedScore - 90) * 0.2);
@@ -1611,7 +1663,7 @@ window.DataHooks = {
         };
     },
     
-        useWordFilters() {
+    useWordFilters() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
         
@@ -1682,6 +1734,6 @@ if (document.readyState === 'loading') {
 }
 
 // システム初期化完了
-console.log('Minews PWA Data Management Layer initialized');
+console.log('Minews PWA Data Management Layer - 削除評価保護対応版 initialized');
 
 })();
