@@ -640,7 +640,7 @@
                 </div>
 
                 <div class="nav-actions desktop-only">
-                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}>${window.state.isLoading ? '更新中...' : '記事更新'}</button>
+                    <button class="action-btn refresh-btn ${window.state.isLoading ? 'loading' : ''}" onclick="handleRefresh()" ${window.state.isLoading ? 'disabled' : ''}">${window.state.isLoading ? '更新中...' : '記事更新'}</button>
                     <button class="action-btn" onclick="handleOpenModal('settings')">設定</button>
                 </div>
             </nav>
@@ -819,6 +819,63 @@
             setTimeout(() => {
                 window.initializeModalEvents();
             }, 50);
+        }
+    };
+
+    // クラウド同期処理（userRating除外版）
+    window.handleSyncFromCloud = async () => {
+        if (!window.GistSyncManager.isEnabled) {
+            alert('GitHub同期が設定されていません');
+            return;
+        }
+        
+        window.setState({ isSyncUpdating: true, isBackgroundSyncing: false });
+        
+        try {
+            const cloudData = await window.GistSyncManager.syncFromCloud();
+            if (!cloudData) {
+                alert('クラウドからデータを取得できませんでした');
+                return;
+            }
+            
+            if (cloudData.aiLearning) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
+                window.DataHooksCache.clear('aiLearning');
+            }
+            
+            if (cloudData.wordFilters) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
+                window.DataHooksCache.clear('wordFilters');
+            }
+
+            if (cloudData.articleStates) {
+                const articlesHook = window.DataHooks.useArticles();
+                const currentArticles = articlesHook.articles;
+                
+                const updatedArticles = currentArticles.map(article => {
+                    const state = cloudData.articleStates[article.id];
+                    if (state) {
+                        return {
+                            ...article,
+                            readStatus: state.readStatus,
+                            readLater: state.readLater,
+                            lastModified: state.lastModified || article.lastModified
+                        };
+                    }
+                    return article;
+                });
+                
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+                window.DataHooksCache.clear('articles');
+                window.setState({ articles: updatedArticles });
+            }
+
+            alert('クラウドからデータを復元しました');
+
+        } catch (error) {
+            alert('データの復元に失敗しました: ' + error.message);
+        } finally {
+            window.setState({ isSyncUpdating: false, isBackgroundSyncing: false });
         }
     };
 
