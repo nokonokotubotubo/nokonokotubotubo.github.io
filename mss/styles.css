@@ -363,7 +363,7 @@ font-weight: 500;
 }
 
 .corner-read-later.active::before {
-    content: '★';                             /* 選択時の表示文字 */
+    content: '☆';                             /* 選択時の表示文字 */
 }
 
 .corner-read-later.active:hover {
@@ -1152,7 +1152,7 @@ padding-right: 6px;
 .corner-read-status::before,
 .corner-read-status.read::before {
 bottom: 6px;
-right: 6px;
+right: 3px;
 }
 
 /* モバイル用キーワードクリックスタイル */
