@@ -718,6 +718,7 @@ window.GistSyncManager = {
         }
     },
 
+    // 【修正】手動同期でも評価情報を復元
     async _applyMergedDataToLocal(mergedData) {
         try {
             if (mergedData.aiLearning) {
@@ -730,6 +731,15 @@ window.GistSyncManager = {
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, mergedData.wordFilters);
                 window.DataHooksCache.clear('wordFilters');
                 window.DataHooksCache.wordFilters = mergedData.wordFilters;
+                
+                // 【追加】評価情報をWordRatingManagerに反映
+                if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
+                    mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
+                        if (wordObj.rating > 0) {
+                            window.WordRatingManager.saveWordRating(wordObj.word, wordObj.rating);
+                        }
+                    });
+                }
             }
             
             if (mergedData.articleStates) {
