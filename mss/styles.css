@@ -1,4 +1,4 @@
-/* Minews PWA - 角の三角形ボタン対応版スタイル */
+/* Minews PWA - 角の三角形ボタン文字表示対応版スタイル */
 
 :root {
 --primary-blue: #1e2a32;
@@ -311,69 +311,104 @@ font-size: 0.95rem;
 font-weight: 500;
 }
 
-/* ────────────── 角の三角形ボタン ────────────── */
-/* 右上角：後で読むボタン */
-.corner-read-later {
+/* ────────────── 角の三角形ボタン（文字表示対応版） ────────────── */
+.corner-read-later,
+.corner-read-status {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 30px;
-    height: 30px;
+    width: 50px;                         /* サイズを拡大 */
+    height: 50px;
     cursor: pointer;
     transition: all 0.3s ease;
-    clip-path: polygon(100% 0%, 0% 0%, 100% 100%);
-    background: rgba(255, 255, 255, 0.1);
     border: none;
     z-index: 10;
+    /* 文字表示設定 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;                     /* 読みやすい文字サイズ */
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); /* 文字に影をつけて見やすく */
+    overflow: hidden;
+}
+
+/* 右上角：後で読むボタン */
+.corner-read-later {
+    top: 0;
+    right: 0;
+    clip-path: polygon(100% 0%, 0% 0%, 100% 100%);
+    background: rgba(255, 255, 255, 0.1);
+    padding-top: 8px;                    /* 文字位置調整 */
+    padding-right: 8px;
+}
+
+.corner-read-later::before {
+    content: '後で';                      /* 表示文字 */
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    line-height: 1;
 }
 
 .corner-read-later:hover {
     background: rgba(255, 193, 7, 0.7);
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .corner-read-later.active {
-    background: #ffc107;
+    background: #ffc107;                 /* 選択時：濃い黄色 */
+    color: #000;                         /* 文字色を黒に変更（見やすく） */
+}
+
+.corner-read-later.active::before {
+    content: '解除';                      /* 選択時の表示文字 */
 }
 
 .corner-read-later.active:hover {
-    background: #e0a800;
+    background: #e0a800;                 /* 選択時のホバー */
 }
 
 /* 右下角：既読ボタン */
 .corner-read-status {
-    position: absolute;
     bottom: 0;
     right: 0;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    transition: all 0.3s ease;
     clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    z-index: 10;
+    padding-bottom: 8px;                 /* 文字位置調整 */
+    padding-right: 8px;
+}
+
+.corner-read-status::before {
+    content: '未読';                      /* デフォルト表示文字 */
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    line-height: 1;
 }
 
 .corner-read-status:hover {
     background: rgba(76, 175, 80, 0.7);
-    transform: scale(1.1);
-}
-
-.corner-read-status.read {
-    background: #4caf50;
-}
-
-.corner-read-status.read:hover {
-    background: #45a049;
+    transform: scale(1.05);
 }
 
 .corner-read-status.unread {
-    background: rgba(108, 117, 125, 0.3);
+    background: rgba(108, 117, 125, 0.3); /* 未読時：薄いグレー */
 }
 
 .corner-read-status.unread:hover {
-    background: rgba(76, 175, 80, 0.7);
+    background: rgba(76, 175, 80, 0.7);   /* 未読ホバー時：薄い緑 */
+}
+
+.corner-read-status.read {
+    background: #4caf50;                  /* 既読時：緑色 */
+    color: white;
+}
+
+.corner-read-status.read::before {
+    content: '既読';                      /* 既読時の表示文字 */
+}
+
+.corner-read-status.read:hover {
+    background: #45a049;                  /* 既読ホバー時：濃い緑 */
 }
 
 /* ────────────── キーワードクリック対応スタイル ────────────── */
@@ -1089,8 +1124,29 @@ font-size: 0.8rem;
 /* 角ボタンのモバイル対応 */
 .corner-read-later,
 .corner-read-status {
-width: 25px;
-height: 25px;
+width: 42px;                        /* モバイルでは少し小さく */
+height: 42px;
+font-size: 9px;                     /* 文字サイズも調整 */
+}
+
+.corner-read-later {
+padding-top: 6px;
+padding-right: 6px;
+}
+
+.corner-read-later::before {
+top: 6px;
+right: 6px;
+}
+
+.corner-read-status {
+padding-bottom: 6px;
+padding-right: 6px;
+}
+
+.corner-read-status::before {
+bottom: 6px;
+right: 6px;
 }
 
 /* モバイル用キーワードクリックスタイル */
@@ -1240,8 +1296,29 @@ font-size: 1.1rem;
 /* 極小画面用角ボタン */
 .corner-read-later,
 .corner-read-status {
-width: 22px;
-height: 22px;
+width: 38px;                        /* さらに小さく */
+height: 38px;
+font-size: 8px;
+}
+
+.corner-read-later {
+padding-top: 5px;
+padding-right: 5px;
+}
+
+.corner-read-later::before {
+top: 5px;
+right: 5px;
+}
+
+.corner-read-status {
+padding-bottom: 5px;
+padding-right: 5px;
+}
+
+.corner-read-status::before {
+bottom: 5px;
+right: 5px;
 }
 
 /* 極小画面用キーワードクリックスタイル */
