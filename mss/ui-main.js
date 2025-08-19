@@ -849,14 +849,17 @@
 
                 ${keywords ? `<div class="article-keywords">${keywords}</div>` : ''}
 
-                <div class="article-actions">
-                    <button class="simple-btn read-status" onclick="handleArticleClick(event, '${article.id}', 'toggleRead')" data-article-id="${article.id}">
-                        ${article.readStatus === 'read' ? '既読' : '未読'}
-                    </button>
-                    <button class="simple-btn read-later" data-active="${article.readLater}" onclick="handleArticleClick(event, '${article.id}', 'readLater')" data-article-id="${article.id}">
-                        ${article.readLater ? '解除' : '後で'}
-                    </button>
-                </div>
+                <!-- 角の三角形ボタン -->
+<div class="corner-read-later ${article.readLater ? 'active' : ''}" 
+     onclick="handleArticleClick(event, '${article.id}', 'readLater')" 
+     data-article-id="${article.id}"
+     title="${article.readLater ? '後で読む解除' : '後で読む'}">
+</div>
+<div class="corner-read-status ${article.readStatus === 'read' ? 'read' : 'unread'}" 
+     onclick="handleArticleClick(event, '${article.id}', 'toggleRead')" 
+     data-article-id="${article.id}"
+     title="${article.readStatus === 'read' ? '未読にする' : '既読にする'}">
+</div>
             </div>
         `;
     };
