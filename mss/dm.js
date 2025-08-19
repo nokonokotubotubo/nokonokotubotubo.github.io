@@ -755,8 +755,8 @@ window.GistSyncManager = {
                     if (state) {
                         updatedArticle = {
                             ...article,
-                            readStatus: state.readStatus || article.readStatus,
-                            readLater: state.readLater || article.readLater,
+                            readStatus: state.readStatus,
+                            readLater: state.readLater,
                             lastModified: state.lastModified || article.lastModified
                         };
                     }
@@ -1611,7 +1611,7 @@ window.DataHooks = {
         };
     },
     
-    useWordFilters() {
+        useWordFilters() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
         
@@ -1665,210 +1665,23 @@ window.DataHooks = {
                 return false;
             }
         };
-    },
-    
-    useFolders() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.FOLDERS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.folders || window.DataHooksCache.lastUpdate.folders !== timestamp) {
-            window.DataHooksCache.folders = window.LocalStorageManager.getItem(
-                window.CONFIG.STORAGE_KEYS.FOLDERS, window.DEFAULT_DATA.folders
-            );
-            window.DataHooksCache.lastUpdate.folders = timestamp;
-        }
-        
-        return {
-            folders: window.DataHooksCache.folders
-        };
-    },
-    
-    useFeeds() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.feeds || window.DataHooksCache.lastUpdate.feeds !== timestamp) {
-            window.DataHooksCache.feeds = window.LocalStorageManager.getItem(
-                window.CONFIG.STORAGE_KEYS.RSS_FEEDS, window.DEFAULT_DATA.feeds
-            );
-            window.DataHooksCache.lastUpdate.feeds = timestamp;
-        }
-        
-        return {
-            feeds: window.DataHooksCache.feeds
-        };
     }
 };
 
-// エクスポート・インポート機能
-window.exportMinewsData = function() {
-    const aiHook = window.DataHooks.useAILearning();
-    const wordHook = window.DataHooks.useWordFilters();
-    const articlesHook = window.DataHooks.useArticles();
-    
-    const articleStates = {};
-    articlesHook.articles.forEach(article => {
-        const currentAIScore = article.aiScore || window.AIScoring.calculateScore(
-            article, aiHook.aiLearning, wordHook.wordFilters
-        );
-        
-        articleStates[article.id] = {
-            readStatus: article.readStatus || 'unread',
-            readLater: article.readLater || false,
-            lastModified: article.lastModified || new Date().toISOString(),
-            aiScore: currentAIScore,
-            title: article.title,
-            url: article.url,
-            keywords: article.keywords || [],
-            rssSource: article.rssSource || ''
-        };
+// 自動初期化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.GistSyncManager) {
+            window.GistSyncManager.loadConfig();
+        }
     });
-    
-    const exportData = {
-        version: window.CONFIG.DATA_VERSION,
-        exportDate: new Date().toISOString(),
-        exportType: 'complete_evaluation_state',
-        aiLearning: {
-            ...aiHook.aiLearning,
-            wordWeights: { ...aiHook.aiLearning.wordWeights }
-        },
-        wordFilters: {
-            ...wordHook.wordFilters,
-            interestWords: [...wordHook.wordFilters.interestWords],
-            ngWords: [...wordHook.wordFilters.ngWords]
-        },
-        articleStates: articleStates,
-        statistics: {
-            totalArticles: articlesHook.articles.length,
-            statesRead: Object.values(articleStates).filter(s => s.readStatus === 'read').length,
-            statesReadLater: Object.values(articleStates).filter(s => s.readLater === true).length
-        }
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `minews_complete_state_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    alert(`完全な評価状態データのエクスポートが完了しました\n記事状態: ${exportData.statistics.totalArticles}件\n既読: ${exportData.statistics.statesRead}件`);
-};
-
-window.importMinewsData = async function(file) {
-    try {
-        const text = await file.text();
-        const importData = JSON.parse(text);
-        
-        if (!importData.aiLearning || !importData.wordFilters) {
-            throw new Error('無効なデータ形式です。必要なデータが不足しています。');
-        }
-        
-        const aiHook = window.DataHooks.useAILearning();
-        const wordHook = window.DataHooks.useWordFilters();
-        const articlesHook = window.DataHooks.useArticles();
-        
-        aiHook.aiLearning.wordWeights = {};
-        
-        Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
-            const weight = importData.aiLearning.wordWeights[word];
-            aiHook.aiLearning.wordWeights[word] = Math.max(-60, Math.min(60, weight));
-        });
-        
-        wordHook.wordFilters.interestWords.length = 0;
-        wordHook.wordFilters.ngWords.length = 0;
-        
-        (importData.wordFilters.interestWords || []).forEach(word => {
-            if (!wordHook.wordFilters.interestWords.includes(word)) {
-                wordHook.wordFilters.interestWords.push(word);
-            }
-        });
-        
-        (importData.wordFilters.ngWords || []).forEach(word => {
-            if (!wordHook.wordFilters.ngWords.includes(word)) {
-                wordHook.wordFilters.ngWords.push(word);
-            }
-        });
-        
-        if (importData.articleStates && typeof importData.articleStates === 'object') {
-            const currentArticles = articlesHook.articles;
-            let restoredCount = 0;
-            
-            const updatedArticles = currentArticles.map(article => {
-                const state = importData.articleStates[article.id];
-                if (state) {
-                    restoredCount++;
-                    
-                    let updatedArticle = {
-                        ...article,
-                        readStatus: state.readStatus || 'unread',
-                        readLater: state.readLater || false,
-                        lastModified: state.lastModified || article.lastModified || new Date().toISOString()
-                    };
-                    
-                    updatedArticle.aiScore = window.AIScoring.calculateScore(
-                        updatedArticle, aiHook.aiLearning, wordHook.wordFilters
-                    );
-                    
-                    return updatedArticle;
-                }
-                
-                const recalculatedArticle = { ...article };
-                recalculatedArticle.aiScore = window.AIScoring.calculateScore(
-                    recalculatedArticle, aiHook.aiLearning, wordHook.wordFilters
-                );
-                return recalculatedArticle;
-            });
-            
-            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-            window.DataHooksCache.articles = updatedArticles;
-            window.DataHooksCache.lastUpdate.articles = new Date().toISOString();
-            
-            if (window.state) window.state.articles = updatedArticles;
-        }
-        
-        aiHook.aiLearning.lastUpdated = new Date().toISOString();
-        wordHook.wordFilters.lastUpdated = new Date().toISOString();
-        
-        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiHook.aiLearning);
-        window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordHook.wordFilters);
-        
-        window.DataHooksCache.clear('aiLearning');
-        window.DataHooksCache.clear('wordFilters');
-        window.DataHooksCache.aiLearning = aiHook.aiLearning;
-        window.DataHooksCache.wordFilters = wordHook.wordFilters;
-        
-        if (window.render) {
-            window.render();
-            setTimeout(() => {
-                if (window.render) {
-                    window.render();
-                    console.log('最終画面更新完了 - 点数計算が反映されました');
-                }
-            }, 100);
-        }
-        
-        const stats = importData.statistics || {};
-        alert(`✅ 評価状態の完全復元が成功しました！\n\n` +
-              `📊 復元統計:\n` +
-              `• 総記事数: ${stats.totalArticles || '不明'}\n` +
-              `• 既読記事: ${stats.statesRead || '不明'}\n` +
-              `• 後で読む記事: ${stats.statesReadLater || '不明'}\n\n` +
-              `🔄 点数計算が更新され、エクスポート元と同じ状態が復元されました`);
-        
-    } catch (error) {
-        console.error('インポート詳細エラー:', error);
-        alert(`❌ インポートエラーが発生しました:\n${error.message}\n\nファイル形式を確認してください。`);
+} else {
+    if (window.GistSyncManager) {
+        window.GistSyncManager.loadConfig();
     }
-};
+}
 
-window.handleExportLearningData = window.exportMinewsData;
-window.handleImportLearningData = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        window.importMinewsData(file);
-    }
-    event.target.value = '';
-};
+// システム初期化完了
+console.log('Minews PWA Data Management Layer initialized');
 
 })();
