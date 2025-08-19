@@ -473,19 +473,108 @@ window.GistSyncManager = {
         };
     },
 
+    // 【修正】興味ワードの評価情報を考慮したマージ処理（50音順ソート対応）
     _mergeWordFilters(localWords, cloudWords) {
         if (!cloudWords) return localWords;
         if (!localWords) return cloudWords;
         
         const localTime = new Date(localWords.lastUpdated || 0).getTime();
         const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
-        const baseWords = localTime >= cloudTime ? localWords : cloudWords;
         
-        return {
-            interestWords: [...(baseWords.interestWords || [])],
-            ngWords: [...(baseWords.ngWords || [])],
+        // 【修正】より詳細なマージロジック（50音順ソート対応）
+        const mergedWords = {
+            interestWords: [],
+            ngWords: [],
             lastUpdated: new Date(Math.max(localTime, cloudTime)).toISOString()
         };
+        
+        // 興味ワードのマージ（重複排除と評価情報保持）
+        const allInterestWords = new Map();
+        
+        // ローカルの興味ワードを処理
+        (localWords.interestWords || []).forEach(word => {
+            const wordStr = typeof word === 'string' ? word : word.word || word;
+            const rating = localWords.interestWordRatings?.[wordStr] || window.WordRatingManager?.getWordRating(wordStr) || 0;
+            allInterestWords.set(wordStr, {
+                word: wordStr,
+                scope: 'all',
+                target: null,
+                rating: rating,
+                source: 'local'
+            });
+        });
+        
+        // クラウドの興味ワードを処理
+        if (cloudWords.interestWordsDetailed) {
+            cloudWords.interestWordsDetailed.forEach(wordObj => {
+                const wordStr = wordObj.word;
+                const existing = allInterestWords.get(wordStr);
+                
+                if (!existing) {
+                    allInterestWords.set(wordStr, {
+                        word: wordStr,
+                        scope: wordObj.scope || 'all',
+                        target: wordObj.target || null,
+                        rating: wordObj.rating || 0,
+                        source: 'cloud'
+                    });
+                } else {
+                    // 既存がある場合、評価の高い方を採用
+                    if (wordObj.rating > existing.rating) {
+                        existing.rating = wordObj.rating;
+                        existing.scope = wordObj.scope || existing.scope;
+                        existing.target = wordObj.target || existing.target;
+                        existing.source = 'merged';
+                    }
+                }
+            });
+        } else if (cloudWords.interestWords) {
+            // 従来形式のクラウドデータへの対応
+            (cloudWords.interestWords || []).forEach(word => {
+                const wordStr = typeof word === 'string' ? word : word.word || word;
+                if (!allInterestWords.has(wordStr)) {
+                    const rating = cloudWords.interestWordRatings?.[wordStr] || 0;
+                    allInterestWords.set(wordStr, {
+                        word: wordStr,
+                        scope: 'all',
+                        target: null,
+                        rating: rating,
+                        source: 'cloud'
+                    });
+                }
+            });
+        }
+        
+        // 【修正】最終的な興味ワードリストを50音順で生成
+        mergedWords.interestWords = Array.from(allInterestWords.values())
+            .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }))
+            .map(item => item.word);
+        
+        // 評価情報を別途保存
+        mergedWords.interestWordRatings = {};
+        allInterestWords.forEach((item, word) => {
+            if (item.rating > 0) {
+                mergedWords.interestWordRatings[word] = item.rating;
+            }
+        });
+        
+        // 【修正】詳細情報を50音順で保存
+        mergedWords.interestWordsDetailed = Array.from(allInterestWords.values())
+            .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
+        
+        // 【修正】NGワードのマージ（50音順ソート）
+        const allNGWords = new Set();
+        (localWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
+        (cloudWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
+        mergedWords.ngWords = Array.from(allNGWords)
+            .map(wordStr => JSON.parse(wordStr))
+            .sort((a, b) => {
+                const wordA = typeof a === 'string' ? a : a.word || a;
+                const wordB = typeof b === 'string' ? b : b.word || b;
+                return wordA.localeCompare(wordB, 'ja', { numeric: true });
+            });
+        
+        return mergedWords;
     },
 
     _mergeArticleStates(localStates, cloudStates, deletedIds = []) {
@@ -518,12 +607,22 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
+    // 【修正】興味ワードの評価情報をWordRatingManagerに反映
     async _applyMergedDataSilentBatch(mergedData) {
         try {
             const batchUpdates = {};
             
             if (mergedData.aiLearning) batchUpdates.aiLearning = mergedData.aiLearning;
-            if (mergedData.wordFilters) batchUpdates.wordFilters = mergedData.wordFilters;
+            if (mergedData.wordFilters) {
+                batchUpdates.wordFilters = mergedData.wordFilters;
+                
+                // 【修正】興味ワードの評価情報をWordRatingManagerに反映
+                if (mergedData.wordFilters.interestWordRatings && window.WordRatingManager) {
+                    Object.entries(mergedData.wordFilters.interestWordRatings).forEach(([word, rating]) => {
+                        window.WordRatingManager.saveWordRating(word, rating);
+                    });
+                }
+            }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
@@ -762,6 +861,7 @@ window.GistSyncManager = {
         }
     },
     
+    // 【修正】興味ワードの評価情報を含めた完全なワードフィルターデータを収集（50音順ソート対応）
     async collectSyncData() {
         const aiHook = window.DataHooks.useAILearning();
         const wordHook = window.DataHooks.useWordFilters();
@@ -785,11 +885,40 @@ window.GistSyncManager = {
         this._cleanupOldArticleStates(currentArticleIds);
         const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
         
+        // 【修正】興味ワードの評価情報を含めた完全なワードフィルターデータを収集（50音順ソート対応）
+        const enrichedWordFilters = {
+            ...wordHook.wordFilters,
+            lastUpdated: currentTime,
+            // 興味ワードの評価情報を追加
+            interestWordRatings: {},
+            // 範囲情報を保持した興味ワード構造（50音順ソート）
+            interestWordsDetailed: wordHook.wordFilters.interestWords.map(word => {
+                const rating = window.WordRatingManager?.getWordRating(word) || 0;
+                if (rating > 0) {
+                    enrichedWordFilters.interestWordRatings[word] = rating;
+                }
+                return {
+                    word: typeof word === 'string' ? word : word.word || word,
+                    scope: typeof word === 'string' ? 'all' : word.scope || 'all',
+                    target: typeof word === 'string' ? null : word.target || null,
+                    rating: rating
+                };
+            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }))
+        };
+        
+        // 【修正】興味ワードも50音順でソート
+        enrichedWordFilters.interestWords = [...wordHook.wordFilters.interestWords]
+            .sort((a, b) => {
+                const wordA = typeof a === 'string' ? a : a.word || a;
+                const wordB = typeof b === 'string' ? b : b.word || b;
+                return wordA.localeCompare(wordB, 'ja', { numeric: true });
+            });
+        
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: currentTime,
             aiLearning: aiHook.aiLearning,
-            wordFilters: { ...wordHook.wordFilters, lastUpdated: currentTime },
+            wordFilters: enrichedWordFilters,
             articleStates: articleStates,
             deletedArticleIds: deletedArticleIds
         };
