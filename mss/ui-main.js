@@ -795,36 +795,61 @@
         });
     };
 
-    // キーワード統合機能を追加したrenderArticleCard関数
-    const renderArticleCard = (article) => {
-        // 興味ワードとの統合キーワード生成
-        const generateCombinedKeywords = (article) => {
-            const wordHook = window.DataHooks.useWordFilters();
-            const interestWords = wordHook.wordFilters.interestWords || [];
+    // キーワード統合機能を修正したrenderArticleCard関数
+const renderArticleCard = (article) => {
+    // 興味ワードとの統合キーワード生成（修正版）
+    const generateCombinedKeywords = (article) => {
+        const wordHook = window.DataHooks.useWordFilters();
+        const interestWords = wordHook.wordFilters.interestWords || [];
+        
+        // 記事本来のキーワード
+        const originalKeywords = new Set(article.keywords || []);
+        
+        // 記事のタイトル・内容を結合してテキスト検索用に準備
+        const articleText = (article.title + ' ' + article.content).toLowerCase();
+        
+        // 【修正】興味ワードが文字列かオブジェクトかを判定して処理
+        const additionalInterestKeywords = interestWords.filter(wordItem => {
+            // 【修正】wordItemが文字列かオブジェクトかを判定
+            const word = typeof wordItem === 'string' ? wordItem : wordItem.word;
+            const scope = typeof wordItem === 'string' ? 'all' : (wordItem.scope || 'all');
+            const target = typeof wordItem === 'string' ? null : wordItem.target;
             
-            // 記事本来のキーワード
-            const originalKeywords = new Set(article.keywords || []);
+            // 既に記事のキーワードに含まれている場合は除外
+            if (originalKeywords.has(word)) return false;
             
-            // 記事のタイトル・内容を結合してテキスト検索用に準備
-            const articleText = (article.title + ' ' + article.content).toLowerCase();
+            // スコープチェック
+            let matchesScope = false;
+            switch (scope) {
+                case 'all':
+                    matchesScope = true;
+                    break;
+                case 'folder':
+                    matchesScope = article.folderName === target;
+                    break;
+                case 'feed':
+                    matchesScope = article.rssSource === target;
+                    break;
+                default:
+                    matchesScope = true;
+            }
             
-            // 興味ワードのうち、記事に含まれるが元のキーワードに無いものを抽出
-            const additionalInterestKeywords = interestWords.filter(word => {
-                // 既に記事のキーワードに含まれている場合は除外
-                if (originalKeywords.has(word)) return false;
-                
-                // 記事のタイトル・内容に含まれている場合のみ追加
-                return articleText.includes(word.toLowerCase());
-            });
-            
-            // 記事キーワード + 追加興味ワードを結合（記事キーワードを優先順序）
-            const combinedKeywords = [
-                ...Array.from(originalKeywords),
-                ...additionalInterestKeywords
-            ];
-            
-            return combinedKeywords;
-        };
+            // 記事のタイトル・内容に含まれており、スコープも一致する場合のみ追加
+            return matchesScope && articleText.includes(word.toLowerCase());
+        }).map(wordItem => {
+            // 【修正】結果として文字列のwordを返す
+            return typeof wordItem === 'string' ? wordItem : wordItem.word;
+        });
+        
+        // 記事キーワード + 追加興味ワードを結合（記事キーワードを優先順序）
+        const combinedKeywords = [
+            ...Array.from(originalKeywords),
+            ...additionalInterestKeywords
+        ];
+        
+        return combinedKeywords;
+    };
+
         
         // 統合キーワードを使用
         const combinedKeywords = generateCombinedKeywords(article);
