@@ -1,4 +1,4 @@
-// Minews PWA - UI・メイン画面レイヤー（ui-main.js - 分割版）
+// Minews PWA - UI・メイン画面レイヤー（データ構造一本化対応版）
 (function() {
     'use strict';
 
@@ -65,7 +65,6 @@
         };
         
         saveFilterSettings(settings);
-        // 【修正】明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         alert('フィルター設定を適用しました');
@@ -82,10 +81,9 @@
         });
         
         const displays = document.querySelectorAll('.filter-range-display');
-        if (displays[0]) displays.textContent = '0点 - 100点';
+        if (displays[0]) displays[0].textContent = '0点 - 100点';
         if (displays[1]) displays[1].textContent = '0日前 - 14日前';
         
-        // 【修正】明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         alert('フィルター設定をリセットしました');
@@ -158,14 +156,14 @@
         viewMode: initialFilterState.viewMode,
         selectedFolders: initialFilterState.selectedFolders,
         selectedFeeds: initialFilterState.selectedFeeds,
-        sortMode: initialFilterState.sortMode || 'aiScore', // デフォルトはAIスコア順
+        sortMode: initialFilterState.sortMode || 'aiScore',
         showModal: null,
         articles: [],
         isLoading: false,
         lastUpdate: null,
         isSyncUpdating: false,
         isBackgroundSyncing: false,
-        allowArticleUpdate: false // 記事リスト更新制御フラグ
+        allowArticleUpdate: false
     };
 
     const initializeFolderFeeds = () => {
@@ -195,10 +193,8 @@
 
     const initializeData = () => {
         const articlesData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES, window.DEFAULT_DATA.articles);
-        const aiData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning);
-        const wordData = window.LocalStorageManager.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters);
-
-        Object.assign(window.DataHooksCache, { articles: articlesData, aiLearning: aiData, wordFilters: wordData });
+        
+        Object.assign(window.DataHooksCache, { articles: articlesData });
         window.state.articles = articlesData;
         initializeFolderFeeds();
     };
@@ -251,7 +247,6 @@
     };
 
     const updateArticleListOnly = () => {
-        // 更新許可フラグをチェック
         if (!window.state.allowArticleUpdate) {
             console.log('記事リスト表示更新は保留されています');
             return;
@@ -263,7 +258,6 @@
             updateArticleCount();
         }
 
-        // 更新後はフラグを戻す
         window.state.allowArticleUpdate = false;
     };
 
@@ -328,11 +322,8 @@
             newSortMode
         );
         
-        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
-        
-        // トグルスイッチの表示も更新
         updateSortToggleDisplay();
     };
 
@@ -364,7 +355,6 @@
         });
         
         if (updatedCount > 0) {
-            // 明示的更新フラグを設定
             window.state.allowArticleUpdate = true;
             updateArticleListOnly();
             if (window.GistSyncManager?.isEnabled) {
@@ -406,7 +396,6 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -428,7 +417,6 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, window.state.selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -451,7 +439,6 @@
         window.state.selectedFeeds = selectedFeeds;
         saveFilterState(window.state.viewMode, selectedFolders, selectedFeeds, window.state.sortMode);
         
-        // 明示的更新フラグを設定
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
         updateFolderButtonCount();
@@ -562,7 +549,6 @@
     // イベントハンドラ（明示的更新フラグ対応版）
     const handleFilterChange = (mode) => {
         window.setState({ viewMode: mode });
-        // フィルター変更は明示的更新
         window.state.allowArticleUpdate = true;
         updateArticleListOnly();
     };
@@ -588,73 +574,69 @@
     };
 
     const handleArticleClick = (event, articleId, actionType) => {
-    if (actionType !== 'read') {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    const articlesHook = window.DataHooks.useArticles();
-    const article = articlesHook.articles.find(a => a.id === articleId);
-    if (!article) return;
-
-    switch (actionType) {
-        case 'toggleRead':
+        if (actionType !== 'read') {
             event.preventDefault();
             event.stopPropagation();
-            const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
-            
-            articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
-            
-            // 【修正】正確な角ボタン要素を取得して即座に更新
-            const readStatusButton = event.target;
-            readStatusButton.className = `corner-read-status ${newReadStatus}`;
-            
-            // 【追加】確実にレイアウトを再計算
-            readStatusButton.style.display = 'none';
-            readStatusButton.offsetHeight; // 強制reflow
-            readStatusButton.style.display = 'flex';
+        }
 
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
-            break;
+        const articlesHook = window.DataHooks.useArticles();
+        const article = articlesHook.articles.find(a => a.id === articleId);
+        if (!article) return;
 
-        case 'readLater':
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const newReadLater = !article.readLater;
-            
-            articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
-            
-            // 【修正】正確な角ボタン要素を取得して即座に更新
-            const readLaterButton = event.target;
-            if (newReadLater) {
-                readLaterButton.classList.add('active');
-            } else {
-                readLaterButton.classList.remove('active');
-            }
-            
-            // 【追加】確実にレイアウトを再計算
-            readLaterButton.style.display = 'none';
-            readLaterButton.offsetHeight; // 強制reflow
-            readLaterButton.style.display = 'flex';
+        switch (actionType) {
+            case 'toggleRead':
+                event.preventDefault();
+                event.stopPropagation();
+                const newReadStatus = article.readStatus === 'read' ? 'unread' : 'read';
+                
+                articlesHook.updateArticle(articleId, { readStatus: newReadStatus }, { skipRender: true });
+                
+                const readStatusButton = event.target;
+                readStatusButton.className = `corner-read-status ${newReadStatus}`;
+                
+                readStatusButton.style.display = 'none';
+                readStatusButton.offsetHeight;
+                readStatusButton.style.display = 'flex';
 
-            if (window.GistSyncManager?.isEnabled) {
-                window.GistSyncManager.markAsChanged();
-            }
-            break;
-            
-        case 'read':
-            if (article.readStatus !== 'read') {
-                articlesHook.updateArticle(articleId, { readStatus: 'read' });
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
                 }
-            }
-            break;
-    }
-};
+                break;
+
+            case 'readLater':
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const newReadLater = !article.readLater;
+                
+                articlesHook.updateArticle(articleId, { readLater: newReadLater }, { skipRender: true });
+                
+                const readLaterButton = event.target;
+                if (newReadLater) {
+                    readLaterButton.classList.add('active');
+                } else {
+                    readLaterButton.classList.remove('active');
+                }
+                
+                readLaterButton.style.display = 'none';
+                readLaterButton.offsetHeight;
+                readLaterButton.style.display = 'flex';
+
+                if (window.GistSyncManager?.isEnabled) {
+                    window.GistSyncManager.markAsChanged();
+                }
+                break;
+                
+            case 'read':
+                if (article.readStatus !== 'read') {
+                    articlesHook.updateArticle(articleId, { readStatus: 'read' });
+                    if (window.GistSyncManager?.isEnabled) {
+                        window.GistSyncManager.markAsChanged();
+                    }
+                }
+                break;
+        }
+    };
 
     const handleCloseModal = () => {
         window._pendingTextSelection = null;
@@ -724,6 +706,7 @@
         `;
     };
 
+    // 【一本化対応】フィルター処理でWordIndexManagerを使用
     const getFilteredArticles = () => {
         let filtered = [...window.state.articles];
 
@@ -733,13 +716,10 @@
             window.state.selectedFeeds.includes(article.rssSource)
         );
 
-        // スコアフィルター
+        // スコアフィルター（一本化対応）
         const filterSettings = getFilterSettings();
-        const aiHook = window.DataHooks.useAILearning();
-        const wordHook = window.DataHooks.useWordFilters();
-        
         filtered = filtered.filter(article => {
-            const aiScore = window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters);
+            const aiScore = window.AIScoring.calculateScore(article);
             return aiScore >= filterSettings.scoreMin && aiScore <= filterSettings.scoreMax;
         });
 
@@ -764,8 +744,8 @@
                 break;
         }
 
-        // NGワードフィルター
-        filtered = window.WordFilterManager.filterArticles(filtered, wordHook.wordFilters);
+        // NGワードフィルター（一本化対応）
+        filtered = window.WordFilter.filterArticles(filtered);
 
         if (window.state.isSyncUpdating && !window.state.isBackgroundSyncing) {
             return filtered;
@@ -774,19 +754,16 @@
         // AIスコア計算
         const articlesWithScores = filtered.map(article => ({
             ...article,
-            aiScore: window.AIScoring.calculateScore(article, aiHook.aiLearning, wordHook.wordFilters)
+            aiScore: window.AIScoring.calculateScore(article)
         }));
 
-        // ソート処理（修正）
+        // ソート処理
         return articlesWithScores.sort((a, b) => {
             if (window.state.sortMode === 'time') {
-                // 時間順ソート（新しい順）
                 const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
                 if (dateCompare !== 0) return dateCompare;
-                // 日付が同じ場合はIDで安定ソート
                 return a.id.localeCompare(b.id);
             } else {
-                // AIスコア順ソート（デフォルト）
                 if (a.aiScore !== b.aiScore) return b.aiScore - a.aiScore;
                 const dateCompare = new Date(b.publishDate) - new Date(a.publishDate);
                 if (dateCompare !== 0) return dateCompare;
@@ -795,63 +772,25 @@
         });
     };
 
-    // キーワード統合機能を修正したrenderArticleCard関数
-const renderArticleCard = (article) => {
-    // 興味ワードとの統合キーワード生成（修正版）
+    // 【一本化対応】興味ワード統合キーワード生成
     const generateCombinedKeywords = (article) => {
-        const wordHook = window.DataHooks.useWordFilters();
-        const interestWords = wordHook.wordFilters.interestWords || [];
-        
-        // 記事本来のキーワード
-        const originalKeywords = new Set(article.keywords || []);
-        
-        // 記事のタイトル・内容を結合してテキスト検索用に準備
-        const articleText = (article.title + ' ' + article.content).toLowerCase();
-        
-        // 【修正】興味ワードが文字列かオブジェクトかを判定して処理
-        const additionalInterestKeywords = interestWords.filter(wordItem => {
-            // 【修正】wordItemが文字列かオブジェクトかを判定
-            const word = typeof wordItem === 'string' ? wordItem : wordItem.word;
-            const scope = typeof wordItem === 'string' ? 'all' : (wordItem.scope || 'all');
-            const target = typeof wordItem === 'string' ? null : wordItem.target;
-            
-            // 既に記事のキーワードに含まれている場合は除外
-            if (originalKeywords.has(word)) return false;
-            
-            // スコープチェック
-            let matchesScope = false;
-            switch (scope) {
-                case 'all':
-                    matchesScope = true;
-                    break;
-                case 'folder':
-                    matchesScope = article.folderName === target;
-                    break;
-                case 'feed':
-                    matchesScope = article.rssSource === target;
-                    break;
-                default:
-                    matchesScope = true;
-            }
-            
-            // 記事のタイトル・内容に含まれており、スコープも一致する場合のみ追加
-            return matchesScope && articleText.includes(word.toLowerCase());
-        }).map(wordItem => {
-            // 【修正】結果として文字列のwordを返す
-            return typeof wordItem === 'string' ? wordItem : wordItem.word;
-        });
-        
-        // 記事キーワード + 追加興味ワードを結合（記事キーワードを優先順序）
-        const combinedKeywords = [
-            ...Array.from(originalKeywords),
-            ...additionalInterestKeywords
-        ];
-        
-        return combinedKeywords;
+        const idx = window.WordIndexManager.getAll();
+        const orig = new Set(article.keywords || []);
+        const text = ((article.title || '') + ' ' + (article.content || '')).toLowerCase();
+
+        const addFromInterest = idx.interest.filter(i => {
+            if (orig.has(i.display)) return false;
+            let scopeOK = true;
+            if (i.scope === 'folder') scopeOK = article.folderName === i.target;
+            if (i.scope === 'feed') scopeOK = article.rssSource === i.target;
+            return scopeOK && text.includes(i.word);
+        }).map(i => i.display);
+
+        return [...Array.from(orig), ...addFromInterest];
     };
 
-        
-        // 統合キーワードを使用
+    // 【一本化対応】記事カードレンダリング
+    const renderArticleCard = (article) => {
         const combinedKeywords = generateCombinedKeywords(article);
         const keywords = combinedKeywords.map(keyword => {
             const sanitizedKeyword = keyword.replace(/[<>"'&]/g, match => {
@@ -859,7 +798,8 @@ const renderArticleCard = (article) => {
                 return escapeChars[match];
             });
             
-            const rating = window.WordRatingManager?.getWordRating(keyword) || 0;
+            // 【一本化対応】WordIndexManagerから評価取得
+            const rating = window.WordIndexManager.getRating(keyword);
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             return `
@@ -889,17 +829,16 @@ const renderArticleCard = (article) => {
 
                 ${keywords ? `<div class="article-keywords">${keywords}</div>` : ''}
 
-                <!-- 角の三角形ボタン -->
-<div class="corner-read-later ${article.readLater ? 'active' : ''}" 
-     onclick="handleArticleClick(event, '${article.id}', 'readLater')" 
-     data-article-id="${article.id}"
-     title="${article.readLater ? '後で読む解除' : '後で読む'}">
-</div>
-<div class="corner-read-status ${article.readStatus === 'read' ? 'read' : 'unread'}" 
-     onclick="handleArticleClick(event, '${article.id}', 'toggleRead')" 
-     data-article-id="${article.id}"
-     title="${article.readStatus === 'read' ? '未読にする' : '既読にする'}">
-</div>
+                <div class="corner-read-later ${article.readLater ? 'active' : ''}" 
+                     onclick="handleArticleClick(event, '${article.id}', 'readLater')" 
+                     data-article-id="${article.id}"
+                     title="${article.readLater ? '後で読む解除' : '後で読む'}">
+                </div>
+                <div class="corner-read-status ${article.readStatus === 'read' ? 'read' : 'unread'}" 
+                     onclick="handleArticleClick(event, '${article.id}', 'toggleRead')" 
+                     data-article-id="${article.id}"
+                     title="${article.readStatus === 'read' ? '未読にする' : '既読にする'}">
+                </div>
             </div>
         `;
     };
@@ -915,7 +854,6 @@ const renderArticleCard = (article) => {
     };
 
     const renderModal = () => {
-        // モーダルのレンダリングはui-modals.jsに委譲
         if (window.renderModalContent) {
             return window.renderModalContent();
         }
@@ -935,7 +873,6 @@ const renderArticleCard = (article) => {
             </div>
         `;
         
-        // モーダル表示後の初期化処理をui-modals.jsに委譲
         if (window.initializeModalEvents) {
             setTimeout(() => {
                 window.initializeModalEvents();
@@ -943,7 +880,7 @@ const renderArticleCard = (article) => {
         }
     };
 
-    // クラウド同期処理（userRating除外版）
+    // 【一本化対応】クラウド同期処理
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -959,14 +896,8 @@ const renderArticleCard = (article) => {
                 return;
             }
             
-            if (cloudData.aiLearning) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
-                window.DataHooksCache.clear('aiLearning');
-            }
-            
-            if (cloudData.wordFilters) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
-                window.DataHooksCache.clear('wordFilters');
+            if (cloudData.wordIndex) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_INDEX, cloudData.wordIndex);
             }
 
             if (cloudData.articleStates) {
@@ -1006,8 +937,8 @@ const renderArticleCard = (article) => {
         initializeGistSync, handleFolderToggle, handleFeedToggle,
         handleSelectAllFolders, toggleFolderDropdown, handleBulkMarkAsRead,
         updateScoreDisplay, updateDateDisplay, applyFilterSettings, resetFilterSettings, getFilterSettings,
-        handleSortModeToggle, updateSortToggleDisplay,  // 新規追加
-        handlePageReload  // 新規追加
+        handleSortModeToggle, updateSortToggleDisplay,
+        handlePageReload
     });
 
     // 初期化
