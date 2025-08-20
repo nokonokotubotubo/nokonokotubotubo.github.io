@@ -1,245 +1,183 @@
-// Minews PWA - データ管理・処理レイヤー（興味ワード詳細情報対応版）
+// Minews PWA - データ管理・処理レイヤー（データ構造一本化版）
 (function() {
 'use strict';
 
-// 設定定数
+// 設定定数（一本化対応）
 window.CONFIG = {
     STORAGE_KEYS: {
         ARTICLES: 'minews_articles',
-        RSS_FEEDS: 'minews_rssFeeds', 
-        FOLDERS: 'minews_folders',
-        AI_LEARNING: 'minews_aiLearning',
-        WORD_FILTERS: 'minews_wordFilters'
+        WORD_INDEX: 'minews_wordIndex' // 唯一のワードデータ
     },
     MAX_ARTICLES: 1000,
-    DATA_VERSION: '1.0',
+    DATA_VERSION: '2.0',
     REQUEST_TIMEOUT: 15000,
     MAX_RETRIES: 2,
     RETRY_DELAY: 3000
 };
 
-// デフォルトデータ
+// デフォルトデータ（簡素化）
 window.DEFAULT_DATA = {
     articles: [],
-    folders: [],
-    feeds: [],
-    aiLearning: {
-        version: window.CONFIG.DATA_VERSION,
-        wordWeights: {},
-        lastUpdated: new Date().toISOString()
-    },
-    wordFilters: {
-        interestWords: ['生成AI', 'Claude', 'Perplexity'],
-        interestWordsDetailed: [],
-        ngWords: [],
-        lastUpdated: new Date().toISOString()
+    wordIndex: {
+        version: '2.0',
+        lastUpdated: new Date().toISOString(),
+        interest: [],
+        ng: []
     }
 };
 
-// ワード評価管理システム（時刻比較同期版）
-window.WordRatingManager = {
-    STORAGE_KEY: 'minews_keyword_ratings',
-    AUTO_ADDED_KEY: 'minews_auto_added_words',
+// 【新設】統合ワード管理システム（WordRatingManager/WordFilterManager/aiLearning統合）
+window.WordIndexManager = {
+    KEY: window.CONFIG.STORAGE_KEYS.WORD_INDEX,
     
-    getWordRating(word) {
-        try {
-            const ratings = localStorage.getItem(this.STORAGE_KEY);
-            const parsed = ratings ? JSON.parse(ratings) : {};
-            return parsed[word]?.rating || 0;
-        } catch {
-            return 0;
+    _load() {
+        const data = window.LocalStorageManager.getItem(this.KEY, window.DEFAULT_DATA.wordIndex);
+        // データを2.0スキーマで強制化（過去互換不要）
+        if (!data.version || data.version !== '2.0') {
+            const reset = JSON.parse(JSON.stringify(window.DEFAULT_DATA.wordIndex));
+            window.LocalStorageManager.setItem(this.KEY, reset);
+            return reset;
         }
+        return data;
     },
     
-    getWordLastUpdated(word) {
-        try {
-            const ratings = localStorage.getItem(this.STORAGE_KEY);
-            const parsed = ratings ? JSON.parse(ratings) : {};
-            return parsed[word]?.lastUpdated || null;
-        } catch {
-            return null;
-        }
+    _save(data) {
+        data.lastUpdated = new Date().toISOString();
+        return window.LocalStorageManager.setItem(this.KEY, data);
     },
     
-    saveWordRating(word, rating) {
-        try {
-            const ratings = this.getAllRatings();
-            const autoAdded = this.getAutoAddedWords();
-            const normalizedRating = Math.max(0, Math.min(5, parseInt(rating)));
-            const currentTime = new Date().toISOString();
-            
-            if (normalizedRating > 0) {
-                // 【シンプル化】評価を保存し、更新日時も記録
-                ratings[word] = {
-                    rating: normalizedRating,
-                    lastUpdated: currentTime
-                };
-                
-                // 自動追加の記録
-                if (this._addToInterestWords(word)) {
-                    autoAdded[word] = true;
-                    localStorage.setItem(this.AUTO_ADDED_KEY, JSON.stringify(autoAdded));
-                }
-            } else {
-                // 【シンプル化】削除は単純に削除するだけ
-                delete ratings[word];
-                
-                if (autoAdded[word]) {
-                    this._removeFromInterestWords(word);
-                    delete autoAdded[word];
-                    localStorage.setItem(this.AUTO_ADDED_KEY, JSON.stringify(autoAdded));
-                }
-            }
-            
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ratings));
-            this._updateAILearningFromRating(word, normalizedRating);
-            return true;
-        } catch {
-            return false;
-        }
+    _norm(word) {
+        return (word || '').trim().toLowerCase();
     },
     
-    getAllRatings() {
-        try {
-            const ratings = localStorage.getItem(this.STORAGE_KEY);
-            return ratings ? JSON.parse(ratings) : {};
-        } catch {
-            return {};
-        }
+    getAll() {
+        return this._load();
     },
     
-    getAutoAddedWords() {
-        try {
-            const autoAdded = localStorage.getItem(this.AUTO_ADDED_KEY);
-            return autoAdded ? JSON.parse(autoAdded) : {};
-        } catch {
-            return {};
-        }
-    },
-    
-    _addToInterestWords(word) {
-        try {
-            const wordHook = window.DataHooks.useWordFilters();
-            const wordFilters = { ...wordHook.wordFilters };
-            
-            // 【修正】既存の詳細情報を考慮した重複チェック
-            const exists = wordFilters.interestWords.some(existingWord => {
-                if (typeof existingWord === 'string') {
-                    return existingWord === word;
-                } else {
-                    return existingWord.word === word && existingWord.scope === 'all';
-                }
+    // 興味ワード: 追加/更新（ratingは0-5）
+    upsertInterest({ word, display, scope = 'all', target = null, rating = 0 }) {
+        const d = this._load();
+        const w = this._norm(word);
+        if (!w) return false;
+        
+        const existingIdx = d.interest.findIndex(i => 
+            this._norm(i.word) === w && 
+            i.scope === scope && 
+            (i.target || null) === (target || null)
+        );
+        const now = new Date().toISOString();
+        
+        if (existingIdx >= 0) {
+            d.interest[existingIdx] = {
+                ...d.interest[existingIdx],
+                display: display || d.interest[existingIdx].display || word,
+                rating: Math.max(0, Math.min(5, parseInt(rating || 0))),
+                updatedAt: now
+            };
+        } else {
+            d.interest.push({
+                word: w,
+                display: display || word,
+                scope,
+                target: scope === 'all' ? null : (target || null),
+                rating: Math.max(0, Math.min(5, parseInt(rating || 0))),
+                addedAt: now,
+                updatedAt: now
             });
-            
-            if (!exists) {
-                const newWordObj = {
-                    word: word,
-                    scope: 'all',
-                    target: null,
-                    addedAt: new Date().toISOString()
-                };
-                
-                wordFilters.interestWords.push(newWordObj);
-                if (!wordFilters.interestWordsDetailed) {
-                    wordFilters.interestWordsDetailed = [];
-                }
-                wordFilters.interestWordsDetailed.push(newWordObj);
-                wordFilters.lastUpdated = new Date().toISOString();
-                
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-                window.DataHooksCache.wordFilters = wordFilters;
-                console.log(`自動追加: 興味ワード「${word}」`);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('興味ワード自動追加エラー:', error);
-            return false;
         }
+        return this._save(d);
     },
     
-    _removeFromInterestWords(word) {
-        try {
-            const wordHook = window.DataHooks.useWordFilters();
-            const wordFilters = { ...wordHook.wordFilters };
-            
-            const index = wordFilters.interestWords.findIndex(item => {
-                if (typeof item === 'string') {
-                    return item === word;
-                } else {
-                    return item.word === word && item.scope === 'all';
-                }
+    removeInterest({ word, scope = 'all', target = null }) {
+        const d = this._load();
+        const w = this._norm(word);
+        const before = d.interest.length;
+        d.interest = d.interest.filter(i => !(
+            this._norm(i.word) === w && 
+            i.scope === scope && 
+            (i.target || null) === (target || null)
+        ));
+        const changed = before !== d.interest.length;
+        if (changed) this._save(d);
+        return changed;
+    },
+    
+    // NGワード
+    upsertNG({ word, display, scope = 'all', target = null }) {
+        const d = this._load();
+        const w = this._norm(word);
+        if (!w) return false;
+        
+        const existingIdx = d.ng.findIndex(i => 
+            this._norm(i.word) === w && 
+            i.scope === scope && 
+            (i.target || null) === (target || null)
+        );
+        const now = new Date().toISOString();
+        
+        if (existingIdx >= 0) {
+            d.ng[existingIdx] = {
+                ...d.ng[existingIdx],
+                display: display || d.ng[existingIdx].display || word,
+                updatedAt: now
+            };
+        } else {
+            d.ng.push({
+                word: w,
+                display: display || word,
+                scope,
+                target: scope === 'all' ? null : (target || null),
+                addedAt: now,
+                updatedAt: now
             });
-            
-            if (index > -1) {
-                wordFilters.interestWords.splice(index, 1);
-                
-                // 【修正】詳細配列からも削除
-                if (wordFilters.interestWordsDetailed) {
-                    const detailedIndex = wordFilters.interestWordsDetailed.findIndex(item => 
-                        item.word === word && item.scope === 'all'
-                    );
-                    if (detailedIndex > -1) {
-                        wordFilters.interestWordsDetailed.splice(detailedIndex, 1);
-                    }
-                }
-                
-                wordFilters.lastUpdated = new Date().toISOString();
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-                window.DataHooksCache.wordFilters = wordFilters;
-                console.log(`自動削除: 興味ワード「${word}」`);
-                return true;
+        }
+        return this._save(d);
+    },
+    
+    removeNG({ word, scope = 'all', target = null }) {
+        const d = this._load();
+        const w = this._norm(word);
+        const before = d.ng.length;
+        d.ng = d.ng.filter(i => !(
+            this._norm(i.word) === w && 
+            i.scope === scope && 
+            (i.target || null) === (target || null)
+        ));
+        const changed = before !== d.ng.length;
+        if (changed) this._save(d);
+        return changed;
+    },
+    
+    // 評価のみ更新
+    setRating(word, rating) {
+        const d = this._load();
+        const w = this._norm(word);
+        let updated = false;
+        d.interest = d.interest.map(i => {
+            if (this._norm(i.word) === w) {
+                updated = true;
+                return { 
+                    ...i, 
+                    rating: Math.max(0, Math.min(5, parseInt(rating || 0))), 
+                    updatedAt: new Date().toISOString() 
+                };
             }
-            return false;
-        } catch (error) {
-            console.error('興味ワード自動削除エラー:', error);
-            return false;
-        }
-    },
-    
-    _updateAILearningFromRating(word, rating) {
-        try {
-            const aiHook = window.DataHooks.useAILearning();
-            const aiLearning = { ...aiHook.aiLearning };
-            const weightMapping = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
-            const weight = weightMapping[rating] || 0;
-            
-            if (rating > 0) {
-                aiLearning.wordWeights[word] = weight;
-            } else {
-                delete aiLearning.wordWeights[word];
-            }
-            
-            aiLearning.lastUpdated = new Date().toISOString();
-            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, aiLearning);
-            window.DataHooksCache.clear('aiLearning');
-            window.DataHooksCache.aiLearning = aiLearning;
-        } catch (error) {
-            console.error('AI学習データの更新に失敗:', error);
-        }
-    },
-    
-    setInterestWordRating(word, rating) {
-        const success = this.saveWordRating(word, rating);
-        if (success && window.GistSyncManager?.isEnabled) {
-            window.GistSyncManager.markAsChanged();
-        }
-        return success;
-    },
-    
-    getAllInterestWordRatings(interestWords) {
-        const ratings = {};
-        interestWords.forEach(word => {
-            const wordStr = typeof word === 'string' ? word : word.word;
-            ratings[wordStr] = this.getWordRating(wordStr);
+            return i;
         });
-        return ratings;
+        if (updated) this._save(d);
+        return updated;
+    },
+    
+    // 特定ワードの評価取得
+    getRating(word) {
+        const d = this._load();
+        const w = this._norm(word);
+        const hit = d.interest.find(i => this._norm(i.word) === w);
+        return hit?.rating || 0;
     }
 };
 
-// 安定ID生成システム
+// 安定ID生成システム（既存維持）
 window.StableIDGenerator = {
     generateStableId(url, title, publishDate = null) {
         const baseString = `${url.trim().toLowerCase()}|${title.trim()}${publishDate ? '|' + publishDate : ''}`;
@@ -261,7 +199,7 @@ window.StableIDGenerator = {
     }
 };
 
-// GitHub Gist同期システム（時刻比較同期版）
+// GitHub Gist同期システム（wordIndex一本化対応版）
 window.GistSyncManager = {
     token: null,
     gistId: null,
@@ -501,157 +439,24 @@ window.GistSyncManager = {
     _mergeData(localData, cloudData) {
         if (!cloudData) return localData;
         
+        const pickLatest = (local, cloud) => {
+            if (!cloud) return local;
+            if (!local) return cloud;
+            const localTime = new Date(local.lastUpdated || 0).getTime();
+            const cloudTime = new Date(cloud.lastUpdated || 0).getTime();
+            return cloudTime > localTime ? cloud : local;
+        };
+        
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: new Date().toISOString(),
-            aiLearning: this._mergeAILearning(localData.aiLearning, cloudData.aiLearning),
-            wordFilters: this._mergeWordFilters(localData.wordFilters, cloudData.wordFilters),
+            wordIndex: pickLatest(localData.wordIndex, cloudData.wordIndex),
             articleStates: this._mergeArticleStates(
                 localData.articleStates, 
                 cloudData.articleStates,
                 localData.deletedArticleIds || []
             )
         };
-    },
-
-    _mergeAILearning(localAI, cloudAI) {
-        if (!cloudAI) return localAI;
-        if (!localAI) return cloudAI;
-        
-        const localTime = new Date(localAI.lastUpdated || 0).getTime();
-        const cloudTime = new Date(cloudAI.lastUpdated || 0).getTime();
-        
-        return {
-            version: window.CONFIG.DATA_VERSION,
-            wordWeights: { ...(cloudTime > localTime ? cloudAI : localAI).wordWeights },
-            lastUpdated: new Date().toISOString()
-        };
-    },
-
-    _mergeWordFilters(localWords, cloudWords) {
-        if (!cloudWords) return localWords;
-        if (!localWords) return cloudWords;
-        
-        const localTime = new Date(localWords.lastUpdated || 0).getTime();
-        const cloudTime = new Date(cloudWords.lastUpdated || 0).getTime();
-        
-        const mergedWords = {
-            interestWords: [],
-            interestWordsDetailed: [],
-            ngWords: [],
-            lastUpdated: new Date(Math.max(localTime, cloudTime)).toISOString()
-        };
-        
-        // 【修正完了】興味ワードのマージ（削除操作優先・後勝ち対応）
-        const allInterestWords = new Map();
-        
-        // ローカルの興味ワードを処理
-        const localInterestWordsDetailed = localWords.interestWordsDetailed || 
-            (localWords.interestWords || []).map(word => {
-                if (typeof word === 'string') {
-                    return {
-                        word: word,
-                        scope: 'all',
-                        target: null,
-                        rating: window.WordRatingManager?.getWordRating(word) || 0,
-                        lastUpdated: window.WordRatingManager?.getWordLastUpdated(word) || new Date().toISOString(),
-                        addedAt: new Date().toISOString()
-                    };
-                }
-                return {
-                    ...word,
-                    rating: window.WordRatingManager?.getWordRating(word.word) || word.rating || 0,
-                    lastUpdated: window.WordRatingManager?.getWordLastUpdated(word.word) || word.lastUpdated || new Date().toISOString()
-                };
-            });
-        
-        localInterestWordsDetailed.forEach(wordObj => {
-            const key = `${wordObj.word}|${wordObj.scope || 'all'}|${wordObj.target || ''}`;
-            allInterestWords.set(key, {
-                ...wordObj,
-                source: 'local'
-            });
-        });
-        
-        // クラウドの興味ワードを処理
-        const cloudInterestWordsDetailed = cloudWords.interestWordsDetailed || 
-            (cloudWords.interestWords || []).map(word => {
-                if (typeof word === 'string') {
-                    return {
-                        word: word,
-                        scope: 'all',
-                        target: null,
-                        rating: 0,
-                        lastUpdated: new Date().toISOString(),
-                        addedAt: new Date().toISOString()
-                    };
-                }
-                return word;
-            });
-        
-        cloudInterestWordsDetailed.forEach(wordObj => {
-            const key = `${wordObj.word}|${wordObj.scope || 'all'}|${wordObj.target || ''}`;
-            const existing = allInterestWords.get(key);
-            
-            if (!existing) {
-                allInterestWords.set(key, {
-                    ...wordObj,
-                    source: 'cloud'
-                });
-            } else {
-                // 【修正完了】正確な時刻比較による後勝ち判定
-                const existingTime = new Date(existing.lastUpdated || '1970-01-01T00:00:00.000Z').getTime();
-                const cloudTime = new Date(wordObj.lastUpdated || '1970-01-01T00:00:00.000Z').getTime();
-                
-                // 【キーポイント】後勝ちで削除操作（rating=0）を優先
-                if (cloudTime > existingTime) {
-                    // クラウドの方が新しい場合、クラウドデータを採用
-                    allInterestWords.set(key, {
-                        ...wordObj,
-                        source: 'cloud_wins'
-                    });
-                } else if (cloudTime === existingTime) {
-                    // 同じ時刻の場合、削除操作（rating=0）を優先
-                    if (wordObj.rating === 0 || existing.rating === 0) {
-                        const deleteItem = wordObj.rating === 0 ? wordObj : existing;
-                        allInterestWords.set(key, {
-                            ...deleteItem,
-                            source: 'delete_priority'
-                        });
-                    }
-                    // それ以外は既存を保持
-                }
-                // ローカルの方が新しい場合は何もしない（既存を保持）
-            }
-        });
-        
-        // 【修正完了】削除された項目（rating=0）を除外
-        const validInterestWords = Array.from(allInterestWords.values())
-            .filter(item => item.rating !== 0) // rating=0の削除済みアイテムを除外
-            .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
-        
-        mergedWords.interestWordsDetailed = validInterestWords;
-        
-        // 従来形式との互換性のため、基本配列も生成（削除済み除外）
-        mergedWords.interestWords = validInterestWords.map(item => ({
-            word: item.word,
-            scope: item.scope,
-            target: item.target
-        }));
-        
-        // NGワードのマージ（変更なし）
-        const allNGWords = new Set();
-        (localWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
-        (cloudWords.ngWords || []).forEach(word => allNGWords.add(JSON.stringify(word)));
-        mergedWords.ngWords = Array.from(allNGWords)
-            .map(wordStr => JSON.parse(wordStr))
-            .sort((a, b) => {
-                const wordA = typeof a === 'string' ? a : a.word || a;
-                const wordB = typeof b === 'string' ? b : b.word || b;
-                return wordA.localeCompare(wordB, 'ja', { numeric: true });
-            });
-        
-        return mergedWords;
     },
 
     _mergeArticleStates(localStates, cloudStates, deletedIds = []) {
@@ -684,45 +489,15 @@ window.GistSyncManager = {
         return mergedStates;
     },
 
-    // 【修正】時刻比較による同期処理
     async _applyMergedDataSilentBatch(mergedData) {
         try {
-            const batchUpdates = {};
-            
-            if (mergedData.aiLearning) batchUpdates.aiLearning = mergedData.aiLearning;
-            if (mergedData.wordFilters) {
-                batchUpdates.wordFilters = mergedData.wordFilters;
-                
-                // 【修正】時刻比較による同期処理
-                if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
-                    const localRatings = window.WordRatingManager.getAllRatings();
-                    
-                    mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
-                        const word = wordObj.word;
-                        const cloudRating = wordObj.rating || 0;
-                        const cloudTime = new Date(wordObj.lastUpdated || 0).getTime();
-                        const localRating = localRatings[word];
-                        const localTime = localRating ? new Date(localRating.lastUpdated || 0).getTime() : 0;
-                        
-                        // 【キーポイント】時刻比較で新しい方を採用
-                        if (cloudTime > localTime) {
-                            if (cloudRating > 0) {
-                                window.WordRatingManager.saveWordRating(word, cloudRating);
-                            } else {
-                                // クラウドで削除された場合はローカルも削除
-                                window.WordRatingManager.saveWordRating(word, 0);
-                            }
-                        }
-                        // ローカルの方が新しければ何もしない（ローカル優先）
-                    });
-                }
+            if (mergedData.wordIndex) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_INDEX, mergedData.wordIndex);
             }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
-                const aiLearningData = mergedData.aiLearning || window.DataHooksCache.aiLearning;
-                const wordFiltersData = mergedData.wordFilters || window.DataHooksCache.wordFilters;
                 
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
@@ -737,53 +512,19 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    updatedArticle.aiScore = window.AIScoring.calculateScore(
-                        updatedArticle, aiLearningData, wordFiltersData
-                    );
-                    
+                    updatedArticle.aiScore = window.AIScoring.calculateScore(updatedArticle);
                     return updatedArticle;
                 });
                 
-                batchUpdates.articles = updatedArticles;
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
+                window.DataHooksCache.articles = updatedArticles;
+                
+                if (window.state) window.state.articles = updatedArticles;
             }
-            
-            await this._executeBatchUpdate(batchUpdates);
             return true;
         } catch (error) {
             console.error('時刻比較同期エラー:', error);
             return false;
-        }
-    },
-
-    async _executeBatchUpdate(batchUpdates) {
-        const updateSequence = [
-            { key: 'aiLearning', storageKey: window.CONFIG.STORAGE_KEYS.AI_LEARNING, cacheKey: 'aiLearning' },
-            { key: 'wordFilters', storageKey: window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cacheKey: 'wordFilters' }
-        ];
-        
-        for (const update of updateSequence) {
-            if (batchUpdates[update.key]) {
-                window.LocalStorageManager.setItem(update.storageKey, batchUpdates[update.key]);
-                window.DataHooksCache.clear(update.cacheKey);
-                window.DataHooksCache[update.cacheKey] = batchUpdates[update.key];
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-        }
-        
-        if (batchUpdates.articles) {
-            const updatedAILearning = window.DataHooksCache.aiLearning;
-            const updatedWordFilters = window.DataHooksCache.wordFilters;
-            
-            const recalculatedArticles = batchUpdates.articles.map(article => ({
-                ...article,
-                aiScore: window.AIScoring.calculateScore(article, updatedAILearning, updatedWordFilters)
-            }));
-            
-            window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, recalculatedArticles);
-            window.DataHooksCache.clear('articles');
-            window.DataHooksCache.articles = recalculatedArticles;
-            
-            if (window.state) window.state.articles = recalculatedArticles;
         }
     },
 
@@ -821,49 +562,15 @@ window.GistSyncManager = {
         }
     },
 
-    // 【修正】手動同期でも時刻比較を適用
     async _applyMergedDataToLocal(mergedData) {
         try {
-            if (mergedData.aiLearning) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, mergedData.aiLearning);
-                window.DataHooksCache.clear('aiLearning');
-                window.DataHooksCache.aiLearning = mergedData.aiLearning;
-            }
-            
-            if (mergedData.wordFilters) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, mergedData.wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-                window.DataHooksCache.wordFilters = mergedData.wordFilters;
-                
-                // 【修正】手動同期でも時刻比較を適用
-                if (mergedData.wordFilters.interestWordsDetailed && window.WordRatingManager) {
-                    const localRatings = window.WordRatingManager.getAllRatings();
-                    
-                    mergedData.wordFilters.interestWordsDetailed.forEach(wordObj => {
-                        const word = wordObj.word;
-                        const cloudRating = wordObj.rating || 0;
-                        const cloudTime = new Date(wordObj.lastUpdated || 0).getTime();
-                        const localRating = localRatings[word];
-                        const localTime = localRating ? new Date(localRating.lastUpdated || 0).getTime() : 0;
-                        
-                        // 【キーポイント】時刻比較で新しい方を採用
-                        if (cloudTime > localTime) {
-                            if (cloudRating > 0) {
-                                window.WordRatingManager.saveWordRating(word, cloudRating);
-                            } else {
-                                // クラウドで削除された場合はローカルも削除
-                                window.WordRatingManager.saveWordRating(word, 0);
-                            }
-                        }
-                    });
-                }
+            if (mergedData.wordIndex) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_INDEX, mergedData.wordIndex);
             }
             
             if (mergedData.articleStates) {
                 const articlesHook = window.DataHooks.useArticles();
                 const currentArticles = articlesHook.articles;
-                const aiLearningData = window.DataHooksCache.aiLearning || window.DataHooks.useAILearning().aiLearning;
-                const wordFiltersData = window.DataHooksCache.wordFilters || window.DataHooks.useWordFilters().wordFilters;
                 
                 const updatedArticles = currentArticles.map(article => {
                     const state = mergedData.articleStates[article.id];
@@ -878,12 +585,11 @@ window.GistSyncManager = {
                         };
                     }
                     
-                    updatedArticle.aiScore = window.AIScoring.calculateScore(updatedArticle, aiLearningData, wordFiltersData);
+                    updatedArticle.aiScore = window.AIScoring.calculateScore(updatedArticle);
                     return updatedArticle;
                 });
                 
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.ARTICLES, updatedArticles);
-                window.DataHooksCache.clear('articles');
                 window.DataHooksCache.articles = updatedArticles;
                 
                 if (window.state) window.state.articles = updatedArticles;
@@ -980,9 +686,8 @@ window.GistSyncManager = {
     },
     
     async collectSyncData() {
-        const aiHook = window.DataHooks.useAILearning();
-        const wordHook = window.DataHooks.useWordFilters();
         const articlesHook = window.DataHooks.useArticles();
+        const wordIndex = window.WordIndexManager.getAll();
         
         const articleStates = {};
         const currentTime = new Date().toISOString();
@@ -1002,61 +707,10 @@ window.GistSyncManager = {
         this._cleanupOldArticleStates(currentArticleIds);
         const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
         
-        // 【修正】詳細興味ワード情報の正確な収集
-        const enrichedWordFilters = {
-            ...wordHook.wordFilters,
-            lastUpdated: currentTime
-        };
-        
-        // 【修正】詳細配列の確実な生成
-        if (!enrichedWordFilters.interestWordsDetailed || enrichedWordFilters.interestWordsDetailed.length === 0) {
-            enrichedWordFilters.interestWordsDetailed = (wordHook.wordFilters.interestWords || []).map(word => {
-                if (typeof word === 'string') {
-                    const rating = window.WordRatingManager?.getWordRating(word) || 0;
-                    const lastUpdated = window.WordRatingManager?.getWordLastUpdated(word) || currentTime;
-                    return {
-                        word: word,
-                        scope: 'all',
-                        target: null,
-                        rating: rating,
-                        lastUpdated: lastUpdated,
-                        addedAt: currentTime
-                    };
-                } else {
-                    const rating = window.WordRatingManager?.getWordRating(word.word) || word.rating || 0;
-                    const lastUpdated = window.WordRatingManager?.getWordLastUpdated(word.word) || word.lastUpdated || currentTime;
-                    return {
-                        ...word,
-                        rating: rating,
-                        lastUpdated: lastUpdated
-                    };
-                }
-            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
-        } else {
-            // 既存の詳細配列を更新
-            enrichedWordFilters.interestWordsDetailed = enrichedWordFilters.interestWordsDetailed.map(wordObj => {
-                const rating = window.WordRatingManager?.getWordRating(wordObj.word) || wordObj.rating || 0;
-                const lastUpdated = window.WordRatingManager?.getWordLastUpdated(wordObj.word) || wordObj.lastUpdated || currentTime;
-                return {
-                    ...wordObj,
-                    rating: rating,
-                    lastUpdated: lastUpdated
-                };
-            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
-        }
-        
-        // 従来形式との互換性のため、基本配列も生成
-        enrichedWordFilters.interestWords = enrichedWordFilters.interestWordsDetailed.map(item => ({
-            word: item.word,
-            scope: item.scope,
-            target: item.target
-        }));
-        
         return {
             version: window.CONFIG.DATA_VERSION,
             syncTime: currentTime,
-            aiLearning: aiHook.aiLearning,
-            wordFilters: enrichedWordFilters,
+            wordIndex,
             articleStates: articleStates,
             deletedArticleIds: deletedArticleIds
         };
@@ -1289,17 +943,10 @@ window.GistSyncManager = {
     }
 };
 
-// キャッシュシステム
+// キャッシュシステム（簡素化）
 window.DataHooksCache = {
     articles: null,
-    rssFeeds: null,
-    folders: null,
-    feeds: null,
-    aiLearning: null,
-    wordFilters: null,
-    lastUpdate: {
-        articles: null, rssFeeds: null, folders: null, feeds: null, aiLearning: null, wordFilters: null
-    },
+    lastUpdate: { articles: null },
     clear(key) {
         if (key) {
             delete this[key];
@@ -1315,7 +962,7 @@ window.DataHooksCache = {
     }
 };
 
-// 記事データ読み込み
+// 記事データ読み込み（既存維持）
 window.ArticleLoader = {
     async loadArticlesFromJSON() {
         try {
@@ -1324,16 +971,6 @@ window.ArticleLoader = {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
-            
-            if (data.folders) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.FOLDERS, data.folders);
-                window.DataHooksCache.folders = data.folders;
-            }
-            
-            if (data.feeds) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS, data.feeds);
-                window.DataHooksCache.feeds = data.feeds;
-            }
             
             return {
                 articles: data.articles || [],
@@ -1355,319 +992,75 @@ window.ArticleLoader = {
     }
 };
 
-// AI学習システム（スコア計算精度向上版）
+// AI学習システム（一本化対応版）
 window.AIScoring = {
-    calculateScore(article, aiLearning, wordFilters) {
-        let rawScore = 0;
-        
-        // 1. 記事キーワードによるAI評価
-        if (article.keywords?.length && aiLearning.wordWeights) {
-            const topKeywords = this._getTopKeywordsByAIWeights(article.keywords, aiLearning.wordWeights);
-            rawScore += this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
-        }
-        
-        // 2. 興味ワード評価システム - 個別計算方式（スコープ対応）
-        if (wordFilters.interestWords && article.title) {
-            const content = (article.title + ' ' + article.content).toLowerCase();
-            
-            // 【修正】スコープを考慮したマッチング処理
-            const matchedWords = [];
-            
-            // 詳細情報がある場合はそれを使用
-            const interestWordsToCheck = wordFilters.interestWordsDetailed && wordFilters.interestWordsDetailed.length > 0
-                ? wordFilters.interestWordsDetailed
-                : wordFilters.interestWords.map(word => {
-                    if (typeof word === 'string') {
-                        return { word: word, scope: 'all', target: null };
-                    }
-                    return word;
-                });
-            
-            interestWordsToCheck.forEach(wordObj => {
-                const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
-                const scope = typeof wordObj === 'string' ? 'all' : (wordObj.scope || 'all');
-                const target = typeof wordObj === 'string' ? null : wordObj.target;
-                
-                if (content.includes(word.toLowerCase())) {
-                    // スコープチェック
-                    let matchesScope = false;
-                    switch (scope) {
-                        case 'all':
-                            matchesScope = true;
-                            break;
-                        case 'folder':
-                            matchesScope = article.folderName === target;
-                            break;
-                        case 'feed':
-                            matchesScope = article.rssSource === target;
-                            break;
-                        default:
-                            matchesScope = true;
-                    }
-                    
-                    if (matchesScope) {
-                        matchedWords.push(word);
-                    }
-                }
+    // rating→重みマップ（旧仕様を踏襲）
+    _weight(rating) {
+        const map = { 1: -10, 2: -5, 3: 0, 4: 5, 5: 10 };
+        return map[rating] || 0;
+    },
+
+    calculateScore(article) {
+        const idx = window.WordIndexManager.getAll();
+        const text = ((article.title || '') + ' ' + (article.content || '')).toLowerCase();
+        let score = 0;
+
+        // 興味ワード一致（scopeチェック）
+        const matches = [];
+        idx.interest.forEach(i => {
+            const inText = text.includes(i.word);
+            if (!inText) return;
+            let scopeOK = true;
+            if (i.scope === 'folder') scopeOK = article.folderName === i.target;
+            if (i.scope === 'feed') scopeOK = article.rssSource === i.target;
+            if (scopeOK) matches.push(i);
+        });
+
+        if (matches.length) {
+            let positive = 0, negative = 0, pCount = 0, nCount = 0;
+            matches.forEach(i => {
+                const w = this._weight(i.rating || 0);
+                if (w > 0) { positive += 8 + w; pCount++; }
+                else if (w === 0) { positive += 8; pCount++; }
+                else { negative += w; nCount++; }
             });
-            
-            if (matchedWords.length > 0) {
-                let positiveWordsScore = 0;
-                let negativeWordsScore = 0;
-                let positiveWordsCount = 0;
-                let negativeWordsCount = 0;
-                
-                matchedWords.forEach(word => {
-                    const aiWeight = aiLearning.wordWeights[word] || 0;
-                    
-                    if (aiWeight === 0) {
-                        // 未評価の興味ワード: 基本ボーナス
-                        positiveWordsScore += 8;
-                        positiveWordsCount++;
-                    } else if (aiWeight > 0) {
-                        // 高評価ワード: 基本ボーナス + 追加ボーナス
-                        const baseBonus = 8;
-                        const ratingBonus = aiWeight;
-                        positiveWordsScore += baseBonus + ratingBonus;
-                        positiveWordsCount++;
-                    } else {
-                        // 低評価ワード: 負のペナルティのみ
-                        negativeWordsScore += aiWeight;
-                        negativeWordsCount++;
-                    }
-                });
-                
-                // 個別乗数効果の適用
-                let finalInterestScore = 0;
-                
-                if (positiveWordsCount > 0) {
-                    const positiveMultiplier = Math.log(positiveWordsCount + 1);
-                    finalInterestScore += positiveWordsScore * positiveMultiplier;
-                }
-                
-                if (negativeWordsCount > 0) {
-                    // 負のスコアはそのまま（乗数効果なし）
-                    finalInterestScore += negativeWordsScore;
-                }
-                
-                rawScore += finalInterestScore;
-            }
+            let final = 0;
+            if (pCount > 0) final += positive * Math.log(pCount + 1);
+            if (nCount > 0) final += negative;
+            score += final;
         }
-        
-        return Math.round(this._linearNormalization(rawScore) * 10) / 10;
-    },
-    
-    _getTopKeywordsByAIWeights(keywords, wordWeights) {
-        return keywords.map(keyword => ({
-            keyword: keyword,
-            weight: Math.abs(wordWeights[keyword] || 0),
-            originalWeight: wordWeights[keyword] || 0
-        })).sort((a, b) => b.weight - a.weight).slice(0, 3);
-    },
-    
-    _calculateMultidimensionalKeywordScore(topKeywords, aiLearning) {
-        if (topKeywords.length === 0) return 0;
-        
-        const individualScore = topKeywords.reduce((sum, item) => sum + item.originalWeight, 0);
-        const combinationBonus = this._calculateCombinationBonus(topKeywords);
-        const intensityMultiplier = this._calculateIntensityMultiplier(topKeywords);
-        
-        return (individualScore * 0.5) + (combinationBonus * 0.2) + (individualScore * intensityMultiplier * 0.12);
-    },
-    
-    _calculateCombinationBonus(topKeywords) {
-        if (topKeywords.length < 2) return 0;
-        
-        const bonusTable = { 2: 3, 3: 8 };
-        const keywordCount = topKeywords.length;
-        const baseBonus = bonusTable[keywordCount] || 0;
-        
-        const avgWeight = topKeywords.reduce((sum, item) => sum + item.originalWeight, 0) / keywordCount;
-        const avgAbsWeight = topKeywords.reduce((sum, item) => sum + Math.abs(item.originalWeight), 0) / keywordCount;
-        
-        const synergy = avgAbsWeight > 5 ? 1.5 : (avgAbsWeight > 2 ? 1.2 : 1.0);
-        const bonus = baseBonus * synergy;
-        
-        return avgWeight >= 0 ? bonus : -bonus;
-    },
-    
-    _calculateIntensityMultiplier(topKeywords) {
-        const avgAbsWeight = topKeywords.reduce((sum, item) => sum + item.weight, 0) / topKeywords.length;
-        
-        if (avgAbsWeight >= 8) return 0.25;
-        if (avgAbsWeight >= 3) return 0.15;
-        return 0.05;
+
+        return Math.round(this._linearNormalization(score) * 10) / 10;
     },
     
     _linearNormalization(rawScore) {
-        const baseScore = 50;
-        const adjustedScore = baseScore + (rawScore * 0.35);
-        
-        if (adjustedScore < 10) return Math.max(5, adjustedScore * 0.5 + 5);
-        if (adjustedScore > 90) return Math.min(95, 90 + (adjustedScore - 90) * 0.2);
-        
-        return adjustedScore;
+        const base = 50;
+        const adjusted = base + (rawScore * 0.35);
+        if (adjusted < 10) return Math.max(5, adjusted * 0.5 + 5);
+        if (adjusted > 90) return Math.min(95, 90 + (adjusted - 90) * 0.2);
+        return adjusted;
     }
 };
 
-// ワードフィルター管理（修正版）
-window.WordFilterManager = {
-    addWord(word, type, wordFilters, scope = 'all', target = null) {
-        word = word.trim();
-        if (!word) return false;
-        
-        if (type === 'interest') {
-            // 【修正】詳細情報を含むオブジェクト形式で保存
-            const normalizedScope = scope || 'all';
-            const normalizedTarget = normalizedScope === 'all' ? null : (target || null);
-            
-            const newWordObj = {
-                word: word,
-                scope: normalizedScope,
-                target: normalizedTarget,
-                addedAt: new Date().toISOString()
-            };
-            
-            // 同じワード・スコープ・ターゲットの組み合わせが既に存在するかチェック
-            const exists = wordFilters.interestWords.some(existingWord => {
-                if (typeof existingWord === 'string') {
-                    return existingWord.toLowerCase() === word.toLowerCase() && normalizedScope === 'all';
-                } else {
-                    return existingWord.word.toLowerCase() === word.toLowerCase() &&
-                           existingWord.scope === normalizedScope &&
-                           existingWord.target === normalizedTarget;
-                }
-            });
-            
-            if (!exists) {
-                // 【修正】詳細情報付きで追加
-                wordFilters.interestWords.push(newWordObj);
-                wordFilters.lastUpdated = new Date().toISOString();
-                
-                // 【修正】詳細配列も同期更新
-                if (!wordFilters.interestWordsDetailed) {
-                    wordFilters.interestWordsDetailed = [];
-                }
-                wordFilters.interestWordsDetailed.push(newWordObj);
-                
-                return true;
-            }
-        } else {
-            const normalizedScope = scope || 'all';
-            const normalizedTarget = normalizedScope === 'all' ? null : (target || null);
-            
-            const exists = wordFilters.ngWords.some(ngWordObj => 
-                ngWordObj.word.toLowerCase() === word.toLowerCase() &&
-                ngWordObj.scope === normalizedScope &&
-                ngWordObj.target === normalizedTarget
-            );
-            
-            if (!exists) {
-                wordFilters.ngWords.push({
-                    word: word,
-                    scope: normalizedScope,
-                    target: normalizedTarget
-                });
-                wordFilters.lastUpdated = new Date().toISOString();
-                return true;
-            }
-        }
-        return false;
-    },
-    
-    removeWord(word, type, wordFilters, scope = null, target = null) {
-        word = word.trim();
-        
-        if (type === 'interest') {
-            // 【修正】詳細情報に基づいて削除
-            let index = -1;
-            
-            if (scope === null && target === null) {
-                // 従来形式のワード削除（文字列のみ）
-                index = wordFilters.interestWords.findIndex(item => {
-                    if (typeof item === 'string') {
-                        return item === word;
-                    } else {
-                        return item.word === word && item.scope === 'all';
-                    }
-                });
-            } else {
-                // 詳細情報に基づく削除
-                index = wordFilters.interestWords.findIndex(item => {
-                    if (typeof item === 'string') {
-                        return item === word && scope === 'all' && target === null;
-                    } else {
-                        return item.word === word && 
-                               item.scope === scope && 
-                               item.target === target;
-                    }
-                });
-            }
-            
-            if (index > -1) {
-                wordFilters.interestWords.splice(index, 1);
-                
-                // 【修正】詳細配列からも削除
-                if (wordFilters.interestWordsDetailed) {
-                    const detailedIndex = wordFilters.interestWordsDetailed.findIndex(item => {
-                        if (scope === null && target === null) {
-                            return item.word === word && item.scope === 'all';
-                        } else {
-                            return item.word === word && item.scope === scope && item.target === target;
-                        }
-                    });
-                    if (detailedIndex > -1) {
-                        wordFilters.interestWordsDetailed.splice(detailedIndex, 1);
-                    }
-                }
-                
-                wordFilters.lastUpdated = new Date().toISOString();
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-                return true;
-            }
-        } else {
-            const index = wordFilters.ngWords.findIndex(ngWordObj => 
-                ngWordObj.word === word &&
-                (scope === null || ngWordObj.scope === scope) &&
-                (target === null || ngWordObj.target === target)
-            );
-            
-            if (index > -1) {
-                wordFilters.ngWords.splice(index, 1);
-                wordFilters.lastUpdated = new Date().toISOString();
-                if (window.GistSyncManager?.isEnabled) {
-                    window.GistSyncManager.markAsChanged();
-                }
-                return true;
-            }
-        }
-        return false;
-    },
-    
-    // 【修正】フィルタリング処理でスコープを考慮
-    filterArticles(articles, wordFilters) {
-        if (!wordFilters.ngWords.length) return articles;
-        
+// ワードフィルター（NG専用・一本化対応版）
+window.WordFilter = {
+    filterArticles(articles) {
+        const idx = window.WordIndexManager.getAll();
         return articles.filter(article => {
-            const text = (article.title + ' ' + article.content).toLowerCase();
-            
-            return !wordFilters.ngWords.some(ngWordObj => {
-                if (!text.includes(ngWordObj.word.toLowerCase())) return false;
-                
-                switch (ngWordObj.scope) {
-                    case 'all': return true;
-                    case 'folder': return article.folderName === ngWordObj.target;
-                    case 'feed': return article.rssSource === ngWordObj.target;
-                    default: return false;
-                }
-            });
+            const text = ((article.title || '') + ' ' + (article.content || '')).toLowerCase();
+            // 1つでも適用範囲で一致すれば非表示
+            for (const g of idx.ng) {
+                if (!text.includes(g.word)) continue;
+                if (g.scope === 'all') return false;
+                if (g.scope === 'folder' && article.folderName === g.target) return false;
+                if (g.scope === 'feed' && article.rssSource === g.target) return false;
+            }
+            return true;
         });
     }
 };
 
-// ローカルストレージ管理
+// ローカルストレージ管理（既存維持）
 window.LocalStorageManager = {
     setItem(key, data) {
         try {
@@ -1725,7 +1118,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック（修正版）
+// データ操作フック（一本化対応版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1788,18 +1181,7 @@ window.DataHooks = {
     },
     
     useRSSManager() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.RSS_FEEDS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.rssFeeds || window.DataHooksCache.lastUpdate.rssFeeds !== timestamp) {
-            window.DataHooksCache.rssFeeds = window.LocalStorageManager.getItem(
-                window.CONFIG.STORAGE_KEYS.RSS_FEEDS, []
-            );
-            window.DataHooksCache.lastUpdate.rssFeeds = timestamp;
-        }
-        
         return {
-            rssFeeds: window.DataHooksCache.rssFeeds,
             async fetchAllFeeds() {
                 const articlesHook = window.DataHooks.useArticles();
                 try {
@@ -1849,97 +1231,47 @@ window.DataHooks = {
         };
     },
     
-    useAILearning() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.aiLearning || window.DataHooksCache.lastUpdate.aiLearning !== timestamp) {
-            window.DataHooksCache.aiLearning = window.LocalStorageManager.getItem(
-                window.CONFIG.STORAGE_KEYS.AI_LEARNING, window.DEFAULT_DATA.aiLearning
-            );
-            window.DataHooksCache.lastUpdate.aiLearning = timestamp;
-        }
-        
+    useWordIndex() {
         return {
-            aiLearning: window.DataHooksCache.aiLearning
-        };
-    },
-    
-    // 【修正】useWordFilters - 詳細情報対応版
-    useWordFilters() {
-        const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS);
-        const timestamp = stored ? JSON.parse(stored).timestamp : null;
-        
-        if (!window.DataHooksCache.wordFilters || window.DataHooksCache.lastUpdate.wordFilters !== timestamp) {
-            const rawData = window.LocalStorageManager.getItem(
-                window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters
-            );
-            
-            // 【修正】レガシー形式から詳細形式への変換
-            if (rawData.interestWords && !rawData.interestWordsDetailed) {
-                rawData.interestWordsDetailed = rawData.interestWords.map(word => {
-                    if (typeof word === 'string') {
-                        return {
-                            word: word,
-                            scope: 'all',
-                            target: null,
-                            addedAt: new Date().toISOString()
-                        };
-                    }
-                    return word;
+            wordIndex: window.WordIndexManager.getAll(),
+            addInterest(word, scope = 'all', target = null, rating = 0, display = null) {
+                const ok = window.WordIndexManager.upsertInterest({ 
+                    word, 
+                    scope, 
+                    target, 
+                    rating, 
+                    display: display || word 
                 });
-            }
-            
-            window.DataHooksCache.wordFilters = rawData;
-            window.DataHooksCache.lastUpdate.wordFilters = timestamp;
-        }
-        
-        return {
-            wordFilters: window.DataHooksCache.wordFilters,
-            addInterestWord(word, scope = 'all', target = null) {
-                const updated = { ...window.DataHooksCache.wordFilters };
-                // 【修正】スコープとターゲットを正しく渡す
-                if (window.WordFilterManager.addWord(word, 'interest', updated, scope, target)) {
-                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
-                    window.DataHooksCache.wordFilters = updated;
-                    window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                    return true;
-                }
-                return false;
+                return ok;
             },
-            addNGWord(word, scope = 'all', target = null) {
-                const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.addWord(word, 'ng', updated, scope, target)) {
-                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
-                    window.DataHooksCache.wordFilters = updated;
-                    window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                    return true;
-                }
-                return false;
+            removeInterest(word, scope = 'all', target = null) {
+                return window.WordIndexManager.removeInterest({ word, scope, target });
             },
-            removeInterestWord(word, scope = null, target = null) {
-                const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.removeWord(word, 'interest', updated, scope, target)) {
-                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
-                    window.DataHooksCache.wordFilters = updated;
-                    window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                    return true;
-                }
-                return false;
+            addNG(word, scope = 'all', target = null, display = null) {
+                return window.WordIndexManager.upsertNG({ 
+                    word, 
+                    scope, 
+                    target, 
+                    display: display || word 
+                });
             },
-            removeNGWord(word, scope = null, target = null) {
-                const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.removeWord(word, 'ng', updated, scope, target)) {
-                    window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
-                    window.DataHooksCache.wordFilters = updated;
-                    window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
-                    return true;
-                }
-                return false;
+            removeNG(word, scope = 'all', target = null) {
+                return window.WordIndexManager.removeNG({ word, scope, target });
+            },
+            setRating(word, rating) {
+                return window.WordIndexManager.setRating(word, rating);
             }
         };
     }
 };
+
+// 旧データクリア（初期化時）
+try {
+    localStorage.removeItem('minews_wordFilters');
+    localStorage.removeItem('minews_aiLearning');
+    localStorage.removeItem('minews_keyword_ratings');
+    localStorage.removeItem('minews_auto_added_words');
+} catch {}
 
 // 自動初期化
 if (document.readyState === 'loading') {
@@ -1955,6 +1287,6 @@ if (document.readyState === 'loading') {
 }
 
 // システム初期化完了
-console.log('Minews PWA Data Management Layer - 興味ワード詳細情報対応版 initialized');
+console.log('Minews PWA Data Management Layer - データ構造一本化版 initialized');
 
 })();
