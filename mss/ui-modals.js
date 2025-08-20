@@ -1,4 +1,4 @@
-// Minews PWA - UI・モーダルレイヤー（興味ワード詳細情報対応版）
+// Minews PWA - UI・モーダルレイヤー（データ構造一本化対応版）
 (function() {
     'use strict';
 
@@ -25,7 +25,7 @@
         }, 2500);
     };
 
-    // テキスト選択コンテキストメニュー機能（修正版）
+    // テキスト選択コンテキストメニュー機能（一本化対応版）
     const TextSelectionManager = {
         selectedText: '',
         selectionMenu: null,
@@ -183,7 +183,7 @@
         }
     };
 
-    // 【修正統合】キーワード選択メニュー機能（既存興味ワードの削除確認対応版）
+    // 【一本化対応】キーワード選択メニュー機能
     const showKeywordSelectionMenu = (keyword, event) => {
         event.stopPropagation();
         
@@ -216,33 +216,29 @@
             animation: fadeInScale 0.2s ease-out;
         `;
         
-        const currentRating = window.WordRatingManager?.getWordRating(keyword) || 0;
+        // 【一本化対応】WordIndexManagerから評価取得
+        const currentRating = window.WordIndexManager.getRating(keyword);
         const ratingInfo = currentRating > 0 ? ` (現在: ${currentRating}星)` : '';
         
-        // 【修正】既に興味ワードに登録されているかチェック
-        const wordHook = window.DataHooks.useWordFilters();
-        const isAlreadyInterestWord = wordHook.wordFilters.interestWordsDetailed 
-            ? wordHook.wordFilters.interestWordsDetailed.some(item => item.word === keyword)
-            : wordHook.wordFilters.interestWords.some(word => {
-                return typeof word === 'string' ? word === keyword : word.word === keyword;
-            });
+        // 【一本化対応】既に興味ワードに登録されているかチェック
+        const idx = window.WordIndexManager.getAll();
+        const isAlreadyInterestWord = idx.interest.some(item => item.word === keyword.toLowerCase());
         
-        // 【修正】既存興味ワードの場合は削除ボタンのみ表示
         const buttonSection = isAlreadyInterestWord ? `
             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
-                <button class="selection-btn interest-btn" onclick="handleKeywordRemoveFromInterest('${keyword.replace(/'/g, "\\'")}')">
+                <button class="selection-btn interest-btn" onclick="handleKeywordRemoveFromInterest('${keyword.replace(/'/g, "\\'")}')" style="background: #f44336;">
                     興味ワードから削除
                 </button>
-                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')">
+                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')" >
                     NGワード
                 </button>
             </div>
         ` : `
             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem;">
-                <button class="selection-btn interest-btn" onclick="handleKeywordAsInterestWord('${keyword.replace(/'/g, "\\'")}')">
+                <button class="selection-btn interest-btn" onclick="handleKeywordAsInterestWord('${keyword.replace(/'/g, "\\'")}')" >
                     興味ワード
                 </button>
-                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')">
+                <button class="selection-btn ng-btn" onclick="handleKeywordAsNGWord('${keyword.replace(/'/g, "\\'")}')" >
                     NGワード
                 </button>
             </div>
@@ -294,7 +290,7 @@
         window.setState({ showModal: 'addNGWord' });
     };
 
-    // 【新規追加】既存興味ワードから削除する関数
+    // 【一本化対応】既存興味ワードから削除する関数
     const handleKeywordRemoveFromInterest = (keyword) => {
         const menu = document.querySelector('.keyword-selection-menu');
         if (menu) menu.remove();
@@ -303,30 +299,10 @@
         if (!confirmRemove) return;
         
         try {
-            const wordHook = window.DataHooks.useWordFilters();
-            
-            // 【修正】詳細情報から該当する興味ワードを削除
-            let success = false;
-            
-            // まず詳細配列から該当するものを削除
-            if (wordHook.wordFilters.interestWordsDetailed) {
-                const detailedIndex = wordHook.wordFilters.interestWordsDetailed.findIndex(item => item.word === keyword);
-                if (detailedIndex > -1) {
-                    const wordObj = wordHook.wordFilters.interestWordsDetailed[detailedIndex];
-                    success = wordHook.removeInterestWord(wordObj.word, wordObj.scope, wordObj.target);
-                }
-            } else {
-                // 従来形式の場合
-                success = wordHook.removeInterestWord(keyword);
-            }
+            const hook = window.DataHooks.useWordIndex();
+            const success = hook.removeInterest(keyword);
             
             if (success) {
-                // 星評価も削除
-                if (window.WordRatingManager) {
-                    window.WordRatingManager.saveWordRating(keyword, 0);
-                }
-                
-                // キーワード強調表示を更新
                 updateKeywordHighlighting(keyword, 0);
                 
                 if (window.GistSyncManager?.isEnabled) {
@@ -347,21 +323,17 @@
         }
     };
 
-    // ★追加：キーワード強調表示を更新する関数
+    // キーワード強調表示を更新する関数
     const updateKeywordHighlighting = (word, rating) => {
         const wordElements = document.querySelectorAll(`.keyword, .word-tag.interest`);
         wordElements.forEach(element => {
-            // 評価を表す★数字を削除して比較
             const elementText = element.textContent.replace(/\s★\d+$/, '').trim();
             if (elementText === word) {
-                // 基本クラスは「keyword」か「word-tag interest」
                 const baseClass = element.classList.contains('word-tag') ? 'word-tag interest' : 'keyword';
-                // 既存のrated-*クラスをすべて削除
                 element.className = baseClass; 
                 if (rating > 0) {
                     element.classList.add(`rated-${rating}`);
                 }
-                // 表示文字を適切に更新
                 const wordText = word + (rating > 0 ? ` ★${rating}` : '');
                 if (element.classList.contains('word-tag')) {
                     const removeButton = element.querySelector('.word-remove');
@@ -375,9 +347,9 @@
         });
     };
 
-    // ワード評価モーダル（統合最適化版）
+    // 【一本化対応】ワード評価モーダル
     const showWordRatingModal = (word, source = 'keyword') => {
-        const currentRating = window.WordRatingManager?.getWordRating(word) || 0;
+        const currentRating = window.WordIndexManager.getRating(word);
         
         if (currentRating > 0) {
             const confirmChange = confirm(`「${word}」は既に${currentRating}星で評価済みです。\n\n評価を変更しますか？`);
@@ -445,14 +417,10 @@
         });
     };
 
+    // 【一本化対応】星評価選択処理
     const selectWordRating = (word, rating, source = 'keyword') => {
         try {
-            if (!window.WordRatingManager) {
-                alert('ワード評価システムが初期化されていません');
-                return;
-            }
-            
-            const currentRating = window.WordRatingManager.getWordRating(word) || 0;
+            const currentRating = window.WordIndexManager.getRating(word);
             
             if (currentRating === rating && rating > 0) {
                 alert(`「${word}」は既に${rating}星で評価済みです`);
@@ -468,11 +436,19 @@
                 }
             }
             
-            const success = window.WordRatingManager.saveWordRating(word, rating);
+            // 【一本化対応】WordIndexManagerで評価設定
+            let success;
+            if (rating > 0) {
+                const hook = window.DataHooks.useWordIndex();
+                // 評価する場合は興味ワードとして追加も行う
+                success = hook.addInterest(word, 'all', null, rating, word);
+            } else {
+                // 評価削除の場合
+                success = window.WordIndexManager.setRating(word, 0);
+            }
             
             if (success) {
                 setTimeout(() => {
-                    // ★追加：キーワード強調表示を先に更新
                     updateKeywordHighlighting(word, rating);
                     
                     if (window.GistSyncManager?.isEnabled) {
@@ -593,7 +569,7 @@
         });
     };
 
-    // 統合ワード設定モーダル（星評価修正版）
+    // 【一本化対応】統合ワード設定モーダル
     const renderWordSettingModal = (type, editWord = null) => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
@@ -607,7 +583,8 @@
         const initialScope = editWord && typeof editWord === 'object' ? editWord.scope : 'all';
         const initialTarget = editWord && typeof editWord === 'object' ? editWord.target : '';
         
-        const currentRating = type === 'interest' && initialWord ? (window.WordRatingManager?.getWordRating(initialWord) || 0) : 0;
+        // 【一本化対応】WordIndexManagerから評価取得
+        const currentRating = type === 'interest' && initialWord ? window.WordIndexManager.getRating(initialWord) : 0;
         
         const ratingSection = type === 'interest' ? `
             <div class="word-section">
@@ -738,7 +715,7 @@
         }
     };
 
-    // 【根本修正】統合ワード送信処理（モーダル閉じる処理修正版）
+    // 【一本化対応】統合ワード送信処理
     const handleSubmitWord = (type, isEdit = false) => {
         const word = document.getElementById('wordInput').value.trim();
         if (!word) {
@@ -772,26 +749,19 @@
             handleAddNGWordWithScope(word, scope, target);
         }
         
-        // 【根本修正】モーダルを直接閉じる（window.setStateを使わない）
         window.state.showModal = null;
         const modal = document.querySelector('.modal-overlay');
         if (modal) modal.remove();
     };
 
-    // 【根本修正】興味ワード範囲付き追加処理（完全修正版）
+    // 【一本化対応】興味ワード範囲付き追加処理
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
         if (!word?.trim()) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        // 【修正】スコープとターゲットを正しく渡す
-        const success = wordHook.addInterestWord(word.trim(), scope, target);
+        const hook = window.DataHooks.useWordIndex();
+        const success = hook.addInterest(word.trim(), scope, target, rating, word);
 
         if (success) {
-            if (rating > 0 && window.WordRatingManager) {
-                window.WordRatingManager.saveWordRating(word.trim(), rating);
-            }
-            
-            // キーワード強調表示のみ更新
             if (rating > 0) {
                 updateKeywordHighlighting(word.trim(), rating);
             }
@@ -817,18 +787,15 @@
         }
     };
 
+    // 【一本化対応】興味ワード削除処理
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
         if (!confirm(`「${word}」を削除しますか？`)) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.removeInterestWord(word, scope, target || null);
+        const hook = window.DataHooks.useWordIndex();
+        const success = hook.removeInterest(word, scope, target || null);
 
         if (success) {
-            if (window.WordRatingManager) {
-                window.WordRatingManager.saveWordRating(word, 0);
-            }
             updateKeywordHighlighting(word, 0);
-            
             window.render();
             
             if (window.GistSyncManager?.isEnabled) {
@@ -837,12 +804,12 @@
         }
     };
 
-    // 【根本修正】NGワード範囲付き追加処理（完全修正版）
+    // 【一本化対応】NGワード範囲付き追加処理
     const handleAddNGWordWithScope = (word, scope, target) => {
         if (!word?.trim()) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.addNGWord(word.trim(), scope, target);
+        const hook = window.DataHooks.useWordIndex();
+        const success = hook.addNG(word.trim(), scope, target, word);
 
         if (success) {
             const scopeText = scope === 'all' ? '' : 
@@ -861,11 +828,12 @@
         }
     };
 
+    // 【一本化対応】NGワード削除処理
     const handleRemoveNGWordWithScope = (word, scope, target) => {
         if (!confirm(`「${word}」を削除しますか？`)) return;
 
-        const wordHook = window.DataHooks.useWordFilters();
-        const success = wordHook.removeNGWord(word, scope, target || null);
+        const hook = window.DataHooks.useWordIndex();
+        const success = hook.removeNG(word, scope, target || null);
 
         if (success) {
             window.render();
@@ -885,31 +853,15 @@
         }
     };
 
-    // 設定モーダルレンダリング（修正版）
+    // 【一本化対応】設定モーダルレンダリング
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
-        const wordHook = window.DataHooks.useWordFilters();
+        const idx = window.WordIndexManager.getAll();
         const filterSettings = window.getFilterSettings();
         
-        // 【修正】詳細情報付き興味ワードの正確な表示
-        const interestWordsToDisplay = wordHook.wordFilters.interestWordsDetailed || 
-            (wordHook.wordFilters.interestWords || []).map(word => {
-                if (typeof word === 'string') {
-                    return {
-                        word: word,
-                        scope: 'all',
-                        target: null,
-                        rating: window.WordRatingManager?.getWordRating(word) || 0
-                    };
-                }
-                return {
-                    ...word,
-                    rating: window.WordRatingManager?.getWordRating(word.word) || word.rating || 0
-                };
-            });
-        
-        const interestWords = interestWordsToDisplay.map(wordObj => {
-            const word = wordObj.word;
+        // 【一本化対応】興味ワード表示
+        const interestWords = idx.interest.map(wordObj => {
+            const word = wordObj.display || wordObj.word;
             const scope = wordObj.scope || 'all';
             const target = wordObj.target;
             const rating = wordObj.rating || 0;
@@ -928,21 +880,19 @@
             `;
         }).join('');
 
-        const ngWords = wordHook.wordFilters.ngWords.map(ngWordObj => {
-            if (typeof ngWordObj === 'string') {
-                return `<span class="word-tag ng">
-                    ${ngWordObj} <span class="word-scope">[全体]</span>
-                    <button class="word-remove" onclick="handleRemoveWord('${ngWordObj}', 'ng')">×</button>
-                </span>`;
-            } else {
-                const scopeText = ngWordObj.scope === 'all' ? '全体' : 
-                                 ngWordObj.scope === 'folder' ? `フォルダ: ${ngWordObj.target}` :
-                                 `フィード: ${ngWordObj.target}`;
-                return `<span class="word-tag ng">
-                    ${ngWordObj.word} <span class="word-scope">[${scopeText}]</span>
-                    <button class="word-remove" onclick="handleRemoveNGWordWithScope('${ngWordObj.word}', '${ngWordObj.scope}', '${ngWordObj.target || ''}')">×</button>
-                </span>`;
-            }
+        // 【一本化対応】NGワード表示
+        const ngWords = idx.ng.map(ngWordObj => {
+            const word = ngWordObj.display || ngWordObj.word;
+            const scope = ngWordObj.scope || 'all';
+            const target = ngWordObj.target;
+            
+            const scopeText = scope === 'all' ? '全体' : 
+                             scope === 'folder' ? `フォルダ: ${target}` :
+                             `フィード: ${target}`;
+            return `<span class="word-tag ng">
+                ${word} <span class="word-scope">[${scopeText}]</span>
+                <button class="word-remove" onclick="handleRemoveNGWordWithScope('${word}', '${scope}', '${target || ''}')" >×</button>
+            </span>`;
         }).join('');
         
         return `
@@ -1036,7 +986,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【修正統合完了】ワード評価設定（興味ワード詳細情報対応版）</h3>
+                            <h3 class="group-title">ワード評価設定（データ構造一本化対応版）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -1058,7 +1008,7 @@
                             </div>
 
                             <div class="word-help">
-                                <h4>【修正統合完了】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御 + 自動並び替え防止 + 興味ワード詳細情報対応</h4>
+                                <h4>データ構造一本化完了版</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
@@ -1066,9 +1016,7 @@
                                     <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
                                     <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
-                                    <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
-                                    <li><strong>削除確認:</strong> 既存興味ワードをクリックした場合は削除確認ダイアログを表示</li>
-                                    <li><strong>【修正統合完了】興味ワード詳細情報対応:</strong> フォルダ・フィード単位の設定がクラウド同期でも正確に保存・復元されます</li>
+                                    <li><strong>データ一本化:</strong> 全てのワード管理がWordIndexManagerに統一され、同期・表示・評価が完全に一貫します</li>
                                 </ul>
                             </div>
                         </div>
@@ -1104,7 +1052,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【修正統合完了版】興味ワード詳細情報対応 + フォルダ・フィード単位保存 + クラウド同期対応（分割版）
+                                        データ構造一本化完了版 - WordIndexManager統一管理
                                     </p>
                                 </div>
                             </div>
@@ -1130,25 +1078,23 @@
         window.setState({ showModal: `add${type === 'interest' ? 'Interest' : 'NG'}Word` });
     };
 
+    // 【一本化対応】ワード削除処理
     const handleRemoveWord = (wordData, type) => {
         if (typeof wordData === 'string') {
             if (!confirm(`「${wordData}」を削除しますか？`)) return;
             
-            const wordHook = window.DataHooks.useWordFilters();
+            const hook = window.DataHooks.useWordIndex();
             const success = type === 'interest' 
-                ? wordHook.removeInterestWord(wordData)
-                : wordHook.removeNGWord(wordData);
+                ? hook.removeInterest(wordData)
+                : hook.removeNG(wordData);
                 
             if (success) {
-                // 【追加】興味ワード削除時は星評価も削除し、キーワード強調表示を更新
-                if (type === 'interest' && window.WordRatingManager) {
-                    window.WordRatingManager.saveWordRating(wordData, 0);
+                if (type === 'interest') {
                     updateKeywordHighlighting(wordData, 0);
                 }
                 
-                // 【修正】設定モーダル内でのみ再レンダリング
                 if (window.state?.showModal === 'settings') {
-                    window.render(); // 設定モーダルが開いている場合のみ全体更新
+                    window.render();
                 }
                 
                 if (window.GistSyncManager?.isEnabled) {
@@ -1213,6 +1159,7 @@
         }
     };
 
+    // 【一本化対応】クラウドからの復元
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -1228,27 +1175,8 @@
                 return;
             }
             
-            if (cloudData.aiLearning) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.AI_LEARNING, cloudData.aiLearning);
-                window.DataHooksCache.clear('aiLearning');
-            }
-            
-            if (cloudData.wordFilters) {
-                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, cloudData.wordFilters);
-                window.DataHooksCache.clear('wordFilters');
-            }
-
-            if (cloudData.aiLearning?.wordWeights && window.WordRatingManager) {
-                const weightToRating = { "-10": 1, "-5": 2, "0": 3, "5": 4, "10": 5 };
-                let restoredCount = 0;
-                Object.entries(cloudData.aiLearning.wordWeights).forEach(([word, weight]) => {
-                    const rating = weightToRating[weight.toString()];
-                    if (rating && window.WordRatingManager.saveWordRating(word, rating)) {
-                        restoredCount++;
-                    }
-                });
-                
-                if (restoredCount > 0) window.render();
+            if (cloudData.wordIndex) {
+                window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_INDEX, cloudData.wordIndex);
             }
 
             if (cloudData.articleStates) {
@@ -1345,16 +1273,14 @@
         }
     };
 
-    // データ管理機能
+    // 【一本化対応】データ管理機能
     window.handleExportLearningData = () => {
-        const aiHook = window.DataHooks.useAILearning();
-        const wordHook = window.DataHooks.useWordFilters();
+        const idx = window.WordIndexManager.getAll();
 
         const exportData = {
             version: window.CONFIG.DATA_VERSION,
             exportDate: new Date().toISOString(),
-            aiLearning: aiHook.aiLearning,
-            wordFilters: wordHook.wordFilters
+            wordIndex: idx
         };
 
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -1376,26 +1302,19 @@
             try {
                 const importData = JSON.parse(e.target.result);
 
-                if (!importData.aiLearning || !importData.wordFilters) {
+                if (!importData.wordIndex) {
                     throw new Error('無効なデータ形式です');
                 }
 
-                const aiHook = window.DataHooks.useAILearning();
-                const wordHook = window.DataHooks.useWordFilters();
-
-                Object.keys(importData.aiLearning.wordWeights || {}).forEach(word => {
-                    const weight = importData.aiLearning.wordWeights[word];
-                    const currentWeight = aiHook.aiLearning.wordWeights[word] || 0;
-                    const newWeight = Math.max(-60, Math.min(60, currentWeight + weight));
-                    aiHook.aiLearning.wordWeights[word] = newWeight;
+                // 【一本化対応】WordIndexManagerへインポート
+                const hook = window.DataHooks.useWordIndex();
+                
+                (importData.wordIndex.interest || []).forEach(item => {
+                    hook.addInterest(item.word, item.scope, item.target, item.rating, item.display);
                 });
 
-                (importData.wordFilters.interestWords || []).forEach(word => {
-                    wordHook.addInterestWord(word);
-                });
-
-                (importData.wordFilters.ngWords || []).forEach(word => {
-                    wordHook.addNGWord(word);
+                (importData.wordIndex.ng || []).forEach(item => {
+                    hook.addNG(item.word, item.scope, item.target, item.display);
                 });
 
                 alert('学習データをインポートしました');
