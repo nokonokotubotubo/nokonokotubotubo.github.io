@@ -1,4 +1,4 @@
-// Minews PWA - UI・モーダルレイヤー（ui-modals.js - 分割版）
+// Minews PWA - UI・モーダルレイヤー（興味ワード詳細情報対応版）
 (function() {
     'use strict';
 
@@ -221,7 +221,11 @@
         
         // 【修正】既に興味ワードに登録されているかチェック
         const wordHook = window.DataHooks.useWordFilters();
-        const isAlreadyInterestWord = wordHook.wordFilters.interestWords.includes(keyword);
+        const isAlreadyInterestWord = wordHook.wordFilters.interestWordsDetailed 
+            ? wordHook.wordFilters.interestWordsDetailed.some(item => item.word === keyword)
+            : wordHook.wordFilters.interestWords.some(word => {
+                return typeof word === 'string' ? word === keyword : word.word === keyword;
+            });
         
         // 【修正】既存興味ワードの場合は削除ボタンのみ表示
         const buttonSection = isAlreadyInterestWord ? `
@@ -300,7 +304,21 @@
         
         try {
             const wordHook = window.DataHooks.useWordFilters();
-            const success = wordHook.removeInterestWord(keyword);
+            
+            // 【修正】詳細情報から該当する興味ワードを削除
+            let success = false;
+            
+            // まず詳細配列から該当するものを削除
+            if (wordHook.wordFilters.interestWordsDetailed) {
+                const detailedIndex = wordHook.wordFilters.interestWordsDetailed.findIndex(item => item.word === keyword);
+                if (detailedIndex > -1) {
+                    const wordObj = wordHook.wordFilters.interestWordsDetailed[detailedIndex];
+                    success = wordHook.removeInterestWord(wordObj.word, wordObj.scope, wordObj.target);
+                }
+            } else {
+                // 従来形式の場合
+                success = wordHook.removeInterestWord(keyword);
+            }
             
             if (success) {
                 // 星評価も削除
@@ -760,11 +778,12 @@
         if (modal) modal.remove();
     };
 
-    // 【根本修正】興味ワード範囲付き追加処理（完全画面更新制御版）
+    // 【根本修正】興味ワード範囲付き追加処理（完全修正版）
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
         if (!word?.trim()) return;
 
         const wordHook = window.DataHooks.useWordFilters();
+        // 【修正】スコープとターゲットを正しく渡す
         const success = wordHook.addInterestWord(word.trim(), scope, target);
 
         if (success) {
@@ -772,7 +791,6 @@
                 window.WordRatingManager.saveWordRating(word.trim(), rating);
             }
             
-            // 【根本修正】どんな場合でも記事リストは更新しない
             // キーワード強調表示のみ更新
             if (rating > 0) {
                 updateKeywordHighlighting(word.trim(), rating);
@@ -782,13 +800,20 @@
                 window.GistSyncManager.markAsChanged();
             }
             
+            const scopeText = scope === 'all' ? '' : 
+                             scope === 'folder' ? ` (フォルダ: ${target})` :
+                             ` (フィード: ${target})`;
+            
             const message = rating > 0 
-                ? `「${word}」を興味ワードに追加し、${rating}星で評価しました`
-                : `「${word}」を興味ワードに追加しました`;
+                ? `「${word}」を興味ワードに追加し、${rating}星で評価しました${scopeText}`
+                : `「${word}」を興味ワードに追加しました${scopeText}`;
             showToastNotification(message, 'success');
             
         } else {
-            alert('そのワードは既に同じ範囲で登録されています');
+            const scopeText = scope === 'all' ? '全体' : 
+                             scope === 'folder' ? `フォルダ「${target}」` :
+                             `フィード「${target}」`;
+            alert(`「${word}」は既に${scopeText}で登録されています`);
         }
     };
 
@@ -812,7 +837,7 @@
         }
     };
 
-    // 【根本修正】NGワード範囲付き追加処理（完全画面更新制御版）
+    // 【根本修正】NGワード範囲付き追加処理（完全修正版）
     const handleAddNGWordWithScope = (word, scope, target) => {
         if (!word?.trim()) return;
 
@@ -820,14 +845,19 @@
         const success = wordHook.addNGWord(word.trim(), scope, target);
 
         if (success) {
-            // 【根本修正】どんな場合でも記事リストは更新しない
-            showToastNotification(`「${word}」をNGワードに追加しました`, 'success');
+            const scopeText = scope === 'all' ? '' : 
+                             scope === 'folder' ? ` (フォルダ: ${target})` :
+                             ` (フィード: ${target})`;
+            showToastNotification(`「${word}」をNGワードに追加しました${scopeText}`, 'success');
             
             if (window.GistSyncManager?.isEnabled) {
                 window.GistSyncManager.markAsChanged();
             }
         } else {
-            alert('そのワードは既に同じ範囲で登録されています');
+            const scopeText = scope === 'all' ? '全体' : 
+                             scope === 'folder' ? `フォルダ「${target}」` :
+                             `フィード「${target}」`;
+            alert(`「${word}」は既に${scopeText}で登録されています`);
         }
     };
 
@@ -855,18 +885,35 @@
         }
     };
 
-    // 設定モーダルレンダリング
+    // 設定モーダルレンダリング（修正版）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const wordHook = window.DataHooks.useWordFilters();
         const filterSettings = window.getFilterSettings();
         
-        const interestWords = wordHook.wordFilters.interestWords.map(wordObj => {
-            const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
-            const scope = typeof wordObj === 'string' ? 'all' : wordObj.scope;
-            const target = typeof wordObj === 'string' ? null : wordObj.target;
+        // 【修正】詳細情報付き興味ワードの正確な表示
+        const interestWordsToDisplay = wordHook.wordFilters.interestWordsDetailed || 
+            (wordHook.wordFilters.interestWords || []).map(word => {
+                if (typeof word === 'string') {
+                    return {
+                        word: word,
+                        scope: 'all',
+                        target: null,
+                        rating: window.WordRatingManager?.getWordRating(word) || 0
+                    };
+                }
+                return {
+                    ...word,
+                    rating: window.WordRatingManager?.getWordRating(word.word) || word.rating || 0
+                };
+            });
+        
+        const interestWords = interestWordsToDisplay.map(wordObj => {
+            const word = wordObj.word;
+            const scope = wordObj.scope || 'all';
+            const target = wordObj.target;
+            const rating = wordObj.rating || 0;
             
-            const rating = window.WordRatingManager?.getWordRating(word) || 0;
             const ratingClass = rating > 0 ? `rated-${rating}` : '';
             
             const scopeText = scope === 'all' ? '' : 
@@ -874,7 +921,7 @@
                              ` [フィード: ${target}]`;
             
             return `
-                <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'})">
+                <span class="word-tag interest ${ratingClass}" onclick="showWordRatingModal('${word.replace(/'/g, "\\'")}', 'interest'); event.stopPropagation();" title="クリックして評価 (現在: ${rating > 0 ? rating + '星' : '未評価'}${scopeText})">
                     ${word}${rating > 0 ? ` ★${rating}` : ''}${scopeText}
                     <button class="word-remove" onclick="handleRemoveWord(${JSON.stringify(wordObj).replace(/"/g, '&quot;')}, 'interest'); event.stopPropagation()">×</button>
                 </span>
@@ -989,7 +1036,7 @@
                         </div>
                         
                         <div class="modal-section-group">
-                            <h3 class="group-title">【修正統合】ワード評価設定（根本修正完了版）</h3>
+                            <h3 class="group-title">【修正統合完了】ワード評価設定（興味ワード詳細情報対応版）</h3>
                             <div class="word-section">
                                 <div class="word-section-header">
                                     <h3>興味ワード（クリックで星評価設定）</h3>
@@ -1011,7 +1058,7 @@
                             </div>
 
                             <div class="word-help">
-                                <h4>【根本修正完了】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御 + 自動並び替え防止</h4>
+                                <h4>【修正統合完了】ワード評価システム + テキスト選択機能 + 適用範囲設定 + キーワード選択UI統一 + 既存興味ワード削除確認 + 画面更新制御 + 自動並び替え防止 + 興味ワード詳細情報対応</h4>
                                 <ul>
                                     <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
                                     <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
@@ -1021,7 +1068,7 @@
                                     <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
                                     <li><strong>UI統一:</strong> キーワード選択とテキスト選択で同じ操作フローを提供</li>
                                     <li><strong>削除確認:</strong> 既存興味ワードをクリックした場合は削除確認ダイアログを表示</li>
-                                    <li><strong>【根本修正完了】自動並び替え防止:</strong> 興味ワード・NGワード追加時に記事が勝手に並び替えされることはありません</li>
+                                    <li><strong>【修正統合完了】興味ワード詳細情報対応:</strong> フォルダ・フィード単位の設定がクラウド同期でも正確に保存・復元されます</li>
                                 </ul>
                             </div>
                         </div>
@@ -1057,7 +1104,7 @@
                                 <div class="word-list" style="flex-direction: column; align-items: flex-start;">
                                     <p class="text-muted" style="margin: 0;">
                                         Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        【根本修正完了版】自動並び替え防止 + 既存興味ワード削除確認統合版 + 画面更新制御版（分割版）
+                                        【修正統合完了版】興味ワード詳細情報対応 + フォルダ・フィード単位保存 + クラウド同期対応（分割版）
                                     </p>
                                 </div>
                             </div>
