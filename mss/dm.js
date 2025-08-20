@@ -1,4 +1,4 @@
-// Minews PWA - データ管理・処理レイヤー（時刻比較同期版）
+// Minews PWA - データ管理・処理レイヤー（興味ワード詳細情報対応版）
 (function() {
 'use strict';
 
@@ -30,6 +30,7 @@ window.DEFAULT_DATA = {
     },
     wordFilters: {
         interestWords: ['生成AI', 'Claude', 'Perplexity'],
+        interestWordsDetailed: [],
         ngWords: [],
         lastUpdated: new Date().toISOString()
     }
@@ -121,9 +122,30 @@ window.WordRatingManager = {
             const wordHook = window.DataHooks.useWordFilters();
             const wordFilters = { ...wordHook.wordFilters };
             
-            if (!wordFilters.interestWords.includes(word)) {
-                wordFilters.interestWords.push(word);
+            // 【修正】既存の詳細情報を考慮した重複チェック
+            const exists = wordFilters.interestWords.some(existingWord => {
+                if (typeof existingWord === 'string') {
+                    return existingWord === word;
+                } else {
+                    return existingWord.word === word && existingWord.scope === 'all';
+                }
+            });
+            
+            if (!exists) {
+                const newWordObj = {
+                    word: word,
+                    scope: 'all',
+                    target: null,
+                    addedAt: new Date().toISOString()
+                };
+                
+                wordFilters.interestWords.push(newWordObj);
+                if (!wordFilters.interestWordsDetailed) {
+                    wordFilters.interestWordsDetailed = [];
+                }
+                wordFilters.interestWordsDetailed.push(newWordObj);
                 wordFilters.lastUpdated = new Date().toISOString();
+                
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
                 window.DataHooksCache.clear('wordFilters');
                 window.DataHooksCache.wordFilters = wordFilters;
@@ -142,9 +164,27 @@ window.WordRatingManager = {
             const wordHook = window.DataHooks.useWordFilters();
             const wordFilters = { ...wordHook.wordFilters };
             
-            const index = wordFilters.interestWords.indexOf(word);
+            const index = wordFilters.interestWords.findIndex(item => {
+                if (typeof item === 'string') {
+                    return item === word;
+                } else {
+                    return item.word === word && item.scope === 'all';
+                }
+            });
+            
             if (index > -1) {
                 wordFilters.interestWords.splice(index, 1);
+                
+                // 【修正】詳細配列からも削除
+                if (wordFilters.interestWordsDetailed) {
+                    const detailedIndex = wordFilters.interestWordsDetailed.findIndex(item => 
+                        item.word === word && item.scope === 'all'
+                    );
+                    if (detailedIndex > -1) {
+                        wordFilters.interestWordsDetailed.splice(detailedIndex, 1);
+                    }
+                }
+                
                 wordFilters.lastUpdated = new Date().toISOString();
                 window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, wordFilters);
                 window.DataHooksCache.clear('wordFilters');
@@ -192,7 +232,8 @@ window.WordRatingManager = {
     getAllInterestWordRatings(interestWords) {
         const ratings = {};
         interestWords.forEach(word => {
-            ratings[word] = this.getWordRating(word);
+            const wordStr = typeof word === 'string' ? word : word.word;
+            ratings[wordStr] = this.getWordRating(wordStr);
         });
         return ratings;
     }
@@ -496,80 +537,93 @@ window.GistSyncManager = {
         
         const mergedWords = {
             interestWords: [],
+            interestWordsDetailed: [],
             ngWords: [],
             lastUpdated: new Date(Math.max(localTime, cloudTime)).toISOString()
         };
         
-        // 興味ワードのマージ（重複排除と評価情報保持）
+        // 【修正】興味ワードのマージ（詳細情報対応）
         const allInterestWords = new Map();
         
         // ローカルの興味ワードを処理
-        (localWords.interestWords || []).forEach(word => {
-            const wordStr = typeof word === 'string' ? word : word.word || word;
-            const rating = window.WordRatingManager?.getWordRating(wordStr) || 0;
-            const lastUpdated = window.WordRatingManager?.getWordLastUpdated(wordStr) || new Date().toISOString();
-            allInterestWords.set(wordStr, {
-                word: wordStr,
-                scope: 'all',
-                target: null,
-                rating: rating,
-                lastUpdated: lastUpdated,
+        const localInterestWordsDetailed = localWords.interestWordsDetailed || 
+            (localWords.interestWords || []).map(word => {
+                if (typeof word === 'string') {
+                    return {
+                        word: word,
+                        scope: 'all',
+                        target: null,
+                        rating: window.WordRatingManager?.getWordRating(word) || 0,
+                        lastUpdated: window.WordRatingManager?.getWordLastUpdated(word) || new Date().toISOString(),
+                        addedAt: new Date().toISOString()
+                    };
+                }
+                return {
+                    ...word,
+                    rating: window.WordRatingManager?.getWordRating(word.word) || word.rating || 0,
+                    lastUpdated: window.WordRatingManager?.getWordLastUpdated(word.word) || word.lastUpdated || new Date().toISOString()
+                };
+            });
+        
+        localInterestWordsDetailed.forEach(wordObj => {
+            const key = `${wordObj.word}|${wordObj.scope || 'all'}|${wordObj.target || ''}`;
+            allInterestWords.set(key, {
+                ...wordObj,
                 source: 'local'
             });
         });
         
         // クラウドの興味ワードを処理
-        if (cloudWords.interestWordsDetailed) {
-            cloudWords.interestWordsDetailed.forEach(wordObj => {
-                const wordStr = wordObj.word;
-                const existing = allInterestWords.get(wordStr);
-                
-                if (!existing) {
-                    allInterestWords.set(wordStr, {
-                        word: wordStr,
-                        scope: wordObj.scope || 'all',
-                        target: wordObj.target || null,
-                        rating: wordObj.rating || 0,
-                        lastUpdated: wordObj.lastUpdated || new Date().toISOString(),
-                        source: 'cloud'
-                    });
-                } else {
-                    // 【修正】更新日時比較で新しい方を採用
-                    const existingTime = new Date(existing.lastUpdated || 0).getTime();
-                    const cloudTime = new Date(wordObj.lastUpdated || 0).getTime();
-                    
-                    if (cloudTime > existingTime) {
-                        existing.rating = wordObj.rating || 0;
-                        existing.lastUpdated = wordObj.lastUpdated || existing.lastUpdated;
-                        existing.scope = wordObj.scope || existing.scope;
-                        existing.target = wordObj.target || existing.target;
-                        existing.source = 'merged';
-                    }
-                }
-            });
-        } else if (cloudWords.interestWords) {
-            // 従来形式のクラウドデータへの対応
-            (cloudWords.interestWords || []).forEach(word => {
-                const wordStr = typeof word === 'string' ? word : word.word || word;
-                if (!allInterestWords.has(wordStr)) {
-                    allInterestWords.set(wordStr, {
-                        word: wordStr,
+        const cloudInterestWordsDetailed = cloudWords.interestWordsDetailed || 
+            (cloudWords.interestWords || []).map(word => {
+                if (typeof word === 'string') {
+                    return {
+                        word: word,
                         scope: 'all',
                         target: null,
                         rating: 0,
                         lastUpdated: new Date().toISOString(),
-                        source: 'cloud'
-                    });
+                        addedAt: new Date().toISOString()
+                    };
                 }
+                return word;
             });
-        }
+        
+        cloudInterestWordsDetailed.forEach(wordObj => {
+            const key = `${wordObj.word}|${wordObj.scope || 'all'}|${wordObj.target || ''}`;
+            const existing = allInterestWords.get(key);
+            
+            if (!existing) {
+                allInterestWords.set(key, {
+                    ...wordObj,
+                    source: 'cloud'
+                });
+            } else {
+                // 【修正】更新日時比較で新しい方を採用
+                const existingTime = new Date(existing.lastUpdated || 0).getTime();
+                const cloudTime = new Date(wordObj.lastUpdated || 0).getTime();
+                
+                if (cloudTime > existingTime) {
+                    existing.rating = wordObj.rating || existing.rating || 0;
+                    existing.lastUpdated = wordObj.lastUpdated || existing.lastUpdated;
+                    existing.scope = wordObj.scope || existing.scope || 'all';
+                    existing.target = wordObj.target || existing.target;
+                    existing.addedAt = wordObj.addedAt || existing.addedAt;
+                    existing.source = 'merged';
+                }
+            }
+        });
         
         // 詳細情報から基本配列を生成
         mergedWords.interestWordsDetailed = Array.from(allInterestWords.values())
             .sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
         
         // 従来形式との互換性のため、基本配列も生成
-        mergedWords.interestWords = mergedWords.interestWordsDetailed.map(item => item.word);
+        mergedWords.interestWords = mergedWords.interestWordsDetailed.map(item => ({
+            word: item.word,
+            scope: item.scope,
+            target: item.target
+        }));
         
         // NGワードのマージ
         const allNGWords = new Set();
@@ -934,22 +988,55 @@ window.GistSyncManager = {
         this._cleanupOldArticleStates(currentArticleIds);
         const deletedArticleIds = await this._collectDeletedArticleIds(currentArticleIds);
         
-        // 【修正】更新日時を含めたワード評価情報の収集
+        // 【修正】詳細興味ワード情報の正確な収集
         const enrichedWordFilters = {
             ...wordHook.wordFilters,
-            lastUpdated: currentTime,
-            interestWordsDetailed: wordHook.wordFilters.interestWords.map(word => {
-                const rating = window.WordRatingManager?.getWordRating(word) || 0;
-                const lastUpdated = window.WordRatingManager?.getWordLastUpdated(word) || currentTime;
+            lastUpdated: currentTime
+        };
+        
+        // 【修正】詳細配列の確実な生成
+        if (!enrichedWordFilters.interestWordsDetailed || enrichedWordFilters.interestWordsDetailed.length === 0) {
+            enrichedWordFilters.interestWordsDetailed = (wordHook.wordFilters.interestWords || []).map(word => {
+                if (typeof word === 'string') {
+                    const rating = window.WordRatingManager?.getWordRating(word) || 0;
+                    const lastUpdated = window.WordRatingManager?.getWordLastUpdated(word) || currentTime;
+                    return {
+                        word: word,
+                        scope: 'all',
+                        target: null,
+                        rating: rating,
+                        lastUpdated: lastUpdated,
+                        addedAt: currentTime
+                    };
+                } else {
+                    const rating = window.WordRatingManager?.getWordRating(word.word) || word.rating || 0;
+                    const lastUpdated = window.WordRatingManager?.getWordLastUpdated(word.word) || word.lastUpdated || currentTime;
+                    return {
+                        ...word,
+                        rating: rating,
+                        lastUpdated: lastUpdated
+                    };
+                }
+            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
+        } else {
+            // 既存の詳細配列を更新
+            enrichedWordFilters.interestWordsDetailed = enrichedWordFilters.interestWordsDetailed.map(wordObj => {
+                const rating = window.WordRatingManager?.getWordRating(wordObj.word) || wordObj.rating || 0;
+                const lastUpdated = window.WordRatingManager?.getWordLastUpdated(wordObj.word) || wordObj.lastUpdated || currentTime;
                 return {
-                    word: typeof word === 'string' ? word : word.word || word,
-                    scope: typeof word === 'string' ? 'all' : word.scope || 'all',
-                    target: typeof word === 'string' ? null : word.target || null,
+                    ...wordObj,
                     rating: rating,
                     lastUpdated: lastUpdated
                 };
-            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }))
-        };
+            }).sort((a, b) => a.word.localeCompare(b.word, 'ja', { numeric: true }));
+        }
+        
+        // 従来形式との互換性のため、基本配列も生成
+        enrichedWordFilters.interestWords = enrichedWordFilters.interestWordsDetailed.map(item => ({
+            word: item.word,
+            scope: item.scope,
+            target: item.target
+        }));
         
         return {
             version: window.CONFIG.DATA_VERSION,
@@ -1265,12 +1352,50 @@ window.AIScoring = {
             rawScore += this._calculateMultidimensionalKeywordScore(topKeywords, aiLearning);
         }
         
-        // 2. 興味ワード評価システム - 個別計算方式
+        // 2. 興味ワード評価システム - 個別計算方式（スコープ対応）
         if (wordFilters.interestWords && article.title) {
             const content = (article.title + ' ' + article.content).toLowerCase();
-            const matchedWords = wordFilters.interestWords.filter(word => 
-                content.includes(word.toLowerCase())
-            );
+            
+            // 【修正】スコープを考慮したマッチング処理
+            const matchedWords = [];
+            
+            // 詳細情報がある場合はそれを使用
+            const interestWordsToCheck = wordFilters.interestWordsDetailed && wordFilters.interestWordsDetailed.length > 0
+                ? wordFilters.interestWordsDetailed
+                : wordFilters.interestWords.map(word => {
+                    if (typeof word === 'string') {
+                        return { word: word, scope: 'all', target: null };
+                    }
+                    return word;
+                });
+            
+            interestWordsToCheck.forEach(wordObj => {
+                const word = typeof wordObj === 'string' ? wordObj : wordObj.word;
+                const scope = typeof wordObj === 'string' ? 'all' : (wordObj.scope || 'all');
+                const target = typeof wordObj === 'string' ? null : wordObj.target;
+                
+                if (content.includes(word.toLowerCase())) {
+                    // スコープチェック
+                    let matchesScope = false;
+                    switch (scope) {
+                        case 'all':
+                            matchesScope = true;
+                            break;
+                        case 'folder':
+                            matchesScope = article.folderName === target;
+                            break;
+                        case 'feed':
+                            matchesScope = article.rssSource === target;
+                            break;
+                        default:
+                            matchesScope = true;
+                    }
+                    
+                    if (matchesScope) {
+                        matchedWords.push(word);
+                    }
+                }
+            });
             
             if (matchedWords.length > 0) {
                 let positiveWordsScore = 0;
@@ -1371,19 +1496,46 @@ window.AIScoring = {
     }
 };
 
-// ワードフィルター管理
+// ワードフィルター管理（修正版）
 window.WordFilterManager = {
     addWord(word, type, wordFilters, scope = 'all', target = null) {
         word = word.trim();
         if (!word) return false;
         
         if (type === 'interest') {
-            const exists = wordFilters.interestWords.some(existingWord => 
-                existingWord.toLowerCase() === word.toLowerCase()
-            );
+            // 【修正】詳細情報を含むオブジェクト形式で保存
+            const normalizedScope = scope || 'all';
+            const normalizedTarget = normalizedScope === 'all' ? null : (target || null);
+            
+            const newWordObj = {
+                word: word,
+                scope: normalizedScope,
+                target: normalizedTarget,
+                addedAt: new Date().toISOString()
+            };
+            
+            // 同じワード・スコープ・ターゲットの組み合わせが既に存在するかチェック
+            const exists = wordFilters.interestWords.some(existingWord => {
+                if (typeof existingWord === 'string') {
+                    return existingWord.toLowerCase() === word.toLowerCase() && normalizedScope === 'all';
+                } else {
+                    return existingWord.word.toLowerCase() === word.toLowerCase() &&
+                           existingWord.scope === normalizedScope &&
+                           existingWord.target === normalizedTarget;
+                }
+            });
+            
             if (!exists) {
-                wordFilters.interestWords.push(word);
+                // 【修正】詳細情報付きで追加
+                wordFilters.interestWords.push(newWordObj);
                 wordFilters.lastUpdated = new Date().toISOString();
+                
+                // 【修正】詳細配列も同期更新
+                if (!wordFilters.interestWordsDetailed) {
+                    wordFilters.interestWordsDetailed = [];
+                }
+                wordFilters.interestWordsDetailed.push(newWordObj);
+                
                 return true;
             }
         } else {
@@ -1413,9 +1565,48 @@ window.WordFilterManager = {
         word = word.trim();
         
         if (type === 'interest') {
-            const index = wordFilters.interestWords.indexOf(word);
+            // 【修正】詳細情報に基づいて削除
+            let index = -1;
+            
+            if (scope === null && target === null) {
+                // 従来形式のワード削除（文字列のみ）
+                index = wordFilters.interestWords.findIndex(item => {
+                    if (typeof item === 'string') {
+                        return item === word;
+                    } else {
+                        return item.word === word && item.scope === 'all';
+                    }
+                });
+            } else {
+                // 詳細情報に基づく削除
+                index = wordFilters.interestWords.findIndex(item => {
+                    if (typeof item === 'string') {
+                        return item === word && scope === 'all' && target === null;
+                    } else {
+                        return item.word === word && 
+                               item.scope === scope && 
+                               item.target === target;
+                    }
+                });
+            }
+            
             if (index > -1) {
                 wordFilters.interestWords.splice(index, 1);
+                
+                // 【修正】詳細配列からも削除
+                if (wordFilters.interestWordsDetailed) {
+                    const detailedIndex = wordFilters.interestWordsDetailed.findIndex(item => {
+                        if (scope === null && target === null) {
+                            return item.word === word && item.scope === 'all';
+                        } else {
+                            return item.word === word && item.scope === scope && item.target === target;
+                        }
+                    });
+                    if (detailedIndex > -1) {
+                        wordFilters.interestWordsDetailed.splice(detailedIndex, 1);
+                    }
+                }
+                
                 wordFilters.lastUpdated = new Date().toISOString();
                 if (window.GistSyncManager?.isEnabled) {
                     window.GistSyncManager.markAsChanged();
@@ -1441,6 +1632,7 @@ window.WordFilterManager = {
         return false;
     },
     
+    // 【修正】フィルタリング処理でスコープを考慮
     filterArticles(articles, wordFilters) {
         if (!wordFilters.ngWords.length) return articles;
         
@@ -1519,7 +1711,7 @@ window.LocalStorageManager = {
     }
 };
 
-// データ操作フック
+// データ操作フック（修正版）
 window.DataHooks = {
     useArticles() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ARTICLES);
@@ -1659,22 +1851,41 @@ window.DataHooks = {
         };
     },
     
+    // 【修正】useWordFilters - 詳細情報対応版
     useWordFilters() {
         const stored = localStorage.getItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS);
         const timestamp = stored ? JSON.parse(stored).timestamp : null;
         
         if (!window.DataHooksCache.wordFilters || window.DataHooksCache.lastUpdate.wordFilters !== timestamp) {
-            window.DataHooksCache.wordFilters = window.LocalStorageManager.getItem(
+            const rawData = window.LocalStorageManager.getItem(
                 window.CONFIG.STORAGE_KEYS.WORD_FILTERS, window.DEFAULT_DATA.wordFilters
             );
+            
+            // 【修正】レガシー形式から詳細形式への変換
+            if (rawData.interestWords && !rawData.interestWordsDetailed) {
+                rawData.interestWordsDetailed = rawData.interestWords.map(word => {
+                    if (typeof word === 'string') {
+                        return {
+                            word: word,
+                            scope: 'all',
+                            target: null,
+                            addedAt: new Date().toISOString()
+                        };
+                    }
+                    return word;
+                });
+            }
+            
+            window.DataHooksCache.wordFilters = rawData;
             window.DataHooksCache.lastUpdate.wordFilters = timestamp;
         }
         
         return {
             wordFilters: window.DataHooksCache.wordFilters,
-            addInterestWord(word) {
+            addInterestWord(word, scope = 'all', target = null) {
                 const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.addWord(word, 'interest', updated)) {
+                // 【修正】スコープとターゲットを正しく渡す
+                if (window.WordFilterManager.addWord(word, 'interest', updated, scope, target)) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
                     window.DataHooksCache.wordFilters = updated;
                     window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
@@ -1692,9 +1903,9 @@ window.DataHooks = {
                 }
                 return false;
             },
-            removeInterestWord(word) {
+            removeInterestWord(word, scope = null, target = null) {
                 const updated = { ...window.DataHooksCache.wordFilters };
-                if (window.WordFilterManager.removeWord(word, 'interest', updated)) {
+                if (window.WordFilterManager.removeWord(word, 'interest', updated, scope, target)) {
                     window.LocalStorageManager.setItem(window.CONFIG.STORAGE_KEYS.WORD_FILTERS, updated);
                     window.DataHooksCache.wordFilters = updated;
                     window.DataHooksCache.lastUpdate.wordFilters = new Date().toISOString();
@@ -1730,6 +1941,6 @@ if (document.readyState === 'loading') {
 }
 
 // システム初期化完了
-console.log('Minews PWA Data Management Layer - 時刻比較同期版 initialized');
+console.log('Minews PWA Data Management Layer - 興味ワード詳細情報対応版 initialized');
 
 })();
