@@ -681,7 +681,7 @@ color: var(--text-color);
 .word-list {
 display: flex;
 flex-wrap: wrap;
-gap: 0.5rem;
+gap: 0.4rem; /* 0.5rem → 0.4rem に微調整 */
 min-height: 2rem;
 align-items: center;
 }
@@ -1552,4 +1552,117 @@ border-color: #ccc !important;
         font-size: 0.7rem;
         min-width: 60px;
     }
+}
+
+/* ────────────── 設定モーダル: セクション折りたたみ（追加） ────────────── */
+.modal-section-group {
+  position: relative;
+}
+.modal-section-group .group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-section-group .group-title::after {
+  content: '▾';
+  color: rgba(224,230,235,0.7);
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+  margin-left: 0.5rem;
+}
+.modal-section-group.collapsed .group-title::after {
+  transform: rotate(-90deg);
+}
+.modal-section-group .group-content {
+  margin-top: 0.75rem;
+}
+.modal-section-group.collapsed .group-content {
+  display: none;
+}
+
+/* ────────────── 設定モーダル: フィルター2カラム（768px以上で適用） ────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 768px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ────────────── フォーカスリング強化（アクセシビリティ補助） ────────────── */
+.folder-dropdown-btn:focus-visible,
+.selection-btn:focus-visible,
+.action-btn:focus-visible,
+.word-remove:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(78, 179, 211, 0.25);
+}
+
+/* ────────────── ドロップダウン（モバイル固定パネル時の見出し行テキスト整形） ────────────── */
+.folder-controls-row .sort-toggle-label {
+  white-space: nowrap;
+}
+
+/* ────────────── 小さなUI調整（視認性と一貫性） ────────────── */
+.modal .text-muted {
+  line-height: 1.6;
+}
+.modal .word-list .text-muted {
+  padding: 0.25rem 0;
+}
+.modal .word-section-header button.action-btn {
+  min-height: 34px;
+}
+.modal .word-section .filter-select {
+  min-height: 36px;
+}
+.modal .word-section .inline-star,
+.modal .word-section .inline-star-clear {
+  line-height: 1;
+}
+
+/* ────────────── キーワードメニュー・選択メニューのZ-index整合（SW/モーダル上） ────────────── */
+.keyword-selection-menu {
+  z-index: 10002;
+}
+.text-selection-menu {
+  z-index: 10002;
+}
+
+/* ────────────── 角ボタン（アクセシビリティ補助のヒント） ────────────── */
+.corner-read-later[title],
+.corner-read-status[title] {
+  /* ネイティブツールチップに任せるため視覚効果は付与しない */
+}
+
+/* ────────────── 余白最適化（モーダル終端の過剰余白防止） ────────────── */
+.modal-body > .modal-section-group:last-child {
+  margin-bottom: 0;
+}
+
+/* ────────────── ドロップダウン内チェック項目の可読性向上 ────────────── */
+.folder-dropdown-content label {
+  user-select: none;
+}
+
+/* ────────────── 設定モーダル: セクション見出しのクリック領域拡張 ────────────── */
+.modal-section-group .group-title {
+  padding-right: 0.5rem; /* 矢印との距離確保 */
+}
+
+/* ────────────── 設定モーダル: 折りたたみトランジションの最小演出（パフォーマンス配慮で非アニメ） ────────────── */
+/* 必要になれば height トランジションを導入可能だが、現状は描画負荷最小のため display 切替 */
+
+/* ────────────── 追加保護: コンテンツがきつい場合のオーバーフロー処理 ────────────── */
+.word-list {
+  overflow-wrap: anywhere;
+}
+
+/* ────────────── PWAアイコン（念のための表示最適化） ────────────── */
+img[alt="icon-192"] {
+  image-rendering: -webkit-optimize-contrast;
 }
