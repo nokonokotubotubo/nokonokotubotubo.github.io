@@ -1,4 +1,4 @@
-// エラー詳細出力版（記事ID安定化対応 + キーワード機能のみ追加）
+// エラー詳細出力版（記事ID安定化対応）
 console.log('🔍 fetch-rss.js実行開始（記事ID安定化対応版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
@@ -22,13 +22,6 @@ try {
   const xml2js = require('xml2js');
   const fetch = require('node-fetch');
   const Mecab = require('mecab-async');
-  // 【キーワード機能のみ追加】同義語辞書読み込み確認
-  try {
-    require('sudachi-synonyms-dictionary');
-    console.log('✅ Sudachi同義語辞書確認成功');
-  } catch (error) {
-    console.warn('⚠️  Sudachi同義語辞書が見つかりません、フォールバック辞書を使用します');
-  }
   console.log('✅ 全モジュール読み込み成功');
 } catch (error) {
   console.error('❌ モジュール読み込みエラー:', error);
@@ -43,65 +36,20 @@ const Mecab = require('mecab-async');
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// 【キーワード機能のみ追加】同義語辞書をロード
-let synonymsDict = null;
-
-async function loadSynonymsDict() {
-  if (synonymsDict) return synonymsDict;
-  try {
-    const sudachiSynonyms = require('sudachi-synonyms-dictionary');
-    synonymsDict = sudachiSynonyms;
-    console.log('✅ Sudachi同義語辞書読み込み成功');
-    return synonymsDict;
-  } catch (error) {
-    console.warn('⚠️  Sudachi同義語辞書が利用できません、フォールバック辞書を使用:', error.message);
-    synonymsDict = {
-      'スマホ': ['スマートフォン', '携帯電話'],
-      'スマートフォン': ['スマホ', '携帯電話'], 
-      'AI': ['人工知能', '機械学習'],
-      '人工知能': ['AI', 'ＡＩ'],
-      '技術': ['テクノロジー', 'テック'],
-      'テクノロジー': ['技術', 'テック'],
-      'アプリ': ['アプリケーション', 'ソフト'],
-      'アプリケーション': ['アプリ', 'ソフトウェア'],
-      'データ': ['情報', 'デジタル'],
-      'システム': ['仕組み', 'プラットフォーム'],
-      'サービス': ['機能', 'システム'],
-      '開発': ['制作', '構築'],
-      'ユーザー': ['利用者', '使用者'],
-      'インターネット': ['ネット', 'Web'],
-      'ネット': ['インターネット', 'オンライン'],
-      'クラウド': ['オンライン', 'ネット'],
-      'セキュリティ': ['安全', '保護'],
-      'プライバシー': ['個人情報', '秘匿性'],
-      'iPhone': ['アイフォン', 'スマートフォン'],
-      'Android': ['アンドロイド', 'スマホ'],
-      'Google': ['グーグル', '検索'],
-      'Apple': ['アップル', 'iPhone'],
-      'Microsoft': ['マイクロソフト', 'MS'],
-      'AWS': ['Amazon Web Services', 'クラウド'],
-      'API': ['インターフェース', '接続'],
-      'UI': ['ユーザーインターフェース', '画面'],
-      'UX': ['ユーザーエクスペリエンス', '体験'],
-      'IoT': ['Internet of Things', 'モノのインターネット'],
-      'VR': ['バーチャルリアリティ', '仮想現実'],
-      'AR': ['拡張現実', 'オーグメンテッド'],
-      'ブロックチェーン': ['暗号通貨', '分散台帳'],
-      'ビットコイン': ['仮想通貨', '暗号通貨'],
-      'NFT': ['非代替トークン', 'デジタル'],
-      'DX': ['デジタル変革', 'デジタルトランスフォーメーション']
-    };
-    return synonymsDict;
-  }
-}
+// 【キーワード機能のみ追加】簡易同義語辞書
+const synonymsDict = {
+  'スマホ': ['スマートフォン', '携帯電話'],
+  'AI': ['人工知能', '機械学習'],
+  '技術': ['テクノロジー', 'テック'],
+  'アプリ': ['アプリケーション', 'ソフト'],
+  'データ': ['情報', 'デジタル'],
+  'システム': ['仕組み', 'プラットフォーム'],
+  '開発': ['制作', '構築']
+};
 
 function getSynonyms(word) {
-  if (!synonymsDict) return [];
   const synonyms = synonymsDict[word];
-  if (Array.isArray(synonyms)) {
-    return synonyms.slice(0, 2);
-  }
-  return [];
+  return Array.isArray(synonyms) ? synonyms.slice(0, 2) : [];
 }
 
 // 【新規追加】RSS用安定ID生成関数
@@ -170,7 +118,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【元のコード完全保持】フォルダ構造対応版のOPML読み込み
+// 【元の添付ファイルから完全コピー】フォルダ構造対応版のOPML読み込み
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -191,7 +139,7 @@ async function loadOPML() {
     }
     
     const feeds = [];
-    const outlines = result.opml.body[0].outline;
+    const outlines = result.opml.body.outline;
     
     outlines.forEach(outline => {
       if (outline.outline) {
@@ -342,104 +290,58 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【キーワード機能のみ追加】強化されたキーワード抽出関数
-async function extractEnhancedKeywords(text) {
-  const MAX_MAIN_KEYWORDS = 3;
+// 【キーワード機能のみ追加・MeCab構造対応済み】
+async function extractKeywordsWithMecab(text) {
+  const MAX_KEYWORDS = 3;
   const MIN_LENGTH = 2;
   const stopWords = new Set([
     'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
-    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう',
-    '記事', 'ニュース', '情報', '発表', '企業', '会社', '今回', '今日',
-    '先日', '最近', '以上', '以下', '場合', '時間', '年月', '予定'
+    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう'
   ]);
-
   try {
-    console.log('🔍 強化されたキーワード抽出処理開始...');
-    
-    await loadSynonymsDict();
-    
     const cleanTexted = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
                             .replace(/\s+/g, ' ')
                             .trim();
     if (!cleanTexted) return [];
-
     const parsed = await mecabParsePromise(cleanTexted);
     if (!Array.isArray(parsed) || parsed.length === 0) return [];
-
-    const keywordScores = new Map();
-
-    parsed.forEach((token, index) => {
-      if (!Array.isArray(token) || token.length < 8) {
-        return;
-      }
-      
+    const keywords = new Map();
+    parsed.forEach((token) => {
+      if (!Array.isArray(token) || token.length < 8) return;
       const surface = token[0];
-      const pos = token[1];
-      const pos1 = token[2];
+      const pos = token[1];        // 品詞大分類は文字列
+      const pos1 = token[2];       // 品詞細分類1は文字列  
       const baseForm = token[3] || surface;
       
-      const isValidPOS = 
-        pos === '名詞' ||
-        pos === '動詞' ||
-        pos === '形容詞';
-        
+      const isValidPOS =
+        pos === '名詞' || pos === '固有名詞' ||
+        (pos === '動詞' && pos1 === '自立') ||
+        (pos === '形容詞' && pos1 === '自立');
       if (!isValidPOS) return;
-      
-      if (pos === '名詞' && (pos1 === '代名詞' || pos1 === '数' || pos1 === '接尾')) return;
-      if (pos === '動詞' && pos1 !== '自立') return;
-      if (pos === '形容詞' && pos1 !== '自立') return;
-      
       const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
-      
-      if (keyword.length >= MIN_LENGTH && 
-          !stopWords.has(keyword) && 
-          !/^[0-9]+$/.test(keyword) &&
-          !/^[ａ-ｚＡ-Ｚ]+$/.test(keyword) &&
-          keyword !== '*') {
-        
-        const currentScore = keywordScores.get(keyword) || 0;
-        let score = 1;
-        
-        const positionWeight = Math.max(0.5, 1 - (index / parsed.length) * 0.5);
-        score *= positionWeight;
-        
-        if (pos === '名詞') {
-          if (pos1 === '固有名詞') score *= 2.0;
-          else if (pos1 === 'サ変接続') score *= 1.5;
-          else score *= 1.3;
-        } else if (pos === '動詞') {
-          score *= 1.2;
-        } else if (pos === '形容詞') {
-          score *= 1.1;
-        }
-        
-        keywordScores.set(keyword, currentScore + score);
+      if (keyword.length >= MIN_LENGTH && !stopWords.has(keyword) && !/^[0-9]+$/.test(keyword)) {
+        const count = keywords.get(keyword) || 0;
+        keywords.set(keyword, count + 1);
       }
     });
-
-    const topKeywords = Array.from(keywordScores.entries())
+    
+    const topKeywords = Array.from(keywords.entries())
       .sort(([, a], [, b]) => b - a)
-      .slice(0, MAX_MAIN_KEYWORDS)
+      .slice(0, MAX_KEYWORDS)
       .map(([keyword]) => keyword);
-
-    console.log(`📊 メインキーワード抽出完了: ${topKeywords.join(', ')}`);
 
     const enhancedKeywords = [];
     for (const keyword of topKeywords) {
       const synonyms = getSynonyms(keyword);
-      const keywordData = {
+      enhancedKeywords.push({
         word: keyword,
         synonyms: synonyms
-      };
-      enhancedKeywords.push(keywordData);
-      console.log(`🔗 [${keyword}] 同義語: ${synonyms.join(', ') || 'なし'}`);
+      });
     }
 
-    console.log(`✅ キーワード抽出完了: ${enhancedKeywords.length}個のキーワードと同義語`);
     return enhancedKeywords;
-
   } catch (error) {
-    console.error('❌ 強化キーワード抽出エラー:', error.message);
+    console.error('❌ MeCab解析エラー:', error.message);
     return [];
   }
 }
@@ -470,15 +372,13 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     }
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
-    
-    // 【キーワード機能のみ変更】新しいキーワード抽出関数を使用
-    const keywords = await extractEnhancedKeywords(title + ' ' + cleanDescription);
+    const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
     
     // 【重要修正】安定したID生成に変更
     const stableId = generateStableIdForRSS(link, title, publishDate);
     
     return {
-      id: stableId,
+      id: stableId, // 安定したIDを使用
       title: title.trim(),
       url: link.trim(),
       content: cleanDescription,
@@ -488,7 +388,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       readStatus: 'unread',
       readLater: false,
       userRating: 0,
-      keywords, // 【キーワード機能のみ追加】構造化されたキーワード（同義語付き）
+      keywords,
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -622,40 +522,6 @@ async function main() {
       console.log(`   ${folder}: ${folderStats[folder]}件`);
     });
     
-    // 【キーワード機能のみ追加】キーワード統計表示
-    console.log(`\n🔑 キーワード統計:`);
-    const keywordStats = {};
-    let totalKeywords = 0;
-    let totalSynonyms = 0;
-    
-    limitedArticles.forEach(article => {
-      if (Array.isArray(article.keywords)) {
-        article.keywords.forEach(keywordData => {
-          if (keywordData.word) {
-            keywordStats[keywordData.word] = (keywordStats[keywordData.word] || 0) + 1;
-            totalKeywords++;
-            if (keywordData.synonyms) {
-              totalSynonyms += keywordData.synonyms.length;
-            }
-          }
-        });
-      }
-    });
-    
-    console.log(`   総キーワード数: ${totalKeywords}個`);
-    console.log(`   総同義語数: ${totalSynonyms}個`);
-    console.log(`   ユニークキーワード数: ${Object.keys(keywordStats).length}個`);
-    
-    if (Object.keys(keywordStats).length > 0) {
-      const topKeywords = Object.entries(keywordStats)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10);
-      console.log(`   頻出キーワード TOP10:`);
-      topKeywords.forEach(([keyword, count]) => {
-        console.log(`     ${keyword}: ${count}回`);
-      });
-    }
-    
     // ファイル出力
     if (!fs.existsSync('./mss')) {
       fs.mkdirSync('./mss');
@@ -669,18 +535,10 @@ async function main() {
       processedFeeds: feeds.length,
       successfulFeeds: successCount,
       folderStats: folderStats,
-      // 【キーワード機能のみ追加】キーワード統計
-      keywordStats: {
-        totalKeywords: totalKeywords,
-        totalSynonyms: totalSynonyms,
-        uniqueKeywords: Object.keys(keywordStats).length,
-        topKeywords: Object.keys(keywordStats).length > 0 ? 
-          Object.entries(keywordStats).sort(([, a], [, b]) => b - a).slice(0, 10) : []
-      },
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.5-キーワード機能追加版'
+        debugVersion: 'v1.4-記事ID安定化対応版'
       }
     };
     
@@ -700,7 +558,6 @@ async function main() {
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
     console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
-    console.log(`   キーワード機能: 関連度上位3つ + 同義語最大2つ/語`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
