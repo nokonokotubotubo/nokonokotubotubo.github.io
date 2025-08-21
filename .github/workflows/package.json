@@ -1,69 +1,21 @@
 {
   "name": "minews-rss-fetcher",
-  "version": "1.1.0",
-  "description": "Minews RSS記事取得システム（フォルダ対応版）",
+  "version": "1.0.0",
+  "description": "RSS記事取得・キーワード抽出・同義語生成システム",
   "main": "fetch-rss.js",
   "scripts": {
     "start": "node fetch-rss.js",
-    "fetch": "node fetch-rss.js",
-    "test": "echo \"No tests specified\" && exit 0",
-    "lint": "echo \"No linting specified\" && exit 0",
-    "validate": "node -c fetch-rss.js"
+    "test": "echo \"No test specified\" && exit 0"
   },
-    "dependencies": {
+  "dependencies": {
     "xml2js": "^0.6.2",
     "node-fetch": "^2.7.0",
-    "mecab-async": "^0.1.2"
-  },
-  "devDependencies": {
-    "eslint": "^8.57.0"
+    "mecab-async": "^0.1.2",
+    "sudachi-synonyms-dictionary": "^14.0.0"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/username/minews.git"
-  },
-  "keywords": [
-    "rss",
-    "news",
-    "reader",
-    "mecab",
-    "japanese",
-    "nlp",
-    "feed",
-    "parser",
-    "folder",
-    "categorization"
-  ],
-  "author": "Minews Development Team",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/username/minews/issues"
-  },
-  "homepage": "https://github.com/username/minews#readme",
-  "os": [
-    "linux",
-    "darwin"
-  ],
-  "cpu": [
-    "x64",
-    "arm64"
-  ],
-  "directories": {
-    "lib": "./",
-    "test": "./test"
-  },
-  "files": [
-    "fetch-rss.js",
-    "package.json",
-    "README.md"
-  ],
-  "config": {
-    "max_articles": 1000,
-    "timeout": 15000,
-    "retry_count": 2
-  }
+  "author": "Minews PWA",
+  "license": "MIT"
 }
