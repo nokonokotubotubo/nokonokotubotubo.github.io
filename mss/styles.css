@@ -1721,3 +1721,79 @@ img[alt="icon-192"] {
   display: inline-block;
   margin-bottom: 0;
 }
+
+/* === クラウド同期フォームの縦位置ズレ解消・厳密整列 === */
+
+/* ラベルと入力のボックスモデル統一 */
+.form-row .form-label,
+.form-row .form-input {
+  box-sizing: border-box;
+}
+
+/* ラベルの余白・行高を統一（下方向に余白が溜まらないようにする） */
+.form-row .form-label {
+  display: block;
+  margin: 0 0 0.25rem 0;      /* 下にわずかだけ */
+  padding: 0;
+  line-height: 1.25;          /* 視認性と高さブレ防止 */
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+/* 入力の高さ・内側余白をfilter-selectと厳密一致 */
+.form-row .form-input.filter-select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 0.8rem;     /* filter-selectに合わせる */
+  line-height: 1.25;
+  border-radius: 6px;         /* 既存ルック＆フィール維持 */
+}
+
+/* ブラウザ差のリセット（余計な内外余白を除去） */
+.form-row .form-input {
+  margin: 0;
+}
+
+/* 2カラムの行頭・行末の垂直位置を揃える（行全体を上揃え） */
+.form-grid {
+  align-items: start;
+}
+
+/* 行同士の基準線ズレを防ぐ（各行のラベルと入力の上下間隔を固定） */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;                /* ラベルと入力の間隔を固定 */
+}
+
+/* CTAボタンの位置と高さを安定化（周囲との基線ズレを防ぐ） */
+.form-submit {
+  margin-left: auto;          /* 右寄せ（PC） */
+  padding: 0.75rem 1.25rem;
+  min-height: 40px;           /* 入力と高さを揃える */
+  line-height: 1.25;
+}
+
+/* 2カラム幅の均等化（PC時の見た目を安定） */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1rem;
+}
+
+/* タブレット以下は縦積みでズレをなくす */
+@media (max-width: 1024px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-submit {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* monospace入力の行高も統一（Gist IDのフォント差で浮かないように） */
+#gistIdInput.form-input {
+  line-height: 1.25;
+}
