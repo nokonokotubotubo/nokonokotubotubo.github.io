@@ -1,4 +1,4 @@
-// Minews PWA - UI・モーダルレイヤー（データ構造一本化対応版）
+// Minews PWA - UI・モーダルレイヤー（データ構造一本化対応版 + 折りたたみ/2カラム/タグ間隔調整）
 (function() {
     'use strict';
 
@@ -569,7 +569,7 @@
         });
     };
 
-    // 【一本化対応】統合ワード設定モーダル
+    // 【一本化対応】統合ワード設定モーダル（折りたたみ用のラッパ生成は後段で共通実行）
     const renderWordSettingModal = (type, editWord = null) => {
         const folders = [...new Set(window.state.articles.map(article => article.folderName))].sort();
         const feeds = [...new Set(window.state.articles.map(article => article.rssSource))].sort();
@@ -618,49 +618,50 @@
                     </div>
                     <div class="modal-body">
                         <div class="modal-section-group">
-                            <h3 class="group-title">${type === 'interest' ? '興味' : 'NG'}ワード設定</h3>
-                            
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>ワード入力</h3></div>
-                                <input type="text" id="wordInput" placeholder="${type === 'interest' ? '興味' : 'NG'}ワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;" value="${initialWord}">
-                            </div>
-                            
-                            ${ratingSection}
-                            
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>適用範囲</h3></div>
-                                <div style="margin-bottom: 1rem;">
-                                    <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="wordScope" value="all" ${initialScope === 'all' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
-                                        <span style="margin-left: 0.5rem;">全体（すべての記事に適用）</span>
-                                    </label>
-                                    <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="wordScope" value="folder" ${initialScope === 'folder' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
-                                        <span style="margin-left: 0.5rem;">特定のフォルダのみ</span>
-                                    </label>
-                                    <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
-                                        <input type="radio" name="wordScope" value="feed" ${initialScope === 'feed' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
-                                        <span style="margin-left: 0.5rem;">特定のフィードのみ</span>
-                                    </label>
+                            <h3 class="group-title">興味ワード設定</h3>
+                            <div class="group-content">
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>ワード入力</h3></div>
+                                    <input type="text" id="wordInput" placeholder="${type === 'interest' ? '興味' : 'NG'}ワードを入力してください" class="filter-select" style="width: 100%; margin-bottom: 1rem;" value="${initialWord}">
                                 </div>
-                            </div>
-                            
-                            <div class="word-section" id="wordTargetSection" style="display: ${initialScope !== 'all' ? 'block' : 'none'};">
-                                <div class="word-section-header"><h3>対象選択</h3></div>
-                                <select id="wordTargetSelect" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
-                                    <option value="">選択してください</option>
-                                    ${initialScope === 'folder' ? folders.map(folder => 
-                                        `<option value="${folder}" ${folder === initialTarget ? 'selected' : ''}>${folder}</option>`
-                                    ).join('') : ''}
-                                    ${initialScope === 'feed' ? feeds.map(feed => 
-                                        `<option value="${feed}" ${feed === initialTarget ? 'selected' : ''}>${feed}</option>`
-                                    ).join('') : ''}
-                                </select>
-                            </div>
-                            
-                            <div class="modal-actions">
-                                <button class="action-btn" onclick="handleCloseModal()">キャンセル</button>
-                                <button class="action-btn ${type === 'interest' ? 'success' : 'danger'}" onclick="handleSubmitWord('${type}', ${isEdit})">${type === 'interest' ? '興味' : 'NG'}ワードを${isEdit ? '更新' : '追加'}</button>
+                                
+                                ${ratingSection}
+                                
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>適用範囲</h3></div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
+                                            <input type="radio" name="wordScope" value="all" ${initialScope === 'all' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
+                                            <span style="margin-left: 0.5rem;">全体（すべての記事に適用）</span>
+                                        </label>
+                                        <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
+                                            <input type="radio" name="wordScope" value="folder" ${initialScope === 'folder' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
+                                            <span style="margin-left: 0.5rem;">特定のフォルダのみ</span>
+                                        </label>
+                                        <label style="display: block; margin-bottom: 0.5rem; cursor: pointer;">
+                                            <input type="radio" name="wordScope" value="feed" ${initialScope === 'feed' ? 'checked' : ''} onchange="handleWordScopeChange(this.value)" onclick="handleWordScopeChange(this.value)">
+                                            <span style="margin-left: 0.5rem;">特定のフィードのみ</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="word-section" id="wordTargetSection" style="display: ${initialScope !== 'all' ? 'block' : 'none'};">
+                                    <div class="word-section-header"><h3>対象選択</h3></div>
+                                    <select id="wordTargetSelect" class="filter-select" style="width: 100%; margin-bottom: 1rem;">
+                                        <option value="">選択してください</option>
+                                        ${initialScope === 'folder' ? folders.map(folder => 
+                                            `<option value="${folder}" ${folder === initialTarget ? 'selected' : ''}>${folder}</option>`
+                                        ).join('') : ''}
+                                        ${initialScope === 'feed' ? feeds.map(feed => 
+                                            `<option value="${feed}" ${feed === initialTarget ? 'selected' : ''}>${feed}</option>`
+                                        ).join('') : ''}
+                                    </select>
+                                </div>
+                                
+                                <div class="modal-actions">
+                                    <button class="action-btn" onclick="handleCloseModal()">キャンセル</button>
+                                    <button class="action-btn ${type === 'interest' ? 'success' : 'danger'}" onclick="handleSubmitWord('${type}', ${isEdit})">${type === 'interest' ? '興味' : 'NG'}ワードを${isEdit ? '更新' : '追加'}</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -715,7 +716,7 @@
         }
     };
 
-    // 【一本化対応】統合ワード送信処理
+    // 統合ワード送信処理
     const handleSubmitWord = (type, isEdit = false) => {
         const word = document.getElementById('wordInput').value.trim();
         if (!word) {
@@ -754,7 +755,7 @@
         if (modal) modal.remove();
     };
 
-    // 【一本化対応】興味ワード範囲付き追加処理
+    // 興味ワード範囲付き追加
     const handleAddInterestWordWithScope = (word, scope, target, isEdit = false, rating = 0) => {
         if (!word?.trim()) return;
 
@@ -787,7 +788,7 @@
         }
     };
 
-    // 【一本化対応】興味ワード削除処理
+    // 興味ワード削除
     const handleRemoveInterestWordWithScope = (word, scope, target) => {
         if (!confirm(`「${word}」を削除しますか？`)) return;
 
@@ -804,7 +805,7 @@
         }
     };
 
-    // 【一本化対応】NGワード範囲付き追加処理
+    // NGワード範囲付き追加
     const handleAddNGWordWithScope = (word, scope, target) => {
         if (!word?.trim()) return;
 
@@ -828,7 +829,7 @@
         }
     };
 
-    // 【一本化対応】NGワード削除処理
+    // NGワード削除
     const handleRemoveNGWordWithScope = (word, scope, target) => {
         if (!confirm(`「${word}」を削除しますか？`)) return;
 
@@ -853,13 +854,13 @@
         }
     };
 
-    // 【一本化対応】設定モーダルレンダリング
+    // 設定モーダル（折りたたみ＋フィルター2カラム化）
     const renderSettingsModal = () => {
         const storageInfo = window.LocalStorageManager.getStorageInfo();
         const idx = window.WordIndexManager.getAll();
         const filterSettings = window.getFilterSettings();
         
-        // 【一本化対応】興味ワード表示
+        // 興味ワード表示
         const interestWords = idx.interest.map(wordObj => {
             const word = wordObj.display || wordObj.word;
             const scope = wordObj.scope || 'all';
@@ -879,8 +880,8 @@
                 </span>
             `;
         }).join('');
-
-        // 【一本化対応】NGワード表示
+        
+        // NGワード表示
         const ngWords = idx.ng.map(ngWordObj => {
             const word = ngWordObj.display || ngWordObj.word;
             const scope = ngWordObj.scope || 'all';
@@ -903,161 +904,177 @@
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
+                        <!-- 記事フィルター設定（初期: 展開） -->
                         <div class="modal-section-group">
                             <h3 class="group-title">記事フィルター設定</h3>
-                            
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>AIスコア範囲</h3>
-                                    <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
-                                </div>
-                                <div class="slider-container">
-                                    <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
-                                    <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
-                                    
-                                    <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
-                                    <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
-                                </div>
-                            </div>
+                            <div class="group-content">
+                                <div class="two-col">
+                                    <div class="word-section">
+                                        <div class="word-section-header">
+                                            <h3>AIスコア範囲</h3>
+                                            <span class="filter-range-display">${filterSettings.scoreMin}点 - ${filterSettings.scoreMax}点</span>
+                                        </div>
+                                        <div class="slider-container">
+                                            <label>最小スコア: <span id="scoreMinValue">${filterSettings.scoreMin}</span>点</label>
+                                            <input type="range" id="scoreMinSlider" min="0" max="100" value="${filterSettings.scoreMin}" oninput="updateScoreDisplay('min', this.value)" class="filter-slider">
+                                            
+                                            <label>最大スコア: <span id="scoreMaxValue">${filterSettings.scoreMax}</span>点</label>
+                                            <input type="range" id="scoreMaxSlider" min="0" max="100" value="${filterSettings.scoreMax}" oninput="updateScoreDisplay('max', this.value)" class="filter-slider">
+                                        </div>
+                                    </div>
 
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>記事日付範囲</h3>
-                                    <span class="filter-range-display">${filterSettings.dateMin}日前 - ${filterSettings.dateMax}日前</span>
+                                    <div class="word-section">
+                                        <div class="word-section-header">
+                                            <h3>記事日付範囲</h3>
+                                            <span class="filter-range-display">${filterSettings.dateMin}日前 - ${filterSettings.dateMax}日前</span>
+                                        </div>
+                                        <div class="slider-container">
+                                            <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
+                                            <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" oninput="updateDateDisplay('min', this.value)" class="filter-slider">
+                                            
+                                            <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
+                                            <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" oninput="updateDateDisplay('max', this.value)" class="filter-slider">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="slider-container">
-                                    <label>最新: <span id="dateMinValue">${filterSettings.dateMin}</span>日前</label>
-                                    <input type="range" id="dateMinSlider" min="0" max="14" value="${filterSettings.dateMin}" oninput="updateDateDisplay('min', this.value)" class="filter-slider">
-                                    
-                                    <label>最古: <span id="dateMaxValue">${filterSettings.dateMax}</span>日前</label>
-                                    <input type="range" id="dateMaxSlider" min="0" max="14" value="${filterSettings.dateMax}" oninput="updateDateDisplay('max', this.value)" class="filter-slider">
-                                </div>
-                            </div>
 
-                            <div class="modal-actions">
-                                <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
-                                <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
+                                <div class="modal-actions">
+                                    <button class="action-btn" onclick="resetFilterSettings()">フィルターをリセット</button>
+                                    <button class="action-btn success" onclick="applyFilterSettings()">設定を適用</button>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="modal-section-group">
-                            <h3 class="group-title">クラウド同期</h3>
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>GitHub同期設定</h3></div>
-                                
-                                <p class="text-muted mb-3">
-                                    同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
-                                    ${window.GistSyncManager?.gistId ? `Gist ID: ${window.GistSyncManager.gistId}` : ''}
-                                    ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
-                                        `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
-                                        ''}
-                                </p>
-                                
-                                ${window.GistSyncManager?.isEnabled ? `
-                                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
-                                        <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">GitHub同期は設定済みです。定期同期（1分間隔）が実行中。</div>
-                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">設定を解除</button>
-                                            <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">Gist IDコピー</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="modal-actions">
-                                        <button class="action-btn" onclick="handleSyncToCloud()">手動バックアップ</button>
-                                        <button class="action-btn" onclick="handleSyncFromCloud()">クラウドから復元</button>
-                                        <button class="action-btn" onclick="handleSyncDiagnostic()">同期診断</button>
-                                    </div>
-                                ` : `
-                                    <div class="modal-actions">
-                                        <div style="margin-bottom: 1rem;">
-                                            <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
-                                            <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
-                                        </div>
-                                        
-                                        <div style="margin-bottom: 1rem;">
-                                            <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
-                                            <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
-                                        </div>
-                                        
-                                        <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                        
+                        <!-- ワード評価設定（初期: 展開） -->
                         <div class="modal-section-group">
                             <h3 class="group-title">ワード評価設定（データ構造一本化対応版）</h3>
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>興味ワード（クリックで星評価設定）</h3>
-                                    <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+                            <div class="group-content">
+                                <div class="word-section">
+                                    <div class="word-section-header">
+                                        <h3>興味ワード（クリックで星評価設定）</h3>
+                                        <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+                                    </div>
+                                    <div class="word-list">
+                                        ${interestWords || '<div class="text-muted">設定されていません</div>'}
+                                    </div>
                                 </div>
-                                <div class="word-list">
-                                    ${interestWords || '<div class="text-muted">設定されていません</div>'}
-                                </div>
-                            </div>
 
-                            <div class="word-section">
-                                <div class="word-section-header">
-                                    <h3>NGワード</h3>
-                                    <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+                                <div class="word-section">
+                                    <div class="word-section-header">
+                                        <h3>NGワード</h3>
+                                        <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+                                    </div>
+                                    <div class="word-list">
+                                        ${ngWords || '<div class="text-muted">設定されていません</div>'}
+                                    </div>
                                 </div>
-                                <div class="word-list">
-                                    ${ngWords || '<div class="text-muted">設定されていません</div>'}
-                                </div>
-                            </div>
 
-                            <div class="word-help">
-                                <h4>データ構造一本化完了版</h4>
-                                <ul>
-                                    <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
-                                    <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
-                                    <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
-                                    <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
-                                    <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
-                                    <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
-                                    <li><strong>データ一本化:</strong> 全てのワード管理がWordIndexManagerに統一され、同期・表示・評価が完全に一貫します</li>
-                                </ul>
+                                <div class="word-help">
+                                    <h4>データ構造一本化完了版</h4>
+                                    <ul>
+                                        <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
+                                        <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
+                                        <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
+                                        <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
+                                        <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
+                                        <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
+                                        <li><strong>データ一本化:</strong> 全てのワード管理がWordIndexManagerに統一され、同期・表示・評価が完全に一貫します</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="modal-section-group">
+                        <!-- クラウド同期（初期: 折りたたみ） -->
+                        <div class="modal-section-group collapsed">
+                            <h3 class="group-title">クラウド同期</h3>
+                            <div class="group-content">
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>GitHub同期設定</h3></div>
+                                    
+                                    <p class="text-muted mb-3">
+                                        同期状態: ${window.GistSyncManager?.isEnabled ? '有効' : '無効'}<br>
+                                        ${window.GistSyncManager?.gistId ? `Gist ID: ${window.GistSyncManager.gistId}` : ''}
+                                        ${window.GistSyncManager?.isEnabled && window.GistSyncManager?.lastSyncTime ? 
+                                            `<br>Last update: ${formatLastSyncTime(window.GistSyncManager.lastSyncTime)}` : 
+                                            ''}
+                                    </p>
+                                    
+                                    ${window.GistSyncManager?.isEnabled ? `
+                                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: #374151; border-radius: 6px;">
+                                            <div style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem;">GitHub同期は設定済みです。定期同期（1分間隔）が実行中。</div>
+                                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                <button class="action-btn danger" onclick="handleClearGitHubSettings()" style="font-size: 0.85rem;">設定を解除</button>
+                                                <button class="action-btn" onclick="handleCopyCurrentGistId()" style="font-size: 0.85rem;">Gist IDコピー</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="modal-actions">
+                                            <button class="action-btn" onclick="handleSyncToCloud()">手動バックアップ</button>
+                                            <button class="action-btn" onclick="handleSyncFromCloud()">クラウドから復元</button>
+                                            <button class="action-btn" onclick="handleSyncDiagnostic()">同期診断</button>
+                                        </div>
+                                    ` : `
+                                        <div class="modal-actions">
+                                            <div style="margin-bottom: 1rem;">
+                                                <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
+                                                <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
+                                            </div>
+                                            
+                                            <div style="margin-bottom: 1rem;">
+                                                <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
+                                                <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
+                                            </div>
+                                            
+                                            <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- データ管理（初期: 折りたたみ） -->
+                        <div class="modal-section-group collapsed">
                             <h3 class="group-title">データ管理</h3>
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>学習データ管理</h3></div>
-                                <div class="modal-actions">
-                                    <button class="action-btn success" onclick="handleExportLearningData()">学習データエクスポート</button>
-                                    <label class="action-btn" style="cursor: pointer; display: inline-block;">
-                                        学習データインポート
-                                        <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
-                                    </label>
+                            <div class="group-content">
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>学習データ管理</h3></div>
+                                    <div class="modal-actions">
+                                        <button class="action-btn success" onclick="handleExportLearningData()">学習データエクスポート</button>
+                                        <label class="action-btn" style="cursor: pointer; display: inline-block;">
+                                            学習データインポート
+                                            <input type="file" accept=".json" onchange="handleImportLearningData(event)" style="display: none;">
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="modal-section-group">
+                        <!-- システム情報（初期: 折りたたみ） -->
+                        <div class="modal-section-group collapsed">
                             <h3 class="group-title">システム情報</h3>
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>ストレージ使用量</h3></div>
-                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                    <p class="text-muted" style="margin: 0;">
-                                        使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
-                                        アイテム数: ${storageInfo.itemCount}
-                                    </p>
+                            <div class="group-content">
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>ストレージ使用量</h3></div>
+                                    <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                        <p class="text-muted" style="margin: 0;">
+                                            使用量: ${Math.round(storageInfo.totalSize / 1024)}KB / 5MB<br>
+                                            アイテム数: ${storageInfo.itemCount}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="word-section">
-                                <div class="word-section-header"><h3>バージョン情報</h3></div>
-                                <div class="word-list" style="flex-direction: column; align-items: flex-start;">
-                                    <p class="text-muted" style="margin: 0;">
-                                        Minews PWA v${window.CONFIG.DATA_VERSION}<br>
-                                        データ構造一本化完了版 - WordIndexManager統一管理
-                                    </p>
+                                <div class="word-section">
+                                    <div class="word-section-header"><h3>バージョン情報</h3></div>
+                                    <div class="word-list" style="flex-direction: column; align-items: flex-start;">
+                                        <p class="text-muted" style="margin: 0;">
+                                            Minews PWA v${window.CONFIG.DATA_VERSION}<br>
+                                            データ構造一本化完了版 - WordIndexManager統一管理
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- /.modal-body -->
                 </div>
             </div>
         `;
@@ -1078,7 +1095,7 @@
         window.setState({ showModal: `add${type === 'interest' ? 'Interest' : 'NG'}Word` });
     };
 
-    // 【一本化対応】ワード削除処理
+    // ワード削除処理
     const handleRemoveWord = (wordData, type) => {
         if (typeof wordData === 'string') {
             if (!confirm(`「${wordData}」を削除しますか？`)) return;
@@ -1110,7 +1127,7 @@
         }
     };
 
-    // GitHub同期管理機能
+    // GitHub同期管理機能（既存）
     window.handleSaveGitHubToken = () => {
         const token = document.getElementById('githubToken').value.trim();
         const gistId = document.getElementById('gistIdInput').value.trim();
@@ -1159,7 +1176,7 @@
         }
     };
 
-    // 【一本化対応】クラウドからの復元
+    // クラウドからの復元（一本化対応）
     window.handleSyncFromCloud = async () => {
         if (!window.GistSyncManager.isEnabled) {
             alert('GitHub同期が設定されていません');
@@ -1273,7 +1290,7 @@
         }
     };
 
-    // 【一本化対応】データ管理機能
+    // データ管理機能
     window.handleExportLearningData = () => {
         const idx = window.WordIndexManager.getAll();
 
@@ -1294,7 +1311,7 @@
     };
 
     window.handleImportLearningData = (event) => {
-        const file = event.target.files[0];
+        const file = event.target.files;
         if (!file) return;
 
         const reader = new FileReader();
@@ -1306,7 +1323,6 @@
                     throw new Error('無効なデータ形式です');
                 }
 
-                // 【一本化対応】WordIndexManagerへインポート
                 const hook = window.DataHooks.useWordIndex();
                 
                 (importData.wordIndex.interest || []).forEach(item => {
@@ -1328,11 +1344,58 @@
         event.target.value = '';
     };
 
-    // モーダル初期化処理の公開
+    // モーダル初期化処理: 折りたたみ初期化も統合
     const initializeModalEvents = () => {
         if (window.state.showModal === 'addInterestWord') {
             initializeInlineStarEvents();
         }
+
+        // セクション折りたたみ初期化（タイトルクリックで開閉）
+        (function initCollapsibleSections() {
+            try {
+                const titleToState = {
+                    '記事フィルター設定': 'open',
+                    'ワード評価設定': 'open',
+                    'クラウド同期': 'close',
+                    'データ管理': 'close',
+                    'システム情報': 'close'
+                };
+
+                document.querySelectorAll('.modal-section-group').forEach(group => {
+                    const header = group.querySelector('.group-title');
+                    if (!header) return;
+
+                    // group-content ラッパーを保証（renderSettingsModal/WordSettingModalでは生成済みだが保険）
+                    let content = group.querySelector('.group-content');
+                    if (!content) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'group-content';
+                        const children = Array.from(group.children).filter(el => el !== header);
+                        children.forEach(el => wrapper.appendChild(el));
+                        group.appendChild(wrapper);
+                        content = wrapper;
+                    }
+
+                    // 初期状態設定（タイトルに特定ワードが含まれていたらマップの状態を採用）
+                    const title = header.textContent.trim();
+                    const desired = Object.keys(titleToState).find(k => title.includes(k));
+                    const shouldClose = desired ? titleToState[desired] === 'close' : false;
+                    if (shouldClose) {
+                        group.classList.add('collapsed');
+                    } else {
+                        group.classList.remove('collapsed');
+                    }
+
+                    // クリックで開閉
+                    header.style.cursor = 'pointer';
+                    header.addEventListener('click', () => {
+                        group.classList.toggle('collapsed');
+                    });
+                });
+            } catch (e) {
+                console.warn('折りたたみ初期化エラー:', e);
+            }
+        })();
     };
 
     // グローバル関数のエクスポート
