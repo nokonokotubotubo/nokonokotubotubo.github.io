@@ -10,11 +10,10 @@
     "lint": "echo \"No linting specified\" && exit 0",
     "validate": "node -c fetch-rss.js"
   },
-  "dependencies": {
+    "dependencies": {
     "xml2js": "^0.6.2",
     "node-fetch": "^2.7.0",
-    "mecab-async": "^0.1.2",
-    "sqlite3": "^5.1.6"
+    "mecab-async": "^0.1.2"
   },
   "devDependencies": {
     "eslint": "^8.57.0"
