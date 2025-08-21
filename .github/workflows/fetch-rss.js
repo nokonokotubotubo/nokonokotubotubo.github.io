@@ -108,7 +108,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【修正】フォルダ構造対応版のOPML読み込み（変更なし）
+// 【元のOPML読み込み関数を完全保持】
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -122,7 +122,19 @@ async function loadOPML() {
     console.log(`📄 OPMLファイル読み込み成功: ${opmlContent.length}文字`);
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
-    if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body.outline) {
+    
+    // デバッグ用：構造を詳細表示
+    console.log('🔍 OPML構造デバッグ:');
+    console.log(`   result.opml: ${!!result.opml}`);
+    console.log(`   result.opml.body: ${!!result.opml?.body}`);
+    console.log(`   body配列長: ${result.opml?.body?.length}`);
+    console.log(`   body[0]: ${!!result.opml?.body?.}`);
+    console.log(`   body.outline: ${!!result.opml?.body?.?.outline}`);
+    console.log(`   outline配列長: ${result.opml?.body?.?.outline?.length}`);
+    
+    // 元の条件チェックを修正
+    if (!result.opml || !result.opml.body || !Array.isArray(result.opml.body) || 
+        result.opml.body.length === 0 || !result.opml.body[0].outline) {
       console.error('❌ OPML構造が不正です');
       console.error('OPML内容:', JSON.stringify(result, null, 2).substring(0, 500));
       return [];
@@ -231,7 +243,6 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// 🔧 修正: 配列内$.href構造に完全対応（変更なし）
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
@@ -280,7 +291,6 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【重要修正】安定ID生成版のparseRSSItem関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
     console.log(`🔍 [${feedTitle}] 記事解析開始`);
@@ -314,7 +324,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     const stableId = generateStableIdForRSS(link, title, publishDate);
     
     return {
-      id: stableId, // 安定したIDを使用
+      id: stableId,
       title: title.trim(),
       url: link.trim(),
       content: cleanDescription,
@@ -324,7 +334,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       readStatus: 'unread',
       readLater: false,
       userRating: 0,
-      keywords, // 改良されたキーワード
+      keywords,
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -438,7 +448,7 @@ async function extractAdvancedKeywords(title, content) {
   }
 }
 
-// 【新規追加】基本的なMeCab解析（元のextractKeywordsWithMecabを簡略化）
+// 【新規追加】基本的なMeCab解析
 async function extractBasicMecabKeywords(text) {
   const MAX_KEYWORDS = 8;
   const MIN_LENGTH = 2;
@@ -485,7 +495,6 @@ async function extractBasicMecabKeywords(text) {
   }
 }
 
-// 【修正】main関数内でフォルダ名を記事に追加（変更なし）
 async function main() {
   try {
     const startTime = Date.now();
