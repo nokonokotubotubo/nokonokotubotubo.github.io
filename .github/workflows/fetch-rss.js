@@ -1,5 +1,5 @@
-// エラー詳細出力版（記事ID安定化対応）
-console.log('🔍 fetch-rss.js実行開始（記事ID安定化対応版）');
+// エラー詳細出力版（記事ID安定化対応・類義語機能付き完全版）
+console.log('🔍 fetch-rss.js実行開始（類義語機能付き完全版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -22,6 +22,8 @@ try {
   const xml2js = require('xml2js');
   const fetch = require('node-fetch');
   const Mecab = require('mecab-async');
+  const sqlite3 = require('sqlite3').verbose();
+  const path = require('path');
   console.log('✅ 全モジュール読み込み成功');
 } catch (error) {
   console.error('❌ モジュール読み込みエラー:', error);
@@ -32,11 +34,62 @@ const fs = require('fs');
 const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const Mecab = require('mecab-async');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// 【新規追加】RSS用安定ID生成関数
+// WordNetデータベース
+let wordnetDb = null;
+
+// 【新機能】簡易同義語辞書（WordNetが利用できない場合の代替）
+const simpleSynonymDict = {
+  'スマホ': ['スマートフォン', '携帯電話'],
+  'AI': ['人工知能', 'エーアイ'],
+  'PC': ['パソコン', 'コンピューター'],
+  'アプリ': ['アプリケーション', 'ソフト'],
+  'ネット': ['インターネット', 'Web'],
+  'サイト': ['ウェブサイト', 'ホームページ'],
+  'データ': ['情報', 'デジタル情報'],
+  'システム': ['仕組み', '体系'],
+  'サービス': ['事業', 'ビジネス'],
+  'テクノロジー': ['技術', 'テクノロジ'],
+  'クラウド': ['雲', 'オンライン'],
+  'セキュリティ': ['安全性', 'セキュリティー'],
+  'プラットフォーム': ['基盤', 'プラットホーム'],
+  'ソフトウェア': ['ソフト', 'プログラム'],
+  'ハードウェア': ['ハード', '機器'],
+  'デバイス': ['機器', '端末'],
+  'ユーザー': ['利用者', '使用者'],
+  'コンテンツ': ['内容', '情報'],
+  'ブラウザ': ['閲覧ソフト', 'ウェブブラウザ'],
+  'エンジン': ['機構', 'システム'],
+  'IoT': ['アイオーティー', 'モノのインターネット'],
+  'DX': ['デジタル変革', 'デジタルトランスフォーメーション'],
+  'サーバー': ['サーバ', 'サービス提供機'],
+  'データベース': ['DB', 'データ蓄積'],
+  'ネットワーク': ['網', '通信網'],
+  'プログラム': ['ソフトウェア', 'アプリケーション'],
+  'API': ['エーピーアイ', 'インターフェース'],
+  'OS': ['オペレーティングシステム', 'システム基盤'],
+  'クラウド': ['雲計算', 'オンラインサービス'],
+  'ビッグデータ': ['大量データ', 'データ群'],
+  'ロボット': ['自動機械', '機械人間'],
+  'VR': ['仮想現実', 'バーチャルリアリティ'],
+  'AR': ['拡張現実', '混合現実'],
+  '5G': ['第5世代移動通信', '高速通信'],
+  'ゲーム': ['遊戯', 'エンターテイメント'],
+  'SNS': ['ソーシャルネットワーク', '社交媒体'],
+  'ECサイト': ['電子商取引', 'オンラインショップ'],
+  'フィンテック': ['金融技術', 'デジタル金融'],
+  'ブロックチェーン': ['分散台帳', 'チェーン技術'],
+  '仮想通貨': ['暗号通貨', 'デジタル通貨'],
+  'NFT': ['非代替トークン', 'デジタル資産'],
+  'メタバース': ['仮想空間', 'デジタル世界']
+};
+
+// RSS用安定ID生成関数
 function generateStableIdForRSS(url, title, publishDate) {
     const baseString = `${url.trim().toLowerCase()}|${title.trim()}|${publishDate}`;
     let hash = 0;
@@ -51,7 +104,147 @@ function generateStableIdForRSS(url, title, publishDate) {
     return `stable_${hashStr}_${baseString.length}`;
 }
 
-// 【修正】旧generateUniqueId関数は削除し、安定ID生成のみ使用
+// 【新機能】WordNetデータベースセットアップ
+async function setupWordNet() {
+  console.log('📚 WordNetデータベースセットアップ開始...');
+  const dbPath = path.join(__dirname, 'wnjpn.db');
+  
+  if (!fs.existsSync(dbPath)) {
+    console.log('⚠️  WordNetデータベースファイルが見つかりません。簡易辞書を使用します。');
+    return false;
+  }
+  
+  try {
+    wordnetDb = new sqlite3.Database(dbPath);
+    console.log('✅ WordNetデータベース接続成功');
+    return true;
+  } catch (error) {
+    console.error('❌ WordNetデータベース接続エラー:', error);
+    return false;
+  }
+}
+
+// 【新機能】WordNetから類義語を取得
+function getSynonymsFromWordNet(word) {
+  return new Promise((resolve) => {
+    if (!wordnetDb) {
+      resolve([]);
+      return;
+    }
+
+    const wordsql = `
+      SELECT DISTINCT sense.synset AS synset 
+      FROM word 
+      JOIN sense ON sense.wordid = word.wordid 
+      WHERE word.lemma = ? AND word.lang = 'jpn'
+    `;
+
+    wordnetDb.all(wordsql, [word], (err, wordrows) => {
+      if (err || !wordrows || wordrows.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      const synsets = wordrows.map(row => row.synset);
+      if (synsets.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      const synosql = `
+        SELECT DISTINCT word.lemma AS lemma 
+        FROM sense 
+        JOIN word ON word.wordid = sense.wordid 
+        WHERE sense.synset IN (${synsets.map(() => '?').join(',')}) 
+        AND word.lang = 'jpn' 
+        AND word.lemma != ?
+        LIMIT 5
+      `;
+
+      wordnetDb.all(synosql, [...synsets, word], (synoerr, synorows) => {
+        if (synoerr || !synorows) {
+          resolve([]);
+          return;
+        }
+
+        const synonyms = synorows.map(row => row.lemma).slice(0, 2);
+        resolve(synonyms);
+      });
+    });
+  });
+}
+
+// 【新機能】OpenAI APIから類義語を取得（API KEYが設定されている場合）
+async function getSynonymsFromOpenAI(word) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return [];
+  }
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{
+          role: 'user',
+          content: `「${word}」の日本語での同義語・類義語を2つだけ、カンマ区切りで回答してください。「スマホ」なら「スマートフォン,携帯電話」のように。説明は不要です。`
+        }],
+        max_tokens: 50,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content?.trim();
+    
+    if (content) {
+      return content.split(',').map(s => s.trim()).filter(s => s.length > 0).slice(0, 2);
+    }
+    return [];
+  } catch (error) {
+    console.error('OpenAI API エラー:', error.message);
+    return [];
+  }
+}
+
+// 【新機能】統合類義語取得関数
+async function getSynonyms(word) {
+  console.log(`🔍 [${word}] 類義語検索開始`);
+  
+  // 1. WordNetから試行
+  let synonyms = await getSynonymsFromWordNet(word);
+  console.log(`📚 [${word}] WordNet結果: ${synonyms.join(', ')}`);
+  
+  // 2. WordNetで見つからない場合はOpenAI APIを試行
+  if (synonyms.length === 0) {
+    synonyms = await getSynonymsFromOpenAI(word);
+    console.log(`🤖 [${word}] OpenAI結果: ${synonyms.join(', ')}`);
+  }
+  
+  // 3. それでも見つからない場合は簡易辞書を使用
+  if (synonyms.length === 0 && simpleSynonymDict[word]) {
+    synonyms = simpleSynonymDict[word].slice(0, 2);
+    console.log(`📖 [${word}] 簡易辞書結果: ${synonyms.join(', ')}`);
+  }
+  
+  // 重複排除と元の単語除外
+  const filteredSynonyms = synonyms
+    .filter((syn, index, arr) => arr.indexOf(syn) === index)
+    .filter(syn => syn !== word && syn.length > 0)
+    .slice(0, 2);
+  
+  console.log(`✅ [${word}] 最終類義語: ${filteredSynonyms.join(', ')}`);
+  return filteredSynonyms;
+}
 
 async function setupMecab() {
   console.log('🔍 MeCab辞書パス検索開始...');
@@ -104,7 +297,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【修正】フォルダ構造対応版のOPML読み込み
+// フォルダ構造対応版のOPML読み込み
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -118,7 +311,7 @@ async function loadOPML() {
     console.log(`📄 OPMLファイル読み込み成功: ${opmlContent.length}文字`);
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
-    if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body[0].outline) {
+    if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body.outline) {
       console.error('❌ OPML構造が不正です');
       console.error('OPML内容:', JSON.stringify(result, null, 2).substring(0, 500));
       return [];
@@ -227,7 +420,7 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// 🔧 修正: 配列内$.href構造に完全対応
+// URL抽出関数
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
@@ -287,7 +480,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
-    // 日付フィルター処理は既存通り
+    // 日付フィルター処理
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const now = new Date();
     const publishDate = parseDate(pubDate);
@@ -302,13 +495,27 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     }
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
-    const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
     
-    // 【重要修正】安定したID生成に変更
+    // 【修正】キーワード抽出を上位3つに限定し、類義語を追加
+    const baseKeywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
+    const top3Keywords = baseKeywords.slice(0, 3);
+    
+    // 各キーワードに対して類義語を取得
+    const keywordsWithSynonyms = [];
+    for (const keyword of top3Keywords) {
+      keywordsWithSynonyms.push(keyword);
+      
+      const synonyms = await getSynonyms(keyword);
+      keywordsWithSynonyms.push(...synonyms);
+    }
+    
+    console.log(`🔍 [${feedTitle}] 最終キーワード: ${keywordsWithSynonyms.join(', ')}`);
+    
+    // 安定したID生成
     const stableId = generateStableIdForRSS(link, title, publishDate);
     
     return {
-      id: stableId, // 安定したIDを使用
+      id: stableId,
       title: title.trim(),
       url: link.trim(),
       content: cleanDescription,
@@ -318,7 +525,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       readStatus: 'unread',
       readLater: false,
       userRating: 0,
-      keywords,
+      keywords: keywordsWithSynonyms, // キーワード+類義語の統合配列
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -350,12 +557,15 @@ function parseDate(dateString) {
   }
 }
 
+// 【修正】キーワード抽出を上位3つに限定
 async function extractKeywordsWithMecab(text) {
-  const MAX_KEYWORDS = 8;
+  const MAX_KEYWORDS = 3; // 8から3に変更
   const MIN_LENGTH = 2;
   const stopWords = new Set([
     'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
-    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう'
+    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう',
+    'という', 'として', 'について', 'による', 'において', 'に対して',
+    '場合', '時', '際', '中', '間', '後', '前', '上', '下', '内', '外'
   ]);
   try {
     const cleanTexted = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
@@ -369,8 +579,8 @@ async function extractKeywordsWithMecab(text) {
       if (!Array.isArray(token) || token.length < 2) return;
       const surface = token[0];
       const features = Array.isArray(token[1]) ? token[1] : [token[1]];
-      const pos = features[0];
-      const baseForm = features[6] || surface;
+      const pos = features;
+      const baseForm = features[2] || surface;
       const isValidPOS =
         pos === '名詞' || pos === '固有名詞' ||
         (pos === '動詞' && features[1] === '自立') ||
@@ -392,15 +602,15 @@ async function extractKeywordsWithMecab(text) {
   }
 }
 
-// 【修正】main関数内でフォルダ名を記事に追加
+// main関数
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (記事ID安定化対応版)');
+    console.log('🚀 RSS記事取得開始 (類義語機能付き完全版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
-    // MeCabセットアップの詳細ログ
+    // MeCabセットアップ
     console.log('🔧 MeCab初期化開始...');
     const mecabReady = await setupMecab();
     if (!mecabReady) {
@@ -410,7 +620,16 @@ async function main() {
     }
     console.log('✅ MeCab準備完了');
     
-    // OPML読み込みの詳細ログ
+    // 【新機能】WordNetセットアップ
+    console.log('📚 WordNet初期化開始...');
+    const wordnetReady = await setupWordNet();
+    if (wordnetReady) {
+      console.log('✅ WordNet準備完了');
+    } else {
+      console.log('⚠️  WordNet未使用 - 簡易辞書とOpenAI APIを利用');
+    }
+    
+    // OPML読み込み
     console.log('📋 OPML読み込み開始...');
     const feeds = await loadOPML();
     if (feeds.length === 0) {
@@ -434,7 +653,6 @@ async function main() {
         try {
           const articles = await fetchAndParseRSS(feed.url, feed.title);
           
-          // 【重要】記事にフォルダ名を追加
           const articlesWithFolder = articles.map(article => ({
             ...article,
             folderName: feed.folderName
@@ -447,8 +665,8 @@ async function main() {
           errorCount++;
           console.error(`❌ [${feed.title}] 処理失敗:`, error.message);
         }
-        // 待機時間
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 待機時間（類義語取得のため少し長めに）
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
@@ -460,7 +678,6 @@ async function main() {
     console.log(`   失敗: ${errorCount}件`);
     console.log(`   取得記事数: ${allArticles.length}件`);
     
-    // データ処理の続行...
     if (allArticles.length === 0) {
       console.warn('⚠️  記事が取得できませんでしたが、処理を続行します');
     }
@@ -494,6 +711,23 @@ async function main() {
       console.log(`   ${folder}: ${folderStats[folder]}件`);
     });
     
+    // キーワード統計表示
+    const keywordStats = {};
+    limitedArticles.forEach(article => {
+      if (article.keywords && Array.isArray(article.keywords)) {
+        article.keywords.forEach(keyword => {
+          keywordStats[keyword] = (keywordStats[keyword] || 0) + 1;
+        });
+      }
+    });
+    const topKeywords = Object.entries(keywordStats)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10);
+    console.log(`🔑 上位キーワード:`);
+    topKeywords.forEach(([keyword, count]) => {
+      console.log(`   ${keyword}: ${count}回`);
+    });
+    
     // ファイル出力
     if (!fs.existsSync('./mss')) {
       fs.mkdirSync('./mss');
@@ -507,10 +741,17 @@ async function main() {
       processedFeeds: feeds.length,
       successfulFeeds: successCount,
       folderStats: folderStats,
+      keywordStats: Object.fromEntries(topKeywords),
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.4-記事ID安定化対応版'
+        debugVersion: 'v1.5-類義語機能付き完全版',
+        synonymFeatures: {
+          wordnetEnabled: wordnetReady,
+          openaiEnabled: !!process.env.OPENAI_API_KEY,
+          simpleDictEnabled: true,
+          simpleDictSize: Object.keys(simpleSynonymDict).length
+        }
       }
     };
     
@@ -529,7 +770,14 @@ async function main() {
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-    console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
+    console.log(`   キーワード機能: 関連度上位3つ + 類義語最大2つ/キーワード`);
+    console.log(`   類義語ソース: WordNet:${wordnetReady}, OpenAI:${!!process.env.OPENAI_API_KEY}, 簡易辞書:有効`);
+    
+    // WordNetデータベースクローズ
+    if (wordnetDb) {
+      wordnetDb.close();
+      console.log('📚 WordNetデータベース接続終了');
+    }
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -542,7 +790,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（記事ID安定化対応版）');
+console.log('🚀 スクリプト実行開始（類義語機能付き完全版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
