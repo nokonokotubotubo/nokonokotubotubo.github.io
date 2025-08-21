@@ -173,7 +173,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【修正統合】フォルダ構造対応版のOPML読み込み（エラー修正版）
+// 【修正統合】フォルダ構造対応版のOPML読み込み（構文エラー修正版）
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -188,16 +188,16 @@ async function loadOPML() {
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
     
-    // 【修正】より詳細な構造チェックとデバッグ情報
+    // 【修正】構文エラーを修正した構造チェック
     console.log('🔍 OPML構造詳細チェック:');
     console.log(`   result.opml: ${!!result.opml}`);
-    console.log(`   result.opml.body: ${!!result.opml?.body}`);
-    console.log(`   result.opml.body配列: ${Array.isArray(result.opml?.body)}`);
-    console.log(`   result.opml.body.length: ${result.opml?.body?.length}`);
-    console.log(`   result.opml.body[0]: ${!!result.opml?.body?.}`);
-    console.log(`   result.opml.body.outline: ${!!result.opml?.body?.?.outline}`);
-    console.log(`   result.opml.body.outline配列: ${Array.isArray(result.opml?.body?.?.outline)}`);
-    console.log(`   outline要素数: ${result.opml?.body?.?.outline?.length}`);
+    console.log(`   result.opml.body: ${!!(result.opml && result.opml.body)}`);
+    console.log(`   result.opml.body配列: ${!!(result.opml && result.opml.body && Array.isArray(result.opml.body))}`);
+    console.log(`   result.opml.body.length: ${result.opml && result.opml.body ? result.opml.body.length : 'N/A'}`);
+    console.log(`   result.opml.body[0]: ${!!(result.opml && result.opml.body && result.opml.body)}`);
+    console.log(`   result.opml.body.outline: ${!!(result.opml && result.opml.body && result.opml.body && result.opml.body[0].outline)}`);
+    console.log(`   result.opml.body.outline配列: ${!!(result.opml && result.opml.body && result.opml.body && result.opml.body[0].outline && Array.isArray(result.opml.body.outline))}`);
+    console.log(`   outline要素数: ${result.opml && result.opml.body && result.opml.body[0] && result.opml.body.outline ? result.opml.body.outline.length : 'N/A'}`);
     
     // 【修正】より柔軟な構造チェック
     if (!result.opml || !result.opml.body) {
@@ -219,14 +219,14 @@ async function loadOPML() {
     
     outlines.forEach((outline, index) => {
       console.log(`🔍 outline[${index}]処理開始:`);
-      console.log(`   text: ${outline.$?.text}`);
-      console.log(`   title: ${outline.$?.title}`);
+      console.log(`   text: ${outline.$ ? outline.$.text : 'N/A'}`);
+      console.log(`   title: ${outline.$ ? outline.$.title : 'N/A'}`);
       console.log(`   子outline: ${!!outline.outline}`);
       console.log(`   子outline数: ${outline.outline ? (Array.isArray(outline.outline) ? outline.outline.length : 1) : 0}`);
       
       if (outline.outline) {
         // フォルダ内のフィード
-        const folderName = outline.$.text || outline.$.title;
+        const folderName = (outline.$ && outline.$.text) || (outline.$ && outline.$.title) || 'Unknown';
         console.log(`📂 フォルダ処理: ${folderName}`);
         const childOutlines = Array.isArray(outline.outline) ? outline.outline : [outline.outline];
         childOutlines.forEach(feed => {
@@ -559,7 +559,7 @@ function parseDate(dateString) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (キーワード強化・OPML修正版)');
+    console.log('🚀 RSS記事取得開始 (キーワード強化・構文修正版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -712,7 +712,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v2.1-キーワード強化・OPML修正版'
+        debugVersion: 'v2.2-キーワード強化・構文修正版'
       }
     };
     
@@ -733,7 +733,7 @@ async function main() {
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
     console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
     console.log(`   キーワード強化: 関連度上位3つ + 同義語最大2つ/語`);
-    console.log(`   OPML修正: 構造チェック強化・詳細デバッグ情報付き`);
+    console.log(`   構文修正: オプショナルチェイニング構文エラー修正`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -746,7 +746,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（キーワード強化・OPML修正版）');
+console.log('🚀 スクリプト実行開始（キーワード強化・構文修正版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
