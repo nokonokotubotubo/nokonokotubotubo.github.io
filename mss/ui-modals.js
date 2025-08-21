@@ -1015,18 +1015,21 @@
                                         </div>
                                     ` : `
                                         <div class="modal-actions">
-                                            <div style="margin-bottom: 1rem;">
-                                                <label for="githubToken" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">GitHub Personal Access Token</label>
-                                                <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select" style="width: 100%;">
-                                            </div>
-                                            
-                                            <div style="margin-bottom: 1rem;">
-                                                <label for="gistIdInput" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #e2e8f0;">既存のGist ID（任意）</label>
-                                                <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select" style="width: 100%; font-family: monospace;">
-                                            </div>
-                                            
-                                            <button class="action-btn success" onclick="handleSaveGitHubToken()" style="width: 100%; padding: 0.75rem;">GitHub同期を開始</button>
-                                        </div>
+  <div class="form-grid">
+    <div class="form-row">
+      <label for="githubToken" class="form-label">GitHub Personal Access Token</label>
+      <input type="password" id="githubToken" name="githubToken" placeholder="GitHub Personal Access Tokenを入力" class="filter-select form-input">
+    </div>
+
+    <div class="form-row">
+      <label for="gistIdInput" class="form-label">既存のGist ID（任意）</label>
+      <input type="text" id="gistIdInput" name="gistIdInput" placeholder="他のデバイスと同期する場合のみ入力" class="filter-select form-input" style="font-family: monospace;">
+    </div>
+  </div>
+
+  <button class="action-btn success form-submit" onclick="handleSaveGitHubToken()">GitHub同期を開始</button>
+</div>
+
                                     `}
                                 </div>
                             </div>
