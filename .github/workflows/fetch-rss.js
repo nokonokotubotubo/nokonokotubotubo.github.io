@@ -1,5 +1,5 @@
-// エラー詳細出力版（記事ID安定化対応・類義語機能付き完全版）
-console.log('🔍 fetch-rss.js実行開始（類義語機能付き完全版）');
+// エラー詳細出力版（Wikipedia + 簡易辞書版）
+console.log('🔍 fetch-rss.js実行開始（Wikipedia + 簡易辞書版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -22,8 +22,6 @@ try {
   const xml2js = require('xml2js');
   const fetch = require('node-fetch');
   const Mecab = require('mecab-async');
-  const sqlite3 = require('sqlite3').verbose();
-  const path = require('path');
   console.log('✅ 全モジュール読み込み成功');
 } catch (error) {
   console.error('❌ モジュール読み込みエラー:', error);
@@ -34,17 +32,13 @@ const fs = require('fs');
 const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const Mecab = require('mecab-async');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// WordNetデータベース
-let wordnetDb = null;
-
-// 【新機能】簡易同義語辞書（WordNetが利用できない場合の代替）
+// 【拡張】簡易同義語辞書（大幅拡張版）
 const simpleSynonymDict = {
+  // IT・テクノロジー関連
   'スマホ': ['スマートフォン', '携帯電話'],
   'AI': ['人工知能', 'エーアイ'],
   'PC': ['パソコン', 'コンピューター'],
@@ -55,7 +49,7 @@ const simpleSynonymDict = {
   'システム': ['仕組み', '体系'],
   'サービス': ['事業', 'ビジネス'],
   'テクノロジー': ['技術', 'テクノロジ'],
-  'クラウド': ['雲', 'オンライン'],
+  'クラウド': ['雲計算', 'オンライン'],
   'セキュリティ': ['安全性', 'セキュリティー'],
   'プラットフォーム': ['基盤', 'プラットホーム'],
   'ソフトウェア': ['ソフト', 'プログラム'],
@@ -73,20 +67,109 @@ const simpleSynonymDict = {
   'プログラム': ['ソフトウェア', 'アプリケーション'],
   'API': ['エーピーアイ', 'インターフェース'],
   'OS': ['オペレーティングシステム', 'システム基盤'],
-  'クラウド': ['雲計算', 'オンラインサービス'],
   'ビッグデータ': ['大量データ', 'データ群'],
   'ロボット': ['自動機械', '機械人間'],
   'VR': ['仮想現実', 'バーチャルリアリティ'],
   'AR': ['拡張現実', '混合現実'],
   '5G': ['第5世代移動通信', '高速通信'],
-  'ゲーム': ['遊戯', 'エンターテイメント'],
   'SNS': ['ソーシャルネットワーク', '社交媒体'],
-  'ECサイト': ['電子商取引', 'オンラインショップ'],
+  
+  // ビジネス・経済関連
+  'ビジネス': ['事業', '商売'],
+  '企業': ['会社', '法人'],
+  '経済': ['エコノミー', '景気'],
+  '市場': ['マーケット', '相場'],
+  '投資': ['出資', '資金投入'],
+  '売上': ['売り上げ', '収益'],
+  '利益': ['収益', 'プロフィット'],
+  '成長': ['拡大', '発展'],
+  '戦略': ['作戦', 'ストラテジー'],
+  'マーケティング': ['販売促進', '市場開拓'],
+  '顧客': ['お客様', 'カスタマー'],
+  '製品': ['商品', 'プロダクト'],
+  'ブランド': ['銘柄', '商標'],
+  '競合': ['ライバル', '競争相手'],
+  '価格': ['値段', '料金'],
+  '品質': ['クオリティ', '質'],
+  '効率': ['能率', 'エフィシェンシー'],
+  '生産性': ['効率性', 'プロダクティビティ'],
+  
+  // エンターテイメント・メディア関連
+  'ゲーム': ['遊戯', 'エンターテイメント'],
+  'コンテンツ': ['内容', '情報'],
+  'メディア': ['媒体', '報道'],
+  'ニュース': ['報道', '情報'],
+  'エンタメ': ['エンターテイメント', '娯楽'],
+  '映画': ['シネマ', '映像作品'],
+  '音楽': ['ミュージック', '楽曲'],
+  '動画': ['ビデオ', '映像'],
+  '写真': ['フォト', '画像'],
+  '配信': ['ストリーミング', '放送'],
+  
+  // 金融・フィンテック関連
   'フィンテック': ['金融技術', 'デジタル金融'],
   'ブロックチェーン': ['分散台帳', 'チェーン技術'],
   '仮想通貨': ['暗号通貨', 'デジタル通貨'],
   'NFT': ['非代替トークン', 'デジタル資産'],
-  'メタバース': ['仮想空間', 'デジタル世界']
+  'メタバース': ['仮想空間', 'デジタル世界'],
+  '決済': ['支払い', 'ペイメント'],
+  '送金': ['振込', 'マネー転送'],
+  '資産': ['財産', 'アセット'],
+  '投資': ['運用', 'インベストメント'],
+  '保険': ['インシュアランス', '保障'],
+  
+  // 一般用語・形容詞
+  '新しい': ['新規', '最新'],
+  '古い': ['旧式', 'レガシー'],
+  '大きい': ['巨大', 'ビッグ'],
+  '小さい': ['コンパクト', 'ミニ'],
+  '速い': ['高速', 'スピーディー'],
+  '遅い': ['低速', 'スロー'],
+  '便利': ['使いやすい', '実用的'],
+  '簡単': ['シンプル', '容易'],
+  '複雑': ['煩雑', '難解'],
+  '重要': ['大切', '必要'],
+  '効果的': ['有効', '実用的'],
+  '人気': ['評判', 'ポピュラー'],
+  '最適': ['ベスト', '理想的'],
+  '安全': ['セキュア', '安心'],
+  '危険': ['リスク', 'ハザード'],
+  
+  // 業界・分野関連
+  '医療': ['メディカル', '医学'],
+  '教育': ['エデュケーション', '学習'],
+  '交通': ['運輸', '輸送'],
+  '建設': ['建築', '工事'],
+  '製造': ['メーカー', '生産'],
+  '小売': ['販売', 'リテール'],
+  '物流': ['配送', 'ロジスティクス'],
+  '不動産': ['リアルエステート', '物件'],
+  '農業': ['農作', 'アグリ'],
+  '環境': ['エコ', '自然'],
+  
+  // 時間・場所関連
+  '今日': ['本日', 'きょう'],
+  '明日': ['あす', 'あした'],
+  '昨日': ['きのう', '前日'],
+  '今年': ['本年', '当年'],
+  '来年': ['翌年', 'らいねん'],
+  '去年': ['昨年', '前年'],
+  '世界': ['グローバル', '国際'],
+  '日本': ['国内', 'ジャパン'],
+  '東京': ['首都', '都内'],
+  '地方': ['ローカル', '地域'],
+  
+  // 動作・状態関連
+  '開発': ['開発', 'デベロップメント'],
+  '改善': ['向上', 'インプルーブ'],
+  '分析': ['解析', 'アナリシス'],
+  '管理': ['マネジメント', '運営'],
+  '運用': ['オペレーション', '稼働'],
+  '導入': ['実装', 'インプリメント'],
+  '更新': ['アップデート', '新版'],
+  '削除': ['除去', 'デリート'],
+  '追加': ['付加', 'アド'],
+  '変更': ['修正', 'チェンジ']
 };
 
 // RSS用安定ID生成関数
@@ -104,146 +187,191 @@ function generateStableIdForRSS(url, title, publishDate) {
     return `stable_${hashStr}_${baseString.length}`;
 }
 
-// 【新機能】WordNetデータベースセットアップ
-async function setupWordNet() {
-  console.log('📚 WordNetデータベースセットアップ開始...');
-  const dbPath = path.join(__dirname, 'wnjpn.db');
-  
-  if (!fs.existsSync(dbPath)) {
-    console.log('⚠️  WordNetデータベースファイルが見つかりません。簡易辞書を使用します。');
-    return false;
-  }
-  
+// 【新機能】Wikipedia APIを使った類義語取得
+async function getSynonymsFromWikipedia(word) {
   try {
-    wordnetDb = new sqlite3.Database(dbPath);
-    console.log('✅ WordNetデータベース接続成功');
-    return true;
+    console.log(`📚 [${word}] Wikipedia検索開始`);
+    const synonyms = [];
+    
+    // 1. Wikipedia検索APIで関連記事を取得
+    const searchUrl = `https://ja.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(word)}&limit=8&format=json&origin=*`;
+    const searchResponse = await fetch(searchUrl, { timeout: 5000 });
+    
+    if (!searchResponse.ok) {
+      console.log(`⚠️  [${word}] Wikipedia検索API応答エラー`);
+      return [];
+    }
+    
+    const searchData = await searchResponse.json();
+    
+    if (searchData[1] && searchData[1].length > 0) {
+      console.log(`📊 [${word}] Wikipedia検索結果: ${searchData[1].length}件`);
+      
+      // 関連語候補を抽出
+      searchData[1].forEach(title => {
+        if (title !== word && synonyms.length < 3) {
+          // 類似度判定
+          if (isSimilarTerm(word, title)) {
+            synonyms.push(title);
+            console.log(`✅ [${word}] Wikipedia類義語候補: ${title}`);
+          }
+        }
+      });
+    }
+    
+    // 2. 記事の要約から追加的な類義語を抽出
+    if (synonyms.length < 2) {
+      try {
+        const summaryUrl = `https://ja.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(word)}`;
+        const summaryResponse = await fetch(summaryUrl, { timeout: 5000 });
+        
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          
+          // タイトルの別表記をチェック
+          if (summaryData.displaytitle && summaryData.displaytitle !== word && synonyms.length < 2) {
+            const displayTitle = summaryData.displaytitle.replace(/<[^>]*>/g, ''); // HTMLタグ除去
+            if (displayTitle !== word && displayTitle.length > 1) {
+              synonyms.push(displayTitle);
+              console.log(`✅ [${word}] Wikipedia別表記: ${displayTitle}`);
+            }
+          }
+          
+          // 説明文から類義語を抽出（カッコ内の別名など）
+          if (summaryData.extract && synonyms.length < 2) {
+            const aliases = extractAliasesFromText(summaryData.extract, word);
+            aliases.forEach(alias => {
+              if (synonyms.length < 2 && !synonyms.includes(alias)) {
+                synonyms.push(alias);
+                console.log(`✅ [${word}] Wikipedia別名抽出: ${alias}`);
+              }
+            });
+          }
+        }
+      } catch (summaryError) {
+        console.log(`⚠️  [${word}] Wikipedia要約取得エラー:`, summaryError.message);
+      }
+    }
+    
+    const result = synonyms.slice(0, 2);
+    console.log(`📚 [${word}] Wikipedia最終結果: ${result.join(', ')}`);
+    return result;
+    
   } catch (error) {
-    console.error('❌ WordNetデータベース接続エラー:', error);
-    return false;
+    console.error(`❌ [${word}] Wikipedia API エラー:`, error.message);
+    return [];
   }
 }
 
-// 【新機能】WordNetから類義語を取得
-function getSynonymsFromWordNet(word) {
-  return new Promise((resolve) => {
-    if (!wordnetDb) {
-      resolve([]);
-      return;
-    }
+// 類似度判定関数
+function isSimilarTerm(original, candidate) {
+  // 完全一致は除外
+  if (original === candidate) return false;
+  
+  // 長さチェック
+  if (candidate.length < 2 || candidate.length > 20) return false;
+  
+  // 基本的な類似度チェック
+  const originalLower = original.toLowerCase();
+  const candidateLower = candidate.toLowerCase();
+  
+  // 包含関係チェック
+  if (candidateLower.includes(originalLower) || originalLower.includes(candidateLower)) {
+    return true;
+  }
+  
+  // カタカナ・ひらがな変換での類似度チェック
+  const originalKana = convertToKatakana(original);
+  const candidateKana = convertToKatakana(candidate);
+  
+  if (originalKana === candidateKana) return true;
+  
+  // 英数字混在パターン
+  const hasAlpha = /[a-zA-Z]/.test(original) || /[a-zA-Z]/.test(candidate);
+  if (hasAlpha && (candidateLower.includes(originalLower.substring(0, 3)) || 
+                   originalLower.includes(candidateLower.substring(0, 3)))) {
+    return true;
+  }
+  
+  return false;
+}
 
-    const wordsql = `
-      SELECT DISTINCT sense.synset AS synset 
-      FROM word 
-      JOIN sense ON sense.wordid = word.wordid 
-      WHERE word.lemma = ? AND word.lang = 'jpn'
-    `;
-
-    wordnetDb.all(wordsql, [word], (err, wordrows) => {
-      if (err || !wordrows || wordrows.length === 0) {
-        resolve([]);
-        return;
-      }
-
-      const synsets = wordrows.map(row => row.synset);
-      if (synsets.length === 0) {
-        resolve([]);
-        return;
-      }
-
-      const synosql = `
-        SELECT DISTINCT word.lemma AS lemma 
-        FROM sense 
-        JOIN word ON word.wordid = sense.wordid 
-        WHERE sense.synset IN (${synsets.map(() => '?').join(',')}) 
-        AND word.lang = 'jpn' 
-        AND word.lemma != ?
-        LIMIT 5
-      `;
-
-      wordnetDb.all(synosql, [...synsets, word], (synoerr, synorows) => {
-        if (synoerr || !synorows) {
-          resolve([]);
-          return;
-        }
-
-        const synonyms = synorows.map(row => row.lemma).slice(0, 2);
-        resolve(synonyms);
-      });
-    });
+// カタカナ変換関数
+function convertToKatakana(str) {
+  return str.replace(/[\u3041-\u3096]/g, (match) => {
+    const char = match.charCodeAt(0) + 0x60;
+    return String.fromCharCode(char);
   });
 }
 
-// 【新機能】OpenAI APIから類義語を取得（API KEYが設定されている場合）
-async function getSynonymsFromOpenAI(word) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return [];
-  }
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [{
-          role: 'user',
-          content: `「${word}」の日本語での同義語・類義語を2つだけ、カンマ区切りで回答してください。「スマホ」なら「スマートフォン,携帯電話」のように。説明は不要です。`
-        }],
-        max_tokens: 50,
-        temperature: 0.3
-      })
+// テキストから別名を抽出
+function extractAliasesFromText(text, originalWord) {
+  const aliases = [];
+  
+  // カッコ内の別名を抽出
+  const bracketMatches = text.match(/[（(]([^）)]+)[）)]/g);
+  if (bracketMatches) {
+    bracketMatches.forEach(match => {
+      const alias = match.replace(/[（()）]/g, '');
+      if (alias !== originalWord && alias.length > 1 && alias.length < 15) {
+        aliases.push(alias);
+      }
     });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    
-    if (content) {
-      return content.split(',').map(s => s.trim()).filter(s => s.length > 0).slice(0, 2);
-    }
-    return [];
-  } catch (error) {
-    console.error('OpenAI API エラー:', error.message);
-    return [];
   }
+  
+  // 「〜とも呼ばれる」「〜または」パターンを抽出
+  const alsoCalledMatches = text.match(/(とも呼ばれる|または|もしくは|別名|通称)([^、。]+)/g);
+  if (alsoCalledMatches) {
+    alsoCalledMatches.forEach(match => {
+      const alias = match.replace(/(とも呼ばれる|または|もしくは|別名|通称)/, '').trim();
+      if (alias !== originalWord && alias.length > 1 && alias.length < 15) {
+        aliases.push(alias);
+      }
+    });
+  }
+  
+  return aliases;
 }
 
-// 【新機能】統合類義語取得関数
+// 【統合】類義語取得関数（Wikipedia + 簡易辞書）
 async function getSynonyms(word) {
-  console.log(`🔍 [${word}] 類義語検索開始`);
+  console.log(`🔍 [${word}] 類義語検索開始（Wikipedia + 簡易辞書版）`);
+  let synonyms = [];
+  let source = '';
   
-  // 1. WordNetから試行
-  let synonyms = await getSynonymsFromWordNet(word);
-  console.log(`📚 [${word}] WordNet結果: ${synonyms.join(', ')}`);
-  
-  // 2. WordNetで見つからない場合はOpenAI APIを試行
-  if (synonyms.length === 0) {
-    synonyms = await getSynonymsFromOpenAI(word);
-    console.log(`🤖 [${word}] OpenAI結果: ${synonyms.join(', ')}`);
+  try {
+    // 1. Wikipedia APIから類義語を取得
+    synonyms = await getSynonymsFromWikipedia(word);
+    if (synonyms.length > 0) {
+      source = 'Wikipedia';
+    }
+    
+    // 2. 簡易辞書から類義語を取得（Wikipediaで不足の場合）
+    if (synonyms.length < 2 && simpleSynonymDict[word]) {
+      const dictSynonyms = simpleSynonymDict[word].slice(0, 2 - synonyms.length);
+      // Wikipedia結果と重複しないものを追加
+      dictSynonyms.forEach(syn => {
+        if (!synonyms.includes(syn)) {
+          synonyms.push(syn);
+        }
+      });
+      if (dictSynonyms.length > 0) {
+        source = source ? `${source}+簡易辞書` : '簡易辞書';
+      }
+    }
+    
+    // 重複排除と元の単語除外
+    const filteredSynonyms = synonyms
+      .filter((syn, index, arr) => arr.indexOf(syn) === index)
+      .filter(syn => syn !== word && syn.length > 0)
+      .slice(0, 2);
+    
+    console.log(`✅ [${word}] 類義語取得完了 (${source}): ${filteredSynonyms.join(', ')}`);
+    return filteredSynonyms;
+  } catch (error) {
+    console.error(`❌ [${word}] 類義語取得エラー:`, error.message);
+    return [];
   }
-  
-  // 3. それでも見つからない場合は簡易辞書を使用
-  if (synonyms.length === 0 && simpleSynonymDict[word]) {
-    synonyms = simpleSynonymDict[word].slice(0, 2);
-    console.log(`📖 [${word}] 簡易辞書結果: ${synonyms.join(', ')}`);
-  }
-  
-  // 重複排除と元の単語除外
-  const filteredSynonyms = synonyms
-    .filter((syn, index, arr) => arr.indexOf(syn) === index)
-    .filter(syn => syn !== word && syn.length > 0)
-    .slice(0, 2);
-  
-  console.log(`✅ [${word}] 最終類義語: ${filteredSynonyms.join(', ')}`);
-  return filteredSynonyms;
 }
 
 async function setupMecab() {
@@ -313,7 +441,6 @@ async function loadOPML() {
     const result = await parser.parseStringPromise(opmlContent);
     if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body.outline) {
       console.error('❌ OPML構造が不正です');
-      console.error('OPML内容:', JSON.stringify(result, null, 2).substring(0, 500));
       return [];
     }
     
@@ -322,7 +449,6 @@ async function loadOPML() {
     
     outlines.forEach(outline => {
       if (outline.outline) {
-        // フォルダ内のフィード
         const folderName = outline.$.text || outline.$.title;
         console.log(`📂 フォルダ処理: ${folderName}`);
         outline.outline.forEach(feed => {
@@ -336,7 +462,6 @@ async function loadOPML() {
           });
         });
       } else {
-        // フォルダなしのフィード
         console.log(`📄 単体フィード処理: ${outline.$.title}`);
         feeds.push({
           id: generateStableIdForRSS(outline.$.xmlUrl, outline.$.title, new Date().toISOString()),
@@ -353,7 +478,6 @@ async function loadOPML() {
     return feeds;
   } catch (error) {
     console.error('❌ OPML読み込みエラー:', error);
-    console.error('エラー詳細:', error.stack);
     return [];
   }
 }
@@ -378,77 +502,54 @@ async function fetchAndParseRSS(url, title) {
       trim: true
     });
     const result = await parser.parseStringPromise(xmlContent);
-    console.log(`🔍 [${title}] XML解析結果の構造確認:`);
-    console.log(`   トップレベルキー: ${Object.keys(result).join(', ')}`);
 
     const articles = [];
     let items = [];
     if (result.rss && result.rss.channel && result.rss.channel.item) {
       items = Array.isArray(result.rss.channel.item) ? result.rss.channel.item : [result.rss.channel.item];
-      console.log(`📊 [${title}] RSS形式検出: ${items.length}件のアイテム`);
     } else if (result.feed && result.feed.entry) {
       items = Array.isArray(result.feed.entry) ? result.feed.entry : [result.feed.entry];
-      console.log(`📊 [${title}] Atom形式検出: ${items.length}件のエントリ`);
     } else if (result['rdf:RDF'] && result['rdf:RDF'].item) {
       items = Array.isArray(result['rdf:RDF'].item) ? result['rdf:RDF'].item : [result['rdf:RDF'].item];
-      console.log(`📊 [${title}] RDF形式検出: ${items.length}件のitem`);
-    } else {
-      console.log(`❓ [${title}] 不明なXML構造:`);
-      console.log(`   結果オブジェクト: ${JSON.stringify(result, null, 2).substring(0, 300)}...`);
     }
 
     console.log(`🔄 [${title}] アイテム解析開始: ${items.length}件を処理`);
-    let validArticles = 0, invalidArticles = 0;
     for (const item of items.slice(0, 20)) {
       const article = await parseRSSItem(item, url, title);
       if (article) {
-        articles.push(article); validArticles++;
-        console.log(`✅ [${title}] 記事解析成功: "${article.title.substring(0, 50)}..."`);
-      } else {
-        invalidArticles++;
+        articles.push(article);
       }
     }
-    console.log(`📈 [${title}] 解析完了: 有効記事${validArticles}件, 無効記事${invalidArticles}件`);
     console.log(`🎉 [${title}] 取得完了: ${articles.length}件`);
     return articles;
   } catch (error) {
     console.error(`❌ [${title}] RSS取得エラー: ${error.message}`);
-    console.error(`   URL: ${url}`);
-    console.error(`   エラータイプ: ${error.name}`);
-    console.error(`   スタックトレース: ${error.stack}`);
     return [];
   }
 }
 
-// URL抽出関数
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
 
 function extractUrlFromItem(item) {
-  // link: string
   if (typeof item.link === 'string' && looksLikeUrl(item.link)) return item.link;
   
-  // link: object (非配列)
   if (typeof item.link === 'object' && item.link && !Array.isArray(item.link)) {
     if (item.link.$ && item.link.$.href && looksLikeUrl(item.link.$.href)) return item.link.$.href;
     if (item.link.href && looksLikeUrl(item.link.href)) return item.link.href;
     if (item.link._ && looksLikeUrl(item.link._)) return item.link._;
   }
   
-  // link: array
   if (Array.isArray(item.link)) {
-    // 優先順位1: rel="alternate" (標準Atom)
     for (const l of item.link) {
       if (l && l.$ && l.$.rel === 'alternate' && looksLikeUrl(l.$.href)) return l.$.href;
     }
     
-    // 優先順位2: l.$.href (rel属性なしまたは他の値、ただしenclosureは除外)
     for (const l of item.link) {
       if (l && l.$ && l.$.href && l.$.rel !== 'enclosure' && looksLikeUrl(l.$.href)) return l.$.href;
     }
     
-    // 優先順位3: その他のパターン
     for (const l of item.link) {
       if (l && l.href && looksLikeUrl(l.href)) return l.href;
       if (l && l._ && looksLikeUrl(l._)) return l._;
@@ -456,7 +557,6 @@ function extractUrlFromItem(item) {
     }
   }
   
-  // その他のフォールバック
   if (item['rdf:about'] && looksLikeUrl(item['rdf:about'])) return item['rdf:about'];
   if (item.guid) {
     if (typeof item.guid === 'object') {
@@ -469,18 +569,14 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【重要修正】安定ID生成版のparseRSSItem関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
-    console.log(`🔍 [${feedTitle}] 記事解析開始`);
-    console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
     const title = cleanText(item.title || '');
     const link = extractUrlFromItem(item);
     const description = cleanText(item.description || item.summary || item.content?._ || item.content || '');
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
     const category = cleanText(item.category?._ || item.category || 'General');
     
-    // 日付フィルター処理
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const now = new Date();
     const publishDate = parseDate(pubDate);
@@ -496,7 +592,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
     
-    // 【修正】キーワード抽出を上位3つに限定し、類義語を追加
+    // キーワード抽出を上位3つに限定し、類義語を追加
     const baseKeywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
     const top3Keywords = baseKeywords.slice(0, 3);
     
@@ -509,9 +605,6 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       keywordsWithSynonyms.push(...synonyms);
     }
     
-    console.log(`🔍 [${feedTitle}] 最終キーワード: ${keywordsWithSynonyms.join(', ')}`);
-    
-    // 安定したID生成
     const stableId = generateStableIdForRSS(link, title, publishDate);
     
     return {
@@ -525,7 +618,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       readStatus: 'unread',
       readLater: false,
       userRating: 0,
-      keywords: keywordsWithSynonyms, // キーワード+類義語の統合配列
+      keywords: keywordsWithSynonyms,
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -557,9 +650,8 @@ function parseDate(dateString) {
   }
 }
 
-// 【修正】キーワード抽出を上位3つに限定
 async function extractKeywordsWithMecab(text) {
-  const MAX_KEYWORDS = 3; // 8から3に変更
+  const MAX_KEYWORDS = 3;
   const MIN_LENGTH = 2;
   const stopWords = new Set([
     'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
@@ -606,41 +698,29 @@ async function extractKeywordsWithMecab(text) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (類義語機能付き完全版)');
+    console.log('🚀 RSS記事取得開始 (Wikipedia + 簡易辞書版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
-    console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
     // MeCabセットアップ
     console.log('🔧 MeCab初期化開始...');
     const mecabReady = await setupMecab();
     if (!mecabReady) {
       console.error('❌ MeCabの設定に失敗しました');
-      console.error('⭕ システム確認: MeCabがインストールされているか確認してください');
       process.exit(1);
     }
     console.log('✅ MeCab準備完了');
     
-    // 【新機能】WordNetセットアップ
-    console.log('📚 WordNet初期化開始...');
-    const wordnetReady = await setupWordNet();
-    if (wordnetReady) {
-      console.log('✅ WordNet準備完了');
-    } else {
-      console.log('⚠️  WordNet未使用 - 簡易辞書とOpenAI APIを利用');
-    }
+    // 類義語機能の確認
+    console.log('📚 類義語機能確認...');
+    console.log(`   Wikipedia API: 利用可能`);
+    console.log(`   簡易辞書語彙数: ${Object.keys(simpleSynonymDict).length}語`);
     
-    // OPML読み込み
-    console.log('📋 OPML読み込み開始...');
     const feeds = await loadOPML();
     if (feeds.length === 0) {
       console.error('❌ フィードが取得できませんでした');
-      console.error('⭕ システム確認: .github/workflows/rsslist.xmlが存在するか確認してください');
       process.exit(1);
     }
-    console.log(`📊 フィード情報: ${feeds.length}個のRSSフィードを処理します`);
     
-    // RSS取得処理
-    console.log('🌐 RSS取得処理開始...');
     const allArticles = [];
     let processedCount = 0;
     let successCount = 0;
@@ -660,30 +740,22 @@ async function main() {
           
           allArticles.push(...articlesWithFolder);
           successCount++;
-          console.log(`✅ [${feed.title}] 処理成功: ${articles.length}件の記事を取得 (フォルダ: ${feed.folderName})`);
+          console.log(`✅ [${feed.title}] 処理成功: ${articles.length}件の記事を取得`);
         } catch (error) {
           errorCount++;
           console.error(`❌ [${feed.title}] 処理失敗:`, error.message);
         }
-        // 待機時間（類義語取得のため少し長めに）
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wikipedia APIレート制限を考慮した待機
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }
     
     const processingTime = (Date.now() - startTime) / 1000;
-    console.log(`\n⏱️  フィード処理完了: ${processingTime.toFixed(1)}秒`);
-    console.log(`📊 処理統計:`);
-    console.log(`   処理フィード数: ${processedCount}`);
-    console.log(`   成功: ${successCount}件`);
-    console.log(`   失敗: ${errorCount}件`);
+    console.log(`\n📊 処理統計:`);
     console.log(`   取得記事数: ${allArticles.length}件`);
-    
-    if (allArticles.length === 0) {
-      console.warn('⚠️  記事が取得できませんでしたが、処理を続行します');
-    }
+    console.log(`   処理時間: ${processingTime.toFixed(1)}秒`);
     
     // 重複除去処理
-    console.log('🔄 重複除去処理開始...');
     const uniqueArticles = [];
     const seen = new Set();
     allArticles.forEach(article => {
@@ -693,45 +765,35 @@ async function main() {
         uniqueArticles.push(article);
       }
     });
-    console.log(`📊 重複除去結果: ${allArticles.length}件 → ${uniqueArticles.length}件`);
     
-    // ソートと制限
     uniqueArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
     const limitedArticles = uniqueArticles.slice(0, 1000);
-    console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1000件）`);
     
-    // フォルダ統計表示
+    // 統計情報生成
     const folderStats = {};
+    const keywordStats = {};
     limitedArticles.forEach(article => {
       const folder = article.folderName || 'その他';
       folderStats[folder] = (folderStats[folder] || 0) + 1;
-    });
-    console.log(`📂 フォルダ別記事数:`);
-    Object.keys(folderStats).sort().forEach(folder => {
-      console.log(`   ${folder}: ${folderStats[folder]}件`);
-    });
-    
-    // キーワード統計表示
-    const keywordStats = {};
-    limitedArticles.forEach(article => {
+      
       if (article.keywords && Array.isArray(article.keywords)) {
         article.keywords.forEach(keyword => {
           keywordStats[keyword] = (keywordStats[keyword] || 0) + 1;
         });
       }
     });
+    
     const topKeywords = Object.entries(keywordStats)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 10);
-    console.log(`🔑 上位キーワード:`);
-    topKeywords.forEach(([keyword, count]) => {
+      .slice(0, 15);
+      
+    console.log(`🔑 上位キーワード (Wikipedia+簡易辞書):`);
+    topKeywords.slice(0, 10).forEach(([keyword, count]) => {
       console.log(`   ${keyword}: ${count}回`);
     });
     
-    // ファイル出力
     if (!fs.existsSync('./mss')) {
       fs.mkdirSync('./mss');
-      console.log('📁 mssディレクトリを作成しました');
     }
     
     const output = {
@@ -745,12 +807,13 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.5-類義語機能付き完全版',
+        debugVersion: 'v2.0-Wikipedia+簡易辞書版',
         synonymFeatures: {
-          wordnetEnabled: wordnetReady,
-          openaiEnabled: !!process.env.OPENAI_API_KEY,
+          wikipediaEnabled: true,
           simpleDictEnabled: true,
-          simpleDictSize: Object.keys(simpleSynonymDict).length
+          simpleDictSize: Object.keys(simpleSynonymDict).length,
+          wordnetEnabled: false,
+          openaiEnabled: false
         }
       }
     };
@@ -760,43 +823,16 @@ async function main() {
     console.log('\n🎉 RSS記事取得完了!');
     console.log(`📊 最終結果:`);
     console.log(`   保存記事数: ${limitedArticles.length}件`);
-    console.log(`   最終更新: ${output.lastUpdated}`);
     console.log(`   総実行時間: ${totalTime.toFixed(1)}秒`);
-    console.log(`   処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
-    console.log(`💾 ファイル: ./mss/articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
-    
-    // デバッグサマリー
-    console.log(`\n🔍 デバッグサマリー:`);
-    console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
-    console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
-    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-    console.log(`   キーワード機能: 関連度上位3つ + 類義語最大2つ/キーワード`);
-    console.log(`   類義語ソース: WordNet:${wordnetReady}, OpenAI:${!!process.env.OPENAI_API_KEY}, 簡易辞書:有効`);
-    
-    // WordNetデータベースクローズ
-    if (wordnetDb) {
-      wordnetDb.close();
-      console.log('📚 WordNetデータベース接続終了');
-    }
+    console.log(`   類義語ソース: Wikipedia API + 簡易辞書(${Object.keys(simpleSynonymDict).length}語)`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
-    console.error('エラー詳細:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
     process.exit(1);
   }
 }
 
-// 実行開始
-console.log('🚀 スクリプト実行開始（類義語機能付き完全版）');
+console.log('🚀 スクリプト実行開始（Wikipedia + 簡易辞書版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
-  console.error('エラー詳細:', {
-    name: error.name,
-    message: error.message,
-    stack: error.stack
-  });
   process.exit(1);
 });
