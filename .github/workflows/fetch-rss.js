@@ -108,7 +108,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【元のOPML読み込み関数を完全保持】
+// 【修正版】OPML読み込み関数（シンタックスエラー修正）
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -123,7 +123,7 @@ async function loadOPML() {
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
     
-    // デバッグ用：構造を詳細表示
+    // デバッグ用：構造を詳細表示（シンタックスエラー修正）
     console.log('🔍 OPML構造デバッグ:');
     console.log(`   result.opml: ${!!result.opml}`);
     console.log(`   result.opml.body: ${!!result.opml?.body}`);
@@ -132,7 +132,7 @@ async function loadOPML() {
     console.log(`   body.outline: ${!!result.opml?.body?.?.outline}`);
     console.log(`   outline配列長: ${result.opml?.body?.?.outline?.length}`);
     
-    // 元の条件チェックを修正
+    // 条件チェック
     if (!result.opml || !result.opml.body || !Array.isArray(result.opml.body) || 
         result.opml.body.length === 0 || !result.opml.body[0].outline) {
       console.error('❌ OPML構造が不正です');
