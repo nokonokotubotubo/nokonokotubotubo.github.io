@@ -1666,3 +1666,58 @@ border-color: #ccc !important;
 img[alt="icon-192"] {
   image-rendering: -webkit-optimize-contrast;
 }
+
+/* ==== クラウド同期フォームの整列（トークン/Gist ID）==== */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1rem; /* 行間/列間 */
+  width: 100%;
+  align-items: start;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.form-input {
+  width: 100%;
+  min-height: 40px;
+}
+
+.form-submit {
+  margin-left: auto; /* 右寄せ */
+  padding: 0.75rem 1.25rem;
+  min-width: 220px;
+}
+
+/* タブレット以下は1カラムで縦積み */
+@media (max-width: 1024px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-submit {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* 入力の上下バランスとズレ防止（既存filter-selectに合わせる） */
+.form-input.filter-select {
+  padding: 0.5rem 0.8rem;
+  line-height: 1.2;
+}
+
+/* ラベルの下付きズレを防止 */
+.form-row .form-label {
+  display: inline-block;
+  margin-bottom: 0;
+}
