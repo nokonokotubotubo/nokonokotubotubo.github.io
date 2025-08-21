@@ -2,7 +2,6 @@
 <opml version="1.0">
   <body>
     <outline text="生成AI" title="生成AI">
-      <outline text="生成AI ｜AIsmiley AIニュース｜DXを推進するAIポータルメディア「AIsmiley」" title="生成AI ｜AIsmiley AIニュース｜DXを推進するAIポータルメディア「AIsmiley」" type="rss" xmlUrl="https://aismiley.co.jp/ai-news_category/generative-ai/feed/" htmlUrl="https://aismiley.co.jp/"/>
       <outline text="生成AIタグが付けられた新着記事 - Qiita" title="生成AIタグが付けられた新着記事 - Qiita" type="rss" xmlUrl="https://qiita.com/tags/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://qiita.com/"/>
       <outline text="Zennの「生成 AI」のフィード" title="Zennの「生成 AI」のフィード" type="rss" xmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai/feed" htmlUrl="https://zenn.dev/topics/%E7%94%9F%E6%88%90ai"/>
     </outline>
