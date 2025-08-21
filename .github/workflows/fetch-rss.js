@@ -1,5 +1,5 @@
-// エラー詳細出力版（Wikipedia + 簡易辞書版）
-console.log('🔍 fetch-rss.js実行開始（Wikipedia + 簡易辞書版）');
+// エラー詳細出力版（Wikipedia + 簡易辞書版 - OPML読み込み修正統合版）
+console.log('🔍 fetch-rss.js実行開始（Wikipedia + 簡易辞書版 - OPML修正版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -96,7 +96,6 @@ const simpleSynonymDict = {
   
   // エンターテイメント・メディア関連
   'ゲーム': ['遊戯', 'エンターテイメント'],
-  'コンテンツ': ['内容', '情報'],
   'メディア': ['媒体', '報道'],
   'ニュース': ['報道', '情報'],
   'エンタメ': ['エンターテイメント', '娯楽'],
@@ -425,128 +424,177 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【修正】フォルダ構造対応版のOPML読み込み（エラー耐性強化）
+// 【完全修正】フォルダ構造対応版のOPML読み込み（確実動作版）
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
     const opmlPath = './.github/workflows/rsslist.xml';
     console.log(`🔍 OPMLファイル確認: ${opmlPath}`);
+    
     if (!fs.existsSync(opmlPath)) {
       console.error(`❌ OPMLファイルが見つかりません: ${opmlPath}`);
       return [];
     }
+    
     const opmlContent = fs.readFileSync(opmlPath, 'utf8');
     console.log(`📄 OPMLファイル読み込み成功: ${opmlContent.length}文字`);
     
-    const parser = new xml2js.Parser();
+    const parser = new xml2js.Parser({
+      explicitArray: true,  // 配列形式を明示的に指定
+      ignoreAttrs: false,   // 属性を保持
+      trim: true           // 空白をトリム
+    });
+    
     const result = await parser.parseStringPromise(opmlContent);
     
-    // 【重要】詳細な構造チェックとデバッグ出力を復活
     console.log('🔍 OPML解析結果の構造確認:');
-    console.log(`   トップレベルキー: ${Object.keys(result).join(', ')}`);
+    console.log(`   result keys: ${Object.keys(result).join(', ')}`);
+    
+    // 段階的チェック
+    if (!result) {
+      console.error('❌ パース結果がnullです');
+      return [];
+    }
     
     if (!result.opml) {
-      console.error('❌ OPML構造エラー: opml要素が見つかりません');
-      console.error('解析結果:', JSON.stringify(result, null, 2).substring(0, 500));
+      console.error('❌ opml要素が見つかりません');
+      console.error(`   result: ${JSON.stringify(result, null, 2)}`);
       return [];
     }
+    
+    console.log(`   opml keys: ${Object.keys(result.opml).join(', ')}`);
     
     if (!result.opml.body) {
-      console.error('❌ OPML構造エラー: body要素が見つかりません');
-      console.error('opml内容:', JSON.stringify(result.opml, null, 2).substring(0, 500));
+      console.error('❌ body要素が見つかりません');
+      console.error(`   opml: ${JSON.stringify(result.opml, null, 2)}`);
       return [];
     }
+    
+    console.log(`   body length: ${result.opml.body.length}`);
     
     if (!result.opml.body[0]) {
-      console.error('❌ OPML構造エラー: body配列が空です');
-      console.error('body内容:', JSON.stringify(result.opml.body, null, 2).substring(0, 500));
+      console.error('❌ body[0]が見つかりません');
       return [];
     }
+    
+    console.log(`   body[0] keys: ${Object.keys(result.opml.body[0]).join(', ')}`);
     
     if (!result.opml.body[0].outline) {
-      console.error('❌ OPML構造エラー: outline要素が見つかりません');
-      console.error('body[0]内容:', JSON.stringify(result.opml.body[0], null, 2).substring(0, 500));
+      console.error('❌ outline要素が見つかりません');
+      console.error(`   body[0]: ${JSON.stringify(result.opml.body[0], null, 2)}`);
       return [];
     }
     
-    const feeds = [];
     const outlines = result.opml.body[0].outline;
+    console.log(`📊 outline要素数: ${outlines.length}`);
     
-    console.log(`📊 outline要素数: ${Array.isArray(outlines) ? outlines.length : '1個（非配列）'}`);
+    const feeds = [];
+    let feedCount = 0;
+    let folderCount = 0;
     
-    // 配列でない場合の対応
-    const outlinesArray = Array.isArray(outlines) ? outlines : [outlines];
-    
-    outlinesArray.forEach((outline, index) => {
-      console.log(`🔍 outline[${index}]の処理開始`);
-      console.log(`   属性: ${outline.$ ? Object.keys(outline.$).join(', ') : 'なし'}`);
-      console.log(`   子要素: ${outline.outline ? (Array.isArray(outline.outline) ? outline.outline.length + '個' : '1個') : 'なし'}`);
+    // 各outline要素を処理
+    outlines.forEach((outline, index) => {
+      console.log(`\n🔍 outline[${index}]の処理開始`);
       
-      if (outline.outline) {
-        // フォルダ内のフィード
-        const folderName = (outline.$ && (outline.$.text || outline.$.title)) || `フォルダ${index}`;
-        console.log(`📂 フォルダ処理: ${folderName}`);
-        
-        const childOutlines = Array.isArray(outline.outline) ? outline.outline : [outline.outline];
-        childOutlines.forEach((feed, feedIndex) => {
-          if (feed.$ && feed.$.xmlUrl) {
-            const feedTitle = feed.$.title || feed.$.text || `フィード${feedIndex}`;
-            feeds.push({
-              id: generateStableIdForRSS(feed.$.xmlUrl, feedTitle, new Date().toISOString()),
-              url: feed.$.xmlUrl,
-              title: feedTitle,
-              folderName: folderName,
-              lastUpdated: new Date().toISOString(),
-              isActive: true
-            });
-            console.log(`  ✅ フィード追加: ${feedTitle}`);
-          } else {
-            console.log(`  ⚠️  無効なフィード[${feedIndex}]: xmlUrlが見つかりません`);
-            if (feed.$) {
-              console.log(`    属性: ${Object.keys(feed.$).join(', ')}`);
-            }
-          }
-        });
-      } else if (outline.$ && outline.$.xmlUrl) {
-        // フォルダなしのフィード
-        const feedTitle = outline.$.title || outline.$.text || `単体フィード${index}`;
-        console.log(`📄 単体フィード処理: ${feedTitle}`);
+      if (!outline.$) {
+        console.log(`  ⚠️  outline[${index}]に属性がありません`);
+        return;
+      }
+      
+      const outlineTitle = outline.$.text || outline.$.title || `要素${index}`;
+      console.log(`  タイトル: ${outlineTitle}`);
+      console.log(`  属性: ${Object.keys(outline.$).join(', ')}`);
+      
+      // xmlUrlがある場合は直接フィード
+      if (outline.$.xmlUrl) {
+        console.log(`  📄 直接フィード: ${outlineTitle}`);
         feeds.push({
-          id: generateStableIdForRSS(outline.$.xmlUrl, feedTitle, new Date().toISOString()),
+          id: generateStableIdForRSS(outline.$.xmlUrl, outlineTitle, new Date().toISOString()),
           url: outline.$.xmlUrl,
-          title: feedTitle,
+          title: outlineTitle,
           folderName: 'その他',
           lastUpdated: new Date().toISOString(),
           isActive: true
         });
-        console.log(`  ✅ フィード追加: ${feedTitle}`);
+        feedCount++;
+        console.log(`    ✅ フィード追加完了`);
+      }
+      // 子要素がある場合はフォルダ
+      else if (outline.outline && outline.outline.length > 0) {
+        folderCount++;
+        console.log(`  📂 フォルダ: ${outlineTitle} (${outline.outline.length}個の子要素)`);
+        
+        outline.outline.forEach((childOutline, childIndex) => {
+          console.log(`    🔍 子要素[${childIndex}]の処理`);
+          
+          if (!childOutline.$) {
+            console.log(`      ⚠️  子要素[${childIndex}]に属性がありません`);
+            return;
+          }
+          
+          if (!childOutline.$.xmlUrl) {
+            console.log(`      ⚠️  子要素[${childIndex}]にxmlUrlがありません`);
+            console.log(`      属性: ${Object.keys(childOutline.$).join(', ')}`);
+            return;
+          }
+          
+          const childTitle = childOutline.$.text || childOutline.$.title || `子要素${childIndex}`;
+          console.log(`      フィード: ${childTitle}`);
+          
+          feeds.push({
+            id: generateStableIdForRSS(childOutline.$.xmlUrl, childTitle, new Date().toISOString()),
+            url: childOutline.$.xmlUrl,
+            title: childTitle,
+            folderName: outlineTitle,
+            lastUpdated: new Date().toISOString(),
+            isActive: true
+          });
+          feedCount++;
+          console.log(`      ✅ フィード追加完了`);
+        });
       } else {
-        console.log(`⚠️  outline[${index}]はフォルダでもフィードでもありません`);
-        if (outline.$) {
-          console.log(`   属性: ${Object.keys(outline.$).join(', ')}`);
-        }
+        console.log(`  ⚠️  outline[${index}]は不明な形式です（xmlUrlなし、子要素なし）`);
       }
     });
     
-    console.log(`📋 OPML読み込み完了: ${feeds.length}個のフィードを検出`);
+    console.log(`\n📊 OPML処理結果:`);
+    console.log(`   フォルダ数: ${folderCount}`);
+    console.log(`   フィード数: ${feedCount}`);
+    console.log(`   総feeds配列長: ${feeds.length}`);
     
-    // フィードが0個の場合の詳細ログ
     if (feeds.length === 0) {
       console.error('❌ 有効なフィードが見つかりませんでした');
-      console.error('   すべてのoutline要素の詳細:');
-      outlinesArray.forEach((outline, index) => {
-        console.error(`   outline[${index}]:`, JSON.stringify(outline, null, 2).substring(0, 200));
+      console.error('   デバッグ情報:');
+      outlines.forEach((outline, index) => {
+        console.error(`   outline[${index}]詳細:`, {
+          attributes: outline.$ ? Object.keys(outline.$) : 'なし',
+          hasChildren: outline.outline ? outline.outline.length : 0,
+          xmlUrl: outline.$ ? outline.$.xmlUrl : 'なし'
+        });
+      });
+    } else {
+      console.log(`✅ OPML読み込み完了: ${feeds.length}個のフィードを検出`);
+      
+      // フォルダ別統計
+      const folderStats = {};
+      feeds.forEach(feed => {
+        folderStats[feed.folderName] = (folderStats[feed.folderName] || 0) + 1;
+      });
+      
+      console.log('📊 フォルダ別フィード数:');
+      Object.entries(folderStats).forEach(([folder, count]) => {
+        console.log(`   ${folder}: ${count}個`);
       });
     }
     
     return feeds;
+    
   } catch (error) {
-    console.error('❌ OPML読み込みエラー:', error);
-    console.error('エラー詳細:', error.stack);
+    console.error('❌ OPML読み込み中にエラーが発生しました:', error.message);
+    console.error('スタックトレース:', error.stack);
     return [];
   }
 }
-
 
 async function fetchAndParseRSS(url, title) {
   try {
@@ -738,7 +786,7 @@ async function extractKeywordsWithMecab(text) {
       const surface = token[0];
       const features = Array.isArray(token[1]) ? token[1] : [token[1]];
       const pos = features;
-      const baseForm = features[2] || surface;
+      const baseForm = features[6] || surface;
       const isValidPOS =
         pos === '名詞' || pos === '固有名詞' ||
         (pos === '動詞' && features[1] === '自立') ||
@@ -764,7 +812,7 @@ async function extractKeywordsWithMecab(text) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (Wikipedia + 簡易辞書版)');
+    console.log('🚀 RSS記事取得開始 (Wikipedia + 簡易辞書版 - OPML修正版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     
     // MeCabセットアップ
@@ -873,7 +921,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v2.0-Wikipedia+簡易辞書版',
+        debugVersion: 'v2.1-Wikipedia+簡易辞書版-OPML修正版',
         synonymFeatures: {
           wikipediaEnabled: true,
           simpleDictEnabled: true,
@@ -897,7 +945,7 @@ async function main() {
   }
 }
 
-console.log('🚀 スクリプト実行開始（Wikipedia + 簡易辞書版）');
+console.log('🚀 スクリプト実行開始（Wikipedia + 簡易辞書版 - OPML修正版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   process.exit(1);
