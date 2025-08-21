@@ -1,5 +1,5 @@
-// エラー詳細出力版（記事ID安定化対応 + キーワード強化版 + OPML修正版）
-console.log('🔍 fetch-rss.js実行開始（キーワード強化・OPML修正版）');
+// エラー詳細出力版（記事ID安定化対応 + キーワード強化版 + MeCab修正統合版）
+console.log('🔍 fetch-rss.js実行開始（MeCab修正統合版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -196,8 +196,8 @@ async function loadOPML() {
     console.log(`   result.opml.body.length: ${result.opml && result.opml.body ? result.opml.body.length : 'N/A'}`);
     console.log(`   result.opml.body[0]: ${!!(result.opml && result.opml.body && result.opml.body)}`);
     console.log(`   result.opml.body.outline: ${!!(result.opml && result.opml.body && result.opml.body && result.opml.body[0].outline)}`);
-    console.log(`   result.opml.body.outline配列: ${!!(result.opml && result.opml.body && result.opml.body && result.opml.body[0].outline && Array.isArray(result.opml.body.outline))}`);
-    console.log(`   outline要素数: ${result.opml && result.opml.body && result.opml.body[0] && result.opml.body.outline ? result.opml.body.outline.length : 'N/A'}`);
+    console.log(`   result.opml.body.outline配列: ${!!(result.opml && result.opml.body && result.opml.body && result.opml.body.outline && Array.isArray(result.opml.body.outline))}`);
+    console.log(`   outline要素数: ${result.opml && result.opml.body && result.opml.body[0] && result.opml.body[0].outline ? result.opml.body.outline.length : 'N/A'}`);
     
     // 【修正】より柔軟な構造チェック
     if (!result.opml || !result.opml.body) {
@@ -377,7 +377,7 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【重要修正】新しいキーワード抽出 + 同義語生成関数
+// 【重要修正】MeCab解析結果形式に対応したキーワード抽出関数
 async function extractEnhancedKeywords(text) {
   const MAX_MAIN_KEYWORDS = 3; // メインキーワードを3つに制限
   const MIN_LENGTH = 2;
@@ -402,32 +402,62 @@ async function extractEnhancedKeywords(text) {
     const parsed = await mecabParsePromise(cleanTexted);
     if (!Array.isArray(parsed) || parsed.length === 0) return [];
 
+    console.log(`🔍 MeCab解析結果サンプル: ${JSON.stringify(parsed.slice(0, 3), null, 2)}`);
+
     // TF-IDF風の重要度計算用データ構造
     const keywordScores = new Map();
     const keywordPositions = new Map(); // 位置情報も考慮
 
     parsed.forEach((token, index) => {
-      if (!Array.isArray(token) || token.length < 2) return;
+      if (!Array.isArray(token) || token.length < 8) {
+        console.log(`⚠️  無効なtoken[${index}]: ${JSON.stringify(token)}`);
+        return;
+      }
       
-      const surface = token[0];
-      const features = Array.isArray(token[1]) ? token[1] : [token[1]];
-      const pos = features;
-      const baseForm = features[2] || surface;
+      // 【修正】mecab-asyncの正しい結果形式に対応
+      const surface = token[0];     // 表層形
+      const pos = token[1];         // 品詞大分類
+      const pos1 = token[2];        // 品詞細分類1
+      const pos2 = token[3];        // 品詞細分類2
+      const baseForm = token[4] || surface; // 原形（7番目）
       
-      // より厳密な品詞フィルタリング
+      console.log(`🔍 解析token[${index}]: surface="${surface}", pos="${pos}", pos1="${pos1}", baseForm="${baseForm}"`);
+      
+      // 【修正】正しい品詞フィルタリング
       const isValidPOS = 
-        pos === '名詞' || pos === '固有名詞' ||
-        (pos === '動詞' && features[1] === '自立') ||
-        (pos === '形容詞' && features[1] === '自立');
+        pos === '名詞' ||
+        pos === '動詞' ||
+        pos === '形容詞' ||
+        pos === '副詞';
         
-      if (!isValidPOS) return;
+      if (!isValidPOS) {
+        console.log(`   → 品詞フィルターで除外: ${pos}`);
+        return;
+      }
+      
+      // より詳細な品詞フィルタリング
+      if (pos === '名詞' && (pos1 === '代名詞' || pos1 === '数' || pos1 === '接尾')) {
+        console.log(`   → 名詞サブカテゴリで除外: ${pos1}`);
+        return;
+      }
+      
+      if (pos === '動詞' && pos1 !== '自立') {
+        console.log(`   → 動詞サブカテゴリで除外: ${pos1}`);
+        return;
+      }
+      
+      if (pos === '形容詞' && pos1 !== '自立') {
+        console.log(`   → 形容詞サブカテゴリで除外: ${pos1}`);
+        return;
+      }
       
       const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
       
       if (keyword.length >= MIN_LENGTH && 
           !stopWords.has(keyword) && 
           !/^[0-9]+$/.test(keyword) &&
-          !/^[ａ-ｚＡ-Ｚ]+$/.test(keyword)) { // 全角英字も除外
+          !/^[ａ-ｚＡ-Ｚ]+$/.test(keyword) &&
+          keyword !== '*') { // MeCabの未設定値除外
         
         const currentScore = keywordScores.get(keyword) || 0;
         let score = 1;
@@ -437,8 +467,15 @@ async function extractEnhancedKeywords(text) {
         score *= positionWeight;
         
         // 品詞による重み付け
-        if (pos === '固有名詞') score *= 1.5;
-        if (pos === '名詞' && features[1] === 'サ変接続') score *= 1.3;
+        if (pos === '名詞') {
+          if (pos1 === '固有名詞') score *= 2.0;
+          else if (pos1 === 'サ変接続') score *= 1.5;
+          else score *= 1.3;
+        } else if (pos === '動詞') {
+          score *= 1.2;
+        } else if (pos === '形容詞') {
+          score *= 1.1;
+        }
         
         keywordScores.set(keyword, currentScore + score);
         
@@ -446,6 +483,10 @@ async function extractEnhancedKeywords(text) {
         const positions = keywordPositions.get(keyword) || [];
         positions.push(index);
         keywordPositions.set(keyword, positions);
+        
+        console.log(`   → キーワード候補追加: "${keyword}" (score: ${(currentScore + score).toFixed(2)})`);
+      } else {
+        console.log(`   → 条件フィルターで除外: "${keyword}" (length=${keyword.length})`);
       }
     });
 
@@ -456,6 +497,7 @@ async function extractEnhancedKeywords(text) {
       .map(([keyword]) => keyword);
 
     console.log(`📊 メインキーワード抽出完了: ${topKeywords.join(', ')}`);
+    console.log(`📊 全キーワード候補数: ${keywordScores.size}個`);
 
     // 各キーワードに同義語を追加
     const enhancedKeywords = [];
@@ -559,7 +601,7 @@ function parseDate(dateString) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (キーワード強化・構文修正版)');
+    console.log('🚀 RSS記事取得開始 (MeCab修正統合版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -712,7 +754,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v2.2-キーワード強化・構文修正版'
+        debugVersion: 'v2.3-MeCab修正統合版'
       }
     };
     
@@ -733,7 +775,7 @@ async function main() {
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
     console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
     console.log(`   キーワード強化: 関連度上位3つ + 同義語最大2つ/語`);
-    console.log(`   構文修正: オプショナルチェイニング構文エラー修正`);
+    console.log(`   MeCab修正: 解析結果形式対応・詳細デバッグログ付き`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -746,7 +788,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（キーワード強化・構文修正版）');
+console.log('🚀 スクリプト実行開始（MeCab修正統合版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
