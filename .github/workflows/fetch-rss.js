@@ -22,6 +22,7 @@ try {
   const xml2js = require('xml2js');
   const fetch = require('node-fetch');
   const Mecab = require('mecab-async');
+  // naturalライブラリを追加
   const natural = require('natural');
   console.log('✅ 全モジュール読み込み成功');
 } catch (error) {
@@ -108,7 +109,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【修正版】OPML読み込み関数（シンタックスエラー修正）
+// 【元のOPML読み込み関数を完全保持】
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -122,19 +123,7 @@ async function loadOPML() {
     console.log(`📄 OPMLファイル読み込み成功: ${opmlContent.length}文字`);
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
-    
-    // デバッグ用：構造を詳細表示（シンタックスエラー修正）
-    console.log('🔍 OPML構造デバッグ:');
-    console.log(`   result.opml: ${!!result.opml}`);
-    console.log(`   result.opml.body: ${!!result.opml?.body}`);
-    console.log(`   body配列長: ${result.opml?.body?.length}`);
-    console.log(`   body[0]: ${!!result.opml?.body?.}`);
-    console.log(`   body.outline: ${!!result.opml?.body?.?.outline}`);
-    console.log(`   outline配列長: ${result.opml?.body?.?.outline?.length}`);
-    
-    // 条件チェック
-    if (!result.opml || !result.opml.body || !Array.isArray(result.opml.body) || 
-        result.opml.body.length === 0 || !result.opml.body[0].outline) {
+    if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body.outline) {
       console.error('❌ OPML構造が不正です');
       console.error('OPML内容:', JSON.stringify(result, null, 2).substring(0, 500));
       return [];
@@ -297,9 +286,9 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     console.log(`   元データキー: ${Object.keys(item).join(', ')}`);
     const title = cleanText(item.title || '');
     const link = extractUrlFromItem(item);
-    const description = cleanText(item.description || item.summary || item.content?._ || item.content || '');
+    const description = cleanText(item.description || item.summary || (item.content && item.content._) || item.content || '');
     const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
-    const category = cleanText(item.category?._ || item.category || 'General');
+    const category = cleanText((item.category && item.category._) || item.category || 'General');
     
     // 日付フィルター処理は既存通り
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -395,7 +384,7 @@ async function extractAdvancedKeywords(title, content) {
   
   try {
     // 1. MeCabによる基本的な形態素解析
-    const mecabKeywords = await extractBasicMecabKeywords(fullText);
+    const mecabKeywords = await extractKeywordsWithMecab(fullText);
     
     if (mecabKeywords.length === 0) {
       console.warn('⚠️ MeCab解析でキーワードが抽出できませんでした');
@@ -422,7 +411,7 @@ async function extractAdvancedKeywords(title, content) {
     
     // 5. 最終スコア算出
     const finalKeywords = mecabKeywords.map(keyword => {
-      const tfidfScore = tfidfTerms.find(t => t.term === keyword)?.score || 0;
+      const tfidfScore = tfidfTerms.find(t => t.term === keyword) ? tfidfTerms.find(t => t.term === keyword).score : 0;
       const positionBonus = title.includes(keyword) ? 1.5 : 1.0;
       const cooccurBonus = cooccurrenceBonus[keyword] || 1.0;
       
@@ -444,51 +433,47 @@ async function extractAdvancedKeywords(title, content) {
   } catch (error) {
     console.error('❌ 改良キーワード解析エラー:', error.message);
     // フォールバック: 基本的なMeCab解析のみ
-    return await extractBasicMecabKeywords(fullText);
+    return await extractKeywordsWithMecab(fullText);
   }
 }
 
-// 【新規追加】基本的なMeCab解析
-async function extractBasicMecabKeywords(text) {
+// 【元のMeCab関数を保持しつつ改良】
+async function extractKeywordsWithMecab(text) {
   const MAX_KEYWORDS = 8;
   const MIN_LENGTH = 2;
-  
+  const stopWords = new Set([
+    'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
+    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう'
+  ]);
   try {
     const cleanTexted = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
                             .replace(/\s+/g, ' ')
                             .trim();
     if (!cleanTexted) return [];
-    
     const parsed = await mecabParsePromise(cleanTexted);
     if (!Array.isArray(parsed) || parsed.length === 0) return [];
-    
     const keywords = new Map();
     parsed.forEach((token) => {
       if (!Array.isArray(token) || token.length < 2) return;
       const surface = token[0];
       const features = Array.isArray(token[1]) ? token[1] : [token[1]];
       const pos = features;
-      const baseForm = features || surface;
-      
+      const baseForm = features[6] || surface;
       const isValidPOS =
         pos === '名詞' || pos === '固有名詞' ||
         (pos === '動詞' && features[1] === '自立') ||
         (pos === '形容詞' && features[1] === '自立');
-      
       if (!isValidPOS) return;
-      
       const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
-      if (keyword.length >= MIN_LENGTH && !isJapaneseStopWord(keyword) && !/^[0-9]+$/.test(keyword)) {
+      if (keyword.length >= MIN_LENGTH && !stopWords.has(keyword) && !/^[0-9]+$/.test(keyword)) {
         const count = keywords.get(keyword) || 0;
         keywords.set(keyword, count + 1);
       }
     });
-    
     return Array.from(keywords.entries())
-      .sort(([, a], [, b]) => b - a)
+      .sort((a, b) => b[1] - a[1])
       .slice(0, MAX_KEYWORDS)
-      .map(([keyword]) => keyword);
-      
+      .map(entry => entry);
   } catch (error) {
     console.error('❌ MeCab解析エラー:', error.message);
     return [];
@@ -540,7 +525,7 @@ async function main() {
         try {
           const articles = await fetchAndParseRSS(feed.url, feed.title);
           
-          // 【重要】記事にフォルダ名を追加
+          // 記事にフォルダ名を追加
           const articlesWithFolder = articles.map(article => ({
             ...article,
             folderName: feed.folderName
@@ -587,75 +572,4 @@ async function main() {
     // ソートと制限
     uniqueArticles.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
     const limitedArticles = uniqueArticles.slice(0, 1000);
-    console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1000件）`);
-    
-    // フォルダ統計表示
-    const folderStats = {};
-    limitedArticles.forEach(article => {
-      const folder = article.folderName || 'その他';
-      folderStats[folder] = (folderStats[folder] || 0) + 1;
-    });
-    console.log(`📂 フォルダ別記事数:`);
-    Object.keys(folderStats).sort().forEach(folder => {
-      console.log(`   ${folder}: ${folderStats[folder]}件`);
-    });
-    
-    // ファイル出力
-    if (!fs.existsSync('./mss')) {
-      fs.mkdirSync('./mss');
-      console.log('📁 mssディレクトリを作成しました');
-    }
-    
-    const output = {
-      articles: limitedArticles,
-      lastUpdated: new Date().toISOString(),
-      totalCount: limitedArticles.length,
-      processedFeeds: feeds.length,
-      successfulFeeds: successCount,
-      folderStats: folderStats,
-      debugInfo: {
-        processingTime: processingTime,
-        errorCount: errorCount,
-        debugVersion: 'v1.5-関連度キーワード抽出対応版'
-      }
-    };
-    
-    fs.writeFileSync('./mss/articles.json', JSON.stringify(output, null, 2));
-    const totalTime = (Date.now() - startTime) / 1000;
-    console.log('\n🎉 RSS記事取得完了!');
-    console.log(`📊 最終結果:`);
-    console.log(`   保存記事数: ${limitedArticles.length}件`);
-    console.log(`   最終更新: ${output.lastUpdated}`);
-    console.log(`   総実行時間: ${totalTime.toFixed(1)}秒`);
-    console.log(`   処理効率: ${(limitedArticles.length / totalTime).toFixed(1)}記事/秒`);
-    console.log(`💾 ファイル: ./mss/articles.json (${Math.round(JSON.stringify(output).length / 1024)}KB)`);
-    
-    // デバッグサマリー
-    console.log(`\n🔍 デバッグサマリー:`);
-    console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
-    console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
-    console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-    console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
-    console.log(`   キーワード抽出: MeCab + TF-IDF + 共起解析による関連度計算`);
-  } catch (error) {
-    console.error('💥 main関数内でエラーが発生しました:', error);
-    console.error('エラー詳細:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    process.exit(1);
-  }
-}
-
-// 実行開始
-console.log('🚀 スクリプト実行開始（関連度キーワード抽出対応版）');
-main().catch(error => {
-  console.error('💥 トップレベルエラー:', error);
-  console.error('エラー詳細:', {
-    name: error.name,
-    message: error.message,
-    stack: error.stack
-  });
-  process.exit(1);
-});
+    console.log(`📊 最終記事数: ${limitedArticles.length}件（上限1
