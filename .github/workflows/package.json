@@ -1,21 +1,15 @@
 {
-  "name": "minews-rss-fetcher",
+  "name": "rss-fetcher",
   "version": "1.0.0",
-  "description": "RSS記事取得・キーワード抽出・同義語生成システム",
+  "description": "RSS記事取得とキーワード抽出",
   "main": "fetch-rss.js",
-  "scripts": {
-    "start": "node fetch-rss.js",
-    "test": "echo \"No test specified\" && exit 0"
-  },
   "dependencies": {
     "xml2js": "^0.6.2",
     "node-fetch": "^2.7.0",
     "mecab-async": "^0.1.2",
-    "sudachi-synonyms-dictionary": "^14.0.0"
+    "natural": "^6.12.0"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "author": "Minews PWA",
-  "license": "MIT"
+  }
 }
