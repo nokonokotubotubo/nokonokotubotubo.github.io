@@ -30,7 +30,7 @@ jobs:
         cd .github/workflows
         npm install
         
-    - name: RSS記事取得スクリプト実行（Wikipedia + 簡易辞書版）
+    - name: RSS記事取得スクリプト実行
       run: node .github/workflows/fetch-rss.js
       
     - name: Commit and push
