@@ -1,5 +1,5 @@
-// エラー詳細出力版（記事ID安定化対応）
-console.log('🔍 fetch-rss.js実行開始（記事ID安定化対応版）');
+// エラー詳細出力版（記事ID安定化対応 + 関連度キーワード抽出）
+console.log('🔍 fetch-rss.js実行開始（関連度キーワード抽出対応版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -22,6 +22,7 @@ try {
   const xml2js = require('xml2js');
   const fetch = require('node-fetch');
   const Mecab = require('mecab-async');
+  const natural = require('natural');
   console.log('✅ 全モジュール読み込み成功');
 } catch (error) {
   console.error('❌ モジュール読み込みエラー:', error);
@@ -32,25 +33,14 @@ const fs = require('fs');
 const xml2js = require('xml2js');
 const fetch = require('node-fetch');
 const Mecab = require('mecab-async');
+const natural = require('natural');
 
 // MeCabセットアップ
 const mecab = new Mecab();
 
-// 【キーワード機能のみ追加】簡易同義語辞書
-const synonymsDict = {
-  'スマホ': ['スマートフォン', '携帯電話'],
-  'AI': ['人工知能', '機械学習'],
-  '技術': ['テクノロジー', 'テック'],
-  'アプリ': ['アプリケーション', 'ソフト'],
-  'データ': ['情報', 'デジタル'],
-  'システム': ['仕組み', 'プラットフォーム'],
-  '開発': ['制作', '構築']
-};
-
-function getSynonyms(word) {
-  const synonyms = synonymsDict[word];
-  return Array.isArray(synonyms) ? synonyms.slice(0, 2) : [];
-}
+// TF-IDFインスタンス（グローバル）
+const TfIdf = natural.TfIdf;
+let globalTfidf = new TfIdf();
 
 // 【新規追加】RSS用安定ID生成関数
 function generateStableIdForRSS(url, title, publishDate) {
@@ -118,7 +108,7 @@ function mecabParsePromise(text) {
   });
 }
 
-// 【元の添付ファイルから完全コピー】フォルダ構造対応版のOPML読み込み
+// 【修正】フォルダ構造対応版のOPML読み込み（変更なし）
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -139,7 +129,7 @@ async function loadOPML() {
     }
     
     const feeds = [];
-    const outlines = result.opml.body.outline;
+    const outlines = result.opml.body[0].outline;
     
     outlines.forEach(outline => {
       if (outline.outline) {
@@ -217,7 +207,7 @@ async function fetchAndParseRSS(url, title) {
       console.log(`❓ [${title}] 不明なXML構造:`);
       console.log(`   結果オブジェクト: ${JSON.stringify(result, null, 2).substring(0, 300)}...`);
     }
-    
+
     console.log(`🔄 [${title}] アイテム解析開始: ${items.length}件を処理`);
     let validArticles = 0, invalidArticles = 0;
     for (const item of items.slice(0, 20)) {
@@ -241,7 +231,7 @@ async function fetchAndParseRSS(url, title) {
   }
 }
 
-// 🔧 修正: 配列内$.href構造に完全対応
+// 🔧 修正: 配列内$.href構造に完全対応（変更なし）
 function looksLikeUrl(v) {
   return typeof v === 'string' && /^https?:\/\//.test(v.trim());
 }
@@ -290,62 +280,6 @@ function extractUrlFromItem(item) {
   return null;
 }
 
-// 【キーワード機能のみ追加・MeCab構造対応済み】
-async function extractKeywordsWithMecab(text) {
-  const MAX_KEYWORDS = 3;
-  const MIN_LENGTH = 2;
-  const stopWords = new Set([
-    'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
-    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう'
-  ]);
-  try {
-    const cleanTexted = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim();
-    if (!cleanTexted) return [];
-    const parsed = await mecabParsePromise(cleanTexted);
-    if (!Array.isArray(parsed) || parsed.length === 0) return [];
-    const keywords = new Map();
-    parsed.forEach((token) => {
-      if (!Array.isArray(token) || token.length < 8) return;
-      const surface = token[0];
-      const pos = token[1];        // 品詞大分類は文字列
-      const pos1 = token[2];       // 品詞細分類1は文字列  
-      const baseForm = token[3] || surface;
-      
-      const isValidPOS =
-        pos === '名詞' || pos === '固有名詞' ||
-        (pos === '動詞' && pos1 === '自立') ||
-        (pos === '形容詞' && pos1 === '自立');
-      if (!isValidPOS) return;
-      const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
-      if (keyword.length >= MIN_LENGTH && !stopWords.has(keyword) && !/^[0-9]+$/.test(keyword)) {
-        const count = keywords.get(keyword) || 0;
-        keywords.set(keyword, count + 1);
-      }
-    });
-    
-    const topKeywords = Array.from(keywords.entries())
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, MAX_KEYWORDS)
-      .map(([keyword]) => keyword);
-
-    const enhancedKeywords = [];
-    for (const keyword of topKeywords) {
-      const synonyms = getSynonyms(keyword);
-      enhancedKeywords.push({
-        word: keyword,
-        synonyms: synonyms
-      });
-    }
-
-    return enhancedKeywords;
-  } catch (error) {
-    console.error('❌ MeCab解析エラー:', error.message);
-    return [];
-  }
-}
-
 // 【重要修正】安定ID生成版のparseRSSItem関数
 async function parseRSSItem(item, sourceUrl, feedTitle) {
   try {
@@ -372,7 +306,9 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
     }
     
     const cleanDescription = description.substring(0, 300) || '記事の概要は提供されていません';
-    const keywords = await extractKeywordsWithMecab(title + ' ' + cleanDescription);
+    
+    // 【重要修正】新しいキーワード抽出機能を使用
+    const keywords = await extractAdvancedKeywords(title, cleanDescription);
     
     // 【重要修正】安定したID生成に変更
     const stableId = generateStableIdForRSS(link, title, publishDate);
@@ -388,7 +324,7 @@ async function parseRSSItem(item, sourceUrl, feedTitle) {
       readStatus: 'unread',
       readLater: false,
       userRating: 0,
-      keywords,
+      keywords, // 改良されたキーワード
       fetchedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -420,11 +356,140 @@ function parseDate(dateString) {
   }
 }
 
-// 【修正】main関数内でフォルダ名を記事に追加
+// 【新規追加】日本語ストップワード判定
+function isJapaneseStopWord(word) {
+  const stopWords = new Set([
+    'これ', 'それ', 'この', 'その', 'です', 'ます', 'である', 'だっ',
+    'する', 'なる', 'ある', 'いる', 'こと', 'もの', 'ため', 'よう',
+    '記事', '情報', '発表', '開始', '終了', '実施', '提供', '今回',
+    '今度', '先日', '先月', '来月', '昨日', '今日', '明日', '最近'
+  ]);
+  return stopWords.has(word);
+}
+
+// 【新規追加】共起解析による関連度計算
+function calculateCooccurrence(keywords, title) {
+  const bonus = {};
+  keywords.forEach(keyword => {
+    const cooccurCount = keywords.filter(other => 
+      other !== keyword && title.includes(other) && title.includes(keyword)
+    ).length;
+    bonus[keyword] = 1.0 + (cooccurCount * 0.2);
+  });
+  return bonus;
+}
+
+// 【重要修正】改良版キーワード抽出関数
+async function extractAdvancedKeywords(title, content) {
+  const fullText = `${title} ${content}`;
+  
+  try {
+    // 1. MeCabによる基本的な形態素解析
+    const mecabKeywords = await extractBasicMecabKeywords(fullText);
+    
+    if (mecabKeywords.length === 0) {
+      console.warn('⚠️ MeCab解析でキーワードが抽出できませんでした');
+      return [];
+    }
+    
+    // 2. TF-IDF用のドキュメントとして追加
+    globalTfidf.addDocument(fullText);
+    const documentIndex = globalTfidf.documents.length - 1;
+    
+    // 3. TF-IDFスコアを計算
+    const tfidfTerms = [];
+    globalTfidf.listTerms(documentIndex).slice(0, 15).forEach(item => {
+      if (item.term.length >= 2 && !isJapaneseStopWord(item.term)) {
+        tfidfTerms.push({
+          term: item.term,
+          score: item.tfidf
+        });
+      }
+    });
+    
+    // 4. 共起解析による関連度強化
+    const cooccurrenceBonus = calculateCooccurrence(mecabKeywords, title);
+    
+    // 5. 最終スコア算出
+    const finalKeywords = mecabKeywords.map(keyword => {
+      const tfidfScore = tfidfTerms.find(t => t.term === keyword)?.score || 0;
+      const positionBonus = title.includes(keyword) ? 1.5 : 1.0;
+      const cooccurBonus = cooccurrenceBonus[keyword] || 1.0;
+      
+      return {
+        keyword,
+        score: (tfidfScore * positionBonus * cooccurBonus)
+      };
+    });
+    
+    // 6. 上位3つを返す
+    const topKeywords = finalKeywords
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(k => k.keyword);
+    
+    console.log(`🔑 キーワード抽出完了: [${topKeywords.join(', ')}]`);
+    return topKeywords;
+    
+  } catch (error) {
+    console.error('❌ 改良キーワード解析エラー:', error.message);
+    // フォールバック: 基本的なMeCab解析のみ
+    return await extractBasicMecabKeywords(fullText);
+  }
+}
+
+// 【新規追加】基本的なMeCab解析（元のextractKeywordsWithMecabを簡略化）
+async function extractBasicMecabKeywords(text) {
+  const MAX_KEYWORDS = 8;
+  const MIN_LENGTH = 2;
+  
+  try {
+    const cleanTexted = text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9\s]/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+    if (!cleanTexted) return [];
+    
+    const parsed = await mecabParsePromise(cleanTexted);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
+    
+    const keywords = new Map();
+    parsed.forEach((token) => {
+      if (!Array.isArray(token) || token.length < 2) return;
+      const surface = token[0];
+      const features = Array.isArray(token[1]) ? token[1] : [token[1]];
+      const pos = features;
+      const baseForm = features || surface;
+      
+      const isValidPOS =
+        pos === '名詞' || pos === '固有名詞' ||
+        (pos === '動詞' && features[1] === '自立') ||
+        (pos === '形容詞' && features[1] === '自立');
+      
+      if (!isValidPOS) return;
+      
+      const keyword = (baseForm && baseForm !== '*' && baseForm !== surface) ? baseForm : surface;
+      if (keyword.length >= MIN_LENGTH && !isJapaneseStopWord(keyword) && !/^[0-9]+$/.test(keyword)) {
+        const count = keywords.get(keyword) || 0;
+        keywords.set(keyword, count + 1);
+      }
+    });
+    
+    return Array.from(keywords.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, MAX_KEYWORDS)
+      .map(([keyword]) => keyword);
+      
+  } catch (error) {
+    console.error('❌ MeCab解析エラー:', error.message);
+    return [];
+  }
+}
+
+// 【修正】main関数内でフォルダ名を記事に追加（変更なし）
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (記事ID安定化対応版)');
+    console.log('🚀 RSS記事取得開始 (関連度キーワード抽出対応版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -437,6 +502,10 @@ async function main() {
       process.exit(1);
     }
     console.log('✅ MeCab準備完了');
+    
+    // TF-IDF初期化
+    globalTfidf = new TfIdf();
+    console.log('✅ TF-IDF初期化完了');
     
     // OPML読み込みの詳細ログ
     console.log('📋 OPML読み込み開始...');
@@ -538,7 +607,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.4-記事ID安定化対応版'
+        debugVersion: 'v1.5-関連度キーワード抽出対応版'
       }
     };
     
@@ -558,6 +627,7 @@ async function main() {
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
     console.log(`   ID安定化: URL+タイトル+日付ベースのハッシュID使用`);
+    console.log(`   キーワード抽出: MeCab + TF-IDF + 共起解析による関連度計算`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -570,7 +640,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（記事ID安定化対応版）');
+console.log('🚀 スクリプト実行開始（関連度キーワード抽出対応版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
