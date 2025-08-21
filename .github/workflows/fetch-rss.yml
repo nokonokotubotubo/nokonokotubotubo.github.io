@@ -25,13 +25,38 @@ jobs:
         cd mecab-ipadic-neologd
         ./bin/install-mecab-ipadic-neologd -y -n -p /usr/lib/mecab/dic/mecab-ipadic-neologd
         
-    - name: Download Japanese WordNet
+    - name: Download Japanese WordNet (with fallback)
       run: |
         cd .github/workflows
         if [ ! -f "wnjpn.db" ]; then
-          wget -O wnjpn.db.gz "http://compling.hss.ntu.edu.sg/wnja/data/1.1/wnjpn.db.gz" || true
-          if [ -f "wnjpn.db.gz" ]; then
-            gunzip wnjpn.db.gz
+          echo "WordNetデータベースのダウンロードを試行..."
+          # 複数のURLを試行
+          URLS=(
+            "https://bond-lab.github.io/wnja/data/wnjpn.db.gz"
+            "http://compling.hss.ntu.edu.sg/wnja/data/1.1/wnjpn.db.gz"
+            "https://github.com/bond-lab/wnja/releases/download/1.1/wnjpn.db.gz"
+          )
+          
+          for url in "${URLS[@]}"; do
+            echo "Trying: $url"
+            if wget -O wnjpn.db.gz "$url" --timeout=30 --tries=2; then
+              if gunzip wnjpn.db.gz; then
+                echo "WordNetデータベースのダウンロード成功: $url"
+                break
+              else
+                echo "解凍失敗: $url"
+                rm -f wnjpn.db.gz wnjpn.db
+              fi
+            else
+              echo "ダウンロード失敗: $url"
+            fi
+          done
+          
+          # すべてのURL失敗時の処理
+          if [ ! -f "wnjpn.db" ]; then
+            echo "⚠️  WordNetダウンロード失敗 - 簡易辞書モードで動作します"
+          else
+            echo "✅ WordNetデータベース準備完了"
           fi
         fi
         
