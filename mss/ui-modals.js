@@ -904,6 +904,42 @@
                         <button class="modal-close" onclick="handleCloseModal()">×</button>
                     </div>
                     <div class="modal-body">
+                    
+<!-- ワード評価設定（先頭・初期: 展開） -->
+<div class="modal-section-group">
+  <h3 class="group-title">ワード評価設定</h3>
+  <div class="group-content">
+    <div class="word-section">
+      <div class="word-section-header">
+        <h3>興味ワード（クリックで星評価設定）</h3>
+        <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+      </div>
+      <div class="word-list">
+        ${interestWords || '<div class="text-muted">設定されていません</div>'}
+      </div>
+    </div>
+
+    <div class="word-section">
+      <div class="word-section-header">
+        <h3>NGワード</h3>
+        <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+      </div>
+      <div class="word-list">
+        ${ngWords || '<div class="text-muted">設定されていません</div>'}
+      </div>
+    </div>
+
+    <div class="word-help">
+      <h4>データ構造一本化完了版</h4>
+      <ul>
+        <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
+        <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
+        <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
+      </ul>
+    </div>
+  </div>
+</div>
+                    
                         <!-- 記事フィルター設定（初期: 展開） -->
                         <div class="modal-section-group">
                             <h3 class="group-title">記事フィルター設定</h3>
@@ -944,42 +980,6 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- ワード評価設定（先頭・初期: 展開） -->
-<div class="modal-section-group">
-  <h3 class="group-title">ワード評価設定</h3>
-  <div class="group-content">
-    <div class="word-section">
-      <div class="word-section-header">
-        <h3>興味ワード（クリックで星評価設定）</h3>
-        <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
-      </div>
-      <div class="word-list">
-        ${interestWords || '<div class="text-muted">設定されていません</div>'}
-      </div>
-    </div>
-
-    <div class="word-section">
-      <div class="word-section-header">
-        <h3>NGワード</h3>
-        <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
-      </div>
-      <div class="word-list">
-        ${ngWords || '<div class="text-muted">設定されていません</div>'}
-      </div>
-    </div>
-
-    <div class="word-help">
-      <h4>データ構造一本化完了版</h4>
-      <ul>
-        <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります</li>
-        <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
-        <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
 
                         <!-- クラウド同期（初期: 折りたたみ） -->
                         <div class="modal-section-group collapsed">
