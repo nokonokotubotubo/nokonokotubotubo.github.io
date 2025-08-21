@@ -945,44 +945,45 @@
                             </div>
                         </div>
                         
-                        <!-- ワード評価設定（初期: 展開） -->
-                        <div class="modal-section-group">
-                            <h3 class="group-title">ワード評価設定（データ構造一本化対応版）</h3>
-                            <div class="group-content">
-                                <div class="word-section">
-                                    <div class="word-section-header">
-                                        <h3>興味ワード（クリックで星評価設定）</h3>
-                                        <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
-                                    </div>
-                                    <div class="word-list">
-                                        ${interestWords || '<div class="text-muted">設定されていません</div>'}
-                                    </div>
-                                </div>
+                        <!-- ワード評価設定（先頭・初期: 展開） -->
+<div class="modal-section-group">
+  <h3 class="group-title">ワード評価設定</h3>
+  <div class="group-content">
+    <div class="word-section">
+      <div class="word-section-header">
+        <h3>興味ワード（クリックで星評価設定）</h3>
+        <button class="action-btn success" onclick="handleAddWord('interest')">追加</button>
+      </div>
+      <div class="word-list">
+        ${interestWords || '<div class="text-muted">設定されていません</div>'}
+      </div>
+    </div>
 
-                                <div class="word-section">
-                                    <div class="word-section-header">
-                                        <h3>NGワード</h3>
-                                        <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
-                                    </div>
-                                    <div class="word-list">
-                                        ${ngWords || '<div class="text-muted">設定されていません</div>'}
-                                    </div>
-                                </div>
+    <div class="word-section">
+      <div class="word-section-header">
+        <h3>NGワード</h3>
+        <button class="action-btn danger" onclick="handleAddWord('ng')">追加</button>
+      </div>
+      <div class="word-list">
+        ${ngWords || '<div class="text-muted">設定されていません</div>'}
+      </div>
+    </div>
 
-                                <div class="word-help">
-                                    <h4>データ構造一本化完了版</h4>
-                                    <ul>
-                                        <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
-                                        <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
-                                        <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
-                                        <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
-                                        <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
-                                        <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
-                                        <li><strong>データ一本化:</strong> 全てのワード管理がWordIndexManagerに統一され、同期・表示・評価が完全に一貫します</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
+    <div class="word-help">
+      <h4>データ構造一本化完了版</h4>
+      <ul>
+        <li><strong>興味ワード:</strong> 該当する記事のAIスコアが上がります（星評価でボーナス加算 + 適用範囲選択可能 + 追加時に同画面で星評価）</li>
+        <li><strong>記事キーワード:</strong> 記事内のキーワードをクリックして興味ワード追加・削除・NGワードの操作メニューを表示</li>
+        <li><strong>テキスト選択:</strong> 記事内の文字を選択して右クリックメニューから範囲指定で追加可能</li>
+        <li><strong>自動統合:</strong> 評価したキーワードは自動的に興味ワードに追加されます</li>
+        <li><strong>NGワード:</strong> 該当する記事は表示されません（適用範囲選択可能）</li>
+        <li><strong>適用範囲:</strong> 全体・フォルダ別・フィード別で細かく設定可能</li>
+        <li><strong>データ一本化:</strong> 全てのワード管理がWordIndexManagerに統一され、同期・表示・評価が完全に一貫します</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 
                         <!-- クラウド同期（初期: 折りたたみ） -->
                         <div class="modal-section-group collapsed">
