@@ -28,6 +28,7 @@ jobs:
     - name: Install npm dependencies
       run: |
         cd .github/workflows
+        npm install natural
         npm install
         
     - name: RSS記事取得スクリプト実行
