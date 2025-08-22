@@ -79,8 +79,7 @@ async function extractKeywordsWithYAKE(text) {
   } catch (error) {
     console.error('❌ YAKE!キーワード抽出エラー:', error.message);
     console.error('❌ エラー詳細:', error.stack);
-    // フォールバック処理
-    return extractFallbackKeywords(text);
+    return [];
   }
 }
 
@@ -132,30 +131,6 @@ function callYAKEPython(text) {
     python.stdin.write(text);
     python.stdin.end();
   });
-}
-
-// フォールバック処理
-function extractFallbackKeywords(text) {
-  try {
-    console.log('🔄 フォールバックキーワード抽出開始');
-    
-    // 日本語・英数字の単語を抽出
-    const words = text.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9]+/g) || [];
-    
-    // 2文字以上の単語のみ
-    const validWords = words.filter(word => word.length >= 2);
-    
-    // 重複除去して上位3つ
-    const uniqueWords = [...new Set(validWords)];
-    const keywords = uniqueWords.slice(0, 3);
-    
-    console.log(`🔄 フォールバックキーワード: ${JSON.stringify(keywords)}`);
-    return keywords;
-    
-  } catch (error) {
-    console.error('❌ フォールバック処理エラー:', error.message);
-    return ['キーワード', '抽出', 'エラー'];
-  }
 }
 
 // 既存のOPML読み込み処理を維持
@@ -402,7 +377,7 @@ function parseDate(dateString) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (YAKE!キーワード抽出対応・デバッグ強化版)');
+    console.log('🚀 RSS記事取得開始 (YAKE!キーワード抽出対応版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -509,7 +484,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v1.6-YAKE!キーワード抽出デバッグ強化版'
+        debugVersion: 'v1.7-YAKE!キーワード抽出専用版'
       }
     };
     
@@ -528,7 +503,7 @@ async function main() {
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-    console.log(`   キーワード抽出: YAKE!アルゴリズム（上位3件・フォールバック付き）`);
+    console.log(`   キーワード抽出: YAKE!アルゴリズム専用（上位3件）`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -541,7 +516,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（YAKE!キーワード抽出デバッグ強化版）');
+console.log('🚀 スクリプト実行開始（YAKE!キーワード抽出専用版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
