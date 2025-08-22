@@ -20,8 +20,8 @@ jobs:
     - name: Install Python and YAKE dependencies
       run: |
         sudo apt update
-        sudo apt install -y python3 python3-pip mecab libmecab-dev mecab-ipadic-utf8
-        pip3 install yake mecab-python3
+        sudo apt install -y python3 python3-pip
+        pip3 install yake
         
     - name: Install npm dependencies
       run: |
@@ -35,11 +35,28 @@ jobs:
     - name: RSS記事取得スクリプト実行
       run: node .github/workflows/fetch-rss.js
       
-    - name: Commit and push
+    - name: Commit and push (競合対策版)
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        
+        # 変更をステージング
         git add mss/articles.json
-        git diff --staged --quiet || git commit -m "Update RSS articles $(date)"
-        git pull --rebase origin main || true
-        git push || (git pull --rebase origin main && git push)
+        
+        # 変更があるかチェック
+        if git diff --staged --quiet; then
+          echo "変更がありません"
+          exit 0
+        fi
+        
+        # コミット
+        git commit -m "Update RSS articles $(date)"
+        
+        # プッシュ（競合時は自動マージ）
+        git pull --rebase --autostash origin main || {
+          echo "競合が発生しました。自動解決を試みます"
+          git status
+          git pull --no-rebase origin main || true
+        }
+        
+        git push origin main
