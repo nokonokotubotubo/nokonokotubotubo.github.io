@@ -1,16 +1,14 @@
 {
   "name": "minews-fetch-rss",
   "version": "1.0.0",
-  "description": "GitHub Actions 用 RSS 取得 & YAKE! キーワード抽出スクリプト",
+  "description": "GitHub Actions 用 RSS 取得＋YAKE! キーワード抽出",
   "private": true,
   "type": "commonjs",
-  "engines": {
-    "node": ">=18"
-  },
+  "engines": { "node": ">=18" },
   "dependencies": {
     "node-fetch": "^2.7.0",
     "xml2js": "^0.6.2",
-    "yake-js": "^1.0.4"
+    "yake": "^1.2.0"
   },
   "scripts": {
     "start": "node fetch-rss.js"
