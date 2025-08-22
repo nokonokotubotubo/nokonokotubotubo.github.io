@@ -2,7 +2,7 @@ name: RSS記事取得
 
 on:
   schedule:
-    - cron: '0 * * * *'         # 1時間おき
+    - cron: '0 * * * *'         # 1時間ごと
   workflow_dispatch:
 
 jobs:
@@ -18,17 +18,17 @@ jobs:
       with:
         node-version: '18'
 
-    # ────────────────────────────────
-    # lock ファイルが無いので npm install を使用
-    # ────────────────────────────────
+    # ───── 依存インストール（lock ファイル無し運用）─────
     - name: Install npm dependencies
       run: |
         cd .github/workflows
         npm install --no-audit --no-fund
 
+    # ───── RSS 収集 & キーワード抽出 ─────
     - name: Run RSS crawler
       run: node .github/workflows/fetch-rss.js
 
+    # ───── 結果をコミット ─────
     - name: Commit & Push updated articles
       run: |
         git config --local user.email "action@github.com"
