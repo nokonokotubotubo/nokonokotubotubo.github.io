@@ -6,92 +6,90 @@ import json
 
 def main():
     try:
-        # 標準入力からテキストを読み取り
         input_text = sys.stdin.read().strip()
         
         if not input_text:
             print(json.dumps({"keywords": []}))
             return
         
-        # デバッグ情報は標準エラーに出力
-        print(f"入力テキスト長: {len(input_text)}", file=sys.stderr)
+        print(f"[DEBUG] 入力テキスト長: {len(input_text)}", file=sys.stderr)
+        print(f"[DEBUG] 入力テキスト: {input_text[:200]}...", file=sys.stderr)
         
-        # YAKE!でキーワード抽出
-        keywords = extract_keywords_with_yake(input_text)
-        
-        # デバッグ情報
-        print(f"抽出キーワード: {keywords}", file=sys.stderr)
-        
-        # 【重要】標準出力にはJSON文字列のみ出力
-        result = {"keywords": keywords}
-        print(json.dumps(result, ensure_ascii=False))
-        
-    except Exception as e:
-        print(f"エラー: {e}", file=sys.stderr)
-        print(json.dumps({"keywords": []}))
-        sys.exit(1)
-
-def extract_keywords_with_yake(text, top_k=3):
-    """YAKE!を使用してキーワード抽出"""
-    try:
         import yake
         
-        # YAKE!設定
         kw_extractor = yake.KeywordExtractor(
             lan="ja",
             n=3,
             dedupLim=0.7,
-            top=top_k
+            top=3
         )
         
-        # キーワード抽出実行
-        keywords_with_scores = kw_extractor.extract_keywords(text)
+        raw_result = kw_extractor.extract_keywords(input_text)
         
-        # デバッグ情報（標準エラー）
-        print(f"YAKE!結果（スコア付き）: {keywords_with_scores}", file=sys.stderr)
+        print(f"[DEBUG] YAKE戻り値型: {type(raw_result)}", file=sys.stderr)
+        print(f"[DEBUG] YAKE戻り値長: {len(raw_result) if hasattr(raw_result, '__len__') else 'N/A'}", file=sys.stderr)
+        print(f"[DEBUG] YAKE戻り値内容: {raw_result}", file=sys.stderr)
         
-        # 【重要修正】キーワード文字列のみを正確に抽出
         keywords = []
-        for score, keyword in keywords_with_scores:
-            print(f"スコア: {score}, キーワード: {keyword}", file=sys.stderr)
-            keywords.append(keyword)  # キーワード文字列のみ追加
+        for i, item in enumerate(raw_result):
+            print(f"[DEBUG] 項目{i}: 型={type(item)}, 値={item}", file=sys.stderr)
+            
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                # (score, keyword) または (keyword, score) の判定
+                first, second = item[0], item[1]
+                print(f"[DEBUG]   first型={type(first)}, 値={first}", file=sys.stderr)
+                print(f"[DEBUG]   second型={type(second)}, 値={second}", file=sys.stderr)
+                
+                if isinstance(first, (int, float)) and isinstance(second, str):
+                    # (score, keyword) パターン
+                    keywords.append(second)
+                    print(f"[DEBUG]   → キーワード抽出: '{second}' (score, keyword)", file=sys.stderr)
+                elif isinstance(first, str) and isinstance(second, (int, float)):
+                    # (keyword, score) パターン
+                    keywords.append(first)
+                    print(f"[DEBUG]   → キーワード抽出: '{first}' (keyword, score)", file=sys.stderr)
+                elif isinstance(first, str):
+                    # 最初が文字列なら採用
+                    keywords.append(first)
+                    print(f"[DEBUG]   → キーワード抽出: '{first}' (first string)", file=sys.stderr)
+                elif isinstance(second, str):
+                    # 2番目が文字列なら採用
+                    keywords.append(second)
+                    print(f"[DEBUG]   → キーワード抽出: '{second}' (second string)", file=sys.stderr)
+                else:
+                    print(f"[DEBUG]   → スキップ: 文字列なし", file=sys.stderr)
+            elif isinstance(item, str):
+                keywords.append(item)
+                print(f"[DEBUG]   → キーワード抽出: '{item}' (直接文字列)", file=sys.stderr)
+            else:
+                print(f"[DEBUG]   → スキップ: 不明形式", file=sys.stderr)
         
-        print(f"最終キーワードリスト: {keywords}", file=sys.stderr)
-        return keywords
+        print(f"[DEBUG] 最終キーワードリスト: {keywords}", file=sys.stderr)
+        
+        # 空文字列や重複を除去
+        final_keywords = []
+        for kw in keywords:
+            if kw and kw.strip() and kw not in final_keywords:
+                final_keywords.append(kw.strip())
+        
+        print(f"[DEBUG] 清浄化後キーワード: {final_keywords}", file=sys.stderr)
+        
+        result = {"keywords": final_keywords[:3]}  # 上位3件
+        output = json.dumps(result, ensure_ascii=False)
+        print(f"[DEBUG] JSON出力: {output}", file=sys.stderr)
+        print(output)
         
     except ImportError as e:
-        print(f"YAKE!インポートエラー: {e}", file=sys.stderr)
-        return extract_simple_keywords(text, top_k)
+        print(f"[ERROR] YAKE import失敗: {e}", file=sys.stderr)
+        print(json.dumps({"keywords": [], "error": f"YAKE import failed: {e}"}))
+        sys.exit(1)
     except Exception as e:
-        print(f"YAKE!処理エラー: {e}", file=sys.stderr)
-        return extract_simple_keywords(text, top_k)
-
-def extract_simple_keywords(text, top_k=3):
-    """代替キーワード抽出（単語頻度ベース）"""
-    try:
-        import re
-        from collections import Counter
-        
-        print("代替キーワード抽出を実行", file=sys.stderr)
-        
-        # 日本語・英数字のみ抽出
-        words = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9]+', text)
-        
-        # 2文字以上の単語のみ
-        valid_words = [word for word in words if len(word) >= 2]
-        
-        # 頻度カウント
-        word_freq = Counter(valid_words)
-        
-        # 上位キーワードを取得
-        top_keywords = [word for word, freq in word_freq.most_common(top_k)]
-        
-        print(f"代替キーワード: {top_keywords}", file=sys.stderr)
-        return top_keywords
-        
-    except Exception as e:
-        print(f"代替処理エラー: {e}", file=sys.stderr)
-        return ["キーワード", "抽出", "エラー"]
+        print(f"[ERROR] 予期しないエラー: {e}", file=sys.stderr)
+        print(f"[ERROR] エラー型: {type(e)}", file=sys.stderr)
+        import traceback
+        print(f"[ERROR] スタック: {traceback.format_exc()}", file=sys.stderr)
+        print(json.dumps({"keywords": [], "error": str(e)}))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
