@@ -111,7 +111,7 @@ function callYAKEPython(text) {
   });
 }
 
-// フォルダ構造対応版のOPML読み込み
+// 既存のOPML読み込み処理を維持
 async function loadOPML() {
   console.log('📋 OPML読み込み処理開始...');
   try {
@@ -125,11 +125,6 @@ async function loadOPML() {
     console.log(`📄 OPMLファイル読み込み成功: ${opmlContent.length}文字`);
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(opmlContent);
-    if (!result.opml || !result.opml.body || !result.opml.body[0] || !result.opml.body.outline) {
-      console.error('❌ OPML構造が不正です');
-      console.error('OPML内容:', JSON.stringify(result, null, 2).substring(0, 500));
-      return [];
-    }
     
     const feeds = [];
     const outlines = result.opml.body[0].outline;
