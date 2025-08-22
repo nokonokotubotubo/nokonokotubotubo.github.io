@@ -1,16 +1,31 @@
 {
-  "name": "minews-fetch-rss",
-  "version": "1.0.0",
-  "description": "GitHub Actions 用 RSS 取得＋YAKE! キーワード抽出",
-  "private": true,
-  "type": "commonjs",
-  "engines": { "node": ">=18" },
-  "dependencies": {
-    "node-fetch": "^2.7.0",
-    "xml2js": "^0.6.2",
-    "yake": "^1.2.0"
-  },
+  "name": "rss-fetch-workflow",
+  "version": "1.5.0",
+  "description": "RSS feed fetching and processing with YAKE! keyword extraction",
+  "main": "fetch-rss.js",
   "scripts": {
-    "start": "node fetch-rss.js"
-  }
+    "start": "node fetch-rss.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "xml2js": "^0.6.2",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/your-repo"
+  },
+  "keywords": [
+    "rss",
+    "feed",
+    "news",
+    "yake",
+    "keyword-extraction",
+    "nlp"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
