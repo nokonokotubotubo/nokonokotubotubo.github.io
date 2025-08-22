@@ -101,33 +101,49 @@ function callYAKEPython(text) {
     });
     
     python.stderr.on('data', (data) => {
-      errorOutput += data.toString();
+      const stderrLine = data.toString().trim();
+      if (stderrLine) {
+        console.log(`🐍 Python stderr: ${stderrLine}`);
+      }
     });
     
     python.on('close', (code) => {
       console.log(`🐍 Pythonプロセス終了: コード ${code}`);
+      console.log(`🐍 Python stdout（生データ）: "${output.trim()}"`);
       
       if (code !== 0) {
-        console.error(`❌ Python stderr: ${errorOutput}`);
-        reject(new Error(`Python script failed with code ${code}: ${errorOutput}`));
+        reject(new Error(`Python script failed with code ${code}`));
         return;
       }
       
       try {
-        console.log(`🐍 Python stdout: ${output.trim()}`);
-        const result = JSON.parse(output.trim());
+        // JSON出力のクリーンアップ
+        const cleanOutput = output.trim();
+        if (!cleanOutput.startsWith('{')) {
+          console.error(`❌ 不正な出力形式: ${cleanOutput}`);
+          resolve([]);
+          return;
+        }
         
-        // 【重要】keywords配列の型チェック
+        const result = JSON.parse(cleanOutput);
+        console.log(`🐍 パース結果: ${JSON.stringify(result)}`);
+        
+        // キーワードの型チェック
         if (Array.isArray(result.keywords)) {
-          const keywords = result.keywords.filter(kw => typeof kw === 'string');
+          const keywords = result.keywords.filter(kw => 
+            typeof kw === 'string' && kw.trim().length > 0
+          );
+          console.log(`✅ 有効キーワード: ${JSON.stringify(keywords)}`);
           resolve(keywords);
         } else {
+          console.error(`❌ keywords配列が不正: ${typeof result.keywords}`);
           resolve([]);
         }
+        
       } catch (parseError) {
         console.error(`❌ JSON パースエラー: ${parseError.message}`);
-        console.error(`❌ パース対象: "${output.trim()}"`);
-        reject(new Error(`Failed to parse Python output: ${parseError.message}`));
+        console.error(`❌ 問題のある出力: "${output.trim()}"`);
+        resolve([]);
       }
     });
     
@@ -492,7 +508,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v2.0-YAKE!キーワード抽出修正版'
+        debugVersion: 'v2.1-YAKE!キーワード抽出修正版'
       }
     };
     
