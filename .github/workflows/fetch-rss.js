@@ -1,5 +1,5 @@
-// エラー詳細出力版（YAKE!キーワード抽出対応・修正版）
-console.log('🔍 fetch-rss.js実行開始（YAKE!キーワード抽出修正版）');
+// エラー詳細出力版（YAKE!キーワード抽出対応・問題完全把握版）
+console.log('🔍 fetch-rss.js実行開始（YAKE!問題完全把握版）');
 console.log('📅 実行環境:', process.version, process.platform);
 
 // 未処理の例外をキャッチ
@@ -50,10 +50,10 @@ function generateStableIdForRSS(url, title, publishDate) {
     return `stable_${hashStr}_${baseString.length}`;
 }
 
-// YAKE!による日本語キーワード抽出（修正版）
+// YAKE!による日本語キーワード抽出（問題完全把握版）
 async function extractKeywordsWithYAKE(text) {
   try {
-    console.log('🔍 YAKE!によるキーワード抽出開始');
+    console.log('🔍 YAKE!キーワード抽出開始');
     
     if (!text || text.trim().length === 0) {
       console.log('❌ 入力テキストが空です');
@@ -69,19 +69,16 @@ async function extractKeywordsWithYAKE(text) {
       return [];
     }
 
-    console.log(`🔍 処理対象テキスト: "${cleanedText.substring(0, 100)}..."`);
+    console.log(`🔍 処理対象テキスト（${cleanedText.length}文字）: "${cleanedText.substring(0, 100)}..."`);
     
     const keywords = await callYAKEPython(cleanedText);
-    console.log(`✅ YAKE!結果: ${JSON.stringify(keywords)}`);
+    console.log(`✅ YAKE!最終結果: ${JSON.stringify(keywords)}`);
     
-    // 【重要】文字列配列であることを確認
-    const validKeywords = keywords.filter(kw => typeof kw === 'string' && kw.length > 0);
-    console.log(`✅ 有効キーワード: ${JSON.stringify(validKeywords)}`);
-    
-    return validKeywords.slice(0, 3);
+    return keywords;
     
   } catch (error) {
     console.error('❌ YAKE!キーワード抽出エラー:', error.message);
+    console.error('❌ スタック:', error.stack);
     return [];
   }
 }
@@ -89,60 +86,73 @@ async function extractKeywordsWithYAKE(text) {
 function callYAKEPython(text) {
   return new Promise((resolve, reject) => {
     const pythonScript = path.join(__dirname, 'yake_extractor.py');
-    console.log(`🐍 Pythonスクリプト実行: ${pythonScript}`);
+    console.log(`🐍 Python実行: ${pythonScript}`);
     
     const python = spawn('python3', [pythonScript]);
     
-    let output = '';
-    let errorOutput = '';
+    let stdout = '';
+    let stderr = '';
     
     python.stdout.on('data', (data) => {
-      output += data.toString();
+      const chunk = data.toString();
+      stdout += chunk;
+      console.log(`🐍 STDOUT受信（${chunk.length}文字）: ${chunk.substring(0, 200)}...`);
     });
     
     python.stderr.on('data', (data) => {
-      const stderrLine = data.toString().trim();
-      if (stderrLine) {
-        console.log(`🐍 Python stderr: ${stderrLine}`);
-      }
+      const chunk = data.toString();
+      stderr += chunk;
+      // stderrは行ごとに出力
+      const lines = chunk.split('\n').filter(line => line.trim());
+      lines.forEach(line => console.log(`🐍 STDERR: ${line}`));
     });
     
     python.on('close', (code) => {
-      console.log(`🐍 Pythonプロセス終了: コード ${code}`);
-      console.log(`🐍 Python stdout（生データ）: "${output.trim()}"`);
+      console.log(`🐍 Python終了: コード=${code}`);
+      console.log(`🐍 STDOUT合計（${stdout.length}文字）: "${stdout}"`);
+      console.log(`🐍 STDERR合計（${stderr.length}文字）: "${stderr}"`);
       
       if (code !== 0) {
-        reject(new Error(`Python script failed with code ${code}`));
+        console.error(`❌ Python失敗: 終了コード=${code}`);
+        reject(new Error(`Python script failed: code=${code}, stderr=${stderr}`));
         return;
       }
       
       try {
-        // JSON出力のクリーンアップ
-        const cleanOutput = output.trim();
-        if (!cleanOutput.startsWith('{')) {
-          console.error(`❌ 不正な出力形式: ${cleanOutput}`);
+        const trimmedOutput = stdout.trim();
+        console.log(`🐍 JSON解析対象（${trimmedOutput.length}文字）: "${trimmedOutput}"`);
+        
+        if (!trimmedOutput) {
+          console.error(`❌ 空の出力`);
           resolve([]);
           return;
         }
         
-        const result = JSON.parse(cleanOutput);
-        console.log(`🐍 パース結果: ${JSON.stringify(result)}`);
-        
-        // キーワードの型チェック
-        if (Array.isArray(result.keywords)) {
-          const keywords = result.keywords.filter(kw => 
-            typeof kw === 'string' && kw.trim().length > 0
-          );
-          console.log(`✅ 有効キーワード: ${JSON.stringify(keywords)}`);
-          resolve(keywords);
-        } else {
-          console.error(`❌ keywords配列が不正: ${typeof result.keywords}`);
+        if (!trimmedOutput.startsWith('{')) {
+          console.error(`❌ JSON形式ではありません: "${trimmedOutput}"`);
           resolve([]);
+          return;
         }
         
+        const result = JSON.parse(trimmedOutput);
+        console.log(`🐍 JSON解析成功:`, result);
+        
+        if (!result || !Array.isArray(result.keywords)) {
+          console.error(`❌ 不正な結果構造:`, result);
+          resolve([]);
+          return;
+        }
+        
+        const keywords = result.keywords.filter(kw => 
+          typeof kw === 'string' && kw.trim().length > 0
+        );
+        
+        console.log(`✅ 有効キーワード（${keywords.length}件）:`, keywords);
+        resolve(keywords);
+        
       } catch (parseError) {
-        console.error(`❌ JSON パースエラー: ${parseError.message}`);
-        console.error(`❌ 問題のある出力: "${output.trim()}"`);
+        console.error(`❌ JSON解析失敗: ${parseError.message}`);
+        console.error(`❌ 解析対象: "${stdout}"`);
         resolve([]);
       }
     });
@@ -152,6 +162,8 @@ function callYAKEPython(text) {
       reject(error);
     });
     
+    // 標準入力にテキストを送信
+    console.log(`🐍 テキスト送信（${text.length}文字）`);
     python.stdin.write(text);
     python.stdin.end();
   });
@@ -401,7 +413,7 @@ function parseDate(dateString) {
 async function main() {
   try {
     const startTime = Date.now();
-    console.log('🚀 RSS記事取得開始 (YAKE!キーワード抽出修正版)');
+    console.log('🚀 RSS記事取得開始 (YAKE!問題完全把握版)');
     console.log(`📅 実行時刻: ${new Date().toISOString()}`);
     console.log(`🖥️  実行環境: Node.js ${process.version} on ${process.platform}`);
     
@@ -508,7 +520,7 @@ async function main() {
       debugInfo: {
         processingTime: processingTime,
         errorCount: errorCount,
-        debugVersion: 'v2.1-YAKE!キーワード抽出修正版'
+        debugVersion: 'v3.0-YAKE!問題完全把握版'
       }
     };
     
@@ -527,7 +539,7 @@ async function main() {
     console.log(`   成功率: ${Math.round((successCount / processedCount) * 100)}%`);
     console.log(`   平均処理時間: ${(processingTime / processedCount).toFixed(2)}秒/フィード`);
     console.log(`   平均記事数: ${(allArticles.length / successCount).toFixed(1)}件/成功フィード`);
-    console.log(`   キーワード抽出: YAKE!アルゴリズム（上位3件・文字列型保証）`);
+    console.log(`   キーワード抽出: YAKE!（問題完全把握版）`);
   } catch (error) {
     console.error('💥 main関数内でエラーが発生しました:', error);
     console.error('エラー詳細:', {
@@ -540,7 +552,7 @@ async function main() {
 }
 
 // 実行開始
-console.log('🚀 スクリプト実行開始（YAKE!キーワード抽出修正版）');
+console.log('🚀 スクリプト実行開始（YAKE!問題完全把握版）');
 main().catch(error => {
   console.error('💥 トップレベルエラー:', error);
   console.error('エラー詳細:', {
