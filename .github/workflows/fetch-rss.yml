@@ -2,39 +2,44 @@ name: RSS記事取得
 
 on:
   schedule:
-    - cron: '0 * * * *'         # 1時間ごと
-  workflow_dispatch:
+    - cron: '0 * * * *'  # 1時間間隔で実行
+  workflow_dispatch:     # 手動実行も可能
 
 jobs:
   fetch-rss:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+      
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-
-    # ───── 依存インストール（lock ファイル無し運用）─────
+        
+    - name: Install Python and YAKE dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y python3 python3-pip mecab libmecab-dev mecab-ipadic-utf8
+        pip3 install yake mecab-python3
+        
     - name: Install npm dependencies
       run: |
         cd .github/workflows
-        npm install --no-audit --no-fund
-
-    # ───── RSS 収集 & キーワード抽出 ─────
-    - name: Run RSS crawler
+        npm install
+        
+    - name: Make Python script executable
+      run: |
+        chmod +x .github/workflows/yake_extractor.py
+        
+    - name: RSS記事取得スクリプト実行
       run: node .github/workflows/fetch-rss.js
-
-    # ───── 結果をコミット ─────
-    - name: Commit & Push updated articles
+      
+    - name: Commit and push
       run: |
         git config --local user.email "action@github.com"
-        git config --local user.name  "GitHub Action"
+        git config --local user.name "GitHub Action"
         git add mss/articles.json
-        git diff --staged --quiet || \
-          git commit -m "Update RSS articles $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        git diff --staged --quiet || git commit -m "Update RSS articles $(date)"
         git pull --rebase origin main || true
         git push || (git pull --rebase origin main && git push)
