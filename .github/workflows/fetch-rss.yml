@@ -2,8 +2,8 @@ name: RSS記事取得
 
 on:
   schedule:
-    - cron: '0 * * * *'   # 1時間ごと
-  workflow_dispatch:       # 手動実行
+    - cron: '0 * * * *'         # 1時間おき
+  workflow_dispatch:
 
 jobs:
   fetch-rss:
@@ -18,10 +18,13 @@ jobs:
       with:
         node-version: '18'
 
+    # ────────────────────────────────
+    # lock ファイルが無いので npm install を使用
+    # ────────────────────────────────
     - name: Install npm dependencies
       run: |
         cd .github/workflows
-        npm ci                     # lock-file がある場合は ci を推奨
+        npm install --no-audit --no-fund
 
     - name: Run RSS crawler
       run: node .github/workflows/fetch-rss.js
@@ -31,6 +34,7 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name  "GitHub Action"
         git add mss/articles.json
-        git diff --staged --quiet || git commit -m "Update RSS articles $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        git diff --staged --quiet || \
+          git commit -m "Update RSS articles $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
         git pull --rebase origin main || true
         git push || (git pull --rebase origin main && git push)
