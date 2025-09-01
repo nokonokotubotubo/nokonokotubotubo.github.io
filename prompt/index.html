@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メタプロンプトジェネレータ - 高品質AIプロンプト作成ツール</title>
+    <meta name="description" content="AI用のメタプロンプトを効率的に生成するツール。ハルシネーション防止機能、テンプレート管理、品質保証機能を搭載。">
+    <meta name="keywords" content="メタプロンプト,AI,プロンプトエンジニアリング,ChatGPT,生成AI,ハルシネーション防止">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SEO と アクセシビリティ -->
+    <meta property="og:title" content="メタプロンプトジェネレータ - 高品質AIプロンプト作成ツール">
+    <meta property="og:description" content="AI用のメタプロンプトを効率的に生成するツール。ハルシネーション防止機能付き。">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ja_JP">
+    
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- パフォーマンス最適化 -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="script.js" as="script">
+    
+    <!-- アクセシビリティ -->
+    <meta name="color-scheme" content="light dark">
+</head>
+<body>
+    <!-- スキップリンク -->
+    <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+    
+    <!-- プログレスバー -->
+    <div class="progress-bar" role="progressbar" aria-label="フォーム入力進捗">
+        <div class="progress-fill"></div>
+    </div>
+    
+    <!-- メイン コンテナ -->
+    <div class="container">
+        <!-- ヘッダー -->
+        <header>
+            <h1>🤖 メタプロンプトジェネレータ</h1>
+            <p>AI用の高品質メタプロンプトを自動生成するツール</p>
+            
+            <!-- ツールバー -->
+            <div class="toolbar">
+                <button id="darkModeToggle" class="btn-icon" title="ダークモード切り替え (Ctrl+D)" aria-label="ダークモード切り替え">
+                    🌙
+                </button>
+                <button id="fontSizeToggle" class="btn-icon" title="フォントサイズ変更" aria-label="フォントサイズ変更">
+                    🔤
+                </button>
+                <button id="helpToggle" class="btn-icon" title="ヘルプ表示 (Ctrl+H)" aria-label="ヘルプ表示">
+                    ❓
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-content">
+            <!-- メタプロンプト生成フォーム -->
+            <form id="promptForm" class="prompt-form" novalidate>
+                <!-- フォーム ナビゲーション -->
+                <nav class="form-nav" role="tablist" aria-label="フォームステップナビゲーション">
+                    <button type="button" class="nav-step active" role="tab" aria-selected="true" aria-controls="step1" id="tab1">
+                        <span class="step-number">1</span>
+                        <span class="step-label">基本設定</span>
+                    </button>
+                    <button type="button" class="nav-step" role="tab" aria-selected="false" aria-controls="step2" id="tab2">
+                        <span class="step-number">2</span>
+                        <span class="step-label">目的・要求</span>
+                    </button>
+                    <button type="button" class="nav-step" role="tab" aria-selected="false" aria-controls="step3" id="tab3">
+                        <span class="step-number">3</span>
+                        <span class="step-label">詳細設定</span>
+                    </button>
+                    <button type="button" class="nav-step" role="tab" aria-selected="false" aria-controls="step4" id="tab4">
+                        <span class="step-number">4</span>
+                        <span class="step-label">品質保証</span>
+                    </button>
+                </nav>
+
+                <!-- Step 1: 基本設定 -->
+                <section class="form-section active" role="tabpanel" id="step1" aria-labelledby="tab1">
+                    <h2>Step 1: 基本設定</h2>
+                    
+                    <div class="form-group">
+                        <label for="taskType">タスクの種類 <span class="required">*</span></label>
+                        <select id="taskType" name="taskType" required aria-describedby="taskType-help">
+                            <option value="">選択してください</option>
+                            <option value="text-generation">文章生成</option>
+                            <option value="summarization">要約・整理</option>
+                            <option value="analysis">分析・評価</option>
+                            <option value="qa">質疑応答</option>
+                            <option value="translation">翻訳・言語変換</option>
+                            <option value="code-generation">コード生成</option>
+                            <option value="creative">創作・アイデア生成</option>
+                            <option value="research">調査・研究</option>
+                        </select>
+                        <div class="form-help" id="taskType-help">
+                            メタプロンプトが対象とするタスクの種類を選択してください
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="domain">対象ドメイン <span class="required">*</span></label>
+                        <select id="domain" name="domain" required aria-describedby="domain-help">
+                            <option value="">選択してください</option>
+                            <option value="business">ビジネス・経営</option>
+                            <option value="marketing">マーケティング</option>
+                            <option value="technology">テクノロジー・IT</option>
+                            <option value="education">教育・学習</option>
+                            <option value="healthcare">医療・健康</option>
+                            <option value="finance">金融・投資</option>
+                            <option value="legal">法律・規制</option>
+                            <option value="research">研究・学術</option>
+                            <option value="creative">クリエイティブ</option>
+                            <option value="content">コンテンツ制作</option>
+                            <option value="data">データサイエンス</option>
+                            <option value="general">汎用・その他</option>
+                        </select>
+                        <div class="form-help" id="domain-help">
+                            メタプロンプトが扱う専門分野を選択してください
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="outputFormat">出力形式 <span class="required">*</span></label>
+                        <select id="outputFormat" name="outputFormat" required aria-describedby="outputFormat-help">
+                            <option value="">選択してください</option>
+                            <option value="structured">構造化形式（見出し・箇条書き）</option>
+                            <option value="paragraph">段落形式（文章）</option>
+                            <option value="list">リスト形式（項目列挙）</option>
+                            <option value="table">表形式</option>
+                            <option value="markdown">Markdown形式</option>
+                            <option value="json">JSON形式</option>
+                            <option value="custom">カスタム形式</option>
+                        </select>
+                        <div class="form-help" id="outputFormat-help">
+                            メタプロンプトが生成すべき出力の形式を指定してください
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2: 目的・要求 -->
+                <section class="form-section" role="tabpanel" id="step2" aria-labelledby="tab2">
+                    <h2>Step 2: 目的・要求の詳細</h2>
+                    
+                    <div class="form-group">
+                        <label for="taskPurpose">メタプロンプトの目的・内容 <span class="required">*</span></label>
+                        <textarea 
+                            id="taskPurpose" 
+                            name="taskPurpose" 
+                            rows="6" 
+                            required 
+                            placeholder="生成するメタプロンプトの具体的な目的や期待する結果を詳しく記述してください。例：『マーケティング戦略を分析し、具体的な改善提案を段階的に生成するメタプロンプト』"
+                            aria-describedby="taskPurpose-help"
+                            maxlength="2000"
+                        ></textarea>
+                        <div class="form-help" id="taskPurpose-help">
+                            <strong>重要：</strong>このメタプロンプトで何を実現したいかを具体的に記述してください。詳細であるほど高品質なメタプロンプトが生成されます。
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contextInfo">コンテキスト情報</label>
+                        <textarea 
+                            id="contextInfo" 
+                            name="contextInfo" 
+                            rows="4" 
+                            placeholder="背景情報、前提条件、使用場面など（例：社内会議での使用、外部クライアント向け、初心者向け説明など）"
+                            aria-describedby="contextInfo-help"
+                            maxlength="1000"
+                        ></textarea>
+                        <div class="form-help" id="contextInfo-help">
+                            メタプロンプトが使用される状況や背景情報を記載してください
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="targetAudience">対象読者・利用者</label>
+                        <select id="targetAudience" name="targetAudience" aria-describedby="targetAudience-help">
+                            <option value="">選択してください</option>
+                            <option value="beginner">初心者</option>
+                            <option value="intermediate">中級者</option>
+                            <option value="expert">専門家・上級者</option>
+                            <option value="general">一般ユーザー</option>
+                            <option value="business">ビジネスユーザー</option>
+                            <option value="technical">技術者・開発者</option>
+                            <option value="academic">研究者・学術関係者</option>
+                        </select>
+                        <div class="form-help" id="targetAudience-help">
+                            メタプロンプトの主な使用者を選択してください
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 3: 詳細設定 -->
+                <section class="form-section" role="tabpanel" id="step3" aria-labelledby="tab3">
+                    <h2>Step 3: 詳細設定</h2>
+                    
+                    <div class="form-group">
+                        <label for="detailLevel">詳細度レベル: <span id="detailLevelValue">5 - 標準</span></label>
+                        <input 
+                            type="range" 
+                            id="detailLevel" 
+                            name="detailLevel" 
+                            min="1" 
+                            max="10" 
+                            value="5" 
+                            aria-describedby="detailLevel-help"
+                        >
+                        <div class="range-labels">
+                            <span>簡潔</span>
+                            <span>詳細</span>
+                        </div>
+                        <div class="form-help" id="detailLevel-help">
+                            メタプロンプトの詳細度を調整してください。高い値ほど具体的で詳細なメタプロンプトが生成されます
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customInstructions">カスタム指示・制約条件</label>
+                        <textarea 
+                            id="customInstructions" 
+                            name="customInstructions" 
+                            rows="4" 
+                            placeholder="特別な要求事項、制約条件、スタイル指定など（例：必ず3段階で回答、専門用語は避ける、引用を含める等）"
+                            aria-describedby="customInstructions-help"
+                            maxlength="1000"
+                        ></textarea>
+                        <div class="form-help" id="customInstructions-help">
+                            メタプロンプトに含めたい特別な指示や制約があれば記載してください
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="responseLength">期待する応答長</label>
+                        <select id="responseLength" name="responseLength" aria-describedby="responseLength-help">
+                            <option value="">指定なし</option>
+                            <option value="brief">簡潔（100-300文字）</option>
+                            <option value="moderate">中程度（300-800文字）</option>
+                            <option value="detailed">詳細（800-1500文字）</option>
+                            <option value="comprehensive">包括的（1500文字以上）</option>
+                            <option value="custom">カスタム指定</option>
+                        </select>
+                        <div class="form-help" id="responseLength-help">
+                            メタプロンプトが指定すべき応答の長さを選択してください
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 4: 品質保証 -->
+                <section class="form-section" role="tabpanel" id="step4" aria-labelledby="tab4">
+                    <h2>Step 4: 品質保証・ハルシネーション防止</h2>
+                    
+                    <fieldset class="checkbox-group">
+                        <legend>ハルシネーション防止機能</legend>
+                        
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="hallucinationPrevention" value="sourceRequirement">
+                            <span class="checkmark">✓</span>
+                            <div>
+                                <strong>情報源の明記要求</strong><br>
+                                事実情報には必ず出典を明記するよう指示
+                            </div>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="hallucinationPrevention" value="uncertaintyExpression">
+                            <span class="checkmark">✓</span>
+                            <div>
+                                <strong>不確実性の適切な表現</strong><br>
+                                断定的な表現を避け、確信度を適切に表現
+                            </div>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="hallucinationPrevention" value="factChecking">
+                            <span class="checkmark">✓</span>
+                            <div>
+                                <strong>事実確認プロセス</strong><br>
+                                重要な情報の検証手順を組み込み
+                            </div>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="hallucinationPrevention" value="stepByStep">
+                            <span class="checkmark">✓</span>
+                            <div>
+                                <strong>段階的思考プロセス</strong><br>
+                                思考過程を明示的に示すよう指示
+                            </div>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="hallucinationPrevention" value="limitation">
+                            <span class="checkmark">✓</span>
+                            <div>
+                                <strong>制限事項の明示</strong><br>
+                                知識の限界や制約を明確に示すよう指示
+                            </div>
+                        </label>
+                    </fieldset>
+
+                    <div class="form-group">
+                        <label for="qualityLevel">品質レベル</label>
+                        <select id="qualityLevel" name="qualityLevel" aria-describedby="qualityLevel-help">
+                            <option value="standard">標準</option>
+                            <option value="high">高品質</option>
+                            <option value="premium">プレミアム</option>
+                            <option value="research">研究・学術レベル</option>
+                        </select>
+                        <div class="form-help" id="qualityLevel-help">
+                            求める品質レベルを選択してください。高い品質レベルほど厳格な検証プロセスが組み込まれます
+                        </div>
+                    </div>
+                </section>
+
+                <!-- フォーム アクション -->
+                <div class="form-actions">
+                    <button type="button" id="prevBtn" class="btn-secondary" disabled>
+                        ← 前へ
+                    </button>
+                    
+                    <div class="form-actions-center">
+                        <button type="submit" class="btn-primary">
+                            <span class="btn-text">🚀 メタプロンプトを生成</span>
+                            <span class="btn-loading" style="display: none;">
+                                <div class="spinner"></div>
+                                生成中...
+                            </span>
+                        </button>
+                        <button type="reset" class="btn-secondary">
+                            🔄 リセット
+                        </button>
+                    </div>
+                    
+                    <button type="button" id="nextBtn" class="btn-secondary">
+                        次へ →
+                    </button>
+                </div>
+            </form>
+
+            <!-- 出力セクション -->
+            <section id="output" class="output-section" style="display: none;" aria-live="polite">
+                <h2>🎯 生成されたメタプロンプト</h2>
+                
+                <!-- 出力ツール -->
+                <div class="output-tools">
+                    <button id="promptFormat" class="btn-tool-small" title="表示形式切り替え">
+                        🔧 整形
+                    </button>
+                    <button id="promptZoom" class="btn-tool-small" title="拡大表示">
+                        🔍 拡大
+                    </button>
+                </div>
+
+                <!-- 生成されたメタプロンプト -->
+                <div 
+                    id="generatedPrompt" 
+                    class="generated-prompt" 
+                    role="textbox" 
+                    aria-readonly="true" 
+                    tabindex="0"
+                    aria-label="生成されたメタプロンプト"
+                ></div>
+
+                <!-- 出力アクション -->
+                <div class="output-actions">
+                    <button id="copyBtn" class="btn-primary">
+                        📋 コピー
+                    </button>
+                    <button id="saveBtn" class="btn-secondary">
+                        💾 テンプレート保存
+                    </button>
+                    <button id="refineBtn" class="btn-secondary">
+                        ✨ 改善
+                    </button>
+                    <button id="exportBtn" class="btn-tool">
+                        📤 エクスポート
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- サイドバー -->
+        <aside class="sidebar">
+            <h3>💾 保存済みテンプレート</h3>
+            
+            <div class="sidebar-tools">
+                <button id="templateImport" class="btn-tool-small" title="テンプレートインポート">
+                    📥 インポート
+                </button>
+                <button id="templateExport" class="btn-tool-small" title="テンプレートエクスポート">
+                    📤 エクスポート
+                </button>
+            </div>
+
+            <div id="savedTemplates" class="template-list">
+                <p class="text-muted">保存されたメタプロンプトテンプレートはありません</p>
+            </div>
+
+            <!-- クイックアクセス -->
+            <div class="quick-access">
+                <h4>🚀 クイックスタート</h4>
+                <div class="quick-buttons">
+                    <button class="quick-btn" data-preset="blog">
+                        📝 ブログ記事
+                    </button>
+                    <button class="quick-btn" data-preset="analysis">
+                        📊 分析レポート
+                    </button>
+                    <button class="quick-btn" data-preset="code">
+                        💻 コード生成
+                    </button>
+                    <button class="quick-btn" data-preset="creative">
+                        🎨 創作支援
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ヘルプパネル -->
+    <aside id="helpPanel" class="help-panel" role="dialog" aria-labelledby="help-title" aria-hidden="true">
+        <div class="help-content">
+            <header class="help-header">
+                <h2 id="help-title">📚 メタプロンプトジェネレータ ヘルプ</h2>
+                <button id="helpClose" class="btn-close" aria-label="ヘルプを閉じる">×</button>
+            </header>
+            
+            <div class="help-body">
+                <section>
+                    <h3>🎯 メタプロンプトとは</h3>
+                    <p><strong>メタプロンプト</strong>とは、AI（ChatGPT等）に対して高品質な回答を生成させるための「プロンプトを作るためのプロンプト」です。</p>
+                    <ul>
+                        <li>役割定義、タスク指示、出力形式などを体系的に構造化</li>
+                        <li>ハルシネーション（幻覚）を防止する仕組みを内蔵</li>
+                        <li>一貫性のある高品質な結果を安定的に生成</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>🚀 基本的な使い方</h3>
+                    <ol>
+                        <li><strong>基本設定：</strong>タスクの種類、対象ドメイン、出力形式を選択</li>
+                        <li><strong>目的・要求：</strong>メタプロンプトで実現したい目的を具体的に記述</li>
+                        <li><strong>詳細設定：</strong>詳細度レベルや特別な制約を指定</li>
+                        <li><strong>品質保証：</strong>ハルシネーション防止機能を選択</li>
+                        <li><strong>生成：</strong>「メタプロンプトを生成」ボタンをクリック</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>💡 効果的な使い方のコツ</h3>
+                    <ul>
+                        <li><strong>目的を具体的に：</strong>「何を」「どのような形で」「どの程度の詳細で」を明記</li>
+                        <li><strong>コンテキストを提供：</strong>使用場面や前提条件を詳しく説明</li>
+                        <li><strong>制約を明示：</strong>文字数制限、形式要求、避けるべき表現などを指定</li>
+                        <li><strong>品質機能を活用：</strong>ハルシネーション防止機能で信頼性向上</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>⚠️ ハルシネーション防止機能</h3>
+                    <ul>
+                        <li><strong>情報源の明記：</strong>事実情報には出典を要求</li>
+                        <li><strong>不確実性の表現：</strong>断定的表現を避け、確信度を明示</li>
+                        <li><strong>事実確認プロセス：</strong>重要情報の検証手順を組み込み</li>
+                        <li><strong>段階的思考：</strong>思考プロセスを明示化</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>⌨️ キーボードショートカット</h3>
+                    <ul>
+                        <li><kbd>Ctrl</kbd> + <kbd>Enter</kbd>: メタプロンプト生成</li>
+                        <li><kbd>Ctrl</kbd> + <kbd>H</kbd>: ヘルプ表示</li>
+                        <li><kbd>Ctrl</kbd> + <kbd>D</kbd>: ダークモード切り替え</li>
+                        <li><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd>: デバッグパネル</li>
+                        <li><kbd>Esc</kbd>: パネルを閉じる</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>📝 入力例</h3>
+                    <h4>文章生成の場合：</h4>
+                    <p><strong>目的：</strong>「新商品のマーケティング戦略について、競合分析を含めた包括的な提案書を段階的に作成するメタプロンプト」</p>
+                    
+                    <h4>分析の場合：</h4>
+                    <p><strong>目的：</strong>「売上データから傾向を分析し、根拠とともに改善提案を3段階で提示するメタプロンプト」</p>
+                    
+                    <h4>コード生成の場合：</h4>
+                    <p><strong>目的：</strong>「Pythonでデータ処理を行う関数を、コメントとテストコード付きで生成するメタプロンプト」</p>
+                </section>
+            </div>
+        </div>
+    </aside>
+
+    <!-- モーダルオーバーレイ -->
+    <div id="modalOverlay" class="modal-overlay" aria-hidden="true"></div>
+
+    <!-- 通知コンテナ -->
+    <div id="notifications" class="notifications" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+
+    <!-- 構造化データ（SEO） -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "メタプロンプトジェネレータ",
+        "description": "AI用のメタプロンプトを効率的に生成するツール。ハルシネーション防止機能付き。",
+        "url": window.location.href,
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "JPY"
+        },
+        "featureList": [
+            "メタプロンプト自動生成",
+            "ハルシネーション防止機能",
+            "テンプレート管理",
+            "品質保証機能",
+            "アクセシビリティ対応"
+        ]
+    }
+    </script>
+</body>
+</html>
