@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ローカルメモアプリ</title>
+    <link href="quill.snow.css" rel="stylesheet">
+    <style>
+        :root { --bg-primary: #F7FBFF; --bg-surface: #EAF5FF; --color-primary: #5BBDF7; --color-accent: #4A90E2; --border-color: #D6EAFB; --text-color: #0F2942; --radius: 8px; --shadow: 0 2px 4px rgba(2,6,23,0.1); }
+        body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-primary); color: var(--text-color); display: flex; flex-direction: column; overflow: hidden; }
+        .app-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .app-header { height: 50px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 8px; background-color: #fff; justify-content: space-between; }
+        .app-header__title-input { flex-grow: 1; border: none; background: transparent; font-size: 1.2em; color: var(--text-color); outline: none; font-weight: 500; }
+        .app-header__actions { display: flex; align-items: center; }
+        .app-header__actions button, .app-header__actions label { background-color: var(--color-accent); color: white; border: none; border-radius: var(--radius); padding: 8px 12px; cursor: pointer; margin-left: 8px; font-weight: 500; transition: background-color 0.2s; font-size: 14px; text-align: center; }
+        .app-header__actions button:hover, .app-header__actions label:hover { background-color: #357ABD; }
+        #trash-btn { background-color: #e74c3c; }
+        #trash-btn:hover { background-color: #c0392b; }
+        #import-input { display: none; }
+        .app-sidebar { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border-color); background-color: var(--bg-surface); display: flex; flex-direction: column; }
+        .app-sidebar__search { padding: 8px; border-bottom: 1px solid var(--border-color); }
+        .app-sidebar__search-input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: var(--radius); border: 1px solid var(--border-color); }
+        .app-sidebar__unified-tree { flex-grow: 1; overflow-y: auto; padding: 8px; }
+        .tree-item { position: relative; padding: 8px; cursor: pointer; border-radius: var(--radius); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
+        .tree-item:hover { background-color: #dbefff; }
+        .tree-item.active { background-color: var(--color-primary); color: white; }
+        .tree-item.folder { font-weight: 500; }
+        .tree-item.folder::before { content: '📁'; margin-right: 8px; }
+        .tree-item.memo::before { content: '📝'; margin-right: 8px; }
+        .tree-item[data-level="0"] { padding-left: 8px; }
+        .tree-item[data-level="1"] { padding-left: 24px; }
+        .tree-item[data-level="2"] { padding-left: 40px; }
+        .tree-item[data-level="3"] { padding-left: 56px; }
+        .tree-item__delete-btn { position: absolute; top: 5px; right: 5px; border: none; background: none; color: #999; cursor: pointer; font-size: 16px; display: none; padding: 2px; line-height: 1; }
+        .tree-item:hover .tree-item__delete-btn { display: block; }
+        .tree-item.active .tree-item__delete-btn { color: white; }
+        .tree-item__snippet { font-size: 0.8em; opacity: 0.7; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-item__snippet mark { background-color: #fff3a3; border-radius: 3px; color: #333; }
+        
+        /* 右クリックメニューのスタイル */
+        .context-menu { position: fixed; background: white; border: 1px solid var(--border-color); border-radius: var(--radius); padding: 4px 0; box-shadow: var(--shadow); z-index: 1000; min-width: 120px; display: none; }
+        .context-menu-item { padding: 8px 16px; cursor: pointer; font-size: 14px; }
+        .context-menu-item:hover { background-color: var(--bg-surface); }
+        .context-menu-separator { height: 1px; background-color: var(--border-color); margin: 4px 0; }
+        
+        .app-main { flex-grow: 1; display: flex; flex-direction: column; }
+        #editor-container { flex-grow: 1; height: 100%; }
+        .ql-editor { font-size: 16px; line-height: 1.6; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.visible { display: flex; }
+        .modal-content { background: white; padding: 20px; border-radius: var(--radius); width: 80%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+        .modal-close-btn { font-size: 1.5rem; cursor: pointer; border: none; background: none; }
+        .modal-body { flex-grow: 1; overflow-y: auto; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color); }
+        .list-item:last-child { border-bottom: none; }
+        .list-item__name::before { content: '📝'; margin-right: 8px; }
+        .list-item__name.folder::before { content: '📁'; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <input type="text" class="app-header__title-input" placeholder="無題のメモ">
+        <div class="app-header__actions">
+            <button id="new-memo-btn">+</button>
+            <button id="export-btn">エクスポート</button>
+            <label for="import-input">インポート</label>
+            <input type="file" id="import-input" accept=".json">
+            <button id="restore-backup-btn">復元</button>
+            <button id="trash-btn">ゴミ箱</button>
+        </div>
+    </header>
+    <div class="app-container">
+        <aside class="app-sidebar">
+            <div class="app-sidebar__search">
+                <input type="search" class="app-sidebar__search-input" placeholder="検索...">
+            </div>
+            <div id="unified-tree-container" class="app-sidebar__unified-tree"></div>
+        </aside>
+        <main class="app-main">
+            <div id="editor-container"></div>
+        </main>
+    </div>
+    
+    <!-- 右クリックメニュー -->
+    <div id="context-menu" class="context-menu">
+        <!-- メニュー項目は動的に生成される -->
+    </div>
+    
+    <div id="trash-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2>ゴミ箱</h2><button class="modal-close-btn">&times;</button></div>
+            <div id="trash-list-container" class="modal-body"></div>
+        </div>
+    </div>
+    <div id="backup-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2>自動バックアップから復元</h2><button class="modal-close-btn">&times;</button></div>
+            <div id="backup-list-container" class="modal-body"></div>
+        </div>
+    </div>
+    <script src="quill.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataManager = {
+                DB_KEY: 'memoAppData', BACKUP_KEY_PREFIX: 'memoAppBackup_', BACKUP_INFO_KEY: 'memoAppBackupInfo',
+                db: null,
+                init() {
+                    this.loadDataFromStorage();
+                    if (!this.db) {
+                        const data = { version: "1.0", folders: [], memos: [], settings: { theme: "light_blue", autoSave: true, lastBackup: null, activeMemoId: null, activeFolderId: null, } };
+                        this.setData(data, 'init');
+                    }
+                },
+                loadDataFromStorage() {
+                    try {
+                        const data = localStorage.getItem(this.DB_KEY);
+                        this.db = data ? JSON.parse(data) : null;
+                    } catch (e) {
+                        console.error("Error reading data from localStorage", e);
+                        this.db = null;
+                    }
+                },
+                getData() { return this.db; },
+                setData(d, caller = 'unknown') {
+                    this.db = d;
+                    try {
+                        localStorage.setItem(this.DB_KEY, JSON.stringify(d));
+                    } catch (e) {
+                        console.error("LS Error:", e);
+                    }
+                },
+                updateMemo(i, { title: t, content: c }) {
+                    const m = this.db.memos.find(m => m.id === i);
+                    if (m) {
+                        m.title = t;
+                        m.content = c;
+                        m.updatedAt = new Date().toISOString();
+                        this.setData(this.db, 'updateMemo');
+                        return true;
+                    }
+                    return false;
+                },
+                renameMemo(id, newTitle) {
+                    const memo = this.db.memos.find(m => m.id === id);
+                    if (memo) {
+                        memo.title = newTitle;
+                        memo.updatedAt = new Date().toISOString();
+                        this.setData(this.db, 'renameMemo');
+                        return true;
+                    }
+                    return false;
+                },
+                renameFolder(id, newName) {
+                    const folder = this.db.folders.find(f => f.id === id);
+                    if (folder) {
+                        folder.name = newName;
+                        this.setData(this.db, 'renameFolder');
+                        return true;
+                    }
+                    return false;
+                },
+                createMemo(t, f) { const d = this.getData(); const n = new Date().toISOString(); const m = { id: crypto.randomUUID(), title: t, content: "<p><br></p>", folderId: f, createdAt: n, updatedAt: n, isTrash: false }; d.memos.push(m); this.setData(d, 'createMemo'); return m; },
+                createFolder(n, p) { const d = this.getData(); const t = new Date().toISOString(); const f = { id: crypto.randomUUID(), name: n, parentId: p, createdAt: t, isTrash: false }; d.folders.push(f); this.setData(d, 'createFolder'); return f; },
+                deleteMemo(id) { const db = this.getData(); const memo = db.memos.find(m => m.id === id); if (memo) { memo.isTrash = true; memo.updatedAt = new Date().toISOString(); this.setData(db, 'deleteMemo'); } },
+                deleteFolder(folderId) { const db = this.getData(); const foldersToDelete = new Set([folderId]); const memosToDelete = new Set(); const findChildren = (parentId) => { db.folders.filter(f => f.parentId === parentId).forEach(f => { foldersToDelete.add(f.id); findChildren(f.id); }); db.memos.filter(m => m.folderId === parentId).forEach(m => memosToDelete.add(m.id)); }; findChildren(folderId); const now = new Date().toISOString(); db.folders.forEach(f => { if (foldersToDelete.has(f.id)) { f.isTrash = true; f.updatedAt = now; } }); db.memos.forEach(m => { if (memosToDelete.has(m.id) || m.folderId === folderId) { m.isTrash = true; m.updatedAt = now; } }); this.setData(db, 'deleteFolder'); },
+                getTrashedItems() { const db = this.getData(); return { memos: db.memos.filter(m => m.isTrash), folders: db.folders.filter(f => f.isTrash) }; },
+                restoreItem(id, type) { const db = this.getData(); if (type === 'memo') { const item = db.memos.find(i => i.id === id); if (item) item.isTrash = false; } else { const folder = db.folders.find(f => f.id === id); if (folder) { folder.isTrash = false; let parent = db.folders.find(f => f.id === folder.parentId); while(parent && parent.isTrash) { parent.isTrash = false; parent = db.folders.find(f => f.id === parent.parentId); } } } this.setData(db, 'restoreItem'); },
+                deleteItemPermanently(id, type) { const db = this.getData(); if (type === 'memo') { db.memos = db.memos.filter(i => i.id !== id); } else { db.folders = db.folders.filter(i => i.id !== id); } this.setData(db, 'deleteItemPermanently'); },
+                searchMemos(q) { if (!q) return []; const db = this.getData(); const results = []; const query = q.toLowerCase(); const stripHtml = (html) => (new DOMParser().parseFromString(html, 'text/html')).body.textContent || ''; for (const memo of db.memos) { if (memo.isTrash) continue; const title = memo.title.toLowerCase(); const content = stripHtml(memo.content).toLowerCase(); const titleIndex = title.indexOf(query); const contentIndex = content.indexOf(query); if (titleIndex > -1 || contentIndex > -1) { let snippet = ''; if (contentIndex > -1) { const start = Math.max(0, contentIndex - 15); const end = Math.min(content.length, contentIndex + query.length + 15); snippet = this.escapeHTML(content.substring(start, end)).replace(new RegExp(this.escapeHTML(q), 'gi'), (match) => `<mark>${match}</mark>`); } else { snippet = this.escapeHTML(stripHtml(memo.content).substring(0, 100)); } results.push({ ...memo, snippet }); } } return results; },
+                exportData() { const d = this.getData(); const b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `memo-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(u); },
+                importData(f, cb) { const r = new FileReader(); r.onload = (e) => { try { const d = JSON.parse(e.target.result); if (d && d.version && d.folders && d.memos && d.settings) { this.setData(d, 'importData'); cb(true); } else { cb(false); } } catch (err) { cb(false); } }; r.readAsText(f); },
+                createBackup() { const i = JSON.parse(localStorage.getItem(this.BACKUP_INFO_KEY)) || { nextSlot: 1, slots: {} }; const s = i.nextSlot; const k = this.BACKUP_KEY_PREFIX + s; const d = this.getData(); localStorage.setItem(k, JSON.stringify(d)); i.slots[s] = new Date().toISOString(); i.nextSlot = (s % 3) + 1; localStorage.setItem(this.BACKUP_INFO_KEY, JSON.stringify(i)); },
+                getBackups() { return JSON.parse(localStorage.getItem(this.BACKUP_INFO_KEY))?.slots || {}; },
+                restoreBackup(s) { const k = this.BACKUP_KEY_PREFIX + s; const d = localStorage.getItem(k); if (d) { this.setData(JSON.parse(d), 'restoreBackup'); return true; } return false; },
+                getActiveMemoId() { return this.getData()?.settings.activeMemoId; },
+                setActiveMemoId(i) { const d = this.getData(); if (d) { d.settings.activeMemoId = i; this.setData(d, 'setActiveMemoId'); } },
+                getActiveFolderId() { return this.getData()?.settings.activeFolderId; },
+                setActiveFolderId(i) { const d = this.getData(); if (d) { d.settings.activeFolderId = i; this.setData(d, 'setActiveFolderId'); } },
+                escapeHTML(s) { if (s === null || s === undefined) { return ''; } return s.toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[m])); },
+            };
+            const uiManager = {
+                elements: {},
+                quillInstance: null, currentMemoId: null, currentFolderId: null, saveTimeout: null, pendingSaveForMemoId: null, isSearching: false, contextMenuTarget: null,
+                init(quill) {
+                    this.quillInstance = quill;
+                    this.cacheElements();
+                    this.currentFolderId = dataManager.getActiveFolderId();
+                    this.addEventListeners();
+                    this.loadInitialMemo();
+                    this.render();
+                    // 定期バックアップ
+                    setInterval(() => dataManager.createBackup(), 60000);
+                    // タブが非表示になる瞬間にも保存をフラッシュ
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'hidden') {
+                            this.flushPendingSave();
+                        }
+                    });
+                    // 離脱直前にも保存 → その後バックアップ
+                    window.addEventListener('beforeunload', () => {
+                        this.flushPendingSave();
+                        dataManager.createBackup();
+                    });
+                },
+                cacheElements() {
+                    this.elements = {
+                        titleInput: document.querySelector('.app-header__title-input'),
+                        newMemoBtn: document.querySelector('#new-memo-btn'),
+                        trashBtn: document.querySelector('#trash-btn'),
+                        searchInput: document.querySelector('.app-sidebar__search-input'),
+                        unifiedTreeContainer: document.querySelector('#unified-tree-container'),
+                        contextMenu: document.querySelector('#context-menu'),
+                        trashModalOverlay: document.querySelector('#trash-modal-overlay'),
+                        trashListContainer: document.querySelector('#trash-list-container'),
+                        trashModalCloseBtn: document.querySelector('#trash-modal-overlay .modal-close-btn'),
+                        exportBtn: document.querySelector('#export-btn'),
+                        importInput: document.querySelector('#import-input'),
+                        restoreBackupBtn: document.querySelector('#restore-backup-btn'),
+                        backupModalOverlay: document.querySelector('#backup-modal-overlay'),
+                        backupListContainer: document.querySelector('#backup-list-container'),
+                        backupModalCloseBtn: document.querySelector('#backup-modal-overlay .modal-close-btn'),
+                    };
+                },
+                // デバウンス保存（メモIDをバインド）
+                handleTyping() {
+                    clearTimeout(this.saveTimeout);
+                    const scheduledId = this.currentMemoId;
+                    this.pendingSaveForMemoId = scheduledId;
+                    this.saveTimeout = setTimeout(() => {
+                        // スケジュール時と現在のメモが一致する場合のみ保存
+                        if (scheduledId && scheduledId === this.currentMemoId) {
+                            this.saveCurrentMemo();
+                        }
+                    }, 500);
+                },
+                // 未保存があれば即時保存してからクリア
+                flushPendingSave() {
+                    if (this.saveTimeout) {
+                        clearTimeout(this.saveTimeout);
+                        this.saveTimeout = null;
+                    }
+                    if (this.currentMemoId) {
+                        this.saveCurrentMemo();
+                    }
+                    this.pendingSaveForMemoId = null;
+                },
+                addEventListeners() {
+                    // タイトル: 入力とフォーカス喪失で保存
+                    this.elements.titleInput.addEventListener('keyup', () => this.handleTyping());
+                    this.elements.titleInput.addEventListener('input', () => this.handleTyping());
+                    this.elements.titleInput.addEventListener('blur', () => this.flushPendingSave());
+                    // 本文: 変更は常時検知（'silent' では発火しないため初期読込は除外）
+                    this.quillInstance.on('text-change', () => { this.handleTyping(); }); // Quill API［web:1］
+                    // エディタのフォーカス喪失で即時保存
+                    this.quillInstance.on('selection-change', (range) => {
+                        if (range == null) this.flushPendingSave(); // Quill API［web:1］
+                    });
+                    // 既存UIの各操作（切替前にフラッシュ保存）
+                    this.elements.newMemoBtn.addEventListener('click', () => { this.flushPendingSave(); this.handleNewMemo(); });
+                    this.elements.unifiedTreeContainer.addEventListener('click', (e) => { this.flushPendingSave(); this.handleTreeClick(e); });
+                    this.elements.unifiedTreeContainer.addEventListener('contextmenu', (e) => this.handleTreeContextMenu(e));
+                    this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e));
+                    this.elements.trashBtn.addEventListener('click', () => this.showTrashModal());
+                    this.elements.trashModalCloseBtn.addEventListener('click', () => this.hideTrashModal());
+                    this.elements.trashModalOverlay.addEventListener('click', (e) => { if(e.target === this.elements.trashModalOverlay) this.hideTrashModal(); });
+                    this.elements.trashListContainer.addEventListener('click', (e) => this.handleTrashAction(e));
+                    this.elements.exportBtn.addEventListener('click', () => dataManager.exportData());
+                    this.elements.importInput.addEventListener('change', (e) => this.handleImport(e));
+                    this.elements.restoreBackupBtn.addEventListener('click', () => this.showBackupModal());
+                    this.elements.backupModalCloseBtn.addEventListener('click', () => this.hideBackupModal());
+                    this.elements.backupModalOverlay.addEventListener('click', (e) => { if(e.target === this.elements.backupModalOverlay) this.hideBackupModal(); });
+                    this.elements.backupListContainer.addEventListener('click', (e) => this.handleBackupAction(e));
+                    
+                    // 右クリックメニューのイベントリスナー
+                    this.elements.contextMenu.addEventListener('click', (e) => this.handleContextMenuClick(e));
+                    document.addEventListener('click', () => this.hideContextMenu());
+                    
+                    // ツリーコンテナ自体への右クリックイベントリスナー（空白部分での新規作成）
+                    this.elements.unifiedTreeContainer.addEventListener('contextmenu', (e) => {
+                        if (e.target === this.elements.unifiedTreeContainer) {
+                            e.preventDefault();
+                            this.showRootContextMenu(e.clientX, e.clientY);
+                        }
+                    });
+                },
+                render() { console.log("//-D- render called"); this.renderUnifiedTree(); },
+                renderUnifiedTree() {
+                    const db = dataManager.getData();
+                    const buildTree = (parentId, level) => {
+                        if (level >= 3) return '';
+                        let html = '';
+                        
+                        // 現在のフォルダレベルのフォルダを取得
+                        const folders = db.folders
+                            .filter(f => f.parentId === parentId && !f.isTrash)
+                            .sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        // 各フォルダを処理
+                        folders.forEach(folder => {
+                            // フォルダを表示
+                            html += `<div class="tree-item folder ${folder.id === this.currentFolderId ? 'active' : ''}" data-type="folder" data-id="${folder.id}" data-level="${level}">
+                                <span>${dataManager.escapeHTML(folder.name)}</span>
+                                <button class="tree-item__delete-btn" data-id="${folder.id}" data-type="folder">&times;</button>
+                            </div>`;
+                            
+                            // そのフォルダに属するメモを表示（作成順に表示）
+                            const folderMemos = db.memos
+                                .filter(m => m.folderId === folder.id && !m.isTrash)
+                                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                            
+                            folderMemos.forEach(memo => {
+                                const snippet = memo.snippet || this.getContentSnippet(memo.content);
+                                html += `<div class="tree-item memo ${memo.id === this.currentMemoId ? 'active' : ''}" data-type="memo" data-id="${memo.id}" data-level="${level + 1}">
+                                    <div>
+                                        <span>${dataManager.escapeHTML(memo.title) || '無題のメモ'}</span>
+                                        ${snippet ? `<div class="tree-item__snippet">${snippet}</div>` : ''}
+                                    </div>
+                                    <button class="tree-item__delete-btn" data-id="${memo.id}" data-type="memo">&times;</button>
+                                </div>`;
+                            });
+                            
+                            // サブフォルダを再帰的に処理
+                            html += buildTree(folder.id, level + 1);
+                        });
+                        
+                        return html;
+                    };
+                    
+                    let html = '';
+                    
+                    // ルートレベルのメモを表示（作成順に表示）
+                    const rootMemos = db.memos
+                        .filter(m => m.folderId === null && !m.isTrash)
+                        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    
+                    rootMemos.forEach(memo => {
+                        const snippet = memo.snippet || this.getContentSnippet(memo.content);
+                        html += `<div class="tree-item memo ${memo.id === this.currentMemoId ? 'active' : ''}" data-type="memo" data-id="${memo.id}" data-level="0">
+                            <div>
+                                <span>${dataManager.escapeHTML(memo.title) || '無題のメモ'}</span>
+                                ${snippet ? `<div class="tree-item__snippet">${snippet}</div>` : ''}
+                            </div>
+                            <button class="tree-item__delete-btn" data-id="${memo.id}" data-type="memo">&times;</button>
+                        </div>`;
+                    });
+                    
+                    // ルートレベルのフォルダから開始
+                    html += buildTree(null, 0);
+                    
+                    this.elements.unifiedTreeContainer.innerHTML = html;
+                },
+                renderSearchResults(results) {
+                    let html = '';
+                    results.forEach(m => {
+                        html += `<div class="tree-item memo ${m.id === this.currentMemoId ? 'active' : ''}" data-type="memo" data-id="${m.id}" data-level="0">
+                            <div>
+                                <span>${dataManager.escapeHTML(m.title) || '無題のメモ'}</span>
+                                <div class="tree-item__snippet">${m.snippet || ''}</div>
+                            </div>
+                            <button class="tree-item__delete-btn" data-id="${m.id}" data-type="memo">&times;</button>
+                        </div>`;
+                    });
+                    this.elements.unifiedTreeContainer.innerHTML = html;
+                },
+                getContentSnippet(content) {
+                    const stripHtml = (html) => (new DOMParser().parseFromString(html, 'text/html')).body.textContent || '';
+                    return dataManager.escapeHTML(stripHtml(content).substring(0, 50));
+                },
+                loadInitialMemo() {
+                    let memoId = dataManager.getActiveMemoId();
+                    const db = dataManager.getData();
+                    if (!memoId || !db.memos.find(m => m.id === memoId && !m.isTrash)) {
+                        const firstMemo = db.memos.find(m => !m.isTrash);
+                        memoId = firstMemo ? firstMemo.id : dataManager.createMemo("無題のメモ", this.currentFolderId).id;
+                    }
+                    this.loadMemo(memoId);
+                },
+                loadMemo(id) {
+                    console.log(`//-D- loadMemo START for id: ${id}`);
+                    // ペンディング保存は切替前に処理済みのため、ここではタイマーのみ安全側でクリア
+                    if (this.saveTimeout) { clearTimeout(this.saveTimeout); this.saveTimeout = null; this.pendingSaveForMemoId = null; }
+                    const memo = dataManager.getData().memos.find(m => m.id === id);
+                    if (!memo) { console.error(`//-D- loadMemo FAILED to find memo.`); return; }
+                    console.log("//-D- Memo data to be loaded: ", JSON.parse(JSON.stringify(memo)));
+                    this.currentMemoId = memo.id;
+                    this.elements.titleInput.value = memo.title;
+                    // 修正: dangerouslyPasteHTMLを使用してHTMLを直接設定
+                    this.quillInstance.clipboard.dangerouslyPasteHTML(memo.content, 'silent');
+                    dataManager.setActiveMemoId(memo.id);
+                    if (this.currentFolderId !== memo.folderId) {
+                        this.currentFolderId = memo.folderId;
+                        dataManager.setActiveFolderId(this.currentFolderId);
+                    }
+                    this.render();
+                    console.log("//-D- loadMemo END");
+                },
+                // 保存用HTMLは innerHTML を使用（2.0.3の getSemanticHTML 既知問題を回避）
+                getEditorHTML() {
+                    const q = this.quillInstance;
+                    return (q && q.root && typeof q.root.innerHTML === 'string') ? q.root.innerHTML : '';
+                },
+                saveCurrentMemo() {
+                    console.log("//-D- saveCurrentMemo START");
+                    if (!this.currentMemoId) return;
+                    const title = this.elements.titleInput.value;
+                    const content = this.getEditorHTML();
+                    console.log(`//-D- Data to be saved: Title=${title}, Content Length=${content.length}`);
+                    dataManager.updateMemo(this.currentMemoId, { title, content });
+                    if (!this.isSearching) { this.updateMemoItemInTree(this.currentMemoId, title); }
+                    console.log("//-D- saveCurrentMemo END");
+                },
+                updateMemoItemInTree(memoId, newTitle) {
+                    const memoItem = this.elements.unifiedTreeContainer.querySelector(`.tree-item[data-id="${memoId}"][data-type="memo"]`);
+                    if (memoItem) {
+                        const titleElement = memoItem.querySelector('span');
+                        if (titleElement) { titleElement.textContent = newTitle || '無題のメモ'; }
+                    }
+                },
+                handleNewFolder() { const name = prompt("新しいフォルダ名を入力してください:"); if (name && name.trim()) { dataManager.createFolder(name.trim(), this.currentFolderId); this.render(); } },
+                handleNewMemo() { const memo = dataManager.createMemo("無題のメモ", this.currentFolderId); this.loadMemo(memo.id); },
+                handleTreeClick(e) {
+                    console.log("//-D- handleTreeClick triggered");
+                    if (e.target.classList.contains('tree-item__delete-btn')) {
+                        const type = e.target.dataset.type;
+                        const id = e.target.dataset.id;
+                        if (type === 'folder') {
+                            this.handleDeleteFolder(id);
+                        } else if (type === 'memo') {
+                            this.handleDeleteMemo(id);
+                        }
+                        return;
+                    }
+                    const target = e.target.closest('.tree-item');
+                    if (target) {
+                        const type = target.dataset.type;
+                        const id = target.dataset.id;
+                        
+                        if (type === 'folder') {
+                            this.isSearching = false;
+                            this.elements.searchInput.value = '';
+                            console.log(`//-D- Folder selected: ${id}`);
+                            this.currentFolderId = id;
+                            dataManager.setActiveFolderId(this.currentFolderId);
+                            this.render();
+                        } else if (type === 'memo') {
+                            console.log(`//-D- Memo selected: ${id}`);
+                            this.loadMemo(id);
+                        }
+                    }
+                },
+                handleTreeContextMenu(e) {
+                    e.preventDefault();
+                    const target = e.target.closest('.tree-item');
+                    if (target) {
+                        this.contextMenuTarget = target;
+                        this.showContextMenu(e.clientX, e.clientY, target.dataset.type, target.dataset.id);
+                    }
+                },
+                showContextMenu(x, y, type, id) {
+                    let menuHTML = '';
+                    
+                    if (type === 'folder') {
+                        // フォルダの場合：新規作成 + 名前変更・削除
+                        menuHTML += '<div class="context-menu-item" data-action="new-memo">新規メモ</div>';
+                        menuHTML += '<div class="context-menu-item" data-action="new-folder">新規フォルダ</div>';
+                        menuHTML += '<div class="context-menu-separator"></div>';
+                        menuHTML += '<div class="context-menu-item" data-action="rename">名前を変更</div>';
+                        menuHTML += '<div class="context-menu-separator"></div>';
+                        menuHTML += '<div class="context-menu-item" data-action="delete">削除</div>';
+                    } else if (type === 'memo') {
+                        // メモの場合：名前変更・削除のみ
+                        menuHTML += '<div class="context-menu-item" data-action="rename">名前を変更</div>';
+                        menuHTML += '<div class="context-menu-separator"></div>';
+                        menuHTML += '<div class="context-menu-item" data-action="delete">削除</div>';
+                    }
+                    
+                    this.elements.contextMenu.innerHTML = menuHTML;
+                    this.elements.contextMenu.style.left = x + 'px';
+                    this.elements.contextMenu.style.top = y + 'px';
+                    this.elements.contextMenu.style.display = 'block';
+                },
+                showRootContextMenu(x, y) {
+                    // ルートレベル（空白部分）での右クリックメニュー
+                    let menuHTML = '';
+                    menuHTML += '<div class="context-menu-item" data-action="new-memo-root">新規メモ</div>';
+                    menuHTML += '<div class="context-menu-item" data-action="new-folder-root">新規フォルダ</div>';
+                    
+                    this.elements.contextMenu.innerHTML = menuHTML;
+                    this.elements.contextMenu.style.left = x + 'px';
+                    this.elements.contextMenu.style.top = y + 'px';
+                    this.elements.contextMenu.style.display = 'block';
+                },
+                hideContextMenu() {
+                    this.elements.contextMenu.style.display = 'none';
+                    this.contextMenuTarget = null;
+                },
+                handleContextMenuClick(e) {
+                    e.stopPropagation();
+                    
+                    const action = e.target.dataset.action;
+                    
+                    this.hideContextMenu();
+                    
+                    // ルートレベルでの新規作成
+                    if (action === 'new-memo-root') {
+                        const memo = dataManager.createMemo("無題のメモ", null);
+                        this.loadMemo(memo.id);
+                        return;
+                    }
+                    if (action === 'new-folder-root') {
+                        const name = prompt("新しいフォルダ名を入力してください:");
+                        if (name && name.trim()) {
+                            dataManager.createFolder(name.trim(), null);
+                            this.render();
+                        }
+                        return;
+                    }
+                    
+                    if (!this.contextMenuTarget) return;
+                    
+                    const type = this.contextMenuTarget.dataset.type;
+                    const id = this.contextMenuTarget.dataset.id;
+                    
+                    switch (action) {
+                        case 'new-memo':
+                            this.handleContextNewMemo(type, id);
+                            break;
+                        case 'new-folder':
+                            this.handleContextNewFolder(type, id);
+                            break;
+                        case 'rename':
+                            this.handleRename(type, id);
+                            break;
+                        case 'delete':
+                            if (type === 'folder') {
+                                this.handleDeleteFolder(id);
+                            } else if (type === 'memo') {
+                                this.handleDeleteMemo(id);
+                            }
+                            break;
+                    }
+                },
+                handleContextNewMemo(targetType, targetId) {
+                    // 選択されたフォルダ内に新規メモを作成
+                    const memo = dataManager.createMemo("無題のメモ", targetId);
+                    this.loadMemo(memo.id);
+                },
+                handleContextNewFolder(targetType, targetId) {
+                    // 選択されたフォルダ内に新規フォルダを作成
+                    const name = prompt("新しいフォルダ名を入力してください:");
+                    if (name && name.trim()) {
+                        dataManager.createFolder(name.trim(), targetId);
+                        this.render();
+                    }
+                },
+                handleRename(type, id) {
+                    if (type === 'folder') {
+                        const folder = dataManager.getData().folders.find(f => f.id === id);
+                        if (folder) {
+                            const newName = prompt("新しいフォルダ名を入力してください:", folder.name);
+                            if (newName && newName.trim() && newName !== folder.name) {
+                                dataManager.renameFolder(id, newName.trim());
+                                this.render();
+                            }
+                        }
+                    } else if (type === 'memo') {
+                        const memo = dataManager.getData().memos.find(m => m.id === id);
+                        if (memo) {
+                            const newTitle = prompt("新しいメモタイトルを入力してください:", memo.title);
+                            if (newTitle !== null && newTitle !== memo.title) {
+                                dataManager.renameMemo(id, newTitle);
+                                // 現在編集中のメモの場合、タイトル入力欄も更新
+                                if (id === this.currentMemoId) {
+                                    this.elements.titleInput.value = newTitle;
+                                }
+                                this.render();
+                            }
+                        }
+                    }
+                },
+                handleDeleteMemo(id) { if (confirm('このメモをゴミ箱に移動しますか？')) { dataManager.deleteMemo(id); this.render(); } },
+                handleDeleteFolder(id) { if (confirm('このフォルダと中のすべてのコンテンツを削除しますか？')) { dataManager.deleteFolder(id); if (this.currentFolderId === id) { this.currentFolderId = null; dataManager.setActiveFolderId(null); } this.render(); } },
+                handleSearch(e) { const query = e.target.value; if (query) { this.isSearching = true; const results = dataManager.searchMemos(query); this.renderSearchResults(results); } else { this.isSearching = false; this.render(); } },
+                showTrashModal() { this.renderTrashList(); this.elements.trashModalOverlay.classList.add('visible'); },
+                hideTrashModal() { this.elements.trashModalOverlay.classList.remove('visible'); },
+                renderTrashList() {
+                    const { memos, folders } = dataManager.getTrashedItems();
+                    const memosHTML = memos.map(m =>
+                        `<div class="list-item" data-id="${m.id}" data-type="memo"><span class="list-item__name">${dataManager.escapeHTML(m.title)}</span><div><button class="restore-btn">復元</button><button class="delete-perm-btn">完全に削除</button></div></div>`
+                    ).join('');
+                    const foldersHTML = folders.map(f =>
+                        `<div class="list-item" data-id="${f.id}" data-type="folder"><span class="list-item__name folder">${dataManager.escapeHTML(f.name)}</span><div><button class="restore-btn">復元</button><button class="delete-perm-btn">完全に削除</button></div></div>`
+                    ).join('');
+                    this.elements.trashListContainer.innerHTML = foldersHTML + memosHTML || "<p>ゴミ箱は空です。</p>";
+                },
+                handleTrashAction(e) {
+                    const item = e.target.closest('.list-item'); if (!item) return;
+                    const id = item.dataset.id; const type = item.dataset.type;
+                    if (e.target.classList.contains('restore-btn')) { dataManager.restoreItem(id, type); }
+                    else if (e.target.classList.contains('delete-perm-btn')) { if (confirm('このアイテムを完全に削除しますか？')) dataManager.deleteItemPermanently(id, type); }
+                    this.renderTrashList(); this.render();
+                },
+                handleImport(e) {
+                    const file = e.target.files[0]; if (!file) return;
+                    dataManager.importData(file, (success) => {
+                        if (success) { alert('インポートに成功しました！'); dataManager.loadDataFromStorage(); this.loadInitialMemo(); }
+                        else { alert('インポートに失敗しました。ファイルの形式が正しくありません。'); }
+                        e.target.value = '';
+                    });
+                },
+                showBackupModal() { this.renderBackupList(); this.elements.backupModalOverlay.classList.add('visible'); },
+                hideBackupModal() { this.elements.backupModalOverlay.classList.remove('visible'); },
+                renderBackupList() {
+                    const backups = dataManager.getBackups();
+                    this.elements.backupListContainer.innerHTML = Object.entries(backups).map(([slot, ts]) =>
+                        `<div class="list-item" data-slot="${slot}"><span>${new Date(ts).toLocaleString()} のバックアップ</span><button class="restore-backup-btn">このバックアップから復元</button></div>`
+                    ).join('') || "<p>バックアップはありません。</p>";
+                },
+                handleBackupAction(e) {
+                    if (!e.target.classList.contains('restore-backup-btn')) return;
+                    if (confirm('現在のすべてのデータが上書きされます。よろしいですか？')) {
+                        const slot = e.target.closest('.list-item').dataset.slot;
+                        if (dataManager.restoreBackup(slot)) { alert('復元に成功しました！'); this.hideBackupModal(); dataManager.loadDataFromStorage(); this.loadInitialMemo(); }
+                        else { alert('復元に失敗しました。'); }
+                    }
+                }
+            };
+            const quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic'],
+                        [{ 'color': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link', 'blockquote']
+                    ]
+                }
+            });
+            dataManager.init();
+            uiManager.init(quill);
+        });
+    </script>
+</body>
+</html>
