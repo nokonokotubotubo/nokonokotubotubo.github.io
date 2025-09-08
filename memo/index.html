@@ -25,7 +25,6 @@
         .tree-item:hover { background-color: #dbefff; }
         .tree-item.active { background-color: var(--color-primary); color: white; }
         .tree-item.folder { font-weight: 500; }
-        .tree-item.folder::before { content: '📁'; margin-right: 8px; }
         .tree-item.memo::before { content: '📝'; margin-right: 8px; }
         .tree-item[data-level="0"] { padding-left: 8px; }
         .tree-item[data-level="1"] { padding-left: 24px; }
@@ -36,6 +35,12 @@
         .tree-item.active .tree-item__delete-btn { color: white; }
         .tree-item__snippet { font-size: 0.8em; opacity: 0.7; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tree-item__snippet mark { background-color: #fff3a3; border-radius: 3px; color: #333; }
+        
+        /* フォルダの展開記号とクリック領域 */
+        .folder-toggle-area { display: flex; align-items: center; flex-grow: 1; cursor: pointer; }
+        .folder-icon { margin-right: 4px; }
+        .folder-expand-icon { margin-right: 4px; font-size: 12px; color: #666; min-width: 12px; }
+        .folder-name { flex-grow: 1; }
         
         /* 右クリックメニューのスタイル */
         .context-menu { position: fixed; background: white; border: 1px solid var(--border-color); border-radius: var(--radius); padding: 4px 0; box-shadow: var(--shadow); z-index: 1000; min-width: 120px; display: none; }
@@ -182,6 +187,7 @@
             const uiManager = {
                 elements: {},
                 quillInstance: null, currentMemoId: null, currentFolderId: null, saveTimeout: null, pendingSaveForMemoId: null, isSearching: false, contextMenuTarget: null,
+                expandedFolders: new Set(), // フォルダ展開状態管理
                 init(quill) {
                     this.quillInstance = quill;
                     this.cacheElements();
@@ -221,6 +227,22 @@
                         backupListContainer: document.querySelector('#backup-list-container'),
                         backupModalCloseBtn: document.querySelector('#backup-modal-overlay .modal-close-btn'),
                     };
+                },
+                // フォルダの展開切り替え
+                toggleFolder(folderId) {
+                    if (this.expandedFolders.has(folderId)) {
+                        this.expandedFolders.delete(folderId);
+                    } else {
+                        this.expandedFolders.add(folderId);
+                    }
+                    this.render();
+                },
+                // フォルダに子要素があるかチェック
+                hasChildren(folderId) {
+                    const db = dataManager.getData();
+                    const hasSubFolders = db.folders.some(f => f.parentId === folderId && !f.isTrash);
+                    const hasMemos = db.memos.some(m => m.folderId === folderId && !m.isTrash);
+                    return hasSubFolders || hasMemos;
                 },
                 // デバウンス保存（メモIDをバインド）
                 handleTyping() {
@@ -298,30 +320,41 @@
                         
                         // 各フォルダを処理
                         folders.forEach(folder => {
+                            const isExpanded = this.expandedFolders.has(folder.id);
+                            const hasChildren = this.hasChildren(folder.id);
+                            const expandIcon = hasChildren ? (isExpanded ? '-' : '+') : '';
+                            
                             // フォルダを表示
                             html += `<div class="tree-item folder ${folder.id === this.currentFolderId ? 'active' : ''}" data-type="folder" data-id="${folder.id}" data-level="${level}">
-                                <span>${dataManager.escapeHTML(folder.name)}</span>
+                                <div class="folder-toggle-area" data-folder-toggle="${folder.id}">
+                                    <span class="folder-icon">📁</span>
+                                    <span class="folder-expand-icon">${expandIcon}</span>
+                                    <span class="folder-name">${dataManager.escapeHTML(folder.name)}</span>
+                                </div>
                                 <button class="tree-item__delete-btn" data-id="${folder.id}" data-type="folder">&times;</button>
                             </div>`;
                             
-                            // そのフォルダに属するメモを表示（作成順に表示）
-                            const folderMemos = db.memos
-                                .filter(m => m.folderId === folder.id && !m.isTrash)
-                                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                            
-                            folderMemos.forEach(memo => {
-                                const snippet = memo.snippet || this.getContentSnippet(memo.content);
-                                html += `<div class="tree-item memo ${memo.id === this.currentMemoId ? 'active' : ''}" data-type="memo" data-id="${memo.id}" data-level="${level + 1}">
-                                    <div>
-                                        <span>${dataManager.escapeHTML(memo.title) || '無題のメモ'}</span>
-                                        ${snippet ? `<div class="tree-item__snippet">${snippet}</div>` : ''}
-                                    </div>
-                                    <button class="tree-item__delete-btn" data-id="${memo.id}" data-type="memo">&times;</button>
-                                </div>`;
-                            });
-                            
-                            // サブフォルダを再帰的に処理
-                            html += buildTree(folder.id, level + 1);
+                            // フォルダが展開されている場合のみ子要素を表示
+                            if (isExpanded) {
+                                // そのフォルダに属するメモを表示（作成順に表示）
+                                const folderMemos = db.memos
+                                    .filter(m => m.folderId === folder.id && !m.isTrash)
+                                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                                
+                                folderMemos.forEach(memo => {
+                                    const snippet = memo.snippet || this.getContentSnippet(memo.content);
+                                    html += `<div class="tree-item memo ${memo.id === this.currentMemoId ? 'active' : ''}" data-type="memo" data-id="${memo.id}" data-level="${level + 1}">
+                                        <div>
+                                            <span>${dataManager.escapeHTML(memo.title) || '無題のメモ'}</span>
+                                            ${snippet ? `<div class="tree-item__snippet">${snippet}</div>` : ''}
+                                        </div>
+                                        <button class="tree-item__delete-btn" data-id="${memo.id}" data-type="memo">&times;</button>
+                                    </div>`;
+                                });
+                                
+                                // サブフォルダを再帰的に処理
+                                html += buildTree(folder.id, level + 1);
+                            }
                         });
                         
                         return html;
@@ -421,6 +454,14 @@
                 handleNewMemo() { const memo = dataManager.createMemo("無題のメモ", this.currentFolderId); this.loadMemo(memo.id); },
                 handleTreeClick(e) {
                     console.log("//-D- handleTreeClick triggered");
+                    
+                    // フォルダの展開/収縮処理
+                    if (e.target.closest('.folder-toggle-area')) {
+                        const folderId = e.target.closest('.folder-toggle-area').dataset.folderToggle;
+                        this.toggleFolder(folderId);
+                        return;
+                    }
+                    
                     if (e.target.classList.contains('tree-item__delete-btn')) {
                         const type = e.target.dataset.type;
                         const id = e.target.dataset.id;
@@ -544,6 +585,8 @@
                 handleContextNewMemo(targetType, targetId) {
                     // 選択されたフォルダ内に新規メモを作成
                     const memo = dataManager.createMemo("無題のメモ", targetId);
+                    // フォルダを自動展開
+                    this.expandedFolders.add(targetId);
                     this.loadMemo(memo.id);
                 },
                 handleContextNewFolder(targetType, targetId) {
@@ -551,6 +594,8 @@
                     const name = prompt("新しいフォルダ名を入力してください:");
                     if (name && name.trim()) {
                         dataManager.createFolder(name.trim(), targetId);
+                        // 親フォルダを自動展開
+                        this.expandedFolders.add(targetId);
                         this.render();
                     }
                 },
