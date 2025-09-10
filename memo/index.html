@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メモアプリ</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <input type="text" class="app-header__title-input" placeholder="メモのタイトルを入力..." />
+        <div class="app-header__actions">
+            <button id="dark-mode-toggle" title="ダークモード切替">🌞</button>
+            <button id="trash-btn" title="ゴミ箱">🗑️</button>
+            <button id="settings-btn" title="設定">⚙️</button>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <aside class="app-sidebar">
+            <div class="app-sidebar__search">
+                <input type="search" class="app-sidebar__search-input" placeholder="検索..." />
+            </div>
+            <div class="app-sidebar__unified-tree" id="unified-tree-container"></div>
+        </aside>
+        
+        <main class="app-main">
+            <div id="editor-container"></div>
+            <div id="editor-footer"></div>
+        </main>
+    </div>
+
+    <!-- ゴミ箱モーダル -->
+    <div class="modal-overlay" id="trash-modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ゴミ箱</h2>
+                <button class="modal-close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="trash-list-container"></div>
+                <div style="margin-top: 15px;">
+                    <button id="empty-trash-btn">ゴミ箱を空にする</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定モーダル -->
+    <div class="modal-overlay" id="settings-modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>設定</h2>
+                <button class="modal-close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>データ管理</h3>
+                    <div class="settings-buttons">
+                        <button id="export-btn">エクスポート</button>
+                        <label for="import-input" class="settings-label-btn">インポート</label>
+                        <input type="file" id="import-input" accept="application/json" style="display: none;" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- カスタムダイアログ -->
+    <div class="modal-overlay" id="custom-dialog-overlay">
+        <div class="dialog-content">
+            <h3 id="dialog-title"></h3>
+            <p id="dialog-message"></p>
+            <input type="text" id="dialog-input" class="dialog-input" style="display: none;" />
+            <div class="dialog-buttons">
+                <button id="dialog-ok-btn">OK</button>
+                <button id="dialog-cancel-btn">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- コンテキストメニュー -->
+    <div id="context-menu" class="context-menu"></div>
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
