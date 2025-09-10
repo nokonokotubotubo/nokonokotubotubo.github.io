@@ -1182,8 +1182,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="tree-item folder ${folder.id === this.currentFolderId ? 'active' : ''}" 
                      data-id="${folder.id}" data-type="folder" data-level="${level}">
                     <div class="folder-icon-name">
-                        <span class="folder-toggle">${isCollapsed ? '▶' : '▼'}</span>
-                        <span>📁 ${dataManager.escapeHTML(folder.name)}</span>
+                        <span class="folder-toggle">${isCollapsed ? '+' : '-'}</span>
+                        <span class="folder-icon">📁 ${dataManager.escapeHTML(folder.name)}</span>
                     </div>
                     <div class="sort-buttons">
                         <button class="sort-btn" data-direction="up" title="上に移動">▲</button>
@@ -1247,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (type === 'folder') {
-                if (e.target.classList.contains('folder-toggle')) {
+                if (e.target.classList.contains('folder-toggle') || e.target.classList.contains('folder-icon')) {
                     dataManager.toggleFolderCollapse(id);
                     this.render();
                 } else {
