@@ -9,7 +9,6 @@
 </head>
 <body>
     <header class="app-header">
-        <input type="text" class="app-header__title-input" placeholder="メモのタイトルを入力..." />
         <div class="app-header__actions">
             <button id="dark-mode-toggle" title="ダークモード切替">🌞</button>
             <button id="trash-btn" title="ゴミ箱">🗑️</button>
@@ -22,10 +21,17 @@
             <div class="app-sidebar__search">
                 <input type="search" class="app-sidebar__search-input" placeholder="検索..." />
             </div>
+            <div class="app-sidebar__actions">
+                <button id="expand-all-btn">すべて開く</button>
+                <button id="collapse-all-btn">すべて閉じる</button>
+            </div>
             <div class="app-sidebar__unified-tree" id="unified-tree-container"></div>
         </aside>
         
         <main class="app-main">
+            <div class="editor-title-container">
+                <input type="text" class="editor-title-input" placeholder="メモのタイトルを入力..." />
+            </div>
             <div id="editor-container"></div>
             <div id="editor-footer"></div>
         </main>

@@ -121,6 +121,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     db.folders = db.folders.filter(f => !f.isTrash);
                     this.setData(db, 'emptyTrash');
                 },
+                collapseAllFolders() {
+                    const db = this.getData();
+                    db.folders.forEach(f => f.isCollapsed = true);
+                    this.setData(db, 'collapseAllFolders');
+                },
+
+                expandAllFolders() {
+                    const db = this.getData();
+                    db.folders.forEach(f => f.isCollapsed = false);
+                    this.setData(db, 'expandAllFolders');
+                },
                 // コピー・貼り付け機能
                 copyItem(id, type) {
                     const db = this.getData();
@@ -324,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 cacheElements() {
                     this.elements = {
-                        titleInput: document.querySelector('.app-header__title-input'),
+                        titleInput: document.querySelector('.editor-title-input'),
                         trashBtn: document.querySelector('#trash-btn'),
                         searchInput: document.querySelector('.app-sidebar__search-input'),
                         unifiedTreeContainer: document.querySelector('#unified-tree-container'),
@@ -346,6 +357,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         dialogOkBtn: document.querySelector('#dialog-ok-btn'),
                         dialogCancelBtn: document.querySelector('#dialog-cancel-btn'),
                         darkModeToggle: document.querySelector('#dark-mode-toggle'),
+                        expandAllBtn: document.querySelector('#expand-all-btn'),
+                        collapseAllBtn: document.querySelector('#collapse-all-btn'),
                     };
                 },
                 handleTyping() {
@@ -460,6 +473,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.elements.contextMenu.addEventListener('click', (e) => this.handleContextMenuClick(e));
                     document.addEventListener('click', () => this.hideContextMenu());
                     this.elements.darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
+                    this.elements.expandAllBtn.addEventListener('click', () => {
+                        dataManager.expandAllFolders();
+                        this.render();
+                    });
+                    this.elements.collapseAllBtn.addEventListener('click', () => {
+                        dataManager.collapseAllFolders();
+                        this.render();
+                    });
                 },
                 render() { console.log("//-D- render called"); this.renderUnifiedTree(); },
                 renderUnifiedTree() {
@@ -607,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     const date = new Date(isoString);
                     const formattedDate = dataManager.formatDateTime(date);
-                    this.elements.editorFooter.textContent = `最終更新: ${formattedDate}`;
+                    this.elements.editorFooter.textContent = `保存済: ${formattedDate}`;
                 },
                 updateMemoItemInTree(memoId, newTitle) {
                     const memoItem = this.elements.unifiedTreeContainer.querySelector(`.tree-item[data-id="${memoId}"][data-type="memo"]`);
