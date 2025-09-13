@@ -309,6 +309,54 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearTimeout(this.saveTimeout);
                     callback();
                 },
+
+                // --- File System Access API --- 
+                dbPromise: null,
+                getDb() {
+                    if (!this.dbPromise) {
+                        this.dbPromise = new Promise((resolve, reject) => {
+                            const openRequest = indexedDB.open('file-sync-db', 1);
+                            openRequest.onupgradeneeded = () => {
+                                openRequest.result.createObjectStore('keyval');
+                            };
+                            openRequest.onsuccess = () => {
+                                resolve(openRequest.result);
+                            };
+                            openRequest.onerror = (event) => {
+                                reject(event.target.error);
+                            };
+                        });
+                    }
+                    return this.dbPromise;
+                },
+                async getHandle(key) {
+                    const db = await this.getDb();
+                    return new Promise((resolve, reject) => {
+                        const transaction = db.transaction('keyval', 'readonly');
+                        const store = transaction.objectStore('keyval');
+                        const request = store.get(key);
+                        request.onsuccess = () => {
+                            resolve(request.result);
+                        };
+                        request.onerror = (event) => {
+                            reject(event.target.error);
+                        };
+                    });
+                },
+                async setHandle(key, value) {
+                    const db = await this.getDb();
+                    return new Promise((resolve, reject) => {
+                        const transaction = db.transaction('keyval', 'readwrite');
+                        const store = transaction.objectStore('keyval');
+                        const request = store.put(value, key);
+                        request.onsuccess = () => {
+                            resolve();
+                        };
+                        request.onerror = (event) => {
+                            reject(event.target.error);
+                        };
+                    });
+                },
             };
             const uiManager = {
                 elements: {},
@@ -318,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.cacheElements();
                     this.currentFolderId = dataManager.getActiveFolderId();
                     this.addEventListeners();
+                    this.loadDirectoryHandle(); // フォルダハンドルを読み込む
                     this.loadInitialMemo();
                     this.loadDarkMode();
                     this.render();
@@ -359,6 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         darkModeToggle: document.querySelector('#dark-mode-toggle'),
                         expandAllBtn: document.querySelector('#expand-all-btn'),
                         collapseAllBtn: document.querySelector('#collapse-all-btn'),
+                        selectFolderBtn: document.querySelector('#select-folder-btn'),
+                        fileSyncStatus: document.querySelector('#file-sync-status'),
                     };
                 },
                 handleTyping() {
@@ -381,15 +432,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (type === 'prompt') {
                         this.elements.dialogInput.style.display = 'block';
                         this.elements.dialogInput.value = defaultValue;
-                        this.elements.dialogInput.focus();
                     } else {
                         this.elements.dialogInput.style.display = 'none';
                     }
                     
                     this.elements.customDialogOverlay.classList.add('visible');
+
+                    if (type === 'prompt') {
+                        setTimeout(() => this.elements.dialogInput.focus(), 0);
+                    }
                     
+                    const enterHandler = (e) => {
+                        if (e.key === 'Enter') {
+                            onOk();
+                        }
+                    };
+
                     const handleResponse = (confirmed) => {
                         this.elements.customDialogOverlay.classList.remove('visible');
+                        document.removeEventListener('keydown', enterHandler); // ここで必ずリスナーを削除
                         if (callback) {
                             if (type === 'prompt') {
                                 if (confirmed) {
@@ -419,12 +480,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.elements.dialogCancelBtn.addEventListener('click', onCancel);
                     
                     // Enterキーでの確定対応
-                    const enterHandler = (e) => {
-                        if (e.key === 'Enter') {
-                            onOk();
-                            document.removeEventListener('keydown', enterHandler);
-                        }
-                    };
                     document.addEventListener('keydown', enterHandler);
                 },
                 addEventListeners() {
@@ -481,6 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         dataManager.collapseAllFolders();
                         this.render();
                     });
+
+                    this.elements.selectFolderBtn.addEventListener('click', () => this.selectDirectory());
                 },
                 render() { console.log("//-D- render called"); this.renderUnifiedTree(); },
                 renderUnifiedTree() {
@@ -617,9 +674,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     const updatedMemo = dataManager.updateMemo(this.currentMemoId, { title, content });
                     if (updatedMemo) {
                         this.updateLastUpdated(updatedMemo.updatedAt);
+                        // --- File System Access API でDB全体をファイルにバックアップ ---
+                        if (this.directoryHandle) {
+                            this.backupDatabaseToFile();
+                        }
+                        // -----------------------------------------------------
                     }
                     if (!this.isSearching) { this.updateMemoItemInTree(this.currentMemoId, title); }
+
                     console.log("//-D- saveCurrentMemo END");
+                },
+
+                async backupDatabaseToFile() {
+                    if (!this.directoryHandle) return;
+                    try {
+                        const fileName = `memo_app_backup.json`;
+                        const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: true });
+                        const writable = await fileHandle.createWritable();
+                        const dbData = JSON.stringify(dataManager.getData(), null, 2);
+                        await writable.write(dbData);
+                        await writable.close();
+                        console.log(`Database backed up to ${fileName}.`);
+                    } catch (error) {
+                        console.error(`Failed to backup database to file.`, error);
+                        this.updateFileSyncStatus('エラー発生');
+                    }
                 },
                 updateLastUpdated(isoString) {
                     if (!isoString) {
@@ -628,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     const date = new Date(isoString);
                     const formattedDate = dataManager.formatDateTime(date);
-                    this.elements.editorFooter.textContent = `保存済: ${formattedDate}`;
+                    this.elements.editorFooter.textContent = `保存済み: ${formattedDate}`;
                 },
                 updateMemoItemInTree(memoId, newTitle) {
                     const memoItem = this.elements.unifiedTreeContainer.querySelector(`.tree-item[data-id="${memoId}"][data-type="memo"]`);
@@ -674,34 +753,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (item) {
                         const type = item.dataset.type;
                         const id = item.dataset.id;
-                        
-                        const toggle = e.target.closest('.folder-toggle, .folder-emoji');
-                        if (toggle) {
-                            dataManager.toggleFolderCollapse(id);
-                            this.render();
-                            return;
-                        }
-                        
+
                         if (type === 'folder') {
-                            this.isSearching = false;
-                            this.elements.searchInput.value = '';
-                            this.currentFolderId = id;
-                            dataManager.setActiveFolderId(id);
-                            const db = dataManager.getData();
-                            const memosInFolder = db.memos
-                                .filter(m => m.folderId === id && !m.isTrash)
-                                .sort((a, b) => {
-                                    if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
-                                        return a.sortOrder - b.sortOrder;
-                                    }
-                                    return new Date(a.createdAt) - new Date(b.createdAt);
-                                });
-                            if (memosInFolder.length > 0) {
-                                this.loadMemo(memosInFolder[0].id);
-                            } else {
+                            const rect = item.getBoundingClientRect();
+                            const clickX = e.clientX;
+                            const isLeftHalf = (clickX - rect.left) < (rect.width / 2);
+
+                            if (isLeftHalf) {
+                                // 左半分をクリックした場合：開閉
+                                dataManager.toggleFolderCollapse(id);
                                 this.render();
+                                return; // 選択処理は行わない
+                            } else {
+                                // 右半分をクリックした場合：選択
+                                this.isSearching = false;
+                                this.elements.searchInput.value = '';
+                                this.currentFolderId = id;
+                                dataManager.setActiveFolderId(id);
+                                const db = dataManager.getData();
+                                const memosInFolder = db.memos
+                                    .filter(m => m.folderId === id && !m.isTrash)
+                                    .sort((a, b) => {
+                                        if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+                                            return a.sortOrder - b.sortOrder;
+                                        }
+                                        return new Date(a.createdAt) - new Date(b.createdAt);
+                                    });
+                                if (memosInFolder.length > 0) {
+                                    this.loadMemo(memosInFolder[0].id);
+                                } else {
+                                    // フォルダ内にメモがない場合でも、選択状態を反映するために render() を呼ぶ
+                                    this.render();
+                                }
                             }
                         } else if (type === 'memo') {
+                            // メモがクリックされた場合
                             this.loadMemo(id);
                         }
                     }
@@ -985,9 +1071,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleTrashAction(e) {
                     const item = e.target.closest('.list-item'); if (!item) return;
                     const id = item.dataset.id; const type = item.dataset.type;
-                    if (e.target.classList.contains('restore-btn')) { dataManager.restoreItem(id, type); }
-                    else if (e.target.classList.contains('delete-perm-btn')) { if (confirm('このアイテムを完全に削除しますか？')) dataManager.deleteItemPermanently(id, type); }
-                    this.renderTrashList(); this.render();
+                    if (e.target.classList.contains('restore-btn')) { dataManager.restoreItem(id, type); this.renderTrashList(); this.render(); }
+                    else if (e.target.classList.contains('delete-perm-btn')) {
+                        this.elements.customDialogOverlay.classList.add('position-top-right');
+                        this.showCustomDialog(
+                            '確認',
+                            'このアイテムを完全に削除しますか？\nこの操作は元に戻せません。',
+                            'confirm',
+                            '',
+                            (confirmed) => {
+                                this.elements.customDialogOverlay.classList.remove('position-top-right');
+                                if (confirmed) {
+                                    dataManager.deleteItemPermanently(id, type);
+                                    this.renderTrashList();
+                                    this.render();
+                                }
+                            }
+                        );
+                    }
+                    
                 },
                 handleEmptyTrash() {
                     this.elements.customDialogOverlay.classList.add('position-top-right');
@@ -1030,6 +1132,75 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.body.classList.add('dark-mode');
                         this.elements.darkModeToggle.textContent = '🌙';
                     }
+                },
+
+                // --- File System Access API ---
+                directoryHandle: null,
+                async selectDirectory() {
+                    try {
+                        const handle = await window.showDirectoryPicker();
+                        const options = { mode: 'readwrite' };
+                        if (await handle.requestPermission(options) === 'granted') {
+                            this.directoryHandle = handle;
+                            await dataManager.setHandle('directoryHandle', handle);
+                            this.updateFileSyncStatus(handle.name);
+                        } else {
+                            console.error('Permission to write to the directory was denied.');
+                        }
+                    } catch (error) {
+                        console.error('Directory selection was cancelled or failed.', error);
+                    }
+                },
+
+                async verifyPermission(handle) {
+                    const options = { mode: 'readwrite' };
+                    if (await handle.queryPermission(options) === 'granted') {
+                        return true;
+                    }
+                    return false;
+                },
+
+                async loadDirectoryHandle() {
+                    try {
+                        const handle = await dataManager.getHandle('directoryHandle');
+                        if (handle) {
+                            if (await this.verifyPermission(handle)) {
+                                this.directoryHandle = handle;
+                                this.updateFileSyncStatus(handle.name);
+                            } else {
+                                this.updateFileSyncStatus(handle.name + ' (クリックして再許可)');
+                                this.elements.fileSyncStatus.style.cursor = 'pointer';
+                                this.elements.fileSyncStatus.addEventListener('click', async () => {
+                                    try {
+                                        const options = { mode: 'readwrite' };
+                                        if (await handle.requestPermission(options) === 'granted') {
+                                            this.directoryHandle = handle;
+                                            this.updateFileSyncStatus(handle.name);
+                                        } else {
+                                            this.updateFileSyncStatus(handle.name + ' (許可されませんでした)');
+                                        }
+                                    } catch (error) {
+                                        console.error('Directory permission request failed.', error);
+                                        this.updateFileSyncStatus(handle.name + ' (エラー)');
+                                    }
+                                }, { once: true });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to load directory handle from IndexedDB.', error);
+                    }
+                },
+
+                updateFileSyncStatus(dirName) {
+                    if (dirName) {
+                        this.elements.fileSyncStatus.textContent = `📁 ${dirName}`;
+                        this.elements.fileSyncStatus.title = `同期先: ${dirName}`;
+                        this.elements.fileSyncStatus.style.cursor = 'default';
+                    } else {
+                        this.elements.fileSyncStatus.textContent = '同期フォルダ未設定';
+                        this.elements.fileSyncStatus.title = '';
+                        this.elements.fileSyncStatus.style.cursor = 'default';
+                    }
                 }
             };
             const quill = new Quill('#editor-container', {
@@ -1038,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     toolbar: [
                         ['bold', 'italic'],
                         [{ 'color': [] }, { 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'list': 'check' }],
                         ['link', 'blockquote']
                     ]
                 }
