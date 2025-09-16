@@ -38,7 +38,7 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
     width: 100%;
     border: none;
     background: transparent;
-    font-size: 1.2em;
+    font-size: 16px; /* 本文のフォントサイズ(16px)に合わせる */
     color: var(--text-color);
     outline: none;
     font-weight: 500;
@@ -63,7 +63,20 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
 
 .app-sidebar__unified-tree { flex-grow: 1; overflow-y: auto; padding: 8px; }
 
-.tree-item { position: relative; padding: 8px; cursor: pointer; border-radius: var(--radius); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
+.tree-item {
+    position: relative;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 40px;
+}
 
 .tree-item:hover { background-color: #dbefff; }
 
@@ -77,7 +90,7 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
 
 .tree-item.folder::before { content: ''; }
 
-.tree-item.memo::before { content: '📝'; margin-right: 8px; }
+
 
 .tree-item[data-level="0"] { padding-left: 8px; }
 
@@ -87,7 +100,25 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
 
 .tree-item[data-level="3"] { padding-left: 56px; }
 
-.tree-item__snippet { font-size: 0.8em; opacity: 0.7; margin-left: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 1.2em; }
+.tree-item__snippet {
+    font-size: 0.8em;
+    opacity: 0.7;
+    padding-left: 24px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-height: 1.4;
+    max-height: 1.4em;
+}
+
+.tree-item .memo-title, .tree-item .folder-name {
+    font-size: 1.3em; /* 文字サイズを1.3倍に */
+    line-height: 1.5; /* 高さを確保して文字が見切れないようにする */
+    font-weight: 500;
+}
 
 .tree-item__snippet mark { background-color: #fff3a3; border-radius: 3px; color: #333; }
 
@@ -112,10 +143,9 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
     display: none;
     flex-shrink: 0;
     z-index: 10;
-    position: relative;
     margin-left: auto;
-    margin-right: 8px;
-    width: 24px;
+    width: 32px;
+    align-self: stretch;
 }
 
 .tree-item:hover .sort-buttons {
@@ -124,17 +154,19 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
 }
 
 .sort-btn {
+    flex: 1;
+    width: 100%;
     background: none;
     border: none;
     cursor: pointer;
     font-size: 12px;
-    line-height: 1;
-    padding: 1px 4px;
     color: var(--text-color);
     opacity: 0.6;
     transition: opacity 0.2s;
     z-index: 11;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .sort-btn:hover {
@@ -170,7 +202,7 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
 
 #editor-footer { position: absolute; bottom: 5px; left: 10px; font-size: 14px; color: #888; font-weight: 500; }
 
-.ql-editor { font-size: 16px; line-height: 1.6; }
+.ql-editor { font-size: 16px; line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word; }
 
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(47, 144, 226, 0.15); display: none; justify-content: flex-start; align-items: center; z-index: 1000; padding-left: 20px; }
 
@@ -426,6 +458,29 @@ body, html { margin: 0; padding: 0; height: 100vh; font-family: -apple-system, B
     border-color: #cce4ff;
 }
 
+.sync-warning {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 8px;
+    margin-right: 8px;
+}
+
+.sync-warning span:first-child {
+    font-size: 18px;
+}
+
+.sync-warning-text {
+    color: #c0392b;
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: 6px;
+}
+
+body.dark-mode .sync-warning-text {
+    color: #e74c3c;
+}
+
 body.dark-mode {
     --bg-primary: #1a202c;
     --bg-surface: #2d3748;
@@ -580,6 +635,12 @@ body.dark-mode .ql-snow .ql-picker-item.ql-selected {
     background-color: #357ABD;
 }
 
+.app-sidebar__actions button:disabled {
+    background-color: #ccc;
+    color: #666;
+    cursor: not-allowed;
+}
+
 body.dark-mode .app-sidebar__actions button {
     background-color: var(--color-accent);
     color: white;
@@ -588,14 +649,19 @@ body.dark-mode .app-sidebar__actions button {
 body.dark-mode .app-sidebar__actions button:hover {
     background-color: var(--color-primary);
 }
+
+body.dark-mode .app-sidebar__actions button:disabled {
+    background-color: #555;
+    color: #aaa;
+    cursor: not-allowed;
+}
 body.dark-mode #editor-footer {
     color: #a0aec0;
 }
 
 .sync-setting-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     background-color: var(--bg-surface);
     padding: 10px;
     border-radius: var(--radius);
@@ -608,8 +674,8 @@ body.dark-mode #editor-footer {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex-grow: 1;
-    margin-right: 10px;
+    width: 100%;
+    text-align: center;
 }
 
 .copyright {
@@ -620,4 +686,86 @@ body.dark-mode #editor-footer {
   align-items: center;
   position: relative;
   top: 6px;
+}
+
+.tab-container {
+    display: flex;
+    padding: 8px 8px 0 8px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    background-color: transparent;
+    color: var(--text-color);
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s, border-color 0.2s;
+    font-weight: 500;
+}
+
+.tab-btn.active {
+    border-bottom: 2px solid var(--color-primary);
+    font-weight: 600;
+}
+
+.tab-btn:hover {
+    background-color: var(--bg-surface);
+}
+
+.memo-title-line {
+    display: flex;
+    align-items: center;
+}
+
+.memo-icon {
+    margin-right: 8px;
+}
+
+.memo-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.drop-zone.drag-over {
+    background-color: #eaf5ff;
+    border-color: #5bbdf7;
+}
+
+.drop-zone p {
+    margin: 0 0 10px 0;
+    color: #666;
+    pointer-events: none; /* テキストがイベントを奪うのを防ぐ */
+}
+
+#file-sync-status {
+    pointer-events: none; /* テキストがイベントを奪うのを防ぐ */
+}
+
+/* Dark Mode Drop Zone */
+body.dark-mode .drop-zone {
+    border-color: #4a5568;
+}
+
+body.dark-mode .drop-zone.drag-over {
+    background-color: #2d3748;
+    border-color: #3182ce;
+}
+
+body.dark-mode .drop-zone p {
+    color: #a0aec0;
 }

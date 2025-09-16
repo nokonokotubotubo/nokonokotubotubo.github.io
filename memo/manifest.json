@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "めもりす",
+  "version": "1.0.5",
+  "description": "ファイル同期対応の多機能リッチメモアプリ",
+  "action": {
+    "default_title": "めもりす"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ]
+}

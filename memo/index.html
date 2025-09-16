@@ -6,6 +6,7 @@
     <title>めもりす</title>
     <link href="quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    
 </head>
 <body>
     <header class="app-header">
@@ -14,6 +15,10 @@
             <h1 class="app-title">めもりす</h1><span class="copyright">©nokotubo</span>
         </div>
         <div class="app-header__actions">
+            <div id="sync-warning-container" class="sync-warning" style="display: none;">
+                <span>⚠️</span>
+                <span class="sync-warning-text">自動保存が無効です</span>
+            </div>
             <button id="dark-mode-toggle" title="ダークモード切替">🌞</button>
             <button id="trash-btn" title="ゴミ箱">🗑️</button>
             <button id="settings-btn" title="設定">⚙️</button>
@@ -22,12 +27,16 @@
 
     <div class="app-container">
         <aside class="app-sidebar">
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="pinned">ピン留めしたメモ</button>
+                <button class="tab-btn" data-tab="all">すべてのメモ</button>
+            </div>
             <div class="app-sidebar__search">
                 <input type="search" class="app-sidebar__search-input" placeholder="検索..." />
             </div>
             <div class="app-sidebar__actions">
-                <button id="expand-all-btn">すべて開く</button>
-                <button id="collapse-all-btn">すべて閉じる</button>
+                <button id="create-new-memo-btn">新規メモ作成</button>
+                <button id="toggle-all-btn">すべて開く</button>
             </div>
             <div class="app-sidebar__unified-tree" id="unified-tree-container"></div>
         </aside>
@@ -68,8 +77,10 @@
                 <div class="settings-section">
                     <h3>データ同期</h3>
                     <div class="sync-setting-container">
-                        <span id="file-sync-status">同期フォルダ未設定</span>
-                        <button id="select-folder-btn" class="settings-label-btn">フォルダを選択</button>
+                        <div id="drop-zone" class="drop-zone">
+                            <p>ここをクリックするか、フォルダをドラッグ＆ドロップして同期設定</p>
+                            <span id="file-sync-status">同期フォルダ未設定</span>
+                        </div>
                     </div>
                 </div>
                 <div class="settings-section">
@@ -78,6 +89,10 @@
                         <label for="import-input" class="settings-label-btn">📥 インポート</label>
                         <button id="export-btn">📤 エクスポート</button>
                         <input type="file" id="import-input" accept="application/json" style="display: none;" />
+                    </div>
+                    <div id="import-confirmation-area" style="display: none; margin-top: 15px;">
+                        <p style="margin-top: 0; margin-bottom: 8px;">選択されたファイル: <span id="selected-import-filename" style="font-weight: bold;"></span></p>
+                        <button id="execute-import-btn" class="settings-label-btn" style="width: 100%;">このファイルでインポートを実行</button>
                     </div>
                 </div>
             </div>
@@ -101,6 +116,6 @@
     <div id="context-menu" class="context-menu"></div>
 
     <script src="quill.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
