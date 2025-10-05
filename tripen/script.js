@@ -26,6 +26,24 @@ const TrippenGistSync = {
         }
     },
 
+    async fetchLatestGistVersion() {
+        if (!this.token || !this.gistId) return null;
+        try {
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}/commits?per_page=1`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App'
+                }
+            });
+            if (!response.ok) return null;
+            const commits = await response.json();
+            return commits?.[0]?.version || commits?.[0]?.oid || null;
+        } catch {
+            return null;
+        }
+    },
+
     markChanged() { this.hasChanged = true; },
     resetChanged() { this.hasChanged = false; },
 
@@ -154,7 +172,8 @@ const TrippenGistSync = {
                     this.gistId = result.id;
                     this.saveGistId(result.id);
                 }
-                const latestVersion = result.history?.[0]?.version || result.history?.[0]?.commit || result.version || null;
+                let latestVersion = result.history?.[0]?.version || result.history?.[0]?.commit || result.version || null;
+                if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
                 if (latestVersion) {
                     this.lastRemoteVersion = latestVersion;
                     this.saveConfig('lastRemoteVersion');
@@ -195,7 +214,8 @@ const TrippenGistSync = {
                 throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
             
             const parsedData = JSON.parse(gist.files['trippen_data.json'].content);
-            const latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || null;
+            let latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || gist.version || null;
+            if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
             if (latestVersion) {
                 this.lastRemoteVersion = latestVersion;
                 this.saveConfig('lastRemoteVersion');
@@ -214,30 +234,20 @@ const TrippenGistSync = {
 
     async checkForNewerCloudData() {
         if (!this.token || !this.gistId) return false;
-        
         try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
-                }
-            });
-            
-            if (response.ok) {
-                const gist = await response.json();
-                const latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || null;
-                if (!latestVersion) return false;
-                if (!this.lastRemoteVersion) {
-                    this.lastRemoteVersion = latestVersion;
-                    this.saveConfig('lastRemoteVersion');
-                    return false;
-                }
-                return latestVersion !== this.lastRemoteVersion;
+            const latestVersion = await this.fetchLatestGistVersion();
+            if (!latestVersion) return false;
+            if (!this.lastRemoteVersion) {
+                this.lastRemoteVersion = latestVersion;
+                this.saveConfig('lastRemoteVersion');
+                return false;
             }
+            return latestVersion !== this.lastRemoteVersion;
+        } catch {
             return false;
-        } catch { return false; }
+        }
     },
+
 
     // 修正3: 同期前データ保存追加
     async autoWriteToCloud() {
