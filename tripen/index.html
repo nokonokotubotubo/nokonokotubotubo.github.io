@@ -13,23 +13,41 @@
 <body>
 <div id="app">
 <header class="header">
-<div class="container">
+<div class="container-fluid header-inner">
+<div class="header-left">
+<button class="header-brand" @click="toggleTheme" :aria-pressed="isDarkMode" aria-label="テーマ切り替え" title="テーマ切り替え">
+    <img :src="logoSrc" alt="とりっぺんロゴ" class="header-logo">
+    <div class="header-brand-body">
+        <span class="header-brand-indicator" aria-hidden="true">
+            <span v-if="!isDarkMode">🌞</span>
+            <span v-else>🌛</span>
+        </span>
+        <span class="header-brand-title--small">旅行計画アプリ</span>
+        <span class="header-brand-title--large">とりっぺんちゃん</span>
+    </div>
+</button>
+</div>
+<div class="header-title">
+<h1 v-if="!tripInitialized"><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
+<h1 v-else class="trip-title-header" @click="editTripTitle" title="旅行タイトルを編集">
+    <i class="fas fa-snowflake penguin-icon"></i>
+    <span class="editable-title">{{ tripTitle || 'タイトル未設定（クリックして編集）' }}</span>
+    <i class="fas fa-edit edit-icon" aria-hidden="true"></i>
+</h1>
+</div>
+<div class="header-right">
+<div class="header-actions">
 <button class="cloud-load-btn" @click="loadFromCloud" title="クラウドから読込" :disabled="gistSync.isLoading" :class="{ loading: gistSync.isLoading, error: gistSync.hasError }">
 <i class="fas fa-cloud-download-alt"></i>
 </button>
 <button class="cloud-write-btn" @click="manualSync" title="手動書き込み" :disabled="gistSync.isSyncing" :class="{ loading: gistSync.isSyncing, error: gistSync.hasError }">
 <i class="fas fa-cloud-upload-alt"></i>
 </button>
-<h1 v-if="!tripInitialized"><i class="fas fa-snowflake penguin-icon"></i>とりっぺんちゃん</h1>
-<h1 v-else class="trip-title-header" @click="editTripTitle" title="旅行タイトルを編集">
-    <i class="fas fa-snowflake penguin-icon"></i>
-    <span class="editable-title">{{ tripTitle || 'タイトル未設定（クリックして編集）' }}</span>
-    <i class="fas fa-edit edit-icon" style="width: 60px;"></i>
-</h1>
-
+</div>
 <button class="settings-btn" @click="openSettingsModal" title="設定">
 <i class="fas fa-cog"></i>
 </button>
+</div>
 </div>
 </header>
 
