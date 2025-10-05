@@ -362,10 +362,39 @@ const app = createApp({
         showWeatherPopup: false, weatherPopupUrl: '',
         showSettingsModal: false, showConflictModal: false,
         gistSync: { isEnabled: false, gistId: null, lastSyncTime: null, lastReadTime: null, isSyncing: false, isLoading: false, hasError: false },
-        syncForm: { token: '', gistId: '' }
+        syncForm: { token: '', gistId: '' },
+        isDarkMode: false,
+        logoSrc: 'tripen-day.svg'
     }),
 
     methods: {
+        toggleTheme() {
+            this.isDarkMode = !this.isDarkMode;
+            this.applyTheme();
+            localStorage.setItem('trippenTheme', this.isDarkMode ? 'dark' : 'light');
+            this.updateLogoTheme();
+        },
+
+        applyTheme() {
+            document.documentElement.classList.toggle('dark-mode', this.isDarkMode);
+        },
+
+        loadThemePreference() {
+            const savedTheme = localStorage.getItem('trippenTheme');
+            if (savedTheme) {
+                this.isDarkMode = savedTheme === 'dark';
+            } else {
+                const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+                this.isDarkMode = !!prefersDark;
+            }
+            this.applyTheme();
+            this.updateLogoTheme();
+        },
+
+        updateLogoTheme() {
+            this.logoSrc = 'tripen-day.svg';
+        },
+
         linkifyUrls: text => text?.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>') || text,
         
         checkExistingData() { 
@@ -1532,6 +1561,7 @@ const app = createApp({
         this.detectMobile();
         this.checkExistingData();
         this.loadData();
+        this.loadThemePreference();
         
         if (this.tripDays.length > 0) {
             this.tripInitialized = true;
