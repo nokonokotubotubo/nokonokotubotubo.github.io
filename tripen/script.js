@@ -509,7 +509,7 @@ const app = createApp({
             return this.events.filter(event => event.dayIndex === this.activeDay)
                 .map(event => ({
                     ...event,
-                    inlineText: `${event.title}（${event.startTime}-${event.endTime}）`
+                    inlineText: `（${event.startTime}-${event.endTime}）${event.title}`
                 }));
         },
 
