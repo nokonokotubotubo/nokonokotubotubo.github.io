@@ -10,7 +10,7 @@ const { createApp } = Vue;
 const TrippenGistSync = {
     token: null, gistId: null, isEnabled: false, isSyncing: false,
     lastSyncTime: null, lastReadTime: null, periodicSyncInterval: null,
-    hasError: false, hasChanged: false, lastDataHash: null,
+    hasError: false, hasChanged: false, lastDataHash: null, lastRemoteVersion: null,
 
     calculateHash(data) {
         try {
@@ -60,7 +60,8 @@ const TrippenGistSync = {
                 gistId: config.gistId || null,
                 lastSyncTime: config.lastSyncTime || null,
                 lastReadTime: config.lastReadTime || null,
-                lastDataHash: config.lastDataHash || null
+                lastDataHash: config.lastDataHash || null,
+                lastRemoteVersion: config.lastRemoteVersion || null
             });
             this.isEnabled = !!this.token;
             return config;
@@ -90,6 +91,7 @@ const TrippenGistSync = {
             lastSyncTime: this.lastSyncTime,
             lastReadTime: this.lastReadTime,
             lastDataHash: this.lastDataHash,
+            lastRemoteVersion: this.lastRemoteVersion,
             version: '3.0'
         };
 
@@ -152,6 +154,11 @@ const TrippenGistSync = {
                     this.gistId = result.id;
                     this.saveGistId(result.id);
                 }
+                const latestVersion = result.history?.[0]?.version || result.history?.[0]?.commit || result.version || null;
+                if (latestVersion) {
+                    this.lastRemoteVersion = latestVersion;
+                    this.saveConfig('lastRemoteVersion');
+                }
                 return true;
             }
             return false;
@@ -188,6 +195,11 @@ const TrippenGistSync = {
                 throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
             
             const parsedData = JSON.parse(gist.files['trippen_data.json'].content);
+            const latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || null;
+            if (latestVersion) {
+                this.lastRemoteVersion = latestVersion;
+                this.saveConfig('lastRemoteVersion');
+            }
             this.lastDataHash = this.calculateHash(parsedData);
             this.lastReadTime = this.getUTCTimestamp();
             this.saveLastReadTime();
@@ -214,10 +226,14 @@ const TrippenGistSync = {
             
             if (response.ok) {
                 const gist = await response.json();
-                const cloudUpdatedAt = new Date(gist.updated_at);
-                const lastReadTime = new Date(this.lastReadTime || 0);
-                const lastWriteTime = new Date(this.lastSyncTime || 0);
-                return cloudUpdatedAt > lastReadTime && cloudUpdatedAt > lastWriteTime;
+                const latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || null;
+                if (!latestVersion) return false;
+                if (!this.lastRemoteVersion) {
+                    this.lastRemoteVersion = latestVersion;
+                    this.saveConfig('lastRemoteVersion');
+                    return false;
+                }
+                return latestVersion !== this.lastRemoteVersion;
             }
             return false;
         } catch { return false; }
@@ -312,7 +328,8 @@ const TrippenGistSync = {
                 gistId,
                 lastSyncTime: this.lastSyncTime,
                 lastReadTime: this.lastReadTime,
-                lastDataHash: this.lastDataHash
+                lastDataHash: this.lastDataHash,
+                lastRemoteVersion: this.lastRemoteVersion
             });
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
             this.gistId = gistId;
@@ -340,7 +357,7 @@ const TrippenGistSync = {
         Object.assign(this, {
             token: null, gistId: null, isEnabled: false,
             lastSyncTime: null, lastReadTime: null, hasError: false,
-            hasChanged: false, lastDataHash: null
+            hasChanged: false, lastDataHash: null, lastRemoteVersion: null
         });
     }
 };
