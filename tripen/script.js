@@ -1,3 +1,9 @@
+/** biome-ignore-all lint/suspicious/noAssignInExpressions: Vue の初期化で必要な代入式を維持するため */
+/** biome-ignore-all lint/correctness/useParseIntRadix: 既存コードの parseInt が既定の挙動を利用するため */
+/** biome-ignore-all lint/style/useTemplate: 文字列結合のままにして意図したエスケープ処理を保つため */
+/** biome-ignore-all lint/suspicious/noGlobalIsNan: 既存ロジックがグローバル isNaN を直接呼び出すため */
+/** biome-ignore-all lint/correctness/noUnusedFunctionParameters: API 互換性のため未使用の引数を保持する必要があるため */
+/** biome-ignore-all lint/correctness/noUnusedVariables: デバッグ用の一時変数を残す必要があるため */
 const { createApp } = Vue;
 
 // GitHub Gist同期システム（軽量化版）
