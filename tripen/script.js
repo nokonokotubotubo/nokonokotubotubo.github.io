@@ -237,12 +237,39 @@ const TrippenGistSync = {
         try {
             const latestVersion = await this.fetchLatestGistVersion();
             if (!latestVersion) return false;
+
             if (!this.lastRemoteVersion) {
                 this.lastRemoteVersion = latestVersion;
                 this.saveConfig('lastRemoteVersion');
                 return false;
             }
-            return latestVersion !== this.lastRemoteVersion;
+
+            if (latestVersion === this.lastRemoteVersion) return false;
+
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App'
+                }
+            });
+            if (!response.ok) return false;
+
+            const gist = await response.json();
+            const content = gist.files?.['trippen_data.json']?.content;
+            if (!content) return false;
+
+            const remoteData = JSON.parse(content);
+            const remoteHash = this.calculateHash(remoteData);
+
+            if (remoteHash === this.lastDataHash) {
+                this.lastRemoteVersion = latestVersion;
+                this.lastDataHash = remoteHash;
+                this.saveConfig('lastRemoteVersion');
+                return false;
+            }
+
+            return true;
         } catch {
             return false;
         }
@@ -257,13 +284,14 @@ const TrippenGistSync = {
         this.hasError = false;
         
         try {
+            if (!this.hasChanged) return false;
+
             const hasNewerData = await this.checkForNewerCloudData();
             if (hasNewerData) {
                 window.app?.handleSyncConflict?.();
                 return false;
             }
-            
-            if (!this.hasChanged) return false;
+
             
             // 修正3: Vueインスタンスの最新データを保存してから同期
             if (window.app?.saveData) window.app.saveData();
