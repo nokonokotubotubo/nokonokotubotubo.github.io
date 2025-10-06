@@ -281,13 +281,14 @@ const TrippenGistSync = {
         this.hasError = false;
         
         try {
-            if (!this.hasChanged) return false;
-
             const hasNewerData = await this.checkForNewerCloudData();
             if (hasNewerData) {
+                if (!this.hasChanged) return false;
                 window.app?.handleSyncConflict?.();
                 return false;
             }
+
+            if (!this.hasChanged) return false;
 
             
             // 修正3: Vueインスタンスの最新データを保存してから同期
