@@ -253,8 +253,9 @@ const TrippenGistSync = {
 
             const remoteData = JSON.parse(content);
             const remoteHash = this.calculateHash(remoteData);
+            const currentLocalHash = this.calculateHash(this.collectSyncData());
 
-            if (remoteHash === this.lastDataHash) {
+            if (remoteHash === currentLocalHash) {
                 if (this.lastRemoteVersion !== latestVersion) {
                     this.lastRemoteVersion = latestVersion;
                     this.saveConfig('lastRemoteVersion');
