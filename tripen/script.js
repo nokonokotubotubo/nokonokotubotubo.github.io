@@ -238,14 +238,6 @@ const TrippenGistSync = {
             const latestVersion = await this.fetchLatestGistVersion();
             if (!latestVersion) return false;
 
-            if (!this.lastRemoteVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-                return false;
-            }
-
-            if (latestVersion === this.lastRemoteVersion) return false;
-
             const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
                 headers: {
                     'Authorization': `token ${this.token}`,
@@ -263,9 +255,14 @@ const TrippenGistSync = {
             const remoteHash = this.calculateHash(remoteData);
 
             if (remoteHash === this.lastDataHash) {
-                this.lastRemoteVersion = latestVersion;
-                this.lastDataHash = remoteHash;
-                this.saveConfig('lastRemoteVersion');
+                if (this.lastRemoteVersion !== latestVersion) {
+                    this.lastRemoteVersion = latestVersion;
+                    this.saveConfig('lastRemoteVersion');
+                }
+                if (this.lastDataHash !== remoteHash) {
+                    this.lastDataHash = remoteHash;
+                    this.saveConfig('lastDataHash');
+                }
                 return false;
             }
 
