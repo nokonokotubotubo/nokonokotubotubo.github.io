@@ -106,22 +106,15 @@
 </div>
 
 <div class="timeline-container">
-<div class="timeline-header">
-<h5>
-<i class="fas fa-calendar-day"></i>
-{{ tripDays[activeDay]?.dayNumber }}日目の予定
-<small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
-</h5>
-</div>
-<div class="timeline-content">
+        <div class="timeline-content">
 <div class="timeline-scroll-container" ref="scrollContainer">
-<div class="time-axis">
+<div class="time-axis" :style="timelineStyles">
 <div class="time-slot" v-for="hour in timeSlots" :key="hour">
 {{ hour }}:00
 </div>
 </div>
-<div class="schedule-area" @click="editModeEvent = null" @contextmenu="handleScheduleContextMenu">
-<div class="schedule-grid">
+<div class="schedule-area" :style="timelineStyles" @click="editModeEvent = null" @contextmenu="handleScheduleContextMenu">
+<div class="schedule-grid" :style="timelineStyles">
 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
 <div class="quarter-line"></div>
 <div class="quarter-line"></div>
@@ -178,22 +171,15 @@
 </div>
 
 <div class="timeline-container">
-<div class="timeline-header">
-<h5>
-<i class="fas fa-calendar-day"></i>
-{{ tripDays[activeDay]?.dayNumber }}日目の予定
-<small class="text-muted">{{ tripDays[activeDay]?.date }}</small>
-</h5>
-</div>
-<div class="timeline-content">
+        <div class="timeline-content">
 <div class="timeline-scroll-container" ref="mobileTimelineContainer">
-<div class="time-axis">
+<div class="time-axis" :style="timelineStyles">
 <div class="time-slot" v-for="hour in timeSlots" :key="hour">
 {{ hour }}:00
 </div>
 </div>
-<div class="schedule-area" @click="editModeEvent = null" @touchstart="handleScheduleTouchStart" @touchend="handleScheduleTouchEnd" @touchmove="handleScheduleTouchMove">
-<div class="schedule-grid">
+<div class="schedule-area" :style="timelineStyles" @click="editModeEvent = null" @touchstart="handleScheduleTouchStart" @touchend="handleScheduleTouchEnd" @touchmove="handleScheduleTouchMove">
+<div class="schedule-grid" :style="timelineStyles">
 <div class="grid-line" v-for="hour in timeSlots" :key="hour">
 <div class="quarter-line"></div>
 <div class="quarter-line"></div>

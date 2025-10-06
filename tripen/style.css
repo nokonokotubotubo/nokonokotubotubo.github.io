@@ -49,7 +49,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .dark-mode .day-tabs .nav-link.active{background:var(--accent);color:white}
 .dark-mode .mobile-day-btn{background:#0f2c55;border-color:#1d4f85;color:var(--text)}
 .dark-mode .mobile-day-btn.active{background:var(--accent);color:white;border-color:var(--accent)}
-.dark-mode .timeline-header{background:#163a6c;color:var(--text)}
 .dark-mode .schedule-area{background:#081f3c}
 .dark-mode .time-axis{background:#0f2c55;color:var(--text)}
 .dark-mode .context-menu button{color:var(--text)}
@@ -61,16 +60,16 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .day-tabs-container{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--secondary) transparent;flex-shrink:0}
 .day-tabs{background:white;border-radius:var(--radius) var(--radius) 0 0;margin:10px 0 0 0;box-shadow:var(--shadow);display:flex;min-width:max-content}
 .day-tabs .nav-item{transition:var(--transition);flex-shrink:0;position:relative}
-.day-tabs .nav-link{border:none;color:var(--text);padding:12px 20px;line-height: 1.2;border-radius:var(--radius) var(--radius) 0 0;white-space:nowrap;text-align:center;min-width:120px;transition:var(--transition);position:relative;display:block}
+.day-tabs .nav-link{border:none;color:var(--text);padding:6px 20px;line-height:1.2;border-radius:var(--radius) var(--radius) 0 0;white-space:nowrap;text-align:center;min-width:120px;transition:var(--transition);position:relative;display:block}
 .day-tabs .nav-link.active{background:var(--primary);color:white;box-shadow:var(--shadow)}
 .day-tabs .nav-link:hover{background:var(--secondary);color:white}
 .delete-day-btn{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,99,99,0.8);color:white;border:none;font-size:0.7rem;display:none;align-items:center;justify-content:center;cursor:pointer;transition:var(--transition)}
 .delete-day-btn:hover{background:rgba(255,99,99,1);transform:scale(1.1)}
 .day-tabs .nav-link:hover .delete-day-btn{display:flex}
-.mobile-day-selector{background:white;padding:12px 0;box-shadow:var(--shadow);flex-shrink:0;position:relative}
+.mobile-day-selector{background:white;padding:6px 0;box-shadow:var(--shadow);flex-shrink:0;position:relative}
 .mobile-scroll-container{position:relative;padding:0 50px}
 .mobile-day-buttons{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--secondary) transparent;padding:0 15px 10px 15px}
-.mobile-day-btn{min-width:100px;height:60px;border:2px solid var(--secondary);background:white;border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;font:bold 0.9rem/1 sans-serif;color:var(--text);transition:var(--transition);flex-shrink:0;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.mobile-day-btn{min-width:100px;height:50px;border:2px solid var(--secondary);background:white;border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;font:bold 0.9rem/1 sans-serif;color:var(--text);transition:var(--transition);flex-shrink:0;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
 .mobile-day-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
 .mobile-day-btn:active{transform:scale(0.95)}
 .mobile-scroll-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--secondary);color:var(--accent);font-size:1rem;cursor:pointer;transition:var(--transition);z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
@@ -92,9 +91,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .mobile-fab{position:fixed;bottom:20px;right:20px;width:60px;height:60px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:var(--transition);z-index:1000;-webkit-tap-highlight-color:transparent}
 .mobile-fab:active{transform:scale(0.9)}
 .timeline-container{background:white;border-radius:0 0 var(--radius) var(--radius);margin:0;box-shadow:0 4px 15px rgba(0,0,0,0.1);flex:1;display:flex;flex-direction:column;overflow:hidden}
-.timeline-header{background:var(--secondary);padding:8px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.timeline-header h5{font-size:1rem;margin:0;line-height:1.2}
-.timeline-header h5 small{font-size:0.85rem;margin-left:8px}
 .timeline-content{flex:1;overflow:hidden}
 .timeline-scroll-container{height:100%;display:flex;overflow-y:auto;overflow-x:hidden}
 .time-axis{width:80px;background:var(--time-bg);border-right:2px solid var(--secondary);flex-shrink:0;height:1200px}
@@ -213,6 +209,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .conflict-btn.secondary {background: #6c757d;color: white;}
 .conflict-btn:hover {transform: translateY(-2px);box-shadow: 0 4px 8px rgba(0,0,0,0.2);}
 @media (max-width:768px){
+.header-inner{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;}
+.header-left{order:0;flex:1 1 auto;min-width:0;}
+.header-right{order:1;flex:0 1 auto;margin-left:auto;display:flex;align-items:center;gap:0.5rem;min-width:0;transform:translateX(-2px);}
+.header-title{order:2;flex:0 0 100%;margin-top:4px;text-align:center;}
+
 .header{padding:6px 0}
 .header-inner{gap:0.5rem}
 .header-left{min-width:auto;gap:0.6rem}
@@ -220,10 +221,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .header-logo{width:52px;height:52px}
 .header-brand-body .header-actions,.header-right{gap:0.5rem}
 .cloud-load-btn,.cloud-write-btn,.settings-btn{font-size:1.3rem;padding:6px}
-.timeline-header{padding:6px 15px}
-.timeline-header h5{font-size:0.9rem}
-.timeline-header h5 small{font-size:0.75rem;display:block;margin-left:0;margin-top:2px}
-.day-tabs{margin:8px 0 0 0}
+.mobile-ui .day-tabs{margin:8px 0 0 0}
 .time-axis{width:60px;height:1000px}
 .time-slot{height:50px;font-size:0.8rem}
 .grid-line{height:50px}

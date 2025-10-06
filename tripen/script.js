@@ -381,13 +381,16 @@ const app = createApp({
         showMobilePopup: false, selectedDayForPopup: null, selectedDayIndex: null,
         scrollPosition: 0, maxScrollPosition: 0,
         timeSlots: Array.from({length: 20}, (_, i) => i + 4),
+        slotPixelHeight: 60,
+        timelineHeight: 1200,
         events: [], editModeEvent: null, clipboardEvent: null,
         showContextMenu: false, contextMenuStyle: {}, pasteTargetTime: null,
-        isMobile: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
+        isMobile: false, hasUserActivated: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
         longPressTimer: null, longPressExecuted: false,
         eventTouchOffset: { x: 0, y: 0 }, draggingEvent: null,
         isDragComplete: false, isResizeComplete: false, dragStarted: false,
         longPressEventData: null, longPressEvent: null, readyToMoveEventId: null,
+        userActivationHandler: null,
         showMapModal: false, map: null, selectedCoordinates: null, mapMarker: null,
         eventForm: { title: '', dayIndex: 0, startTime: '09:00', endTime: '10:00', category: 'travel', description: '', coordinates: '' },
         modals: [], eventLayerOrder: [], baseZIndex: 10, maxZIndex: 10,
@@ -399,6 +402,26 @@ const app = createApp({
         isDarkMode: false,
         logoSrc: 'tripen-day.svg'
     }),
+
+    computed: {
+        timelineStyles() {
+            return { height: `${this.timelineHeight}px` };
+        },
+        pixelsPerMinute() {
+            return this.slotPixelHeight > 0 ? this.slotPixelHeight / 60 : 1;
+        }
+    },
+
+    watch: {
+        isMobile() {
+            this.updateSlotHeight();
+        },
+        tripInitialized(initialized) {
+            if (initialized) {
+                this.updateSlotHeight();
+            }
+        }
+    },
 
     methods: {
         toggleTheme() {
@@ -455,7 +478,7 @@ const app = createApp({
                         window.app.tripTitle = input.value.trim();
                         window.app.saveData();
                         window.app.closeAllModals();
-                        navigator.vibrate?.(100);
+                        this.safeVibrate(100);
                     }
                 ">保存</button>
             `);
@@ -489,7 +512,13 @@ const app = createApp({
         },
 
         setActiveDay(index) { this.activeDay = index; },
-        detectMobile() { this.isMobile = window.innerWidth <= 768 || 'ontouchstart' in window; },
+        detectMobile() {
+            const nextValue = window.innerWidth <= 768 || 'ontouchstart' in window;
+            if (this.isMobile !== nextValue) {
+                this.isMobile = nextValue;
+            }
+            this.updateSlotHeight();
+        },
 
         addDayImmediately() {
             this.tripDays = this.generateConsecutiveDays(this.tripDays[0].fullDate, this.tripDays.length + 1);
@@ -587,7 +616,7 @@ const app = createApp({
             event.preventDefault();
             event.stopPropagation();
             this.editModeEvent = this.editModeEvent?.id === eventData.id ? null : eventData;
-            navigator.vibrate?.(50);
+            this.safeVibrate(50);
         },
 
         startEventDrag(event, eventData) {
@@ -595,11 +624,10 @@ const app = createApp({
             this.isDragComplete = false;
             const container = this.$refs.scrollContainer || this.$refs.mobileTimelineContainer;
             const rect = container.getBoundingClientRect();
-            const headerHeight = container.querySelector('.timeline-header')?.offsetHeight || 0;
             const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
 
             const moveHandler = e => {
-                const newCenterTop = e.clientY - rect.top - headerHeight + container.scrollTop;
+                const newCenterTop = e.clientY - rect.top  + container.scrollTop;
                 const snappedTop = Math.round((newCenterTop - centerOffset) / 15) * 15;
                 this.updateEventTimeFromDrag(eventData, snappedTop);
             };
@@ -624,13 +652,12 @@ const app = createApp({
             const coords = event.touches[0];
             const container = this.$refs.mobileTimelineContainer;
             const rect = container.getBoundingClientRect();
-            const headerHeight = container.querySelector('.timeline-header')?.offsetHeight || 0;
             const centerOffset = (this.timeToPixels(eventData.endTime) - this.timeToPixels(eventData.startTime)) / 2;
 
             const moveHandler = e => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                const newCenterTop = touch.clientY - rect.top - headerHeight + container.scrollTop;
+                const newCenterTop = touch.clientY - rect.top  + container.scrollTop;
                 const snappedTop = Math.round((newCenterTop - centerOffset) / 15) * 15;
                 this.updateEventTimeFromDrag(eventData, snappedTop);
             };
@@ -673,7 +700,7 @@ const app = createApp({
         handleMobileDayTouchStart(event, index) {
             this.touchStartTime = Date.now();
             this.longPressTimer = setTimeout(() => {
-                navigator.vibrate?.(50);
+                this.safeVibrate(50);
                 this.showMobilePopupForDay(index);
             }, 800);
         },
@@ -753,7 +780,7 @@ const app = createApp({
                     this.longPressTimer = setTimeout(() => {
                         this.longPressExecuted = true;
                         this.readyToMoveEventId = eventData.id;
-                        navigator.vibrate?.(50);
+                        this.safeVibrate(50);
                     }, 500);
 
                     const handleTouchMove = e => {
@@ -808,7 +835,7 @@ const app = createApp({
                     this.events.splice(eventIndex, 1);
                     this.editModeEvent = null;
                     this.saveData();
-                    navigator.vibrate?.([100, 50, 100]);
+                    this.safeVibrate([100, 50, 100]);
                 }
             } catch (error) {
                 console.error('予定の切り取り中にエラーが発生しました:', error);
@@ -863,14 +890,42 @@ const app = createApp({
 
         minutesToTime: minutes => `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`,
 
-        timeToPixels: timeString => {
-            const [hours, minutes] = timeString.split(':').map(Number);
-            const totalMinutes = (hours - 4) * 60 + minutes;
-            return totalMinutes * (this.isMobile ? 50/60 : 1);
+        safeVibrate(pattern) {
+            if (!this.hasUserActivated) return;
+            if (!navigator.vibrate) return;
+            navigator.vibrate(pattern);
         },
 
-        pixelsToTime: pixels => {
-            const totalMinutes = pixels / (this.isMobile ? 50/60 : 1);
+        updateSlotHeight() {
+            this.$nextTick(() => {
+                const containers = [this.$refs.scrollContainer, this.$refs.mobileTimelineContainer].filter(Boolean);
+                let measured = 0;
+                for (const container of containers) {
+                    if (measured) break;
+                    const slot = container.querySelector('.time-slot');
+                    if (!slot) continue;
+                    measured = slot.getBoundingClientRect().height;
+                }
+                if (!measured) return;
+                const normalized = Math.max(measured, 1);
+                const timelineHeight = normalized * this.timeSlots.length;
+                if (Math.abs(normalized - this.slotPixelHeight) > 0.5 || Math.abs(timelineHeight - this.timelineHeight) > 0.5) {
+                    this.slotPixelHeight = normalized;
+                    this.timelineHeight = timelineHeight;
+                }
+            });
+        },
+
+        timeToPixels(timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            const totalMinutes = (hours - 4) * 60 + minutes;
+            const pixelsPerMinute = this.pixelsPerMinute || 1;
+            return totalMinutes * pixelsPerMinute;
+        },
+
+        pixelsToTime(pixels) {
+            const pixelsPerMinute = this.pixelsPerMinute || 1;
+            const totalMinutes = pixelsPerMinute ? pixels / pixelsPerMinute : 0;
             const roundedMinutes = Math.round(totalMinutes / 15) * 15;
             const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
             const minutes = hours === 24 ? 0 : roundedMinutes % 60;
@@ -886,7 +941,6 @@ const app = createApp({
 
         showContextMenuAt(x, y, event) {
             const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
-            const timelineHeader = container.querySelector('.timeline-header');
             const scheduleArea = container.querySelector('.schedule-area');
             
             if (!scheduleArea) {
@@ -894,8 +948,7 @@ const app = createApp({
                 this.pasteTargetTime = this.pixelsToTime(y - containerRect.top + container.scrollTop);
             } else {
                 const containerRect = container.getBoundingClientRect();
-                const headerHeight = timelineHeader?.offsetHeight || 0;
-                const relativeY = y - containerRect.top - headerHeight + container.scrollTop;
+                const relativeY = y - containerRect.top  + container.scrollTop;
                 const snappedY = Math.round(relativeY / 15) * 15;
                 this.pasteTargetTime = this.pixelsToTime(Math.max(0, snappedY));
             }
@@ -915,7 +968,7 @@ const app = createApp({
             
             this.longPressTimer = setTimeout(() => {
                 this.showContextMenuAt(this.touchStartPosition.x, this.touchStartPosition.y, event);
-                navigator.vibrate?.(50);
+                this.safeVibrate(50);
             }, 500);
         },
 
@@ -958,8 +1011,7 @@ const app = createApp({
                 const coords = type === 'touch' ? e.touches[0] : e;
                 const container = this.isMobile ? this.$refs.mobileTimelineContainer : this.$refs.scrollContainer;
                 const rect = container.getBoundingClientRect();
-                const headerHeight = container.querySelector('.timeline-header')?.offsetHeight || 0;
-                const y = coords.clientY - rect.top - headerHeight + container.scrollTop;
+                    const y = coords.clientY - rect.top  + container.scrollTop;
                 const snappedY = Math.round(y / 15) * 15;
                 const newTime = this.pixelsToTime(snappedY);
                 
@@ -988,15 +1040,17 @@ const app = createApp({
         getEventStyle(event) {
             const startPixels = this.timeToPixels(event.startTime);
             const endPixels = this.timeToPixels(event.endTime);
-            const duration = Math.max(endPixels - startPixels, this.isMobile ? 25 : 30);
+            const rawDuration = Math.max(endPixels - startPixels, 0);
+            const minimumHeight = Math.max(this.slotPixelHeight * 0.5, 24);
+            const duration = Math.max(rawDuration, minimumHeight);
             const overlappingEvents = this.getOverlappingEvents(event);
-            
+
             let zIndex = this.baseZIndex;
-            
+
             if (overlappingEvents.length > 0) {
                 const allEvents = [...overlappingEvents, event];
-                const sortedByDuration = allEvents.sort((a, b) => 
-                    (this.timeToMinutes(a.endTime) - this.timeToMinutes(a.startTime)) - 
+                const sortedByDuration = allEvents.sort((a, b) =>
+                    (this.timeToMinutes(a.endTime) - this.timeToMinutes(a.startTime)) -
                     (this.timeToMinutes(b.endTime) - this.timeToMinutes(b.startTime))
                 );
                 const currentEventIndex = sortedByDuration.findIndex(e => e.id === event.id);
@@ -1006,7 +1060,7 @@ const app = createApp({
             return {
                 top: `${startPixels}px`,
                 height: `${duration}px`,
-                minHeight: this.isMobile ? '32px' : '35px',
+                minHeight: `${minimumHeight}px`,
                 zIndex
             };
         },
@@ -1101,7 +1155,7 @@ const app = createApp({
             const coordinatesInput = document.getElementById('eventCoordinates');
             if (coordinatesInput) coordinatesInput.value = this.selectedCoordinates;
 
-            navigator.vibrate?.(100);
+            this.safeVibrate(100);
             this.closeMapModal();
         },
 
@@ -1124,12 +1178,12 @@ const app = createApp({
             const coordinates = coordinatesInput.value.trim();
             navigator.clipboard.writeText(coordinates).then(() => {
                 alert('緯度経度をクリップボードにコピーしました');
-                navigator.vibrate?.(100);
+                this.safeVibrate(100);
             }).catch(() => {
                 coordinatesInput.select();
                 document.execCommand('copy');
                 alert('緯度経度をクリップボードにコピーしました');
-                navigator.vibrate?.(100);
+                this.safeVibrate(100);
             });
         },
 
@@ -1188,7 +1242,7 @@ const app = createApp({
             this.saveData();
             this.editModeEvent = null;
             this.closeAllModals();
-            navigator.vibrate?.(100);
+            this.safeVibrate(100);
         },
 
         editEventFromDetail(eventId) {
@@ -1309,7 +1363,7 @@ const app = createApp({
             this.editModeEvent = null;
             this.activeDay = formData.dayIndex;
             this.loadWeatherForAllEvents();
-            navigator.vibrate?.(100);
+            this.safeVibrate(100);
         },
 
         validateCoordinates(coordinates) {
@@ -1370,7 +1424,7 @@ const app = createApp({
                 this.saveData();
                 this.closeAllModals();
                 this.loadWeatherForAllEvents();
-                navigator.vibrate?.(100);
+                this.safeVibrate(100);
             }
         },
 
@@ -1595,6 +1649,14 @@ const app = createApp({
         this.checkExistingData();
         this.loadData();
         this.loadThemePreference();
+        this.userActivationHandler = () => {
+            this.hasUserActivated = true;
+            window.removeEventListener('pointerdown', this.userActivationHandler);
+            window.removeEventListener('keydown', this.userActivationHandler);
+            this.userActivationHandler = null;
+        };
+        window.addEventListener('pointerdown', this.userActivationHandler);
+        window.addEventListener('keydown', this.userActivationHandler);
         
         if (this.tripDays.length > 0) {
             this.tripInitialized = true;
@@ -1603,6 +1665,7 @@ const app = createApp({
         
         window.addEventListener('resize', this.detectMobile);
         window.app = this;
+        this.updateSlotHeight();
 
         const config = TrippenGistSync.loadConfig();
         if (config && TrippenGistSync.isEnabled) {
@@ -1624,5 +1687,13 @@ const app = createApp({
                 }, 3000);
             }
         }
-    }
+    },
+
+    beforeUnmount() {
+        if (this.userActivationHandler) {
+            window.removeEventListener('pointerdown', this.userActivationHandler);
+            window.removeEventListener('keydown', this.userActivationHandler);
+        }
+        window.removeEventListener('resize', this.detectMobile);
+    },
 }).mount('#app');
