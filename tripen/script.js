@@ -1650,7 +1650,11 @@ const app = createApp({
             localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
             localStorage.setItem('trippenTitle', this.tripTitle);
             this.saveLayerOrder();
-            if (TrippenGistSync.isEnabled) TrippenGistSync.markChanged();
+            if (TrippenGistSync.isEnabled) {
+                TrippenGistSync.markChanged();
+                TrippenGistSync.lastDataHash = TrippenGistSync.calculateHash(TrippenGistSync.collectSyncData());
+                TrippenGistSync.saveConfig('lastDataHash');
+            }
         },
 
         loadData() {
