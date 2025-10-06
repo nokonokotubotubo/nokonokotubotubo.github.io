@@ -10,7 +10,7 @@ const { createApp } = Vue;
 const TrippenGistSync = {
     token: null, gistId: null, isEnabled: false, isSyncing: false,
     lastSyncTime: null, lastReadTime: null, periodicSyncInterval: null,
-    hasError: false, hasChanged: false, lastDataHash: null, lastRemoteHash: null, lastRemoteVersion: null,
+    hasError: false, hasChanged: false, lastDataHash: null, lastRemoteVersion: null,
 
     calculateHash(data) {
         try {
@@ -44,14 +44,7 @@ const TrippenGistSync = {
         }
     },
 
-    markChanged() {
-        this.hasChanged = true;
-        try {
-            const localData = this.collectSyncData();
-            this.lastDataHash = this.calculateHash(localData);
-            this.saveConfig('lastDataHash');
-        } catch {}
-    },
+    markChanged() { this.hasChanged = true; },
     resetChanged() { this.hasChanged = false; },
 
     _encrypt(text, key = 'trippen_secret_key') {
@@ -86,7 +79,6 @@ const TrippenGistSync = {
                 lastSyncTime: config.lastSyncTime || null,
                 lastReadTime: config.lastReadTime || null,
                 lastDataHash: config.lastDataHash || null,
-                lastRemoteHash: config.lastRemoteHash || null,
                 lastRemoteVersion: config.lastRemoteVersion || null
             });
             this.isEnabled = !!this.token;
@@ -106,10 +98,7 @@ const TrippenGistSync = {
             gistId: gistId?.trim() || null,
             isEnabled: true,
             hasError: false,
-            hasChanged: false,
-            lastDataHash: null,
-            lastRemoteHash: null,
-            lastRemoteVersion: null
+            hasChanged: false
         });
 
         const config = {
@@ -120,7 +109,6 @@ const TrippenGistSync = {
             lastSyncTime: this.lastSyncTime,
             lastReadTime: this.lastReadTime,
             lastDataHash: this.lastDataHash,
-            lastRemoteHash: this.lastRemoteHash,
             lastRemoteVersion: this.lastRemoteVersion,
             version: '3.0'
         };
@@ -200,7 +188,7 @@ const TrippenGistSync = {
     },
 
     async loadFromCloud() {
-        if (!this.token || !this.gistId)
+        if (!this.token || !this.gistId) 
             throw new Error(!this.token ? 'トークンが設定されていません' : 'Gist IDが設定されていません');
         
         try {
@@ -222,20 +210,17 @@ const TrippenGistSync = {
             }
             
             const gist = await response.json();
-            if (!gist.files?.['trippen_data.json'])
+            if (!gist.files?.['trippen_data.json']) 
                 throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
             
             const parsedData = JSON.parse(gist.files['trippen_data.json'].content);
-            const remoteHash = this.calculateHash(parsedData);
             let latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || gist.version || null;
             if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
             if (latestVersion) {
                 this.lastRemoteVersion = latestVersion;
+                this.saveConfig('lastRemoteVersion');
             }
-            this.lastRemoteHash = remoteHash;
-            this.lastDataHash = remoteHash;
-            this.saveConfig('lastRemoteHash');
-            this.saveConfig('lastRemoteVersion');
+            this.lastDataHash = this.calculateHash(parsedData);
             this.lastReadTime = this.getUTCTimestamp();
             this.saveLastReadTime();
             this.resetChanged();
@@ -252,59 +237,12 @@ const TrippenGistSync = {
         try {
             const latestVersion = await this.fetchLatestGistVersion();
             if (!latestVersion) return false;
-
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
-                }
-            });
-            if (!response.ok) return false;
-
-            const gist = await response.json();
-            const content = gist.files?.['trippen_data.json']?.content;
-            if (!content) return false;
-
-            const remoteData = JSON.parse(content);
-            const remoteHash = this.calculateHash(remoteData);
-            const localHash = this.calculateHash(this.collectSyncData());
-            const remoteDiffersFromLocal = remoteHash !== localHash;
-            const previousRemoteHash = this.lastRemoteHash;
-
-            if (!previousRemoteHash) {
-                this.lastRemoteHash = remoteHash;
-                this.saveConfig('lastRemoteHash');
-                if (remoteHash !== localHash) {
-                    this.lastRemoteVersion = latestVersion;
-                    this.saveConfig('lastRemoteVersion');
-                    return true;
-                }
-            }
-
-            if (remoteHash === localHash) {
-                if (this.lastRemoteVersion !== latestVersion) {
-                    this.lastRemoteVersion = latestVersion;
-                    this.saveConfig('lastRemoteVersion');
-                }
-                this.lastRemoteHash = remoteHash;
-                this.lastDataHash = localHash;
-                this.saveConfig('lastRemoteHash');
+            if (!this.lastRemoteVersion) {
+                this.lastRemoteVersion = latestVersion;
+                this.saveConfig('lastRemoteVersion');
                 return false;
             }
-
-            if (previousRemoteHash && remoteHash !== previousRemoteHash) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-                return true;
-            }
-
-            if (this.lastRemoteVersion !== latestVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-            }
-
-            return remoteDiffersFromLocal;
+            return latestVersion !== this.lastRemoteVersion;
         } catch {
             return false;
         }
@@ -321,24 +259,22 @@ const TrippenGistSync = {
         try {
             const hasNewerData = await this.checkForNewerCloudData();
             if (hasNewerData) {
-                if (this.hasChanged) window.app?.handleSyncConflict?.();
+                window.app?.handleSyncConflict?.();
                 return false;
             }
-
+            
             if (!this.hasChanged) return false;
-
+            
+            // 修正3: Vueインスタンスの最新データを保存してから同期
             if (window.app?.saveData) window.app.saveData();
-
+            
             const localData = this.collectSyncData();
             const uploadResult = await this.syncToCloud(localData);
-
+            
             if (uploadResult) {
-                const syncedHash = this.calculateHash(localData);
                 this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = syncedHash;
-                this.lastRemoteHash = syncedHash;
+                this.lastDataHash = this.calculateHash(localData);
                 this.saveLastSyncTime();
-                this.saveConfig('lastRemoteHash');
                 this.resetChanged();
                 return true;
             }
@@ -364,18 +300,13 @@ const TrippenGistSync = {
                 throw new Error('データ競合が検出されました');
             }
             
-            if (window.app?.saveData) window.app.saveData();
-
             const localData = this.collectSyncData();
             const uploadResult = await this.syncToCloud(localData);
             
             if (uploadResult) {
-                const syncedHash = this.calculateHash(localData);
                 this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = syncedHash;
-                this.lastRemoteHash = syncedHash;
+                this.lastDataHash = this.calculateHash(localData);
                 this.saveLastSyncTime();
-                this.saveConfig('lastRemoteHash');
                 this.resetChanged();
                 return true;
             }
@@ -408,7 +339,6 @@ const TrippenGistSync = {
                 lastSyncTime: this.lastSyncTime,
                 lastReadTime: this.lastReadTime,
                 lastDataHash: this.lastDataHash,
-                lastRemoteHash: this.lastRemoteHash,
                 lastRemoteVersion: this.lastRemoteVersion
             });
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
@@ -427,8 +357,6 @@ const TrippenGistSync = {
             const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
             config[key] = this[key];
             config.lastDataHash = this.lastDataHash;
-            config.lastRemoteHash = this.lastRemoteHash;
-            config.lastRemoteVersion = this.lastRemoteVersion;
             localStorage.setItem('trippen_gist_config', JSON.stringify(config));
         } catch {}
     },
@@ -439,7 +367,7 @@ const TrippenGistSync = {
         Object.assign(this, {
             token: null, gistId: null, isEnabled: false,
             lastSyncTime: null, lastReadTime: null, hasError: false,
-            hasChanged: false, lastDataHash: null, lastRemoteHash: null, lastRemoteVersion: null
+            hasChanged: false, lastDataHash: null, lastRemoteVersion: null
         });
     }
 };
