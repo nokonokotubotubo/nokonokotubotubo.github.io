@@ -992,28 +992,64 @@ const app = createApp({
 
             if (!token) return alert('GitHub Personal Access Tokenを入力してください');
 
-            try {
-                TrippenGistSync.init(token, gistId || null);
-                this.gistSync = {
-                    isEnabled: TrippenGistSync.isEnabled,
-                    gistId: TrippenGistSync.gistId,
-                    lastSyncTime: TrippenGistSync.lastSyncTime,
-                    lastReadTime: TrippenGistSync.lastReadTime,
-                    isSyncing: false, isLoading: false, hasError: false
-                };
+            TrippenGistSync.init(token, gistId || null);
+            this.gistSync = {
+                isEnabled: TrippenGistSync.isEnabled,
+                gistId: TrippenGistSync.gistId,
+                lastSyncTime: TrippenGistSync.lastSyncTime,
+                lastReadTime: TrippenGistSync.lastReadTime,
+                isSyncing: true,
+                isLoading: true,
+                hasError: false
+            };
 
-                const syncResult = await TrippenGistSync.manualWriteToCloud();
-                if (syncResult) {
-                    this.gistSync.gistId = TrippenGistSync.gistId;
-                    this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
-                    this.syncForm = { token: '', gistId: '' };
-                    alert('GitHub同期を開始しました\nGist ID: ' + TrippenGistSync.gistId);
-                } else {
-                    throw new Error('初回書き込みに失敗しました');
+            let remoteApplied = false;
+
+            try {
+                try {
+                    const remoteSnapshot = await TrippenGistSync.loadFromCloud();
+                    if (remoteSnapshot?.data) {
+                        const hasRemoteContent = !!(
+                            remoteSnapshot.data.events?.length
+                            || remoteSnapshot.data.days?.length
+                            || (remoteSnapshot.data.tripTitle && remoteSnapshot.data.tripTitle.trim().length > 0)
+                        );
+                        this.applyCloudData(remoteSnapshot, { silent: !hasRemoteContent });
+                        remoteApplied = true;
+                        if (hasRemoteContent) alert('クラウドの最新データを読み込みました。');
+                    }
+                } catch (error) {
+                    console.warn('初回クラウド読み込みに失敗しました', error);
                 }
+
+                TrippenGistSync.startPeriodicSync();
+
+                if (!remoteApplied) {
+                    if (this.events.length === 0 && this.tripDays.length === 0 && !this.tripTitle) {
+                        alert('クラウドに既存データが見つかりませんでした。データを追加してから「手動同期」を実行してください。');
+                    } else {
+                        const uploadResult = await TrippenGistSync.manualWriteToCloud();
+                        if (uploadResult) {
+                            this.gistSync.gistId = TrippenGistSync.gistId;
+                            this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
+                            alert('新しいGistを作成して同期を開始しました。\nGist ID: ' + TrippenGistSync.gistId);
+                        } else {
+                            throw new Error('初回書き込みに失敗しました');
+                        }
+                    }
+                }
+
+                this.syncForm = { token: '', gistId: '' };
             } catch (error) {
                 this.gistSync.hasError = true;
                 alert('設定に失敗しました: ' + error.message);
+            } finally {
+                this.gistSync.isSyncing = false;
+                this.gistSync.isLoading = false;
+                this.gistSync.isEnabled = TrippenGistSync.isEnabled;
+                this.gistSync.gistId = TrippenGistSync.gistId;
+                this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
+                this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
             }
         },
 
@@ -1026,6 +1062,7 @@ const app = createApp({
             try {
                 const result = await TrippenGistSync.manualWriteToCloud();
                 if (result) {
+                    this.gistSync.gistId = TrippenGistSync.gistId;
                     this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime;
                     this.gistSync.hasError = false;
                     alert('手動書き込みが完了しました');
@@ -1040,6 +1077,43 @@ const app = createApp({
             }
         },
 
+        applyCloudData(cloudData, { silent = false } = {}) {
+            if (!cloudData?.data) throw new Error('クラウドデータの形式が正しくありません');
+
+            const { events, days, layerOrder, tripTitle } = cloudData.data;
+
+            if (Array.isArray(events)) {
+                this.events = [...events];
+                localStorage.setItem('trippenEvents', JSON.stringify(this.events));
+            }
+            if (Array.isArray(days)) {
+                this.tripDays = [...days];
+                localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
+                this.$nextTick(() => this.tripInitialized = this.tripDays.length > 0);
+            }
+            if (Array.isArray(layerOrder)) {
+                this.eventLayerOrder = [...layerOrder];
+                localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
+            }
+            if (tripTitle !== undefined) {
+                this.tripTitle = tripTitle || '';
+                localStorage.setItem('trippenTitle', this.tripTitle);
+            }
+
+            this.gistSync.gistId = TrippenGistSync.gistId;
+            this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
+            this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime || this.gistSync.lastSyncTime;
+            this.gistSync.hasError = false;
+
+            if (this.events.length > 0) this.loadWeatherForAllEvents();
+
+            if (!silent) {
+                const eventCount = events?.length || 0;
+                const dayCount = days?.length || 0;
+                alert(`クラウドからデータを読み込みました\\n日程: ${dayCount}日分\\n予定: ${eventCount}件`);
+            }
+        },
+
         async loadFromCloud() {
             if (!TrippenGistSync.isEnabled || !TrippenGistSync.token) {
                 return alert('GitHub同期が設定されていません。設定画面で設定してください。');
@@ -1051,34 +1125,7 @@ const app = createApp({
             this.gistSync.isLoading = true;
             try {
                 const cloudData = await TrippenGistSync.loadFromCloud();
-                if (!cloudData?.data) throw new Error('クラウドデータの形式が正しくありません');
-
-                if (cloudData.data.events) {
-                    this.events = [...cloudData.data.events];
-                    localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-                }
-                if (cloudData.data.days) {
-                    this.tripDays = [...cloudData.data.days];
-                    localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-                    this.$nextTick(() => this.tripInitialized = this.tripDays.length > 0);
-                }
-                if (cloudData.data.layerOrder) {
-                    this.eventLayerOrder = [...cloudData.data.layerOrder];
-                    localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
-                }
-                if (cloudData.data.tripTitle !== undefined) {
-                    this.tripTitle = cloudData.data.tripTitle || '';
-                    localStorage.setItem('trippenTitle', this.tripTitle);
-                }
-
-                this.gistSync.lastReadTime = TrippenGistSync.lastReadTime;
-                this.gistSync.hasError = false;
-
-                const eventCount = cloudData.data.events?.length || 0;
-                const dayCount = cloudData.data.days?.length || 0;
-                alert(`クラウドからデータを読み込みました\n日程: ${dayCount}日分\n予定: ${eventCount}件`);
-
-                if (this.events.length > 0) this.loadWeatherForAllEvents();
+                this.applyCloudData(cloudData);
             } catch (error) {
                 this.gistSync.hasError = true;
                 alert(`読み込みに失敗しました\nエラー: ${error.message}`);
