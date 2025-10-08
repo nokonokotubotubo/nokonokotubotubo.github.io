@@ -218,7 +218,7 @@
 
 <!-- コンテキストメニューとモーダル -->
 <div class="context-menu" :class="{ show: showContextMenu }" :style="contextMenuStyle">
-<div class="context-menu-item add-event" @click="() => addEventFromContext()">
+    <div class="context-menu-item add-event" @click="addEventFromContext">
 <i class="fas fa-plus"></i>新しい予定を追加
 </div>
 <div class="context-menu-item paste" :class="{ disabled: !clipboardEvent }" @click="pasteFromContext" v-if="clipboardEvent">
@@ -373,6 +373,6 @@ GitHub変更フラグ管理版・手動書き込みボタンヘッダー移動�
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>

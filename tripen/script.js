@@ -4,374 +4,26 @@
 /** biome-ignore-all lint/suspicious/noGlobalIsNan: 既存ロジックがグローバル isNaN を直接呼び出すため */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: API 互換性のため未使用の引数を保持する必要があるため */
 /** biome-ignore-all lint/correctness/noUnusedVariables: デバッグ用の一時変数を残す必要があるため */
+import TrippenGistSync from './modules/trippenGistSync.js';
+import { saveAppData, loadAppData, saveLayerState, loadLayerState } from './modules/storage.js';
+import { timeStringToMinutes, minutesToTimeString, timeStringToPixels, pixelsToTimeString } from './modules/timeUtils.js';
+import {
+    openModal as openModalHelper,
+    closeAllModals as closeAllModalsHelper,
+    buildEventModalBody,
+    buildEventModalFooter
+} from './modules/modals.js';
+import {
+    fetchEventWeather as fetchEventWeatherData,
+    getEventWeatherEmoji as getCachedEventWeatherEmoji,
+    getWeatherEmoji as getWeatherEmojiSymbol
+} from './modules/weather.js';
+
 const { createApp } = Vue;
 
+window.TrippenGistSync = TrippenGistSync;
+
 // GitHub Gist同期システム（軽量化版）
-const TrippenGistSync = {
-    token: null, gistId: null, isEnabled: false, isSyncing: false,
-    lastSyncTime: null, lastReadTime: null, periodicSyncInterval: null,
-    hasError: false, hasChanged: false, lastDataHash: null, lastRemoteVersion: null,
-
-    calculateHash(data) {
-        try {
-            const jsonString = JSON.stringify({
-                events: data.data.events || [],
-                days: data.data.days || [],
-                layerOrder: data.data.layerOrder || [],
-                tripTitle: data.data.tripTitle || ''
-            }, Object.keys(data.data).sort());
-            return jsonString.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0).toString();
-        } catch {
-            return Date.now().toString();
-        }
-    },
-
-    async fetchLatestGistVersion() {
-        if (!this.token || !this.gistId) return null;
-        try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}/commits?per_page=1`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
-                }
-            });
-            if (!response.ok) return null;
-            const commits = await response.json();
-            return commits?.[0]?.version || commits?.[0]?.oid || null;
-        } catch {
-            return null;
-        }
-    },
-
-    markChanged() { this.hasChanged = true; },
-    resetChanged() { this.hasChanged = false; },
-
-    _encrypt(text, key = 'trippen_secret_key') {
-        if (!text) return '';
-        try {
-            return btoa(text.split('').map((char, i) => 
-                String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-            ).join(''));
-        } catch { throw new Error('暗号化処理に失敗しました'); }
-    },
-
-    _decrypt(encryptedText, key = 'trippen_secret_key') {
-        if (!encryptedText) return '';
-        try {
-            const text = atob(encryptedText);
-            return text.split('').map((char, i) => 
-                String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-            ).join('');
-        } catch { throw new Error('復号化に失敗しました'); }
-    },
-
-    getUTCTimestamp: () => new Date().toISOString(),
-
-    loadConfig() {
-        try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            if (!config.encryptedToken) return null;
-            
-            Object.assign(this, {
-                token: this._decrypt(config.encryptedToken),
-                gistId: config.gistId || null,
-                lastSyncTime: config.lastSyncTime || null,
-                lastReadTime: config.lastReadTime || null,
-                lastDataHash: config.lastDataHash || null,
-                lastRemoteVersion: config.lastRemoteVersion || null
-            });
-            this.isEnabled = !!this.token;
-            return config;
-        } catch {
-            this.hasError = true;
-            this.isEnabled = false;
-            return null;
-        }
-    },
-
-    init(token, gistId = null) {
-        if (!token?.trim()) throw new Error('有効なトークンが必要です');
-        
-        Object.assign(this, {
-            token: token.trim(),
-            gistId: gistId?.trim() || null,
-            isEnabled: true,
-            hasError: false,
-            hasChanged: false
-        });
-
-        const config = {
-            encryptedToken: this._encrypt(token.trim()),
-            gistId: this.gistId,
-            isEnabled: true,
-            configuredAt: this.getUTCTimestamp(),
-            lastSyncTime: this.lastSyncTime,
-            lastReadTime: this.lastReadTime,
-            lastDataHash: this.lastDataHash,
-            lastRemoteVersion: this.lastRemoteVersion,
-            version: '3.0'
-        };
-
-        localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-        this.startPeriodicSync();
-    },
-
-    startPeriodicSync() {
-        clearInterval(this.periodicSyncInterval);
-        this.periodicSyncInterval = setInterval(() => this.autoWriteToCloud(), 60000);
-    },
-
-    stopPeriodicSync() {
-        clearInterval(this.periodicSyncInterval);
-        this.periodicSyncInterval = null;
-    },
-
-    // 修正1: tripTitle追加
-    collectSyncData() {
-        const getData = key => JSON.parse(localStorage.getItem(key) || '[]');
-        return {
-            version: '3.0',
-            syncTime: this.getUTCTimestamp(),
-            data: {
-                events: getData('trippenEvents'),
-                days: getData('trippenDays'),
-                layerOrder: getData('trippenLayerOrder'),
-                tripTitle: localStorage.getItem('trippenTitle') || '' // 追加
-            }
-        };
-    },
-
-    async syncToCloud(data) {
-        if (!this.token) return false;
-        
-        const payload = {
-            description: `とりっぺんちゃん 旅行データ - ${new Date().toLocaleString('ja-JP')}`,
-            public: false,
-            files: { "trippen_data.json": { content: JSON.stringify(data, null, 2) } }
-        };
-        
-        try {
-            const response = await fetch(
-                this.gistId ? `https://api.github.com/gists/${this.gistId}` : 'https://api.github.com/gists',
-                {
-                    method: this.gistId ? 'PATCH' : 'POST',
-                    headers: {
-                        'Authorization': `token ${this.token}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json',
-                        'User-Agent': 'Trippen-App'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (!this.gistId && result.id) {
-                    this.gistId = result.id;
-                    this.saveGistId(result.id);
-                }
-                let latestVersion = result.history?.[0]?.version || result.history?.[0]?.commit || result.version || null;
-                if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
-                if (latestVersion) {
-                    this.lastRemoteVersion = latestVersion;
-                    this.saveConfig('lastRemoteVersion');
-                }
-                return true;
-            }
-            return false;
-        } catch {
-            this.hasError = true;
-            return false;
-        }
-    },
-
-    async loadFromCloud() {
-        if (!this.token || !this.gistId) 
-            throw new Error(!this.token ? 'トークンが設定されていません' : 'Gist IDが設定されていません');
-        
-        try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
-                }
-            });
-            
-            if (!response.ok) {
-                const errors = {
-                    404: 'Gistが見つかりません',
-                    401: 'GitHub Personal Access Tokenが無効です',
-                    403: 'GitHub APIの利用制限に達しています'
-                };
-                throw new Error(errors[response.status] || `GitHub API エラー: ${response.status}`);
-            }
-            
-            const gist = await response.json();
-            if (!gist.files?.['trippen_data.json']) 
-                throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
-            
-            const parsedData = JSON.parse(gist.files['trippen_data.json'].content);
-            let latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || gist.version || null;
-            if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
-            if (latestVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-            }
-            this.lastDataHash = this.calculateHash(parsedData);
-            this.lastReadTime = this.getUTCTimestamp();
-            this.saveLastReadTime();
-            this.resetChanged();
-            
-            return parsedData;
-        } catch (error) {
-            this.hasError = true;
-            throw error;
-        }
-    },
-
-    async checkForNewerCloudData() {
-        if (!this.token || !this.gistId) return false;
-        try {
-            const latestVersion = await this.fetchLatestGistVersion();
-            if (!latestVersion) return false;
-            if (!this.lastRemoteVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-                return false;
-            }
-            return latestVersion !== this.lastRemoteVersion;
-        } catch {
-            return false;
-        }
-    },
-
-
-    // 修正3: 同期前データ保存追加
-    async autoWriteToCloud() {
-        if (!this.isEnabled || !this.token || this.isSyncing) return false;
-        
-        this.isSyncing = true;
-        this.hasError = false;
-        
-        try {
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                window.app?.handleSyncConflict?.();
-                return false;
-            }
-            
-            if (!this.hasChanged) return false;
-            
-            // 修正3: Vueインスタンスの最新データを保存してから同期
-            if (window.app?.saveData) window.app.saveData();
-            
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = this.calculateHash(localData);
-                this.saveLastSyncTime();
-                this.resetChanged();
-                return true;
-            }
-            return false;
-        } catch {
-            this.hasError = true;
-            return false;
-        } finally {
-            this.isSyncing = false;
-        }
-    },
-
-    async manualWriteToCloud() {
-        if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
-        
-        this.isSyncing = true;
-        this.hasError = false;
-        
-        try {
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                window.app?.handleSyncConflict?.();
-                throw new Error('データ競合が検出されました');
-            }
-            
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-            
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = this.calculateHash(localData);
-                this.saveLastSyncTime();
-                this.resetChanged();
-                return true;
-            }
-            throw new Error('書き込みに失敗しました');
-        } catch (error) {
-            this.hasError = true;
-            throw error;
-        } finally {
-            this.isSyncing = false;
-        }
-    },
-
-    async initialAutoLoad() {
-        if (!this.isEnabled || !this.token || !this.gistId) return null;
-        
-        try {
-            const cloudData = await this.loadFromCloud();
-            return cloudData?.data ? cloudData : null;
-        } catch {
-            this.hasError = true;
-            return null;
-        }
-    },
-
-    saveGistId(gistId) {
-        try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            Object.assign(config, {
-                gistId,
-                lastSyncTime: this.lastSyncTime,
-                lastReadTime: this.lastReadTime,
-                lastDataHash: this.lastDataHash,
-                lastRemoteVersion: this.lastRemoteVersion
-            });
-            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-            this.gistId = gistId;
-            if (window.app?.gistSync) window.app.gistSync.gistId = gistId;
-        } catch {
-            this.gistId = gistId;
-        }
-    },
-
-    saveLastSyncTime() { this.saveConfig('lastSyncTime'); },
-    saveLastReadTime() { this.saveConfig('lastReadTime'); },
-
-    saveConfig(key) {
-        try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            config[key] = this[key];
-            config.lastDataHash = this.lastDataHash;
-            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-        } catch {}
-    },
-
-    clear() {
-        this.stopPeriodicSync();
-        localStorage.removeItem('trippen_gist_config');
-        Object.assign(this, {
-            token: null, gistId: null, isEnabled: false,
-            lastSyncTime: null, lastReadTime: null, hasError: false,
-            hasChanged: false, lastDataHash: null, lastRemoteVersion: null
-        });
-    }
-};
-
 const app = createApp({
     data: () => ({
         tripInitialized: false, tripStartDate: '', tripEndDate: '',
@@ -387,7 +39,7 @@ const app = createApp({
         showContextMenu: false, contextMenuStyle: {}, pasteTargetTime: null,
         isMobile: false, hasUserActivated: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
         longPressTimer: null, longPressExecuted: false,
-        eventTouchOffset: { x: 0, y: 0 }, draggingEvent: null,
+        draggingEvent: null,
         isDragComplete: false, isResizeComplete: false, dragStarted: false,
         longPressEventData: null, longPressEvent: null, readyToMoveEventId: null,
         userActivationHandler: null,
@@ -883,12 +535,9 @@ const app = createApp({
             setTimeout(() => this.openEventModal(null, true), 100);
         },
 
-        timeToMinutes: timeString => {
-            const [hours, minutes] = timeString.split(':').map(Number);
-            return hours * 60 + minutes;
-        },
+        timeToMinutes: timeStringToMinutes,
 
-        minutesToTime: minutes => `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`,
+        minutesToTime: minutesToTimeString,
 
         safeVibrate(pattern) {
             if (!this.hasUserActivated) return;
@@ -917,19 +566,13 @@ const app = createApp({
         },
 
         timeToPixels(timeString) {
-            const [hours, minutes] = timeString.split(':').map(Number);
-            const totalMinutes = (hours - 4) * 60 + minutes;
             const pixelsPerMinute = this.pixelsPerMinute || 1;
-            return totalMinutes * pixelsPerMinute;
+            return timeStringToPixels(timeString, pixelsPerMinute);
         },
 
         pixelsToTime(pixels) {
             const pixelsPerMinute = this.pixelsPerMinute || 1;
-            const totalMinutes = pixelsPerMinute ? pixels / pixelsPerMinute : 0;
-            const roundedMinutes = Math.round(totalMinutes / 15) * 15;
-            const hours = Math.max(4, Math.min(24, Math.floor(roundedMinutes / 60) + 4));
-            const minutes = hours === 24 ? 0 : roundedMinutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            return pixelsToTimeString(pixels, pixelsPerMinute);
         },
 
         handleScheduleContextMenu(event) {
@@ -1074,47 +717,10 @@ const app = createApp({
         })[category] || 'fas fa-calendar',
 
         async fetchWeatherForEvent(event) {
-            if (!event.coordinates) return null;
-
-            try {
-                const [lat, lng] = event.coordinates.split(',').map(Number);
-                if (isNaN(lat) || isNaN(lng)) return null;
-
-                const cacheKey = `${lat},${lng}_${event.dayIndex}`;
-                const cachedWeather = this.weatherCache[cacheKey];
-
-                if (cachedWeather && Date.now() - cachedWeather.timestamp < this.weatherCacheExpiry) {
-                    return cachedWeather.data;
-                }
-
-                const dayData = this.tripDays[event.dayIndex];
-                if (!dayData) return null;
-
-                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode&timezone=auto&start_date=${dayData.fullDate}&end_date=${dayData.fullDate}`);
-                if (!response.ok) throw new Error('Weather API request failed');
-
-                const data = await response.json();
-                const weatherCode = data.daily.weathercode[0];
-
-                this.weatherCache[cacheKey] = { data: weatherCode, timestamp: Date.now() };
-                return weatherCode;
-            } catch {
-                return null;
-            }
+            return fetchEventWeatherData(event, this.tripDays, this.weatherCache, this.weatherCacheExpiry);
         },
 
-        getWeatherEmoji: weatherCode => {
-            const weatherMap = {
-                0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
-                51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️',
-                61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️',
-                71: '🌨️', 73: '🌨️', 75: '🌨️', 77: '🌨️',
-                80: '🌦️', 81: '🌦️', 82: '🌧️',
-                85: '🌨️', 86: '🌨️',
-                95: '⛈️', 96: '⛈️', 99: '⛈️'
-            };
-            return weatherMap[weatherCode] || '';
-        },
+        getWeatherEmoji: getWeatherEmojiSymbol,
 
         async loadWeatherForAllEvents() {
             await Promise.all(
@@ -1124,11 +730,7 @@ const app = createApp({
         },
 
         getEventWeatherEmoji(event) {
-            if (!event.coordinates) return '';
-            const cacheKey = `${event.coordinates}_${event.dayIndex}`;
-            const cachedWeather = this.weatherCache[cacheKey];
-            return cachedWeather && Date.now() - cachedWeather.timestamp < this.weatherCacheExpiry
-                ? this.getWeatherEmoji(cachedWeather.data) : '';
+            return getCachedEventWeatherEmoji(event, this.weatherCache, this.weatherCacheExpiry);
         },
 
         setLocationFromMap() {
@@ -1275,63 +877,10 @@ const app = createApp({
         },
 
         generateEventModalBody() {
-            return `
-                <div class="mb-3">
-                    <label for="eventTitle" class="form-label">予定タイトル</label>
-                    <input type="text" class="form-control" id="eventTitle" value="${this.eventForm.title.replace(/"/g, '&quot;')}" placeholder="予定のタイトルを入力">
-                </div>
-                <div class="mb-3">
-                    <label for="eventDay" class="form-label">日程</label>
-                    <select class="form-select" id="eventDay">
-                        ${this.tripDays.map((day, index) => 
-                            `<option value="${index}" ${this.eventForm.dayIndex === index ? 'selected' : ''}>${day.dayNumber}日目 (${day.date})</option>`
-                        ).join('')}
-                    </select>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="eventStartTime" class="form-label">開始時間</label>
-                            <input type="time" class="form-control" id="eventStartTime" value="${this.eventForm.startTime}" min="04:00" max="23:59">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="eventEndTime" class="form-label">終了時間</label>
-                            <input type="time" class="form-control" id="eventEndTime" value="${this.eventForm.endTime}" min="04:00" max="24:00">
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label for="eventCategory" class="form-label">カテゴリー</label>
-                    <select class="form-select" id="eventCategory">
-                        <option value="travel" ${this.eventForm.category === 'travel' ? 'selected' : ''}>🚗 移動</option>
-                        <option value="food" ${this.eventForm.category === 'food' ? 'selected' : ''}>🍽️ 食事</option>
-                        <option value="sightseeing" ${this.eventForm.category === 'sightseeing' ? 'selected' : ''}>📸 観光</option>
-                        <option value="accommodation" ${this.eventForm.category === 'accommodation' ? 'selected' : ''}>🏨 宿泊</option>
-                        <option value="custom" ${this.eventForm.category === 'custom' ? 'selected' : ''}>⭐ その他</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="eventCoordinates" class="form-label">緯度経度 (オプション)</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="eventCoordinates" value="${this.eventForm.coordinates.replace(/"/g, '&quot;')}" placeholder="例: 34.702485,135.495951">
-                        <button class="btn btn-outline-secondary" type="button" onclick="window.app.setLocationFromMap()" title="地図から選択">🗾</button>
-                        <button class="btn btn-outline-secondary" type="button" onclick="window.app.copyCoordinates()" title="コピー">📋</button>
-                    </div>
-                    <div class="form-text">地図から位置を選択するか、緯度,経度の形式で入力してください</div>
-                </div>
-                <div class="mb-3">
-                    <label for="eventDescription" class="form-label">詳細 (オプション)</label>
-                    <textarea class="form-control" id="eventDescription" rows="3" placeholder="予定の詳細を入力">${this.eventForm.description.replace(/"/g, '&quot;')}</textarea>
-                </div>
-            `;
+            return buildEventModalBody(this.tripDays, this.eventForm);
         },
 
-        generateEventModalFooter: isEdit => `
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-            <button type="button" class="btn btn-primary" onclick="window.app.saveEvent(${isEdit})">${isEdit ? '更新' : '追加'}</button>
-        `,
+        generateEventModalFooter: isEdit => buildEventModalFooter(isEdit),
 
         saveEvent(isEdit) {
             const formData = {
@@ -1373,29 +922,11 @@ const app = createApp({
         },
 
         openModal(title, body, footer, size = '') {
-            const modalId = 'modal-' + Date.now();
-            this.modals.push({ id: modalId, title, body, footer, size });
-
-            this.$nextTick(() => {
-                const modalElement = document.getElementById(modalId);
-                if (modalElement) {
-                    const bootstrapModal = new bootstrap.Modal(modalElement);
-                    bootstrapModal.show();
-                    modalElement.addEventListener('hidden.bs.modal', () => {
-                        const index = this.modals.findIndex(m => m.id === modalId);
-                        if (index !== -1) this.modals.splice(index, 1);
-                    });
-                }
-            });
+            openModalHelper(this, title, body, footer, size);
         },
 
         closeAllModals() {
-            this.modals.forEach(modal => {
-                const modalElement = document.getElementById(modal.id);
-                const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
-                bootstrapModal?.hide();
-            });
-            this.modals = [];
+            closeAllModalsHelper(this);
         },
 
         openStartDateModal() {
@@ -1602,44 +1133,30 @@ const app = createApp({
         },
 
         saveLayerOrder() {
-            localStorage.setItem('trippenLayerOrder', JSON.stringify(this.eventLayerOrder));
-            localStorage.setItem('trippenMaxZIndex', this.maxZIndex.toString());
+            saveLayerState(this.eventLayerOrder, this.maxZIndex);
         },
 
         loadLayerOrder() {
-            try {
-                const savedLayerOrder = localStorage.getItem('trippenLayerOrder');
-                const savedMaxZIndex = localStorage.getItem('trippenMaxZIndex');
-                
-                if (savedLayerOrder) this.eventLayerOrder = JSON.parse(savedLayerOrder);
-                if (savedMaxZIndex) this.maxZIndex = parseInt(savedMaxZIndex) || this.baseZIndex;
-            } catch {
-                this.eventLayerOrder = [];
-            }
+            const { eventLayerOrder, maxZIndex } = loadLayerState(this.baseZIndex);
+            this.eventLayerOrder = eventLayerOrder;
+            this.maxZIndex = maxZIndex;
         },
 
         saveData() {
-            localStorage.setItem('trippenEvents', JSON.stringify(this.events));
-            localStorage.setItem('trippenDays', JSON.stringify(this.tripDays));
-            localStorage.setItem('trippenTitle', this.tripTitle);
-            this.saveLayerOrder();
-            if (TrippenGistSync.isEnabled) TrippenGistSync.markChanged();
+            saveAppData({
+                events: this.events,
+                tripDays: this.tripDays,
+                tripTitle: this.tripTitle,
+                eventLayerOrder: this.eventLayerOrder,
+                maxZIndex: this.maxZIndex
+            });
         },
 
         loadData() {
-            try {
-                const savedEvents = localStorage.getItem('trippenEvents');
-                const savedDays = localStorage.getItem('trippenDays');
-                const savedTitle = localStorage.getItem('trippenTitle');
-                
-                if (savedEvents) this.events = JSON.parse(savedEvents);
-                if (savedDays) this.tripDays = JSON.parse(savedDays);
-                if (savedTitle) this.tripTitle = savedTitle;
-            } catch {
-                this.events = [];
-                this.tripDays = [];
-                this.tripTitle = '';
-            }
+            const { events, tripDays, tripTitle } = loadAppData();
+            this.events = events;
+            this.tripDays = tripDays;
+            this.tripTitle = tripTitle;
             this.loadLayerOrder();
         }
     },
