@@ -234,16 +234,15 @@ const TrippenGistSync = {
         };
     },
 
-    async fetchJson(url, { method = 'GET', body = null } = {}) {
+    async fetchJson(url, { method = 'GET', body = null, cache = 'no-store' } = {}) {
         const headers = {
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'Tripen-App',
-            'Cache-Control': 'no-cache'
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
         };
         if (this.token) headers.Authorization = `token ${this.token}`;
         if (body) headers['Content-Type'] = 'application/json';
 
-        const response = await fetch(url, { method, headers, body });
+        const response = await fetch(url, { method, headers, body, cache, mode: 'cors' });
         if (response.ok) return response.json();
 
         let message = `GitHub API エラー: ${response.status}`;
