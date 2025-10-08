@@ -240,14 +240,74 @@ const TrippenGistSync = {
     async checkForNewerCloudData() {
         if (!this.token || !this.gistId) return false;
         try {
-            const latestVersion = await this.fetchLatestGistVersion();
-            if (!latestVersion) return false;
-            if (!this.lastRemoteVersion) {
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+                headers: {
+                    'Authorization': `token ${this.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Trippen-App',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return false;
+
+            const gist = await response.json();
+            const latestHistory = gist.history?.[0] || null;
+            const latestVersion = latestHistory?.version || latestHistory?.commit || gist.version || null;
+            const gistFile = gist.files?.['trippen_data.json'];
+
+            if (latestVersion && !this.lastRemoteVersion) {
                 this.lastRemoteVersion = latestVersion;
                 this.saveConfig('lastRemoteVersion');
+            }
+
+            if (!gistFile?.content) {
+                return latestVersion && this.lastRemoteVersion
+                    ? latestVersion !== this.lastRemoteVersion
+                    : false;
+            }
+
+            let remoteData;
+            try {
+                remoteData = JSON.parse(gistFile.content);
+            } catch {
                 return false;
             }
-            return latestVersion !== this.lastRemoteVersion;
+
+            const remoteHash = this.calculateHash(remoteData);
+            if (!this.lastDataHash && remoteHash) {
+                this.lastDataHash = remoteHash;
+                this.saveConfig('lastDataHash');
+            }
+
+            const hasVersionChanged = Boolean(
+                latestVersion &&
+                this.lastRemoteVersion &&
+                latestVersion !== this.lastRemoteVersion
+            );
+
+            const hasHashChanged = Boolean(
+                this.lastDataHash &&
+                remoteHash &&
+                remoteHash !== this.lastDataHash
+            );
+
+            const localSyncTimeMs = this.lastSyncTime ? Date.parse(this.lastSyncTime) : null;
+            const remoteSyncTimeMs = remoteData?.syncTime ? Date.parse(remoteData.syncTime) : null;
+            const remoteUpdatedAtMs = gist.updated_at ? Date.parse(gist.updated_at) : null;
+
+            const hasRemoteSyncAdvanced = Boolean(
+                localSyncTimeMs &&
+                remoteSyncTimeMs &&
+                remoteSyncTimeMs > localSyncTimeMs
+            );
+
+            const hasUpdatedAtAdvanced = Boolean(
+                localSyncTimeMs &&
+                remoteUpdatedAtMs &&
+                remoteUpdatedAtMs > localSyncTimeMs + 1000
+            );
+
+            return hasVersionChanged || hasHashChanged || hasRemoteSyncAdvanced || hasUpdatedAtAdvanced;
         } catch {
             return false;
         }
