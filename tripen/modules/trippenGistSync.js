@@ -1,452 +1,502 @@
+const API_BASE = 'https://api.github.com/gists';
+const STATE_KEY = 'trippen_sync_state_v1';
+const LEGACY_KEY = 'trippen_gist_config';
+const SECRET_KEY = 'trippen_secret_key';
+
+const defaultState = {
+    encryptedToken: null,
+    gistId: null,
+    deviceId: null,
+    lastRemoteVersion: null,
+    lastRemoteHash: null,
+    lastRemoteSyncTime: null,
+    lastLocalSyncTime: null,
+    lastReadTime: null
+};
+
+const readJsonArray = key => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const getCrypto = () => {
+    if (typeof window !== 'undefined' && window.crypto?.getRandomValues) return window.crypto;
+    if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) return globalThis.crypto;
+    return null;
+};
+
+const generateDeviceId = () => {
+    try {
+        const cryptoObj = getCrypto();
+        if (!cryptoObj) throw new Error('crypto not available');
+        const buffer = cryptoObj.getRandomValues(new Uint32Array(4));
+        return Array.from(buffer).map(value => value.toString(16).padStart(8, '0')).join('');
+    } catch {
+        return `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+};
+
 const TrippenGistSync = {
+    state: { ...defaultState },
     token: null,
     gistId: null,
-    isEnabled: false,
-    isSyncing: false,
+    deviceId: null,
+    lastRemoteVersion: null,
+    lastDataHash: null,
     lastSyncTime: null,
     lastReadTime: null,
-    periodicSyncInterval: null,
+    isEnabled: false,
+    isSyncing: false,
     hasError: false,
     hasChanged: false,
-    lastDataHash: null,
-    lastRemoteVersion: null,
+    status: 'idle',
+    periodicSyncInterval: null,
 
-    calculateHash(data) {
+    hooks: {
+        onStatusChange: () => {},
+        onConflictDetected: () => {}
+    },
+
+    init(token = null, gistId = null) {
+        this.loadState();
+        this.migrateLegacyConfig();
+        if (token) {
+            this.setCredentials(token, gistId);
+            this.startPeriodicSync();
+        }
+        return this;
+    },
+
+    registerHooks(hooks = {}) {
+        this.hooks = { ...this.hooks, ...hooks };
+    },
+
+    setStatus(status) {
+        this.status = status;
+        this.hooks.onStatusChange?.(status);
+    },
+
+    persistState() {
         try {
-            const jsonString = JSON.stringify({
-                events: data.data.events || [],
-                days: data.data.days || [],
-                layerOrder: data.data.layerOrder || [],
-                tripTitle: data.data.tripTitle || ''
-            }, Object.keys(data.data).sort());
-            return jsonString.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0).toString();
+            localStorage.setItem(STATE_KEY, JSON.stringify(this.state));
         } catch {
-            return Date.now().toString();
+            // ストレージ書き込みに失敗しても処理を継続
         }
     },
 
-    async fetchLatestGistVersion() {
-        if (!this.token || !this.gistId) return null;
+    loadState() {
         try {
-            const cacheBuster = Date.now();
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}/commits?per_page=1&t=${cacheBuster}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App',
-                    'Cache-Control': 'no-cache'
-                }
-            });
-            if (!response.ok) return null;
-            const commits = await response.json();
-            return commits?.[0]?.version || commits?.[0]?.oid || null;
+            const parsed = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
+            this.state = { ...defaultState, ...parsed };
         } catch {
-            return null;
+            this.state = { ...defaultState };
+        }
+        if (!this.state.deviceId) {
+            this.state.deviceId = generateDeviceId();
+            this.persistState();
+        }
+        this.token = this.state.encryptedToken ? this._decrypt(this.state.encryptedToken) : null;
+        this.gistId = this.state.gistId || null;
+        this.deviceId = this.state.deviceId;
+        this.lastRemoteVersion = this.state.lastRemoteVersion || null;
+        this.lastDataHash = this.state.lastRemoteHash || null;
+        this.lastSyncTime = this.state.lastLocalSyncTime || null;
+        this.lastReadTime = this.state.lastReadTime || null;
+        this.isEnabled = !!this.token;
+        return this.state;
+    },
+
+    migrateLegacyConfig() {
+        try {
+            const legacyRaw = localStorage.getItem(LEGACY_KEY);
+            if (!legacyRaw) return;
+            const legacy = JSON.parse(legacyRaw);
+            if (!legacy?.encryptedToken) return;
+            const token = this._decrypt(legacy.encryptedToken);
+            this.setCredentials(token, legacy.gistId || null, { skipReset: true });
+            if (legacy.lastSyncTime) this.state.lastLocalSyncTime = legacy.lastSyncTime;
+            if (legacy.lastReadTime) this.state.lastReadTime = legacy.lastReadTime;
+            if (legacy.lastRemoteVersion) this.state.lastRemoteVersion = legacy.lastRemoteVersion;
+            if (legacy.lastDataHash) this.state.lastRemoteHash = legacy.lastDataHash;
+            this.persistState();
+            localStorage.removeItem(LEGACY_KEY);
+            this.loadState();
+        } catch {
+            // 旧形式の読み込みに失敗しても続行
         }
     },
 
-    markChanged() { this.hasChanged = true; },
-    resetChanged() { this.hasChanged = false; },
-
-    _encrypt(text, key = 'trippen_secret_key') {
-        if (!text) return '';
-        try {
-            return btoa(text.split('').map((char, i) =>
-                String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-            ).join(''));
-        } catch {
-            throw new Error('暗号化処理に失敗しました');
+    setCredentials(token, gistId = null, options = {}) {
+        const trimmedToken = token?.trim() || null;
+        const trimmedGistId = gistId?.trim() || null;
+        this.token = trimmedToken;
+        this.gistId = trimmedGistId;
+        this.isEnabled = !!this.token;
+        this.state.encryptedToken = this.token ? this._encrypt(this.token) : null;
+        this.state.gistId = this.gistId;
+        if (!options.skipReset) {
+            this.state.lastRemoteVersion = null;
+            this.state.lastRemoteHash = null;
+            this.state.lastRemoteSyncTime = null;
+            this.state.lastLocalSyncTime = null;
         }
+        this.persistState();
     },
-
-    _decrypt(encryptedText, key = 'trippen_secret_key') {
-        if (!encryptedText) return '';
-        try {
-            const text = atob(encryptedText);
-            return text.split('').map((char, i) =>
-                String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-            ).join('');
-        } catch {
-            throw new Error('復号化に失敗しました');
-        }
-    },
-
-    getUTCTimestamp: () => new Date().toISOString(),
 
     loadConfig() {
-        try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            if (!config.encryptedToken) return null;
-
-            Object.assign(this, {
-                token: this._decrypt(config.encryptedToken),
-                gistId: config.gistId || null,
-                lastSyncTime: config.lastSyncTime || null,
-                lastReadTime: config.lastReadTime || null,
-                lastDataHash: config.lastDataHash || null,
-                lastRemoteVersion: config.lastRemoteVersion || null
-            });
-            this.isEnabled = !!this.token;
-            return config;
-        } catch {
-            this.hasError = true;
-            this.isEnabled = false;
-            return null;
-        }
-    },
-
-    init(token, gistId = null) {
-        if (!token?.trim()) throw new Error('有効なトークンが必要です');
-
-        Object.assign(this, {
-            token: token.trim(),
-            gistId: gistId?.trim() || null,
-            isEnabled: true,
-            hasError: false,
-            hasChanged: false
-        });
-
-        const config = {
-            encryptedToken: this._encrypt(token.trim()),
+        this.loadState();
+        return this.isEnabled ? {
+            token: this.token,
             gistId: this.gistId,
-            isEnabled: true,
-            configuredAt: this.getUTCTimestamp(),
             lastSyncTime: this.lastSyncTime,
             lastReadTime: this.lastReadTime,
-            lastDataHash: this.lastDataHash,
-            lastRemoteVersion: this.lastRemoteVersion,
-            version: '3.0'
-        };
+            lastRemoteVersion: this.lastRemoteVersion
+        } : null;
+    },
 
-        localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-        this.startPeriodicSync();
+    markChanged() {
+        this.hasChanged = true;
+    },
+
+    resetChanged() {
+        this.hasChanged = false;
     },
 
     startPeriodicSync() {
-        clearInterval(this.periodicSyncInterval);
-        this.periodicSyncInterval = setInterval(() => this.autoWriteToCloud(), 60000);
+        this.stopPeriodicSync();
+        this.periodicSyncInterval = setInterval(() => {
+            this.autoWriteToCloud();
+        }, 60000);
     },
 
     stopPeriodicSync() {
-        clearInterval(this.periodicSyncInterval);
-        this.periodicSyncInterval = null;
+        if (this.periodicSyncInterval) {
+            clearInterval(this.periodicSyncInterval);
+            this.periodicSyncInterval = null;
+        }
     },
 
-    // 修正1: tripTitle追加
     collectSyncData() {
-        const getData = key => JSON.parse(localStorage.getItem(key) || '[]');
+        const events = readJsonArray('trippenEvents');
+        const days = readJsonArray('trippenDays');
+        const layerOrder = readJsonArray('trippenLayerOrder');
+        const tripTitle = localStorage.getItem('trippenTitle') || '';
+        const syncTime = new Date().toISOString();
         return {
-            version: '3.0',
-            syncTime: this.getUTCTimestamp(),
-            data: {
-                events: getData('trippenEvents'),
-                days: getData('trippenDays'),
-                layerOrder: getData('trippenLayerOrder'),
-                tripTitle: localStorage.getItem('trippenTitle') || '' // 追加
-            }
+            version: '3.1',
+            syncTime,
+            data: { events, days, layerOrder, tripTitle }
         };
     },
 
-    async syncToCloud(data) {
-        if (!this.token) return false;
-
-        const payload = {
-            description: `とりっぺんちゃん 旅行データ - ${new Date().toLocaleString('ja-JP')}`,
-            public: false,
-            files: { "trippen_data.json": { content: JSON.stringify(data, null, 2) } }
-        };
-
+    calculateHash(snapshot) {
         try {
-            const response = await fetch(
-                this.gistId ? `https://api.github.com/gists/${this.gistId}` : 'https://api.github.com/gists',
-                {
-                    method: this.gistId ? 'PATCH' : 'POST',
-                    headers: {
-                        'Authorization': `token ${this.token}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json',
-                        'User-Agent': 'Trippen-App'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-
-            if (response.ok) {
-                const result = await response.json();
-                if (!this.gistId && result.id) {
-                    this.gistId = result.id;
-                    this.saveGistId(result.id);
-                }
-                let latestVersion = result.history?.[0]?.version || result.history?.[0]?.commit || result.version || null;
-                if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
-                if (latestVersion) {
-                    this.lastRemoteVersion = latestVersion;
-                    this.saveConfig('lastRemoteVersion');
-                }
-                return true;
+            const payload = snapshot?.data || {};
+            const orderedKeys = Object.keys(payload).sort();
+            const jsonString = JSON.stringify(payload, orderedKeys);
+            let hash = 0;
+            for (let i = 0; i < jsonString.length; i += 1) {
+                const chr = jsonString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + chr;
+                hash |= 0;
             }
-            return false;
+            return hash.toString();
         } catch {
-            this.hasError = true;
-            return false;
+            return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         }
     },
 
-    async loadFromCloud() {
-        if (!this.token || !this.gistId) {
-            throw new Error(!this.token ? 'トークンが設定されていません' : 'Gist IDが設定されていません');
-        }
-
-        try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
+    buildPayload(snapshot) {
+        const now = new Date().toISOString();
+        return {
+            description: `Tripen sync data - ${now}`,
+            public: false,
+            files: {
+                'trippen_data.json': {
+                    content: JSON.stringify({
+                        version: '3.1',
+                        syncTime: snapshot.syncTime || now,
+                        data: snapshot.data || {},
+                        meta: {
+                            schemaVersion: '3.1',
+                            generatedAt: now,
+                            deviceId: this.deviceId
+                        }
+                    }, null, 2)
                 }
-            });
-
-            if (!response.ok) {
-                const errors = {
-                    404: 'Gistが見つかりません',
-                    401: 'GitHub Personal Access Tokenが無効です',
-                    403: 'GitHub APIの利用制限に達しています'
-                };
-                throw new Error(errors[response.status] || `GitHub API エラー: ${response.status}`);
             }
-
-            const gist = await response.json();
-            if (!gist.files?.['trippen_data.json']) {
-                throw new Error('Gistにtrippen_data.jsonファイルが見つかりません');
-            }
-
-            const parsedData = JSON.parse(gist.files['trippen_data.json'].content);
-            let latestVersion = gist.history?.[0]?.version || gist.history?.[0]?.commit || gist.version || null;
-            if (!latestVersion) latestVersion = await this.fetchLatestGistVersion();
-            if (latestVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
-            }
-            this.lastDataHash = this.calculateHash(parsedData);
-            this.lastReadTime = this.getUTCTimestamp();
-            this.saveLastReadTime();
-            this.resetChanged();
-
-            return parsedData;
-        } catch (error) {
-            this.hasError = true;
-            throw error;
-        }
+        };
     },
 
-    async checkForNewerCloudData() {
-        if (!this.token || !this.gistId) return false;
+    async fetchJson(url, { method = 'GET', body = null } = {}) {
+        const headers = {
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Tripen-App',
+            'Cache-Control': 'no-cache'
+        };
+        if (this.token) headers.Authorization = `token ${this.token}`;
+        if (body) headers['Content-Type'] = 'application/json';
+
+        const response = await fetch(url, { method, headers, body });
+        if (response.ok) return response.json();
+
+        let message = `GitHub API エラー: ${response.status}`;
         try {
-            const cacheBuster = Date.now();
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}?t=${cacheBuster}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App',
-                    'Cache-Control': 'no-cache'
+            const payload = await response.json();
+            if (payload?.message) message = payload.message;
+        } catch {
+            // ignore
+        }
+        throw new Error(message);
+    },
+
+    async fetchGist() {
+        if (!this.gistId) throw new Error('Gist IDが設定されていません');
+        if (!this.token) throw new Error('GitHubトークンが設定されていません');
+        return this.fetchJson(`${API_BASE}/${this.gistId}?t=${Date.now()}`);
+    },
+
+    async pushSnapshot(snapshot) {
+        if (!this.token) throw new Error('GitHubトークンが設定されていません');
+        const payload = this.buildPayload(snapshot);
+        const body = JSON.stringify(payload);
+
+        const result = this.gistId
+            ? await this.fetchJson(`${API_BASE}/${this.gistId}`, { method: 'PATCH', body })
+            : await this.fetchJson(API_BASE, { method: 'POST', body });
+
+        if (!this.gistId && result.id) {
+            this.gistId = result.id;
+            this.state.gistId = result.id;
+        }
+
+        const latestCommit = result.history?.[0] || null;
+        const remoteVersion = latestCommit?.version || latestCommit?.commit || result.version || null;
+        const remoteUpdatedAt = result.updated_at || snapshot.syncTime || new Date().toISOString();
+        const remoteHash = this.calculateHash(snapshot);
+
+        this.state.lastRemoteVersion = remoteVersion;
+        this.state.lastRemoteHash = remoteHash;
+        this.state.lastRemoteSyncTime = remoteUpdatedAt;
+        this.state.lastLocalSyncTime = snapshot.syncTime || remoteUpdatedAt;
+        this.state.lastReadTime = remoteUpdatedAt;
+        this.persistState();
+
+        this.lastRemoteVersion = remoteVersion;
+        this.lastDataHash = remoteHash;
+        this.lastSyncTime = this.state.lastLocalSyncTime;
+        this.lastReadTime = this.state.lastReadTime;
+        this.isEnabled = !!this.token;
+        return result;
+    },
+
+    async detectConflict(localHash) {
+        if (!this.isEnabled || !this.gistId) return false;
+        this.setStatus('checking');
+        try {
+            const gist = await this.fetchGist();
+            const file = gist.files?.['trippen_data.json'] || null;
+            const latestCommit = gist.history?.[0] || null;
+            const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
+            const remoteUpdatedAt = gist.updated_at || null;
+
+            if (!file?.content) {
+                const versionChanged = Boolean(this.lastRemoteVersion && remoteVersion && remoteVersion !== this.lastRemoteVersion);
+                if (versionChanged) {
+                    this.state.lastRemoteVersion = remoteVersion;
+                    this.persistState();
+                    this.lastRemoteVersion = remoteVersion;
                 }
-            });
-            if (!response.ok) return false;
-
-            const gist = await response.json();
-            const latestHistory = gist.history?.[0] || null;
-            const latestVersion = latestHistory?.version || latestHistory?.commit || gist.version || null;
-            const gistFile = gist.files?.['trippen_data.json'];
-
-            if (latestVersion && !this.lastRemoteVersion) {
-                this.lastRemoteVersion = latestVersion;
-                this.saveConfig('lastRemoteVersion');
+                return versionChanged;
             }
 
-            if (!gistFile?.content) {
-                return latestVersion && this.lastRemoteVersion
-                    ? latestVersion !== this.lastRemoteVersion
-                    : false;
-            }
-
-            let remoteData;
+            let snapshot;
             try {
-                remoteData = JSON.parse(gistFile.content);
+                snapshot = JSON.parse(file.content);
             } catch {
                 return false;
             }
 
-            const remoteHash = this.calculateHash(remoteData);
-            if (!this.lastDataHash && remoteHash) {
-                this.lastDataHash = remoteHash;
-                this.saveConfig('lastDataHash');
-            }
+            const remoteHash = this.calculateHash(snapshot);
+            const prevVersion = this.lastRemoteVersion;
+            const prevHash = this.lastDataHash;
 
-            const hasVersionChanged = Boolean(
-                latestVersion &&
-                this.lastRemoteVersion &&
-                latestVersion !== this.lastRemoteVersion
-            );
+            this.state.lastRemoteVersion = remoteVersion;
+            this.state.lastRemoteHash = remoteHash;
+            this.state.lastRemoteSyncTime = snapshot.syncTime || remoteUpdatedAt;
+            this.persistState();
 
-            const hasHashChanged = Boolean(
-                this.lastDataHash &&
-                remoteHash &&
-                remoteHash !== this.lastDataHash
-            );
+            this.lastRemoteVersion = remoteVersion;
+            this.lastDataHash = remoteHash;
 
-            const localSyncTimeMs = this.lastSyncTime ? Date.parse(this.lastSyncTime) : null;
-            const remoteSyncTimeMs = remoteData?.syncTime ? Date.parse(remoteData.syncTime) : null;
-            const remoteUpdatedAtMs = gist.updated_at ? Date.parse(gist.updated_at) : null;
+            const localSyncTime = this.lastSyncTime ? Date.parse(this.lastSyncTime) : null;
+            const remoteSyncTime = snapshot.syncTime ? Date.parse(snapshot.syncTime) : null;
 
-            const hasRemoteSyncAdvanced = Boolean(
-                localSyncTimeMs &&
-                remoteSyncTimeMs &&
-                remoteSyncTimeMs > localSyncTimeMs
-            );
+            const versionChanged = Boolean(prevVersion && remoteVersion && remoteVersion !== prevVersion);
+            const hashChanged = Boolean(localHash && remoteHash && localHash !== remoteHash);
+            const remoteAhead = Boolean(localSyncTime && remoteSyncTime && remoteSyncTime > localSyncTime + 1000);
 
-            const hasUpdatedAtAdvanced = Boolean(
-                localSyncTimeMs &&
-                remoteUpdatedAtMs &&
-                remoteUpdatedAtMs > localSyncTimeMs + 1000
-            );
-
-            return hasVersionChanged || hasHashChanged || hasRemoteSyncAdvanced || hasUpdatedAtAdvanced;
-        } catch {
-            return false;
-        }
-    },
-
-    // 修正3: 同期前データ保存追加
-    async autoWriteToCloud() {
-        if (!this.isEnabled || !this.token || this.isSyncing) return false;
-
-        this.isSyncing = true;
-        this.hasError = false;
-
-        try {
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                window.app?.handleSyncConflict?.();
-                return false;
-            }
-
-            if (!this.hasChanged) return false;
-
-            // 修正3: Vueインスタンスの最新データを保存してから同期
-            if (window.app?.saveData) window.app.saveData();
-
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = this.calculateHash(localData);
-                this.saveLastSyncTime();
-                this.resetChanged();
-                return true;
-            }
-            return false;
-        } catch {
-            this.hasError = true;
-            return false;
-        } finally {
-            this.isSyncing = false;
-        }
-    },
-
-    async manualWriteToCloud() {
-        if (!this.isEnabled || !this.token) {
-            throw new Error('GitHub同期が設定されていません');
-        }
-
-        this.isSyncing = true;
-        this.hasError = false;
-
-        try {
-            const hasNewerData = await this.checkForNewerCloudData();
-            if (hasNewerData) {
-                window.app?.handleSyncConflict?.();
-                throw new Error('データ競合が検出されました');
-            }
-
-            const localData = this.collectSyncData();
-            const uploadResult = await this.syncToCloud(localData);
-
-            if (uploadResult) {
-                this.lastSyncTime = this.getUTCTimestamp();
-                this.lastDataHash = this.calculateHash(localData);
-                this.saveLastSyncTime();
-                this.resetChanged();
-                return true;
-            }
-            throw new Error('書き込みに失敗しました');
+            return versionChanged || hashChanged || remoteAhead;
         } catch (error) {
-            this.hasError = true;
-            throw error;
+            console.error('TrippenGistSync.detectConflict failed', error);
+            return false;
         } finally {
-            this.isSyncing = false;
+            this.setStatus('idle');
+        }
+    },
+
+    async loadFromCloud() {
+        if (!this.isEnabled || !this.token || !this.gistId) {
+            throw new Error('同期設定が完了していません');
+        }
+        this.setStatus('pulling');
+        try {
+            const gist = await this.fetchGist();
+            const file = gist.files?.['trippen_data.json'];
+            if (!file?.content) throw new Error('Gistにtrippen_data.jsonが存在しません');
+
+            const snapshot = JSON.parse(file.content);
+            const remoteHash = this.calculateHash(snapshot);
+            const latestCommit = gist.history?.[0] || null;
+            const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
+            const remoteUpdatedAt = snapshot.syncTime || gist.updated_at || new Date().toISOString();
+
+            this.state.lastRemoteVersion = remoteVersion;
+            this.state.lastRemoteHash = remoteHash;
+            this.state.lastRemoteSyncTime = remoteUpdatedAt;
+            this.state.lastReadTime = new Date().toISOString();
+            this.persistState();
+
+            this.lastRemoteVersion = remoteVersion;
+            this.lastDataHash = remoteHash;
+            this.lastReadTime = this.state.lastReadTime;
+            this.hasChanged = false;
+            return snapshot;
+        } finally {
+            this.setStatus('idle');
         }
     },
 
     async initialAutoLoad() {
         if (!this.isEnabled || !this.token || !this.gistId) return null;
-
         try {
-            const cloudData = await this.loadFromCloud();
-            return cloudData?.data ? cloudData : null;
+            return await this.loadFromCloud();
         } catch {
             this.hasError = true;
             return null;
         }
     },
 
-    saveGistId(gistId) {
+    async manualWriteToCloud() {
+        if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
+
+        if (window.app?.saveData) window.app.saveData();
+        const snapshot = this.collectSyncData();
+        this.setStatus('pushing');
+        this.isSyncing = true;
+        this.hasError = false;
+
         try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            Object.assign(config, {
-                gistId,
-                lastSyncTime: this.lastSyncTime,
-                lastReadTime: this.lastReadTime,
-                lastDataHash: this.lastDataHash,
-                lastRemoteVersion: this.lastRemoteVersion
-            });
-            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-            this.gistId = gistId;
-            if (window.app?.gistSync) window.app.gistSync.gistId = gistId;
-        } catch {
-            this.gistId = gistId;
+            const conflict = await this.detectConflict(this.lastDataHash);
+            if (conflict) {
+                this.hasError = true;
+                window.app?.handleSyncConflict?.();
+                throw new Error('クラウドに新しい変更があります');
+            }
+
+            await this.pushSnapshot(snapshot);
+            this.hasChanged = false;
+            return true;
+        } catch (error) {
+            this.hasError = true;
+            throw error;
+        } finally {
+            this.isSyncing = false;
+            this.setStatus('idle');
         }
     },
 
-    saveLastSyncTime() { this.saveConfig('lastSyncTime'); },
-    saveLastReadTime() { this.saveConfig('lastReadTime'); },
+    async autoWriteToCloud() {
+        if (!this.isEnabled || !this.token || this.isSyncing) return false;
+        if (!this.hasChanged) return false;
 
-    saveConfig(key) {
+        if (window.app?.saveData) window.app.saveData();
+        const snapshot = this.collectSyncData();
+        this.isSyncing = true;
+        this.setStatus('pushing');
+
         try {
-            const config = JSON.parse(localStorage.getItem('trippen_gist_config') || '{}');
-            config[key] = this[key];
-            config.lastDataHash = this.lastDataHash;
-            localStorage.setItem('trippen_gist_config', JSON.stringify(config));
-        } catch {
-            // 保存失敗時は黙殺
+            const conflict = await this.detectConflict(this.lastDataHash);
+            if (conflict) {
+                this.hasError = true;
+                window.app?.handleSyncConflict?.();
+                return false;
+            }
+
+            await this.pushSnapshot(snapshot);
+            this.hasChanged = false;
+            this.hasError = false;
+            return true;
+        } catch (error) {
+            this.hasError = true;
+            console.error('TrippenGistSync.autoWriteToCloud failed', error);
+            return false;
+        } finally {
+            this.isSyncing = false;
+            this.setStatus('idle');
         }
+    },
+
+    async checkForNewerCloudData() {
+        return this.detectConflict(this.lastDataHash);
+    },
+
+    saveGistId(gistId) {
+        this.setCredentials(this.token, gistId, { skipReset: true });
     },
 
     clear() {
         this.stopPeriodicSync();
-        localStorage.removeItem('trippen_gist_config');
-        Object.assign(this, {
-            token: null,
-            gistId: null,
-            isEnabled: false,
-            lastSyncTime: null,
-            lastReadTime: null,
-            hasError: false,
-            hasChanged: false,
-            lastDataHash: null,
-            lastRemoteVersion: null
-        });
+        localStorage.removeItem(STATE_KEY);
+        localStorage.removeItem(LEGACY_KEY);
+        this.state = { ...defaultState };
+        this.token = null;
+        this.gistId = null;
+        this.deviceId = null;
+        this.lastRemoteVersion = null;
+        this.lastDataHash = null;
+        this.lastSyncTime = null;
+        this.lastReadTime = null;
+        this.isEnabled = false;
+        this.isSyncing = false;
+        this.hasError = false;
+        this.hasChanged = false;
+        this.status = 'idle';
+        this.loadState();
+    },
+
+    _encrypt(text, key = SECRET_KEY) {
+        if (!text) return '';
+        return btoa(text.split('').map((char, i) =>
+            String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+        ).join(''));
+    },
+
+    _decrypt(encryptedText, key = SECRET_KEY) {
+        if (!encryptedText) return '';
+        const text = atob(encryptedText);
+        return text.split('').map((char, i) =>
+            String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+        ).join('');
     }
 };
+
+TrippenGistSync.init();
 
 export default TrippenGistSync;
