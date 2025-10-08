@@ -369,11 +369,13 @@ const TrippenGistSync = {
             this.state.lastRemoteVersion = remoteVersion;
             this.state.lastRemoteHash = remoteHash;
             this.state.lastRemoteSyncTime = remoteUpdatedAt;
+            this.state.lastLocalSyncTime = remoteUpdatedAt;
             this.state.lastReadTime = new Date().toISOString();
             this.persistState();
 
             this.lastRemoteVersion = remoteVersion;
             this.lastDataHash = remoteHash;
+            this.lastSyncTime = remoteUpdatedAt;
             this.lastReadTime = this.state.lastReadTime;
             this.hasChanged = false;
             return snapshot;
