@@ -28,11 +28,13 @@ const TrippenGistSync = {
     async fetchLatestGistVersion() {
         if (!this.token || !this.gistId) return null;
         try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}/commits?per_page=1`, {
+            const cacheBuster = Date.now();
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}/commits?per_page=1&t=${cacheBuster}`, {
                 headers: {
                     'Authorization': `token ${this.token}`,
                     'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Trippen-App'
+                    'User-Agent': 'Trippen-App',
+                    'Cache-Control': 'no-cache'
                 }
             });
             if (!response.ok) return null;
@@ -240,7 +242,8 @@ const TrippenGistSync = {
     async checkForNewerCloudData() {
         if (!this.token || !this.gistId) return false;
         try {
-            const response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+            const cacheBuster = Date.now();
+            const response = await fetch(`https://api.github.com/gists/${this.gistId}?t=${cacheBuster}`, {
                 headers: {
                     'Authorization': `token ${this.token}`,
                     'Accept': 'application/vnd.github.v3+json',
