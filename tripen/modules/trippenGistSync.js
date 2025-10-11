@@ -652,10 +652,12 @@ const TrippenGistSync = {
         const remoteUpdatedAt = remoteState.remoteUpdatedAt ?? null;
         const localHash = this.calculateHash(localSnapshot);
 
-        let localChanged = false;
-        if (localHash && baseHash) localChanged = localHash !== baseHash;
-        else if (localHash && !baseHash) localChanged = true;
-        else if (!localHash && baseHash) localChanged = true;
+        let localChanged = this.hasChanged === true;
+        if (!localChanged) {
+            if (localHash && baseHash) localChanged = localHash !== baseHash;
+            else if (localHash && !baseHash) localChanged = true;
+            else if (!localHash && baseHash) localChanged = true;
+        }
 
         let remoteChanged = false;
         if (remoteVersion && baseVersion && remoteVersion !== baseVersion) remoteChanged = true;
