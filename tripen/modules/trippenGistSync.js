@@ -156,6 +156,7 @@ const TrippenGistSync = {
     pollTimer: null,
     syncBackoffMs: 0,
     visibilityListener: null,
+    immediateSyncTimer: null,
 
     hooks: {
         onStatusChange: () => {},
@@ -318,6 +319,7 @@ const TrippenGistSync = {
         }
         if (lastPendingHash && currentHash === lastPendingHash) {
             this.hasChanged = true;
+            this.scheduleImmediateSync('pending-hash');
             return;
         }
 
@@ -331,6 +333,7 @@ const TrippenGistSync = {
         this.localRevision = this.state.localRevision;
         this.hasChanged = true;
         this.persistState();
+        this.scheduleImmediateSync('mark-changed');
     },
 
     resetChanged() {
@@ -1240,6 +1243,15 @@ const TrippenGistSync = {
                 console.error(`TrippenGistSync.requestImmediateSync failed (${reason})`, error);
             }
         });
+    },
+
+    scheduleImmediateSync(reason = 'mark-changed', delay = 200) {
+        if (!this.isEnabled || !this.token) return;
+        if (this.immediateSyncTimer) clearTimeout(this.immediateSyncTimer);
+        this.immediateSyncTimer = setTimeout(() => {
+            this.immediateSyncTimer = null;
+            this.requestImmediateSync(reason);
+        }, delay);
     },
 
     async autoWriteToCloud(remoteStateInput = null) {
