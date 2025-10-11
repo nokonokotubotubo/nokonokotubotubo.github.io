@@ -1230,6 +1230,18 @@ const TrippenGistSync = {
         }
     },
 
+    requestImmediateSync(reason = 'auto') {
+        if (!this.isEnabled || !this.token) return;
+        Promise.resolve().then(async () => {
+            if (!this.hasChanged) return;
+            try {
+                await this.autoWriteToCloud();
+            } catch (error) {
+                console.error(`TrippenGistSync.requestImmediateSync failed (${reason})`, error);
+            }
+        });
+    },
+
     async autoWriteToCloud(remoteStateInput = null) {
         if (!this.isEnabled || !this.token || this.isSyncing) return false;
         if (!this.hasChanged) return false;
