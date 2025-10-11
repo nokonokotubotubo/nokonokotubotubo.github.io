@@ -11,9 +11,11 @@ const defaultState = {
     gistId: null,
     deviceId: null,
     pendingChangeId: null,
+    lastPendingHash: null,
     lastBaseVersion: null,
     lastBaseHash: null,
     lastBaseSnapshot: null,
+    lastLocalHash: null,
     lastRemoteVersion: null,
     lastRemoteHash: null,
     lastRemoteSyncTime: null,
@@ -52,6 +54,21 @@ const readJsonArray = key => {
         return [];
     }
 };
+
+const readSyncDataFromStorage = () => {
+    const events = readJsonArray('trippenEvents');
+    const days = readJsonArray('trippenDays');
+    const layerOrder = readJsonArray('trippenLayerOrder');
+    const tripTitle = localStorage.getItem('trippenTitle') || '';
+    return { events, days, layerOrder, tripTitle };
+};
+
+const cloneDataSnapshot = source => ({
+    events: normalizeArray(source?.events).map(item => cloneDeep(item)),
+    days: normalizeArray(source?.days).map(item => cloneDeep(item)),
+    layerOrder: normalizeArray(source?.layerOrder),
+    tripTitle: source?.tripTitle || ''
+});
 
 const getCrypto = () => {
     if (typeof window !== 'undefined' && window.crypto?.getRandomValues) return window.crypto;
@@ -116,9 +133,11 @@ const TrippenGistSync = {
     gistId: null,
     deviceId: null,
     pendingChangeId: null,
+    lastPendingHash: null,
     lastBaseVersion: null,
     lastBaseHash: null,
     lastBaseSnapshot: null,
+    lastLocalHash: null,
     lastRemoteVersion: null,
     lastDataHash: null,
     lastSyncTime: null,
@@ -136,7 +155,9 @@ const TrippenGistSync = {
 
     hooks: {
         onStatusChange: () => {},
-        onConflictDetected: () => {}
+        onConflictDetected: () => {},
+        getLocalData: null,
+        hasUnsavedChanges: null
     },
 
     init(token = null, gistId = null) {
@@ -187,11 +208,16 @@ const TrippenGistSync = {
         this.gistId = this.state.gistId || null;
         this.deviceId = this.state.deviceId;
         this.pendingChangeId = this.state.pendingChangeId || null;
+        this.lastPendingHash = this.state.lastPendingHash || null;
         this.lastBaseVersion = this.state.lastBaseVersion || null;
         this.lastBaseHash = this.state.lastBaseHash || null;
         this.lastBaseSnapshot = this.state.lastBaseSnapshot || null;
         this.lastRemoteVersion = this.state.lastRemoteVersion || null;
         this.lastDataHash = this.state.lastRemoteHash || null;
+        if (!this.state.lastLocalHash && this.state.lastRemoteHash) {
+            this.state.lastLocalHash = this.state.lastRemoteHash;
+        }
+        this.lastLocalHash = this.state.lastLocalHash || this.state.lastRemoteHash || null;
         this.lastSyncTime = this.state.lastLocalSyncTime || null;
         this.lastReadTime = this.state.lastReadTime || null;
         this.isEnabled = !!this.token;
@@ -213,6 +239,8 @@ const TrippenGistSync = {
             this.state.lastBaseVersion = this.state.lastRemoteVersion;
             this.state.lastBaseHash = this.state.lastRemoteHash;
             this.state.lastBaseSnapshot = null;
+            this.state.lastLocalHash = this.state.lastRemoteHash;
+            this.state.lastPendingHash = null;
             this.state.pendingChangeId = null;
             this.persistState();
             localStorage.removeItem(LEGACY_KEY);
@@ -232,6 +260,7 @@ const TrippenGistSync = {
         this.state.gistId = this.gistId;
         if (!options.skipReset) {
             this.state.pendingChangeId = null;
+            this.state.lastPendingHash = null;
             this.state.lastBaseVersion = null;
             this.state.lastBaseHash = null;
             this.state.lastRemoteVersion = null;
@@ -240,7 +269,9 @@ const TrippenGistSync = {
             this.state.lastLocalSyncTime = null;
             this.state.lastReadTime = null;
             this.state.lastBaseSnapshot = null;
+            this.state.lastLocalHash = null;
             this.pendingChangeId = null;
+            this.lastPendingHash = null;
             this.lastBaseVersion = null;
             this.lastBaseHash = null;
             this.lastBaseSnapshot = null;
@@ -248,6 +279,7 @@ const TrippenGistSync = {
             this.lastDataHash = null;
             this.lastSyncTime = null;
             this.lastReadTime = null;
+            this.lastLocalHash = null;
             this.hasChanged = false;
         }
         this.persistState();
@@ -270,19 +302,42 @@ const TrippenGistSync = {
     },
 
     markChanged() {
+        const data = this.getLocalDataSnapshot();
+        const currentHash = this.calculateHash({ data });
+        const lastLocalHash = this.state.lastLocalHash || this.state.lastRemoteHash || null;
+        const lastPendingHash = this.state.lastPendingHash || null;
+
+        if (lastLocalHash && currentHash === lastLocalHash) {
+            if (this.hasChanged) this.resetChanged();
+            return;
+        }
+        if (lastPendingHash && currentHash === lastPendingHash) {
+            this.hasChanged = true;
+            return;
+        }
+
         this.ensurePendingChangeContext();
+        this.pendingChangeId = this.state.pendingChangeId;
+        this.state.lastPendingHash = currentHash;
+        this.lastPendingHash = currentHash;
         this.hasChanged = true;
+        this.persistState();
     },
 
     resetChanged() {
         this.hasChanged = false;
         this.pendingChangeId = null;
+        this.lastPendingHash = null;
         this.lastBaseVersion = this.lastRemoteVersion || null;
         this.lastBaseHash = this.lastDataHash || null;
+        const stableHash = this.lastDataHash || this.state.lastRemoteHash || this.lastBaseHash;
+        this.lastLocalHash = stableHash || null;
         this.state.pendingChangeId = null;
+        this.state.lastPendingHash = null;
         this.state.lastBaseVersion = this.lastBaseVersion;
         this.state.lastBaseHash = this.lastBaseHash;
         this.state.lastBaseSnapshot = this.lastBaseSnapshot ? cloneDeep(this.lastBaseSnapshot) : null;
+        this.state.lastLocalHash = stableHash || null;
         this.persistState();
     },
 
@@ -298,6 +353,21 @@ const TrippenGistSync = {
         this.lastBaseVersion = this.state.lastBaseVersion || null;
         this.lastBaseHash = this.state.lastBaseHash || null;
         this.lastBaseSnapshot = this.state.lastBaseSnapshot || this.lastBaseSnapshot || null;
+    },
+
+    getLocalDataSnapshot() {
+        let hookData = null;
+        if (typeof this.hooks.getLocalData === 'function') {
+            try {
+                hookData = this.hooks.getLocalData();
+            } catch {
+                hookData = null;
+            }
+        }
+        if (!hookData || typeof hookData !== 'object') {
+            return cloneDataSnapshot(readSyncDataFromStorage());
+        }
+        return cloneDataSnapshot(hookData);
     },
 
     startPeriodicSync() {
@@ -321,16 +391,13 @@ const TrippenGistSync = {
         this.unbindVisibilityHandler();
     },
 
-    collectSyncData() {
-        const events = readJsonArray('trippenEvents');
-        const days = readJsonArray('trippenDays');
-        const layerOrder = readJsonArray('trippenLayerOrder');
-        const tripTitle = localStorage.getItem('trippenTitle') || '';
-        this.ensurePendingChangeContext();
+    collectSyncData({ ensureContext = true } = {}) {
+        const data = this.getLocalDataSnapshot();
+        if (ensureContext !== false) this.ensurePendingChangeContext();
         const syncTime = getUtcNow();
         const baseVersion = this.state.lastBaseVersion || this.lastRemoteVersion || null;
         const baseHash = this.state.lastBaseHash || this.lastDataHash || null;
-        const changeId = this.state.pendingChangeId;
+        const changeId = this.state.pendingChangeId || null;
         return {
             version: '3.1',
             syncTime,
@@ -338,7 +405,7 @@ const TrippenGistSync = {
             baseHash,
             changeId,
             originDeviceId: this.deviceId,
-            data: { events, days, layerOrder, tripTitle }
+            data
         };
     },
 
@@ -582,6 +649,12 @@ const TrippenGistSync = {
         const remoteHash = remoteState.remoteHash ?? null;
         const remoteSnapshot = remoteState.snapshot;
         const remoteUpdatedAt = remoteState.remoteUpdatedAt ?? null;
+        const localHash = this.calculateHash(localSnapshot);
+
+        let localChanged = false;
+        if (localHash && baseHash) localChanged = localHash !== baseHash;
+        else if (localHash && !baseHash) localChanged = true;
+        else if (!localHash && baseHash) localChanged = true;
 
         let remoteChanged = false;
         if (remoteVersion && baseVersion && remoteVersion !== baseVersion) remoteChanged = true;
@@ -589,6 +662,18 @@ const TrippenGistSync = {
         if (!remoteChanged && remoteHash && !baseHash) remoteChanged = true;
         if (!remoteChanged && remoteSnapshot && Object.keys(remoteSnapshot.data || {}).length > 0 && !baseVersion) {
             remoteChanged = true;
+        }
+
+        if (!remoteChanged && !localChanged) {
+            return {
+                conflict: false,
+                snapshot: null,
+                shouldSkip: true,
+                needsLocalRefresh: false,
+                remoteChanged: false,
+                conflicts: [],
+                localHash
+            };
         }
 
         if (!remoteChanged) {
@@ -605,9 +690,11 @@ const TrippenGistSync = {
             return {
                 conflict: false,
                 snapshot: snapshotToPush,
+                shouldSkip: false,
                 needsLocalRefresh: false,
                 remoteChanged: false,
-                conflicts: []
+                conflicts: [],
+                localHash
             };
         }
 
@@ -638,7 +725,9 @@ const TrippenGistSync = {
                 conflict: true,
                 conflicts: mergeResult.conflicts,
                 remoteSnapshot: effectiveRemoteSnapshot,
-                remoteChanged: true
+                remoteChanged: true,
+                shouldSkip: false,
+                localHash
             };
         }
 
@@ -674,9 +763,11 @@ const TrippenGistSync = {
         return {
             conflict: false,
             snapshot: mergedSnapshot,
+            shouldSkip: false,
             needsLocalRefresh: true,
             remoteChanged: true,
-            conflicts: []
+            conflicts: [],
+            localHash
         };
     },
 
@@ -724,6 +815,8 @@ const TrippenGistSync = {
         this.state.lastBaseVersion = remoteVersion;
         this.state.lastBaseHash = remoteHash;
         this.state.lastBaseSnapshot = cloneDeep(snapshot);
+        this.state.lastLocalHash = remoteHash;
+        this.state.lastPendingHash = null;
         this.state.pendingChangeId = null;
         this.persistState();
 
@@ -734,6 +827,8 @@ const TrippenGistSync = {
         this.lastBaseVersion = remoteVersion;
         this.lastBaseHash = remoteHash;
         this.lastBaseSnapshot = cloneDeep(snapshot);
+        this.lastLocalHash = remoteHash;
+        this.lastPendingHash = null;
         this.pendingChangeId = null;
         this.hasChanged = false;
 
@@ -743,10 +838,15 @@ const TrippenGistSync = {
 
     hasRemoteChange(remoteState) {
         if (!remoteState) return false;
+        if (!this.hasChanged && typeof this.hooks.hasUnsavedChanges === 'function' && this.hooks.hasUnsavedChanges()) {
+            return false;
+        }
         const baseVersion = this.state.lastBaseVersion || null;
         const baseHash = this.state.lastBaseHash || null;
         const remoteVersion = remoteState.remoteVersion || null;
         const remoteHash = remoteState.remoteHash || null;
+        const lastLocalHash = this.state.lastLocalHash || null;
+        if (remoteHash && lastLocalHash && remoteHash === lastLocalHash) return false;
         if (remoteVersion && baseVersion && remoteVersion !== baseVersion) return true;
         if (remoteHash && baseHash && remoteHash !== baseHash) return true;
         if (remoteHash && !baseHash) return true;
@@ -778,6 +878,13 @@ const TrippenGistSync = {
 
         let nextDelay = this.pollIntervalMs;
         try {
+            const hasDraftChanges = !this.hasChanged && typeof this.hooks.hasUnsavedChanges === 'function' && this.hooks.hasUnsavedChanges();
+            if (hasDraftChanges) {
+                this.syncBackoffMs = 0;
+                this.scheduleNextPoll(nextDelay);
+                return;
+            }
+
             const remoteState = await this.fetchRemoteState();
 
             if (this.hasChanged) {
@@ -953,6 +1060,8 @@ const TrippenGistSync = {
         this.state.lastBaseVersion = remoteVersion;
         this.state.lastBaseHash = remoteHash;
         this.state.lastBaseSnapshot = baseSnapshotCopy;
+        this.state.lastLocalHash = remoteHash;
+        this.state.lastPendingHash = null;
         this.state.pendingChangeId = null;
         this.persistState();
 
@@ -963,6 +1072,8 @@ const TrippenGistSync = {
         this.lastBaseVersion = this.state.lastBaseVersion;
         this.lastBaseHash = this.state.lastBaseHash;
         this.lastBaseSnapshot = baseSnapshotCopy;
+        this.lastLocalHash = remoteHash;
+        this.lastPendingHash = null;
         this.pendingChangeId = null;
         this.hasChanged = false;
         this.isEnabled = !!this.token;
@@ -1023,6 +1134,8 @@ const TrippenGistSync = {
             this.state.lastBaseVersion = remoteVersion;
             this.state.lastBaseHash = remoteHash;
             this.state.lastBaseSnapshot = cloneDeep(snapshot);
+            this.state.lastLocalHash = remoteHash;
+            this.state.lastPendingHash = null;
             this.state.pendingChangeId = null;
             this.persistState();
 
@@ -1033,6 +1146,8 @@ const TrippenGistSync = {
             this.lastBaseVersion = remoteVersion;
             this.lastBaseHash = remoteHash;
             this.lastBaseSnapshot = cloneDeep(snapshot);
+            this.lastLocalHash = remoteHash;
+            this.lastPendingHash = null;
             this.pendingChangeId = null;
             this.hasChanged = false;
             return snapshot;
@@ -1055,6 +1170,10 @@ const TrippenGistSync = {
         if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
 
         if (window.app?.saveData) window.app.saveData();
+        if (!this.hasChanged) {
+            this.hasError = false;
+            return true;
+        }
         const localSnapshot = this.collectSyncData();
         this.setStatus('pushing');
         this.isSyncing = true;
@@ -1067,6 +1186,13 @@ const TrippenGistSync = {
                 this.hasError = true;
                 window.app?.handleSyncConflict?.(preparation.conflicts);
                 throw new Error('クラウドに新しい変更があります');
+            }
+            if (preparation.shouldSkip) {
+                this.resetChanged();
+                this.state.lastPendingHash = null;
+                this.lastPendingHash = null;
+                this.persistState();
+                return true;
             }
 
             await this.pushSnapshot(preparation.snapshot);
@@ -1101,6 +1227,14 @@ const TrippenGistSync = {
                 this.hasError = true;
                 window.app?.handleSyncConflict?.(preparation.conflicts);
                 return false;
+            }
+            if (preparation.shouldSkip) {
+                this.resetChanged();
+                this.state.lastPendingHash = null;
+                this.lastPendingHash = null;
+                this.persistState();
+                this.hasError = false;
+                return true;
             }
 
             await this.pushSnapshot(preparation.snapshot);
@@ -1152,9 +1286,11 @@ const TrippenGistSync = {
         this.gistId = null;
         this.deviceId = null;
         this.pendingChangeId = null;
+        this.lastPendingHash = null;
         this.lastBaseVersion = null;
         this.lastBaseHash = null;
         this.lastBaseSnapshot = null;
+        this.lastLocalHash = null;
         this.lastRemoteVersion = null;
         this.lastDataHash = null;
         this.lastSyncTime = null;
