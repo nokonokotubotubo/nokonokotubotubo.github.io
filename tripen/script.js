@@ -1247,7 +1247,7 @@ const app = createApp({
                 };
                 try {
                     const currentHash = TrippenGistSync.calculateHash({ data: JSON.parse(JSON.stringify(snapshot)) });
-                    const baseline = TrippenGistSync.state?.lastLocalHash || TrippenGistSync.state?.lastRemoteHash || null;
+                    const baseline = TrippenGistSync.state?.lastBaseHash || TrippenGistSync.state?.lastRemoteHash || null;
                     if (!baseline) return Boolean(currentHash);
                     return currentHash !== baseline;
                 } catch {
