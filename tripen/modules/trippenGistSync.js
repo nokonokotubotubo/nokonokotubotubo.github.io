@@ -1,17 +1,45 @@
 const API_BASE = 'https://api.github.com/gists';
 const STATE_KEY = 'trippen_sync_state_v1';
 const LEGACY_KEY = 'trippen_gist_config';
+const DEFAULT_POLL_INTERVAL_MS = 60000;
+const MIN_POLL_INTERVAL_MS = 15000;
+const MAX_BACKOFF_MS = 5 * 60 * 1000;
 const SECRET_KEY = 'trippen_secret_key';
 
 const defaultState = {
     encryptedToken: null,
     gistId: null,
     deviceId: null,
+    pendingChangeId: null,
+    lastBaseVersion: null,
+    lastBaseHash: null,
+    lastBaseSnapshot: null,
     lastRemoteVersion: null,
     lastRemoteHash: null,
     lastRemoteSyncTime: null,
     lastLocalSyncTime: null,
     lastReadTime: null
+};
+
+const getUtcNow = () => new Date().toISOString();
+
+const generateChangeId = () => {
+    try {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    } catch {
+        /* noop */
+    }
+    try {
+        const cryptoObj = getCrypto();
+        if (cryptoObj?.randomUUID) return cryptoObj.randomUUID();
+        if (cryptoObj) {
+            const buffer = cryptoObj.getRandomValues(new Uint32Array(4));
+            return Array.from(buffer).map(value => value.toString(16).padStart(8, '0')).join('');
+        }
+    } catch {
+        /* noop */
+    }
+    return `chg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 const readJsonArray = key => {
@@ -42,11 +70,55 @@ const generateDeviceId = () => {
     }
 };
 
+const cloneDeep = value => {
+    if (value === null || value === undefined) return null;
+    try {
+        return JSON.parse(JSON.stringify(value));
+    } catch {
+        return null;
+    }
+};
+
+const isEqual = (a, b) => {
+    if (a === b) return true;
+    try {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    } catch {
+        return false;
+    }
+};
+
+const normalizeArray = value => (Array.isArray(value) ? value : []);
+
+const buildItemKey = (item, fallbackIndex = 0) => {
+    if (!item || typeof item !== 'object') return `static:${fallbackIndex}`;
+    if (item.id !== undefined && item.id !== null) return `id:${String(item.id)}`;
+    if (item.fullDate) return `date:${item.fullDate}`;
+    if (item.dayNumber !== undefined) return `day:${item.dayNumber}`;
+    try {
+        return `json:${JSON.stringify(item)}`;
+    } catch {
+        return `static:${fallbackIndex}`;
+    }
+};
+
+const createArrayMap = array => {
+    const map = new Map();
+    normalizeArray(array).forEach((item, index) => {
+        map.set(buildItemKey(item, index), item);
+    });
+    return map;
+};
+
 const TrippenGistSync = {
     state: { ...defaultState },
     token: null,
     gistId: null,
     deviceId: null,
+    pendingChangeId: null,
+    lastBaseVersion: null,
+    lastBaseHash: null,
+    lastBaseSnapshot: null,
     lastRemoteVersion: null,
     lastDataHash: null,
     lastSyncTime: null,
@@ -57,6 +129,10 @@ const TrippenGistSync = {
     hasChanged: false,
     status: 'idle',
     periodicSyncInterval: null,
+    pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
+    pollTimer: null,
+    syncBackoffMs: 0,
+    visibilityListener: null,
 
     hooks: {
         onStatusChange: () => {},
@@ -97,6 +173,12 @@ const TrippenGistSync = {
         } catch {
             this.state = { ...defaultState };
         }
+        if (!this.state.lastBaseVersion && this.state.lastRemoteVersion) {
+            this.state.lastBaseVersion = this.state.lastRemoteVersion;
+        }
+        if (!this.state.lastBaseHash && this.state.lastRemoteHash) {
+            this.state.lastBaseHash = this.state.lastRemoteHash;
+        }
         if (!this.state.deviceId) {
             this.state.deviceId = generateDeviceId();
             this.persistState();
@@ -104,6 +186,10 @@ const TrippenGistSync = {
         this.token = this.state.encryptedToken ? this._decrypt(this.state.encryptedToken) : null;
         this.gistId = this.state.gistId || null;
         this.deviceId = this.state.deviceId;
+        this.pendingChangeId = this.state.pendingChangeId || null;
+        this.lastBaseVersion = this.state.lastBaseVersion || null;
+        this.lastBaseHash = this.state.lastBaseHash || null;
+        this.lastBaseSnapshot = this.state.lastBaseSnapshot || null;
         this.lastRemoteVersion = this.state.lastRemoteVersion || null;
         this.lastDataHash = this.state.lastRemoteHash || null;
         this.lastSyncTime = this.state.lastLocalSyncTime || null;
@@ -124,6 +210,10 @@ const TrippenGistSync = {
             if (legacy.lastReadTime) this.state.lastReadTime = legacy.lastReadTime;
             if (legacy.lastRemoteVersion) this.state.lastRemoteVersion = legacy.lastRemoteVersion;
             if (legacy.lastDataHash) this.state.lastRemoteHash = legacy.lastDataHash;
+            this.state.lastBaseVersion = this.state.lastRemoteVersion;
+            this.state.lastBaseHash = this.state.lastRemoteHash;
+            this.state.lastBaseSnapshot = null;
+            this.state.pendingChangeId = null;
             this.persistState();
             localStorage.removeItem(LEGACY_KEY);
             this.loadState();
@@ -141,12 +231,31 @@ const TrippenGistSync = {
         this.state.encryptedToken = this.token ? this._encrypt(this.token) : null;
         this.state.gistId = this.gistId;
         if (!options.skipReset) {
+            this.state.pendingChangeId = null;
+            this.state.lastBaseVersion = null;
+            this.state.lastBaseHash = null;
             this.state.lastRemoteVersion = null;
             this.state.lastRemoteHash = null;
             this.state.lastRemoteSyncTime = null;
             this.state.lastLocalSyncTime = null;
+            this.state.lastReadTime = null;
+            this.state.lastBaseSnapshot = null;
+            this.pendingChangeId = null;
+            this.lastBaseVersion = null;
+            this.lastBaseHash = null;
+            this.lastBaseSnapshot = null;
+            this.lastRemoteVersion = null;
+            this.lastDataHash = null;
+            this.lastSyncTime = null;
+            this.lastReadTime = null;
+            this.hasChanged = false;
         }
         this.persistState();
+        if (this.isEnabled) {
+            this.startPeriodicSync();
+        } else {
+            this.stopPeriodicSync();
+        }
     },
 
     loadConfig() {
@@ -161,18 +270,43 @@ const TrippenGistSync = {
     },
 
     markChanged() {
+        this.ensurePendingChangeContext();
         this.hasChanged = true;
     },
 
     resetChanged() {
         this.hasChanged = false;
+        this.pendingChangeId = null;
+        this.lastBaseVersion = this.lastRemoteVersion || null;
+        this.lastBaseHash = this.lastDataHash || null;
+        this.state.pendingChangeId = null;
+        this.state.lastBaseVersion = this.lastBaseVersion;
+        this.state.lastBaseHash = this.lastBaseHash;
+        this.state.lastBaseSnapshot = this.lastBaseSnapshot ? cloneDeep(this.lastBaseSnapshot) : null;
+        this.persistState();
+    },
+
+    ensurePendingChangeContext() {
+        if (!this.state.pendingChangeId) {
+            this.state.pendingChangeId = generateChangeId();
+            if (this.lastRemoteVersion) this.state.lastBaseVersion = this.lastRemoteVersion;
+            if (this.lastDataHash) this.state.lastBaseHash = this.lastDataHash;
+            if (this.lastBaseSnapshot) this.state.lastBaseSnapshot = cloneDeep(this.lastBaseSnapshot);
+            this.persistState();
+        }
+        this.pendingChangeId = this.state.pendingChangeId;
+        this.lastBaseVersion = this.state.lastBaseVersion || null;
+        this.lastBaseHash = this.state.lastBaseHash || null;
+        this.lastBaseSnapshot = this.state.lastBaseSnapshot || this.lastBaseSnapshot || null;
     },
 
     startPeriodicSync() {
         this.stopPeriodicSync();
-        this.periodicSyncInterval = setInterval(() => {
-            this.autoWriteToCloud();
-        }, 60000);
+        if (!this.isEnabled || !this.token) return;
+        this.syncBackoffMs = 0;
+        this.pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
+        this.bindVisibilityHandler();
+        this.scheduleNextPoll(0);
     },
 
     stopPeriodicSync() {
@@ -180,6 +314,11 @@ const TrippenGistSync = {
             clearInterval(this.periodicSyncInterval);
             this.periodicSyncInterval = null;
         }
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
+        }
+        this.unbindVisibilityHandler();
     },
 
     collectSyncData() {
@@ -187,10 +326,18 @@ const TrippenGistSync = {
         const days = readJsonArray('trippenDays');
         const layerOrder = readJsonArray('trippenLayerOrder');
         const tripTitle = localStorage.getItem('trippenTitle') || '';
-        const syncTime = new Date().toISOString();
+        this.ensurePendingChangeContext();
+        const syncTime = getUtcNow();
+        const baseVersion = this.state.lastBaseVersion || this.lastRemoteVersion || null;
+        const baseHash = this.state.lastBaseHash || this.lastDataHash || null;
+        const changeId = this.state.pendingChangeId;
         return {
             version: '3.1',
             syncTime,
+            baseVersion,
+            baseHash,
+            changeId,
+            originDeviceId: this.deviceId,
             data: { events, days, layerOrder, tripTitle }
         };
     },
@@ -212,8 +359,476 @@ const TrippenGistSync = {
         }
     },
 
+    mergeSnapshots({ baseSnapshot, localSnapshot, remoteSnapshot }) {
+        const conflicts = [];
+        const mergedData = {};
+        const baseData = baseSnapshot?.data || {};
+        const localData = localSnapshot?.data || {};
+        const remoteData = remoteSnapshot?.data || {};
+        const handledFields = new Set();
+
+        const mergeObjectArray = field => {
+            handledFields.add(field);
+            const baseArray = normalizeArray(baseData[field]);
+            const localArray = normalizeArray(localData[field]);
+            const remoteArray = normalizeArray(remoteData[field]);
+
+            const baseMap = createArrayMap(baseArray);
+            const localMap = createArrayMap(localArray);
+            const remoteMap = createArrayMap(remoteArray);
+
+            const allKeys = new Set([
+                ...baseMap.keys(),
+                ...localMap.keys(),
+               ...remoteMap.keys()
+            ]);
+
+            const resolutionOrder = [];
+            const seen = new Set();
+            const registerOrder = key => {
+                if (!seen.has(key)) {
+                    resolutionOrder.push(key);
+                    seen.add(key);
+                }
+            };
+
+            [...remoteMap.keys()].forEach(registerOrder);
+            [...localMap.keys()].forEach(registerOrder);
+            [...baseMap.keys()].forEach(registerOrder);
+
+            const resultMap = new Map();
+
+            for (const key of allKeys) {
+                const baseItem = baseMap.get(key);
+                const localItem = localMap.get(key);
+                const remoteItem = remoteMap.get(key);
+
+                if (!baseItem && !remoteItem && localItem) {
+                    resultMap.set(key, cloneDeep(localItem));
+                    continue;
+                }
+                if (!baseItem && !localItem && remoteItem) {
+                    resultMap.set(key, cloneDeep(remoteItem));
+                    continue;
+                }
+                if (!baseItem && remoteItem && localItem) {
+                    if (isEqual(remoteItem, localItem)) {
+                        resultMap.set(key, cloneDeep(remoteItem));
+                    } else {
+                        conflicts.push({ field, key, type: 'new-item-conflict', remote: remoteItem, local: localItem });
+                    }
+                    continue;
+                }
+                if (baseItem && !remoteItem && !localItem) {
+                    continue;
+                }
+                if (baseItem && !remoteItem && localItem) {
+                    if (isEqual(localItem, baseItem)) {
+                        continue;
+                    }
+                    conflicts.push({ field, key, type: 'remote-deleted-local-edited', base: baseItem, local: localItem });
+                    continue;
+                }
+                if (baseItem && remoteItem && !localItem) {
+                    if (isEqual(remoteItem, baseItem)) {
+                        continue;
+                    }
+                    conflicts.push({ field, key, type: 'local-deleted-remote-edited', base: baseItem, remote: remoteItem });
+                    continue;
+                }
+                if (baseItem && remoteItem && localItem) {
+                    const remoteChanged = !isEqual(remoteItem, baseItem);
+                    const localChanged = !isEqual(localItem, baseItem);
+                    if (remoteChanged && localChanged) {
+                        if (isEqual(remoteItem, localItem)) {
+                            resultMap.set(key, cloneDeep(remoteItem));
+                        } else {
+                            conflicts.push({ field, key, type: 'both-modified', base: baseItem, remote: remoteItem, local: localItem });
+                        }
+                    } else if (remoteChanged) {
+                        resultMap.set(key, cloneDeep(remoteItem));
+                    } else if (localChanged) {
+                        resultMap.set(key, cloneDeep(localItem));
+                    } else {
+                        resultMap.set(key, cloneDeep(baseItem));
+                    }
+                    continue;
+                }
+                if (baseItem) {
+                    resultMap.set(key, cloneDeep(baseItem));
+                }
+            }
+
+            if (conflicts.length > 0) {
+                return;
+            }
+
+            const mergedArray = [];
+            resolutionOrder.forEach(key => {
+                if (!resultMap.has(key)) return;
+                const value = resultMap.get(key);
+                if (value !== null && value !== undefined) {
+                    mergedArray.push(cloneDeep(value));
+                }
+            });
+            mergedData[field] = mergedArray;
+        };
+
+        const mergePrimitiveArray = field => {
+            handledFields.add(field);
+            const baseArray = normalizeArray(baseData[field]);
+            const localArray = normalizeArray(localData[field]);
+            const remoteArray = normalizeArray(remoteData[field]);
+
+            const remoteChanged = !isEqual(remoteArray, baseArray);
+            const localChanged = !isEqual(localArray, baseArray);
+
+            if (remoteChanged && localChanged && !isEqual(remoteArray, localArray)) {
+                conflicts.push({ field, type: 'order-conflict', base: baseArray, remote: remoteArray, local: localArray });
+                return;
+            }
+            if (remoteChanged) {
+                mergedData[field] = cloneDeep(remoteArray);
+                return;
+            }
+            if (localChanged) {
+                mergedData[field] = cloneDeep(localArray);
+                return;
+            }
+            mergedData[field] = cloneDeep(baseArray);
+        };
+
+        const mergeSimpleField = (field, defaultValue = null) => {
+            handledFields.add(field);
+            const baseHas = Object.prototype.hasOwnProperty.call(baseData, field);
+            const localHas = Object.prototype.hasOwnProperty.call(localData, field);
+            const remoteHas = Object.prototype.hasOwnProperty.call(remoteData, field);
+            if (!baseHas && !localHas && !remoteHas) return;
+
+            const baseValue = baseHas ? baseData[field] : defaultValue;
+            const localValue = localHas ? localData[field] : baseValue;
+            const remoteValue = remoteHas ? remoteData[field] : baseValue;
+
+            const remoteChanged = !isEqual(remoteValue, baseValue);
+            const localChanged = !isEqual(localValue, baseValue);
+
+            if (remoteChanged && localChanged && !isEqual(remoteValue, localValue)) {
+                conflicts.push({ field, type: 'value-conflict', base: baseValue, remote: remoteValue, local: localValue });
+                return;
+            }
+            if (remoteChanged) {
+                mergedData[field] = cloneDeep(remoteValue);
+                return;
+            }
+            if (localChanged) {
+                mergedData[field] = cloneDeep(localValue);
+                return;
+            }
+            if (baseHas) mergedData[field] = cloneDeep(baseValue);
+        };
+
+        const mergeGenericField = field => {
+            handledFields.add(field);
+            const baseHas = Object.prototype.hasOwnProperty.call(baseData, field);
+            const localHas = Object.prototype.hasOwnProperty.call(localData, field);
+            const remoteHas = Object.prototype.hasOwnProperty.call(remoteData, field);
+            if (!baseHas && !localHas && !remoteHas) return;
+
+            const baseValue = baseHas ? baseData[field] : undefined;
+            const localValue = localHas ? localData[field] : baseValue;
+            const remoteValue = remoteHas ? remoteData[field] : baseValue;
+
+            const remoteChanged = !isEqual(remoteValue, baseValue);
+            const localChanged = !isEqual(localValue, baseValue);
+
+            if (remoteChanged && localChanged && !isEqual(remoteValue, localValue)) {
+                conflicts.push({ field, type: 'generic-conflict', base: baseValue, remote: remoteValue, local: localValue });
+                return;
+            }
+            if (remoteChanged) {
+                mergedData[field] = cloneDeep(remoteValue);
+                return;
+            }
+            if (localChanged) {
+                mergedData[field] = cloneDeep(localValue);
+                return;
+            }
+            if (baseHas) mergedData[field] = cloneDeep(baseValue);
+        };
+
+        mergeObjectArray('events');
+        mergeObjectArray('days');
+        mergePrimitiveArray('layerOrder');
+        mergeSimpleField('tripTitle', '');
+
+        const dataKeys = new Set([
+            ...Object.keys(baseData),
+            ...Object.keys(localData),
+            ...Object.keys(remoteData)
+        ]);
+
+        dataKeys.forEach(field => {
+            if (handledFields.has(field)) return;
+            mergeGenericField(field);
+        });
+
+        return { data: mergedData, conflicts };
+    },
+
+    prepareSnapshotForPush(localSnapshot, remoteState) {
+        const baseVersion = localSnapshot.baseVersion ?? this.state.lastBaseVersion ?? null;
+        const baseHash = localSnapshot.baseHash ?? this.state.lastBaseHash ?? null;
+        const remoteVersion = remoteState.remoteVersion ?? null;
+        const remoteHash = remoteState.remoteHash ?? null;
+        const remoteSnapshot = remoteState.snapshot;
+        const remoteUpdatedAt = remoteState.remoteUpdatedAt ?? null;
+
+        let remoteChanged = false;
+        if (remoteVersion && baseVersion && remoteVersion !== baseVersion) remoteChanged = true;
+        if (!remoteChanged && remoteHash && baseHash && remoteHash !== baseHash) remoteChanged = true;
+        if (!remoteChanged && remoteHash && !baseHash) remoteChanged = true;
+        if (!remoteChanged && remoteSnapshot && Object.keys(remoteSnapshot.data || {}).length > 0 && !baseVersion) {
+            remoteChanged = true;
+        }
+
+        if (!remoteChanged) {
+            const syncTime = getUtcNow();
+            const snapshotToPush = {
+                version: localSnapshot.version || '3.1',
+                syncTime,
+                baseVersion: remoteVersion ?? baseVersion ?? null,
+                baseHash: remoteHash ?? baseHash ?? null,
+                changeId: generateChangeId(),
+                originDeviceId: this.deviceId,
+                data: cloneDeep(localSnapshot.data) || {}
+            };
+            return {
+                conflict: false,
+                snapshot: snapshotToPush,
+                needsLocalRefresh: false,
+                remoteChanged: false,
+                conflicts: []
+            };
+        }
+
+        const baseSnapshot = this.lastBaseSnapshot || this.state.lastBaseSnapshot || null;
+        if (!baseSnapshot) {
+            return {
+                conflict: true,
+                conflicts: [{ type: 'missing-base', message: 'ローカルの基準データが見つからないため自動マージできません。' }],
+                remoteSnapshot,
+                remoteChanged: true
+            };
+        }
+
+        const effectiveRemoteSnapshot = remoteSnapshot || {
+            version: localSnapshot.version || '3.1',
+            syncTime: remoteUpdatedAt || getUtcNow(),
+            data: {}
+        };
+
+        const mergeResult = this.mergeSnapshots({
+            baseSnapshot,
+            localSnapshot,
+            remoteSnapshot: effectiveRemoteSnapshot
+        });
+
+        if (mergeResult.conflicts.length > 0) {
+            return {
+                conflict: true,
+                conflicts: mergeResult.conflicts,
+                remoteSnapshot: effectiveRemoteSnapshot,
+                remoteChanged: true
+            };
+        }
+
+        const mergedSyncTime = getUtcNow();
+        const mergedSnapshot = {
+            version: localSnapshot.version || effectiveRemoteSnapshot.version || '3.1',
+            syncTime: mergedSyncTime,
+            baseVersion: remoteVersion,
+            baseHash: remoteHash,
+            changeId: generateChangeId(),
+            originDeviceId: this.deviceId,
+            data: mergeResult.data || {}
+        };
+
+        if (!mergedSnapshot.data && localSnapshot.data) {
+            mergedSnapshot.data = cloneDeep(localSnapshot.data);
+        }
+
+        const localDataKeys = Object.keys(localSnapshot.data || {});
+        localDataKeys.forEach(field => {
+            if (mergedSnapshot.data[field] === undefined) {
+                mergedSnapshot.data[field] = cloneDeep(localSnapshot.data[field]);
+            }
+        });
+
+        const remoteDataKeys = Object.keys(effectiveRemoteSnapshot.data || {});
+        remoteDataKeys.forEach(field => {
+            if (mergedSnapshot.data[field] === undefined) {
+                mergedSnapshot.data[field] = cloneDeep(effectiveRemoteSnapshot.data[field]);
+            }
+        });
+
+        return {
+            conflict: false,
+            snapshot: mergedSnapshot,
+            needsLocalRefresh: true,
+            remoteChanged: true,
+            conflicts: []
+        };
+    },
+
+    applyMergedSnapshot(snapshot, { silent = true } = {}) {
+        if (!snapshot) return;
+        if (window.app?.applyCloudData) {
+            window.app.applyCloudData(snapshot, { silent });
+            return;
+        }
+
+        const data = snapshot.data || {};
+        try {
+            if (Array.isArray(data.events)) {
+                localStorage.setItem('trippenEvents', JSON.stringify(data.events));
+            }
+            if (Array.isArray(data.days)) {
+                localStorage.setItem('trippenDays', JSON.stringify(data.days));
+            }
+            if (Array.isArray(data.layerOrder)) {
+                localStorage.setItem('trippenLayerOrder', JSON.stringify(data.layerOrder));
+            }
+            if (data.tripTitle !== undefined) {
+                localStorage.setItem('trippenTitle', data.tripTitle || '');
+            }
+        } catch {
+            // ローカルストレージ更新に失敗しても致命的ではない
+        }
+    },
+
+    applyRemoteState(remoteState, { silent = true } = {}) {
+        const snapshot = remoteState?.snapshot || null;
+        const remoteVersion = remoteState?.remoteVersion || null;
+        const remoteHash = remoteState?.remoteHash || null;
+        const remoteUpdatedAt = remoteState?.remoteUpdatedAt || null;
+        if (!snapshot) return false;
+
+        const syncTime = snapshot.syncTime || remoteUpdatedAt || getUtcNow();
+        const readTime = getUtcNow();
+
+        this.state.lastRemoteVersion = remoteVersion;
+        this.state.lastRemoteHash = remoteHash;
+        this.state.lastRemoteSyncTime = remoteUpdatedAt || syncTime;
+        this.state.lastLocalSyncTime = syncTime;
+        this.state.lastReadTime = readTime;
+        this.state.lastBaseVersion = remoteVersion;
+        this.state.lastBaseHash = remoteHash;
+        this.state.lastBaseSnapshot = cloneDeep(snapshot);
+        this.state.pendingChangeId = null;
+        this.persistState();
+
+        this.lastRemoteVersion = remoteVersion;
+        this.lastDataHash = remoteHash;
+        this.lastSyncTime = syncTime;
+        this.lastReadTime = readTime;
+        this.lastBaseVersion = remoteVersion;
+        this.lastBaseHash = remoteHash;
+        this.lastBaseSnapshot = cloneDeep(snapshot);
+        this.pendingChangeId = null;
+        this.hasChanged = false;
+
+        this.applyMergedSnapshot(snapshot, { silent });
+        return true;
+    },
+
+    hasRemoteChange(remoteState) {
+        if (!remoteState) return false;
+        const baseVersion = this.state.lastBaseVersion || null;
+        const baseHash = this.state.lastBaseHash || null;
+        const remoteVersion = remoteState.remoteVersion || null;
+        const remoteHash = remoteState.remoteHash || null;
+        if (remoteVersion && baseVersion && remoteVersion !== baseVersion) return true;
+        if (remoteHash && baseHash && remoteHash !== baseHash) return true;
+        if (remoteHash && !baseHash) return true;
+        return false;
+    },
+
+    scheduleNextPoll(delayMs = this.pollIntervalMs) {
+        if (!this.isEnabled || !this.token) return;
+        const safeDelay = delayMs === 0 ? 0 : Math.max(delayMs, MIN_POLL_INTERVAL_MS);
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
+        }
+        this.pollTimer = setTimeout(() => {
+            this.periodicSyncTick().catch(error => {
+                console.error('TrippenGistSync.periodicSyncTick failed', error);
+                this.syncBackoffMs = Math.min((this.syncBackoffMs || this.pollIntervalMs) * 2, MAX_BACKOFF_MS);
+                this.scheduleNextPoll(this.pollIntervalMs + this.syncBackoffMs);
+            });
+        }, safeDelay);
+    },
+
+    async periodicSyncTick({ triggeredByVisibility = false } = {}) {
+        if (!this.isEnabled || !this.token) return;
+        if (this.isSyncing) {
+            this.scheduleNextPoll(this.pollIntervalMs);
+            return;
+        }
+
+        let nextDelay = this.pollIntervalMs;
+        try {
+            const remoteState = await this.fetchRemoteState();
+
+            if (this.hasChanged) {
+                const success = await this.autoWriteToCloud(remoteState);
+                if (!success && this.hasError) {
+                    window.app?.handleSyncConflict?.([{ type: 'push-conflict' }]);
+                }
+            }
+
+            if (!this.hasChanged && this.hasRemoteChange(remoteState)) {
+                const applied = this.applyRemoteState(remoteState, { silent: triggeredByVisibility });
+                if (!applied) {
+                    this.hasError = true;
+                    window.app?.handleSyncConflict?.([{ type: 'remote-update-error' }]);
+                }
+            }
+
+            this.syncBackoffMs = 0;
+        } catch (error) {
+            this.hasError = true;
+            console.error('TrippenGistSync.periodicSyncTick failed', error);
+            this.syncBackoffMs = Math.min((this.syncBackoffMs || this.pollIntervalMs) * 2, MAX_BACKOFF_MS);
+            nextDelay += this.syncBackoffMs;
+        }
+
+        this.scheduleNextPoll(nextDelay);
+    },
+
+    bindVisibilityHandler() {
+        if (typeof document === 'undefined') return;
+        if (this.visibilityListener) return;
+        this.visibilityListener = () => {
+            if (document.visibilityState === 'visible') {
+                this.scheduleNextPoll(0);
+            }
+        };
+        document.addEventListener('visibilitychange', this.visibilityListener);
+    },
+    unbindVisibilityHandler() {
+        if (typeof document === 'undefined') return;
+        if (!this.visibilityListener) return;
+        document.removeEventListener('visibilitychange', this.visibilityListener);
+        this.visibilityListener = null;
+    },
+
     buildPayload(snapshot) {
-        const now = new Date().toISOString();
+        const now = getUtcNow();
+        const baseVersion = snapshot.baseVersion ?? this.state.lastBaseVersion ?? this.lastRemoteVersion ?? null;
+        const baseHash = snapshot.baseHash ?? this.state.lastBaseHash ?? this.lastDataHash ?? null;
+        const changeId = snapshot.changeId ?? this.state.pendingChangeId ?? null;
+        const originDeviceId = snapshot.originDeviceId || this.deviceId || null;
         return {
             description: `Tripen sync data - ${now}`,
             public: false,
@@ -222,11 +837,19 @@ const TrippenGistSync = {
                     content: JSON.stringify({
                         version: '3.1',
                         syncTime: snapshot.syncTime || now,
+                        baseVersion,
+                        baseHash,
+                        changeId,
+                        originDeviceId,
                         data: snapshot.data || {},
                         meta: {
                             schemaVersion: '3.1',
                             generatedAt: now,
-                            deviceId: this.deviceId
+                            deviceId: this.deviceId,
+                            baseVersion,
+                            baseHash,
+                            changeId,
+                            originDeviceId
                         }
                     }, null, 2)
                 }
@@ -261,6 +884,47 @@ const TrippenGistSync = {
         return this.fetchJson(`${API_BASE}/${this.gistId}?t=${Date.now()}`);
     },
 
+    async fetchRemoteState() {
+        if (!this.isEnabled || !this.token || !this.gistId) {
+            return { snapshot: null, remoteVersion: null, remoteHash: null, remoteUpdatedAt: null };
+        }
+
+        const gist = await this.fetchGist();
+        const file = gist.files?.['trippen_data.json'] || null;
+        let snapshot = null;
+
+        if (file?.content) {
+            try {
+                snapshot = JSON.parse(file.content);
+            } catch {
+                snapshot = null;
+            }
+        }
+
+        const latestCommit = gist.history?.[0] || null;
+        const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
+        const remoteUpdatedAt = snapshot?.syncTime || gist.updated_at || getUtcNow();
+        const remoteHash = snapshot ? this.calculateHash(snapshot) : null;
+        const readTime = getUtcNow();
+
+        this.state.lastRemoteVersion = remoteVersion;
+        this.state.lastRemoteHash = remoteHash;
+        this.state.lastRemoteSyncTime = remoteUpdatedAt;
+        this.state.lastReadTime = readTime;
+        this.persistState();
+
+        this.lastRemoteVersion = remoteVersion;
+        this.lastDataHash = remoteHash;
+        this.lastReadTime = readTime;
+
+        if (snapshot) {
+            if (!snapshot.baseVersion) snapshot.baseVersion = remoteVersion;
+            if (!snapshot.baseHash) snapshot.baseHash = remoteHash;
+        }
+
+        return { snapshot, remoteVersion, remoteHash, remoteUpdatedAt };
+    },
+
     async pushSnapshot(snapshot) {
         if (!this.token) throw new Error('GitHubトークンが設定されていません');
         const payload = this.buildPayload(snapshot);
@@ -277,20 +941,30 @@ const TrippenGistSync = {
 
         const latestCommit = result.history?.[0] || null;
         const remoteVersion = latestCommit?.version || latestCommit?.commit || result.version || null;
-        const remoteUpdatedAt = result.updated_at || snapshot.syncTime || new Date().toISOString();
+        const remoteUpdatedAt = result.updated_at || snapshot.syncTime || getUtcNow();
         const remoteHash = this.calculateHash(snapshot);
+        const baseSnapshotCopy = cloneDeep(snapshot);
 
         this.state.lastRemoteVersion = remoteVersion;
         this.state.lastRemoteHash = remoteHash;
         this.state.lastRemoteSyncTime = remoteUpdatedAt;
         this.state.lastLocalSyncTime = snapshot.syncTime || remoteUpdatedAt;
         this.state.lastReadTime = remoteUpdatedAt;
+        this.state.lastBaseVersion = remoteVersion;
+        this.state.lastBaseHash = remoteHash;
+        this.state.lastBaseSnapshot = baseSnapshotCopy;
+        this.state.pendingChangeId = null;
         this.persistState();
 
         this.lastRemoteVersion = remoteVersion;
         this.lastDataHash = remoteHash;
         this.lastSyncTime = this.state.lastLocalSyncTime;
         this.lastReadTime = this.state.lastReadTime;
+        this.lastBaseVersion = this.state.lastBaseVersion;
+        this.lastBaseHash = this.state.lastBaseHash;
+        this.lastBaseSnapshot = baseSnapshotCopy;
+        this.pendingChangeId = null;
+        this.hasChanged = false;
         this.isEnabled = !!this.token;
         return result;
     },
@@ -299,49 +973,18 @@ const TrippenGistSync = {
         if (!this.isEnabled || !this.gistId) return false;
         this.setStatus('checking');
         try {
-            const gist = await this.fetchGist();
-            const file = gist.files?.['trippen_data.json'] || null;
-            const latestCommit = gist.history?.[0] || null;
-            const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
-            const remoteUpdatedAt = gist.updated_at || null;
+            const remoteState = await this.fetchRemoteState();
+            const baseVersion = this.state.lastBaseVersion || null;
+            const baseHash = this.state.lastBaseHash || null;
+            const remoteVersion = remoteState.remoteVersion || null;
+            const remoteHash = remoteState.remoteHash || null;
 
-            if (!file?.content) {
-                const versionChanged = Boolean(this.lastRemoteVersion && remoteVersion && remoteVersion !== this.lastRemoteVersion);
-                if (versionChanged) {
-                    this.state.lastRemoteVersion = remoteVersion;
-                    this.persistState();
-                    this.lastRemoteVersion = remoteVersion;
-                }
-                return versionChanged;
-            }
+            const versionChanged = Boolean(remoteVersion && baseVersion && remoteVersion !== baseVersion);
+            const hashChanged = Boolean(remoteHash && baseHash && remoteHash !== baseHash);
+            const localDiffers = Boolean(remoteHash && localHash && remoteHash !== localHash);
+            const remoteHasDataWithoutBase = Boolean(remoteHash && !baseHash);
 
-            let snapshot;
-            try {
-                snapshot = JSON.parse(file.content);
-            } catch {
-                return false;
-            }
-
-            const remoteHash = this.calculateHash(snapshot);
-            const prevVersion = this.lastRemoteVersion;
-            const prevHash = this.lastDataHash;
-
-            this.state.lastRemoteVersion = remoteVersion;
-            this.state.lastRemoteHash = remoteHash;
-            this.state.lastRemoteSyncTime = snapshot.syncTime || remoteUpdatedAt;
-            this.persistState();
-
-            this.lastRemoteVersion = remoteVersion;
-            this.lastDataHash = remoteHash;
-
-            const localSyncTime = this.lastSyncTime ? Date.parse(this.lastSyncTime) : null;
-            const remoteSyncTime = snapshot.syncTime ? Date.parse(snapshot.syncTime) : null;
-
-            const versionChanged = Boolean(prevVersion && remoteVersion && remoteVersion !== prevVersion);
-            const hashChanged = Boolean(localHash && remoteHash && localHash !== remoteHash);
-            const remoteAhead = Boolean(localSyncTime && remoteSyncTime && remoteSyncTime > localSyncTime + 1000);
-
-            return versionChanged || hashChanged || remoteAhead;
+            return versionChanged || hashChanged || localDiffers || remoteHasDataWithoutBase;
         } catch (error) {
             console.error('TrippenGistSync.detectConflict failed', error);
             return false;
@@ -364,19 +1007,33 @@ const TrippenGistSync = {
             const remoteHash = this.calculateHash(snapshot);
             const latestCommit = gist.history?.[0] || null;
             const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
-            const remoteUpdatedAt = snapshot.syncTime || gist.updated_at || new Date().toISOString();
+            const remoteUpdatedAt = snapshot.syncTime || gist.updated_at || getUtcNow();
+            const readTime = getUtcNow();
+
+            if (!snapshot.baseVersion) snapshot.baseVersion = remoteVersion;
+            if (!snapshot.baseHash) snapshot.baseHash = remoteHash;
+            if (!snapshot.originDeviceId) snapshot.originDeviceId = null;
+            if (!snapshot.changeId) snapshot.changeId = null;
 
             this.state.lastRemoteVersion = remoteVersion;
             this.state.lastRemoteHash = remoteHash;
             this.state.lastRemoteSyncTime = remoteUpdatedAt;
             this.state.lastLocalSyncTime = remoteUpdatedAt;
-            this.state.lastReadTime = new Date().toISOString();
+            this.state.lastReadTime = readTime;
+            this.state.lastBaseVersion = remoteVersion;
+            this.state.lastBaseHash = remoteHash;
+            this.state.lastBaseSnapshot = cloneDeep(snapshot);
+            this.state.pendingChangeId = null;
             this.persistState();
 
             this.lastRemoteVersion = remoteVersion;
             this.lastDataHash = remoteHash;
             this.lastSyncTime = remoteUpdatedAt;
-            this.lastReadTime = this.state.lastReadTime;
+            this.lastReadTime = readTime;
+            this.lastBaseVersion = remoteVersion;
+            this.lastBaseHash = remoteHash;
+            this.lastBaseSnapshot = cloneDeep(snapshot);
+            this.pendingChangeId = null;
             this.hasChanged = false;
             return snapshot;
         } finally {
@@ -394,25 +1051,30 @@ const TrippenGistSync = {
         }
     },
 
-    async manualWriteToCloud() {
+    async manualWriteToCloud(remoteStateInput = null) {
         if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
 
         if (window.app?.saveData) window.app.saveData();
-        const snapshot = this.collectSyncData();
+        const localSnapshot = this.collectSyncData();
         this.setStatus('pushing');
         this.isSyncing = true;
         this.hasError = false;
 
         try {
-            const conflict = await this.detectConflict(this.lastDataHash);
-            if (conflict) {
+            const remoteState = remoteStateInput || await this.fetchRemoteState();
+            const preparation = this.prepareSnapshotForPush(localSnapshot, remoteState);
+            if (preparation.conflict) {
                 this.hasError = true;
-                window.app?.handleSyncConflict?.();
+                window.app?.handleSyncConflict?.(preparation.conflicts);
                 throw new Error('クラウドに新しい変更があります');
             }
 
-            await this.pushSnapshot(snapshot);
-            this.hasChanged = false;
+            await this.pushSnapshot(preparation.snapshot);
+
+            if (preparation.needsLocalRefresh) {
+                this.applyMergedSnapshot(preparation.snapshot, { silent: true });
+            }
+
             return true;
         } catch (error) {
             this.hasError = true;
@@ -423,26 +1085,31 @@ const TrippenGistSync = {
         }
     },
 
-    async autoWriteToCloud() {
+    async autoWriteToCloud(remoteStateInput = null) {
         if (!this.isEnabled || !this.token || this.isSyncing) return false;
         if (!this.hasChanged) return false;
 
         if (window.app?.saveData) window.app.saveData();
-        const snapshot = this.collectSyncData();
+        const localSnapshot = this.collectSyncData();
         this.isSyncing = true;
         this.setStatus('pushing');
 
         try {
-            const conflict = await this.detectConflict(this.lastDataHash);
-            if (conflict) {
+            const remoteState = remoteStateInput || await this.fetchRemoteState();
+            const preparation = this.prepareSnapshotForPush(localSnapshot, remoteState);
+            if (preparation.conflict) {
                 this.hasError = true;
-                window.app?.handleSyncConflict?.();
+                window.app?.handleSyncConflict?.(preparation.conflicts);
                 return false;
             }
 
-            await this.pushSnapshot(snapshot);
-            this.hasChanged = false;
+            await this.pushSnapshot(preparation.snapshot);
             this.hasError = false;
+
+            if (preparation.needsLocalRefresh) {
+                this.applyMergedSnapshot(preparation.snapshot, { silent: true });
+            }
+
             return true;
         } catch (error) {
             this.hasError = true;
@@ -455,7 +1122,21 @@ const TrippenGistSync = {
     },
 
     async checkForNewerCloudData() {
-        return this.detectConflict(this.lastDataHash);
+        if (!this.isEnabled || !this.token || !this.gistId) return false;
+        const remoteState = await this.fetchRemoteState();
+        const baseVersion = this.state.lastBaseVersion || null;
+        const baseHash = this.state.lastBaseHash || null;
+        const remoteVersion = remoteState.remoteVersion || null;
+        const remoteHash = remoteState.remoteHash || null;
+
+        const versionChanged = Boolean(remoteVersion && baseVersion && remoteVersion !== baseVersion);
+        const hashChanged = Boolean(remoteHash && baseHash && remoteHash !== baseHash);
+
+        if (versionChanged || hashChanged) return true;
+        if (!remoteHash && !remoteVersion) return false;
+        const lastSyncTime = this.lastSyncTime ? Date.parse(this.lastSyncTime) : null;
+        const remoteSyncTime = remoteState.remoteUpdatedAt ? Date.parse(remoteState.remoteUpdatedAt) : null;
+        return Boolean(remoteSyncTime && lastSyncTime && remoteSyncTime > lastSyncTime);
     },
 
     saveGistId(gistId) {
@@ -470,6 +1151,10 @@ const TrippenGistSync = {
         this.token = null;
         this.gistId = null;
         this.deviceId = null;
+        this.pendingChangeId = null;
+        this.lastBaseVersion = null;
+        this.lastBaseHash = null;
+        this.lastBaseSnapshot = null;
         this.lastRemoteVersion = null;
         this.lastDataHash = null;
         this.lastSyncTime = null;
@@ -479,6 +1164,10 @@ const TrippenGistSync = {
         this.hasError = false;
         this.hasChanged = false;
         this.status = 'idle';
+        this.syncBackoffMs = 0;
+        this.pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
+        this.pollTimer = null;
+        this.visibilityListener = null;
         this.loadState();
     },
 
