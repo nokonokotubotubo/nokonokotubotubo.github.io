@@ -839,9 +839,6 @@ const TrippenGistSync = {
 
     hasRemoteChange(remoteState) {
         if (!remoteState) return false;
-        if (!this.hasChanged && typeof this.hooks.hasUnsavedChanges === 'function' && this.hooks.hasUnsavedChanges()) {
-            return false;
-        }
         const baseVersion = this.state.lastBaseVersion || null;
         const baseHash = this.state.lastBaseHash || null;
         const remoteVersion = remoteState.remoteVersion || null;
@@ -879,14 +876,8 @@ const TrippenGistSync = {
 
         let nextDelay = this.pollIntervalMs;
         try {
-            const hasDraftChanges = !this.hasChanged && typeof this.hooks.hasUnsavedChanges === 'function' && this.hooks.hasUnsavedChanges();
-            if (hasDraftChanges) {
-                this.syncBackoffMs = 0;
-                this.scheduleNextPoll(nextDelay);
-                return;
-            }
-
             const remoteState = await this.fetchRemoteState();
+            const unsavedDraft = typeof this.hooks.hasUnsavedChanges === 'function' && this.hooks.hasUnsavedChanges();
 
             if (this.hasChanged) {
                 const success = await this.autoWriteToCloud(remoteState);
@@ -895,7 +886,7 @@ const TrippenGistSync = {
                 }
             }
 
-            if (!this.hasChanged && this.hasRemoteChange(remoteState)) {
+            if (!this.hasChanged && !unsavedDraft && this.hasRemoteChange(remoteState)) {
                 const applied = this.applyRemoteState(remoteState, { silent: triggeredByVisibility });
                 if (!applied) {
                     this.hasError = true;
