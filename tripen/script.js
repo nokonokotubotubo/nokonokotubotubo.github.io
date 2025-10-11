@@ -1238,7 +1238,22 @@ const app = createApp({
                 layerOrder: Array.from(this.eventLayerOrder || []),
                 tripTitle: this.tripTitle
             }),
-            hasUnsavedChanges: () => TrippenGistSync.hasChanged === true
+            hasUnsavedChanges: () => {
+                const snapshot = {
+                    events: this.events,
+                    days: this.tripDays,
+                    layerOrder: this.eventLayerOrder,
+                    tripTitle: this.tripTitle
+                };
+                try {
+                    const currentHash = TrippenGistSync.calculateHash({ data: JSON.parse(JSON.stringify(snapshot)) });
+                    const baseline = TrippenGistSync.state?.lastLocalHash || TrippenGistSync.state?.lastRemoteHash || null;
+                    if (!baseline) return Boolean(currentHash);
+                    return currentHash !== baseline;
+                } catch {
+                    return TrippenGistSync.hasChanged === true;
+                }
+            }
         });
         this.updateSlotHeight();
 
