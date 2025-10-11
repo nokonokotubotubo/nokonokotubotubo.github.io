@@ -302,7 +302,7 @@ const TrippenGistSync = {
     },
 
     markChanged() {
-        const data = this.getLocalDataSnapshot();
+        const data = readSyncDataFromStorage();
         const currentHash = this.calculateHash({ data });
         const lastLocalHash = this.state.lastLocalHash || this.state.lastRemoteHash || null;
         const lastPendingHash = this.state.lastPendingHash || null;
@@ -320,6 +320,8 @@ const TrippenGistSync = {
         this.pendingChangeId = this.state.pendingChangeId;
         this.state.lastPendingHash = currentHash;
         this.lastPendingHash = currentHash;
+        this.state.lastLocalHash = currentHash;
+        this.lastLocalHash = currentHash;
         this.hasChanged = true;
         this.persistState();
     },
@@ -392,7 +394,7 @@ const TrippenGistSync = {
     },
 
     collectSyncData({ ensureContext = true } = {}) {
-        const data = this.getLocalDataSnapshot();
+        const data = readSyncDataFromStorage();
         if (ensureContext !== false) this.ensurePendingChangeContext();
         const syncTime = getUtcNow();
         const baseVersion = this.state.lastBaseVersion || this.lastRemoteVersion || null;
