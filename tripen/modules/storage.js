@@ -31,7 +31,10 @@ export const saveAppData = ({ events, tripDays, tripTitle, eventLayerOrder, maxZ
     localStorage.setItem(STORAGE_KEYS.days, JSON.stringify(tripDays));
     localStorage.setItem(STORAGE_KEYS.title, tripTitle);
     saveLayerState(eventLayerOrder, maxZIndex);
-    if (TrippenGistSync.isEnabled) TrippenGistSync.markChanged();
+    if (TrippenGistSync.isEnabled) {
+        TrippenGistSync.markChanged();
+        TrippenGistSync.scheduleImmediateSync?.('save-app-data', 400);
+    }
 };
 
 export const loadAppData = () => {
