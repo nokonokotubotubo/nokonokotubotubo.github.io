@@ -4,7 +4,8 @@
 /** biome-ignore-all lint/suspicious/noGlobalIsNan: 既存ロジックがグローバル isNaN を直接呼び出すため */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: API 互換性のため未使用の引数を保持する必要があるため */
 /** biome-ignore-all lint/correctness/noUnusedVariables: デバッグ用の一時変数を残す必要があるため */
-import TrippenGistSync from './modules/trippenGistSync.js';
+import TrippenGistSyncV1 from './modules/trippenGistSync.js';
+import TrippenGistSyncV2 from './modules/trippenGistSyncV2.js';
 import { saveAppData, loadAppData, saveLayerState, loadLayerState } from './modules/storage.js';
 import { timeStringToMinutes, minutesToTimeString, timeStringToPixels, pixelsToTimeString } from './modules/timeUtils.js';
 import {
@@ -21,6 +22,7 @@ import {
 
 const { createApp } = Vue;
 
+const TrippenGistSync = TrippenGistSyncV2;
 window.TrippenGistSync = TrippenGistSync;
 
 // GitHub Gist同期システム（軽量化版）
@@ -1261,6 +1263,13 @@ const app = createApp({
                     return currentHash !== baseline;
                 } catch {
                     return TrippenGistSync.hasChanged === true;
+                }
+            },
+            onSyncStatus: status => {
+                this.gistSync.isSyncing = status?.status === 'syncing';
+                if (status?.status === 'idle') {
+                    this.gistSync.lastSyncTime = TrippenGistSync.state?.lastSyncedSnapshot?.syncedAt || this.gistSync.lastSyncTime;
+                    this.gistSync.hasError = false;
                 }
             }
         });
