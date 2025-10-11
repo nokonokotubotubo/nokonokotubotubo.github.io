@@ -308,7 +308,6 @@ const TrippenGistSync = {
         const lastPendingHash = this.state.lastPendingHash || null;
 
         if (lastLocalHash && currentHash === lastLocalHash) {
-            if (this.hasChanged) this.resetChanged();
             return;
         }
         if (lastPendingHash && currentHash === lastPendingHash) {
