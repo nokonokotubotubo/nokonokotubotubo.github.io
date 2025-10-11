@@ -1105,6 +1105,8 @@ const app = createApp({
             this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime || this.gistSync.lastSyncTime;
             this.gistSync.hasError = false;
 
+            TrippenGistSync.resetChanged();
+
             if (this.events.length > 0) this.loadWeatherForAllEvents();
 
             if (!silent) {
@@ -1229,6 +1231,15 @@ const app = createApp({
         
         window.addEventListener('resize', this.detectMobile);
         window.app = this;
+        TrippenGistSync.registerHooks({
+            getLocalData: () => ({
+                events: JSON.parse(JSON.stringify(this.events)),
+                days: JSON.parse(JSON.stringify(this.tripDays)),
+                layerOrder: Array.from(this.eventLayerOrder || []),
+                tripTitle: this.tripTitle
+            }),
+            hasUnsavedChanges: () => TrippenGistSync.hasChanged === true
+        });
         this.updateSlotHeight();
 
         const config = TrippenGistSync.loadConfig();
