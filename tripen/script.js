@@ -291,6 +291,9 @@ const app = createApp({
                 this.isDragComplete = true;
                 this.updateEventZIndex(eventData.id);
                 this.saveData();
+                if (TrippenGistSync?.isEnabled) {
+                    TrippenGistSync.manualWriteToCloud?.().catch(() => TrippenGistSync.requestImmediateSync?.('event-drag'));
+                }
                 setTimeout(() => this.isDragComplete = false, 150);
             };
 
@@ -321,6 +324,9 @@ const app = createApp({
                 this.isDragComplete = true;
                 this.updateEventZIndex(eventData.id);
                 this.saveData();
+                if (TrippenGistSync?.isEnabled) {
+                    TrippenGistSync.manualWriteToCloud?.().catch(() => TrippenGistSync.requestImmediateSync?.('event-drag-touch'));
+                }
                 setTimeout(() => this.isDragComplete = false, 150);
             };
 
@@ -673,6 +679,9 @@ const app = createApp({
                 document.removeEventListener(endEvent, endHandler);
                 this.isResizeComplete = true;
                 this.saveData();
+                if (TrippenGistSync?.isEnabled) {
+                    TrippenGistSync.manualWriteToCloud?.().catch(() => TrippenGistSync.requestImmediateSync?.('event-resize'));
+                }
                 setTimeout(() => this.isResizeComplete = false, 150);
             };
             
