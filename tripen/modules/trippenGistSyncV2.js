@@ -33,6 +33,9 @@ const TrippenGistSyncV2 = {
     isEnabled: false,
     isSyncing: false,
     hasError: false,
+    hasPendingChanges: false,
+    lastSyncTime: null,
+    lastReadTime: null,
 
     // ステート
     state: {
@@ -54,6 +57,8 @@ const TrippenGistSyncV2 = {
     // 同期キュー
     syncQueue: Promise.resolve(),
     schedulerTimer: null,
+    periodicTimer: null,
+    periodicIntervalMs: 60000,
 
     /**
      * 内部で API を呼ぶとき共通で使うヘルパー。
@@ -92,6 +97,18 @@ const TrippenGistSyncV2 = {
         throw new Error(message);
     },
 
+    buildGistPayload(snapshot) {
+        return {
+            description: 'Tripen sync data',
+            public: false,
+            files: {
+                'trippen_data.json': {
+                    content: JSON.stringify(snapshot, null, 2)
+                }
+            }
+        };
+    },
+
     async fetchRemoteSnapshot() {
         if (!this.gistId) throw new Error('Gist ID が未設定です');
         const endpoint = `https://api.github.com/gists/${this.gistId}`;
@@ -104,20 +121,31 @@ const TrippenGistSyncV2 = {
     },
 
     async pushSnapshot(snapshot) {
-        if (!this.gistId) throw new Error('Gist ID が未設定です');
-        const endpoint = `https://api.github.com/gists/${this.gistId}`;
-        const body = JSON.stringify({
-            files: {
-                'trippen_data.json': {
-                    content: JSON.stringify(snapshot, null, 2)
-                }
-            }
+        if (!this.token) throw new Error('GitHubトークンが設定されていません');
+        const payload = this.buildGistPayload(snapshot);
+        const body = JSON.stringify(payload);
+
+        if (this.gistId) {
+            const endpoint = `https://api.github.com/gists/${this.gistId}`;
+            const { data, etag } = await this.request(endpoint, {
+                method: 'PATCH',
+                body,
+                etag: this.state.lastRemoteEtag || undefined
+            });
+            return { data, etag, version: data.history?.[0]?.version || null };
+        }
+
+        const createEndpoint = 'https://api.github.com/gists';
+        const { data, etag } = await this.request(createEndpoint, {
+            method: 'POST',
+            body
         });
-        const { data, etag } = await this.request(endpoint, {
-            method: 'PATCH',
-            body,
-            etag: this.state.lastRemoteEtag || undefined
-        });
+
+        if (data?.id) {
+            this.gistId = data.id;
+            this.persistState();
+        }
+
         return { data, etag, version: data.history?.[0]?.version || null };
     },
 
@@ -221,9 +249,14 @@ const TrippenGistSyncV2 = {
         return nextTask;
     },
     markChanged() {
+        const currentLocal = this.hooks.getLocalSnapshot?.();
+        if (currentLocal) {
+            this.state.localSnapshot = currentLocal;
+        }
         this.hasPendingChanges = true;
         this.state.queueRevision += 1;
         this.scheduleImmediateSync('mark-changed');
+        this.persistState();
     },
 
     resetChanged() {
@@ -256,6 +289,7 @@ const TrippenGistSyncV2 = {
 
     async loadFromCloud() {
         if (!this.isEnabled) throw new Error('同期設定が完了していません');
+        if (!this.gistId) throw new Error('Gist ID が設定されていません');
         const remoteState = await this.fetchRemoteSnapshot();
         this.state.lastRemoteEtag = remoteState.etag;
         this.state.lastRemoteVersion = remoteState.version;
@@ -342,7 +376,12 @@ const TrippenGistSyncV2 = {
                 this.lastSyncTime = updatedSnapshot.syncedAt;
                 this.hasPendingChanges = false;
                 this.persistState();
+            } else if (!this.gistId) {
+                // 新規 Gist がまだ作成されておらず、差分もない場合は処理を終了
+                return true;
             }
+
+            if (!this.gistId) return true;
 
             const remoteState = await this.fetchRemoteSnapshot();
             this.state.lastRemoteEtag = remoteState.etag;
@@ -355,7 +394,6 @@ const TrippenGistSyncV2 = {
             this.persistState();
             this.hooks.applySnapshot?.(mergedSnapshot);
             this.hasPendingChanges = false;
-
             return true;
         } finally {
             this.isSyncing = false;
@@ -379,9 +417,9 @@ const TrippenGistSyncV2 = {
     setCredentials(token, gistId) {
         this.token = token?.trim() || null;
         this.gistId = gistId?.trim() || null;
-        this.isEnabled = Boolean(this.token && this.gistId);
+        this.isEnabled = Boolean(this.token);
         this.persistState();
-        if (this.isEnabled) this.initialSync();
+        if (this.isEnabled && this.gistId) this.initialSync();
     },
 
     /**
@@ -395,7 +433,9 @@ const TrippenGistSyncV2 = {
                 lastRemoteEtag: this.state.lastRemoteEtag,
                 lastRemoteVersion: this.state.lastRemoteVersion,
                 lastSyncedSnapshot: this.state.lastSyncedSnapshot,
-                queueRevision: this.state.queueRevision
+                queueRevision: this.state.queueRevision,
+                lastSyncTime: this.lastSyncTime,
+                lastReadTime: this.lastReadTime
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         } catch {
@@ -416,13 +456,15 @@ const TrippenGistSyncV2 = {
             this.state.lastSyncedSnapshot = stored.lastSyncedSnapshot || createEmptySnapshot();
             this.state.localSnapshot = stored.lastSyncedSnapshot || createEmptySnapshot();
             this.state.queueRevision = stored.queueRevision || 0;
-            this.isEnabled = Boolean(this.token && this.gistId);
-            this.lastSyncTime = this.state.lastSyncedSnapshot?.syncedAt || null;
+            this.isEnabled = Boolean(this.token);
+            this.lastSyncTime = stored.lastSyncTime || this.state.lastSyncedSnapshot?.syncedAt || null;
+            this.lastReadTime = stored.lastReadTime || null;
         } catch {
             this.state.lastSyncedSnapshot = createEmptySnapshot();
             this.state.localSnapshot = createEmptySnapshot();
             this.isEnabled = false;
             this.lastSyncTime = null;
+            this.lastReadTime = null;
         }
     },
 
@@ -468,10 +510,5 @@ const TrippenGistSyncV2 = {
         }
     }
 };
-
-TrippenGistSyncV2.loadState();
-if (TrippenGistSyncV2.isEnabled) {
-    TrippenGistSyncV2.initialSync();
-}
 
 export default TrippenGistSyncV2;
