@@ -25,7 +25,15 @@ const defaultState = {
     lastReadTime: null
 };
 
-const getUtcNow = () => new Date().toISOString();
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const toJstIsoString = date => new Date(date.getTime() + JST_OFFSET_MS).toISOString().replace('Z', '+09:00');
+const getJstNow = () => toJstIsoString(new Date());
+const toJstIsoStringFromIso = value => {
+    if (!value) return null;
+    const timestamp = Date.parse(value);
+    if (Number.isNaN(timestamp)) return value;
+    return toJstIsoString(new Date(timestamp));
+};
 
 const generateChangeId = () => {
     try {
@@ -66,7 +74,14 @@ const readSyncDataFromStorage = () => {
 };
 
 const cloneDataSnapshot = source => ({
-    events: normalizeArray(source?.events).map(item => cloneDeep(item)),
+    events: normalizeArray(source?.events).map(item => {
+        const event = cloneDeep(item);
+        if (event && typeof event === 'object') {
+            if (event.startTime) event.startTime = normalizeTimeString(event.startTime);
+            if (event.endTime) event.endTime = normalizeTimeString(event.endTime);
+        }
+        return event;
+    }),
     days: normalizeArray(source?.days).map(item => cloneDeep(item)),
     layerOrder: normalizeArray(source?.layerOrder),
     tripTitle: source?.tripTitle || ''
@@ -108,6 +123,14 @@ const isEqual = (a, b) => {
 };
 
 const normalizeArray = value => (Array.isArray(value) ? value : []);
+const normalizeTimeString = value => {
+    if (typeof value !== 'string') return value;
+    const match = value.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (!match) return value;
+    const hours = Math.max(0, Math.min(23, Number.parseInt(match[1], 10)));
+    const minutes = Math.max(0, Math.min(59, Number.parseInt(match[2], 10)));
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
 
 const buildItemKey = (item, fallbackIndex = 0) => {
     if (!item || typeof item !== 'object') return `static:${fallbackIndex}`;
@@ -160,7 +183,9 @@ const TrippenGistSync = {
 
     hooks: {
         onStatusChange: () => {},
+        onSyncStatus: () => {},
         onConflictDetected: () => {},
+        onRemoteMerge: () => {},
         getLocalData: null,
         hasUnsavedChanges: null
     },
@@ -182,6 +207,10 @@ const TrippenGistSync = {
     setStatus(status) {
         this.status = status;
         this.hooks.onStatusChange?.(status);
+        if (typeof this.hooks.onSyncStatus === 'function') {
+            const payload = typeof status === 'string' ? { status } : status;
+            this.hooks.onSyncStatus(payload);
+        }
     },
 
     persistState() {
@@ -410,7 +439,7 @@ const TrippenGistSync = {
     collectSyncData({ ensureContext = true } = {}) {
         const data = this.getLocalDataSnapshot();
         if (ensureContext !== false) this.ensurePendingChangeContext();
-        const syncTime = getUtcNow();
+        const syncTime = getJstNow();
         const baseVersion = this.state.lastBaseVersion || this.lastRemoteVersion || null;
         const baseHash = this.state.lastBaseHash || this.lastDataHash || null;
         const changeId = this.state.pendingChangeId || null;
@@ -696,7 +725,7 @@ const TrippenGistSync = {
         }
 
         if (!remoteChanged) {
-            const syncTime = getUtcNow();
+            const syncTime = getJstNow();
             const snapshotToPush = {
                 version: localSnapshot.version || '3.1',
                 syncTime,
@@ -729,7 +758,7 @@ const TrippenGistSync = {
 
         const effectiveRemoteSnapshot = remoteSnapshot || {
             version: localSnapshot.version || '3.1',
-            syncTime: remoteUpdatedAt || getUtcNow(),
+            syncTime: remoteUpdatedAt || getJstNow(),
             data: {}
         };
 
@@ -750,7 +779,7 @@ const TrippenGistSync = {
             };
         }
 
-        const mergedSyncTime = getUtcNow();
+        const mergedSyncTime = getJstNow();
         const mergedSnapshot = {
             version: localSnapshot.version || effectiveRemoteSnapshot.version || '3.1',
             syncTime: mergedSyncTime,
@@ -823,8 +852,8 @@ const TrippenGistSync = {
         const remoteUpdatedAt = remoteState?.remoteUpdatedAt || null;
         if (!snapshot) return false;
 
-        const syncTime = snapshot.syncTime || remoteUpdatedAt || getUtcNow();
-        const readTime = getUtcNow();
+        const syncTime = toJstIsoStringFromIso(snapshot?.syncTime) || toJstIsoStringFromIso(remoteUpdatedAt) || getJstNow();
+        const readTime = getJstNow();
 
         this.state.lastRemoteVersion = remoteVersion;
         this.state.lastRemoteHash = remoteHash;
@@ -945,7 +974,7 @@ const TrippenGistSync = {
     },
 
     buildPayload(snapshot) {
-        const now = getUtcNow();
+        const now = getJstNow();
         const baseVersion = snapshot.baseVersion ?? this.state.lastBaseVersion ?? this.lastRemoteVersion ?? null;
         const baseHash = snapshot.baseHash ?? this.state.lastBaseHash ?? this.lastDataHash ?? null;
         const changeId = snapshot.changeId ?? this.state.pendingChangeId ?? null;
@@ -1024,9 +1053,9 @@ const TrippenGistSync = {
 
         const latestCommit = gist.history?.[0] || null;
         const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
-        const remoteUpdatedAt = snapshot?.syncTime || gist.updated_at || getUtcNow();
+        const remoteUpdatedAt = toJstIsoStringFromIso(snapshot?.syncTime) || toJstIsoStringFromIso(gist.updated_at) || getJstNow();
         const remoteHash = snapshot ? this.calculateHash(snapshot) : null;
-        const readTime = getUtcNow();
+        const readTime = getJstNow();
 
         this.state.lastRemoteVersion = remoteVersion;
         this.state.lastRemoteHash = remoteHash;
@@ -1039,6 +1068,7 @@ const TrippenGistSync = {
         this.lastReadTime = readTime;
 
         if (snapshot) {
+            if (snapshot.syncTime) snapshot.syncTime = toJstIsoStringFromIso(snapshot.syncTime) || snapshot.syncTime;
             if (!snapshot.baseVersion) snapshot.baseVersion = remoteVersion;
             if (!snapshot.baseHash) snapshot.baseHash = remoteHash;
         }
@@ -1048,6 +1078,7 @@ const TrippenGistSync = {
 
     async pushSnapshot(snapshot) {
         if (!this.token) throw new Error('GitHubトークンが設定されていません');
+        if (snapshot?.syncTime) snapshot.syncTime = toJstIsoStringFromIso(snapshot.syncTime) || snapshot.syncTime;
         const payload = this.buildPayload(snapshot);
         const body = JSON.stringify(payload);
 
@@ -1062,7 +1093,7 @@ const TrippenGistSync = {
 
         const latestCommit = result.history?.[0] || null;
         const remoteVersion = latestCommit?.version || latestCommit?.commit || result.version || null;
-        const remoteUpdatedAt = result.updated_at || snapshot.syncTime || getUtcNow();
+        const remoteUpdatedAt = toJstIsoStringFromIso(result.updated_at) || toJstIsoStringFromIso(snapshot.syncTime) || getJstNow();
         const remoteHash = this.calculateHash(snapshot);
         const baseSnapshotCopy = cloneDeep(snapshot);
 
@@ -1133,11 +1164,12 @@ const TrippenGistSync = {
             if (!file?.content) throw new Error('Gistにtrippen_data.jsonが存在しません');
 
             const snapshot = JSON.parse(file.content);
+            if (snapshot?.syncTime) snapshot.syncTime = toJstIsoStringFromIso(snapshot.syncTime) || snapshot.syncTime;
             const remoteHash = this.calculateHash(snapshot);
             const latestCommit = gist.history?.[0] || null;
             const remoteVersion = latestCommit?.version || latestCommit?.commit || gist.version || null;
-            const remoteUpdatedAt = snapshot.syncTime || gist.updated_at || getUtcNow();
-            const readTime = getUtcNow();
+            const remoteUpdatedAt = toJstIsoStringFromIso(snapshot.syncTime) || toJstIsoStringFromIso(gist.updated_at) || getJstNow();
+            const readTime = getJstNow();
 
             if (!snapshot.baseVersion) snapshot.baseVersion = remoteVersion;
             if (!snapshot.baseHash) snapshot.baseHash = remoteHash;
@@ -1188,6 +1220,40 @@ const TrippenGistSync = {
         }
     },
 
+    handleRemoteMerge(preparation, remoteState) {
+        const snapshotToApply = preparation?.snapshot
+            ? cloneDeep(preparation.snapshot)
+            : (remoteState?.snapshot ? cloneDeep(remoteState.snapshot) : null);
+        this.setStatus('merging');
+        this.applyRemoteState(remoteState, { silent: true });
+        if (snapshotToApply) {
+            this.applyMergedSnapshot(snapshotToApply, { silent: true });
+        }
+        if (this.immediateSyncTimer) {
+            clearTimeout(this.immediateSyncTimer);
+            this.immediateSyncTimer = null;
+        }
+        const mergedData = this.getLocalDataSnapshot();
+        const mergedHash = this.calculateHash({ data: mergedData });
+        this.ensurePendingChangeContext();
+        this.state.pendingChangeId = generateChangeId();
+        this.pendingChangeId = this.state.pendingChangeId;
+        this.state.lastPendingHash = mergedHash;
+        this.lastPendingHash = mergedHash;
+        this.state.lastLocalHash = mergedHash;
+        this.lastLocalHash = mergedHash;
+        this.state.localRevision = (this.state.localRevision || 0) + 1;
+        this.localRevision = this.state.localRevision;
+        this.hasChanged = true;
+        this.hasError = false;
+        this.persistState();
+        this.hooks.onRemoteMerge?.({
+            snapshot: snapshotToApply,
+            remoteState
+        });
+        this.setStatus('needs-review');
+    },
+
     async manualWriteToCloud(remoteStateInput = null) {
         if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
 
@@ -1209,6 +1275,11 @@ const TrippenGistSync = {
                 window.app?.handleSyncConflict?.(preparation.conflicts);
                 throw new Error('クラウドに新しい変更があります');
             }
+            if (preparation.remoteChanged) {
+                this.handleRemoteMerge(preparation, remoteState);
+                this.hasError = false;
+                return true;
+            }
             if (preparation.shouldSkip) {
                 this.resetChanged();
                 this.state.lastPendingHash = null;
@@ -1218,6 +1289,7 @@ const TrippenGistSync = {
             }
 
             await this.pushSnapshot(preparation.snapshot);
+            this.hasError = false;
 
             if (preparation.needsLocalRefresh) {
                 this.applyMergedSnapshot(preparation.snapshot, { silent: true });
@@ -1270,6 +1342,11 @@ const TrippenGistSync = {
                 this.hasError = true;
                 window.app?.handleSyncConflict?.(preparation.conflicts);
                 return false;
+            }
+            if (preparation.remoteChanged) {
+                this.handleRemoteMerge(preparation, remoteState);
+                this.hasError = false;
+                return true;
             }
             if (preparation.shouldSkip) {
                 this.resetChanged();
