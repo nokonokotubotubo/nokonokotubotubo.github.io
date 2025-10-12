@@ -724,6 +724,10 @@ const TrippenGistSync = {
         if (!remoteChanged && remoteSnapshot && Object.keys(remoteSnapshot.data || {}).length > 0 && !baseVersion) {
             remoteChanged = true;
         }
+        const baseSnapshot = this.lastBaseSnapshot || this.state.lastBaseSnapshot || null;
+        if (remoteChanged && baseSnapshot && isEqual(remoteSnapshot?.data, baseSnapshot.data)) {
+            remoteChanged = false;
+        }
 
         if (!remoteChanged && !localChanged) {
             return {
@@ -759,8 +763,8 @@ const TrippenGistSync = {
             };
         }
 
-        const baseSnapshot = this.lastBaseSnapshot || this.state.lastBaseSnapshot || null;
-        if (!baseSnapshot) {
+        const effectiveBaseSnapshot = baseSnapshot;
+        if (!effectiveBaseSnapshot) {
             return {
                 conflict: true,
                 conflicts: [{ type: 'missing-base', message: 'ローカルの基準データが見つからないため自動マージできません。' }],
@@ -776,7 +780,7 @@ const TrippenGistSync = {
         };
 
         const mergeResult = this.mergeSnapshots({
-            baseSnapshot,
+            baseSnapshot: effectiveBaseSnapshot,
             localSnapshot,
             remoteSnapshot: effectiveRemoteSnapshot
         });
