@@ -99,6 +99,7 @@ const TrippenGistSyncV2 = {
         const file = data.files?.['trippen_data.json'];
         if (!file?.content) throw new Error('Gist に trippen_data.json が存在しません');
         const snapshot = JSON.parse(file.content);
+        this.lastReadTime = new Date().toISOString();
         return { snapshot, etag, version: data.history?.[0]?.version || null };
     },
 
@@ -219,6 +220,97 @@ const TrippenGistSyncV2 = {
         this.syncQueue = nextTask;
         return nextTask;
     },
+    markChanged() {
+        this.hasPendingChanges = true;
+        this.state.queueRevision += 1;
+        this.scheduleImmediateSync('mark-changed');
+    },
+
+    resetChanged() {
+        this.hasPendingChanges = false;
+        const snapshot = this.hooks.getLocalSnapshot?.() || null;
+        if (snapshot) {
+            this.state.lastSyncedSnapshot = snapshot;
+            this.state.localSnapshot = snapshot;
+            this.persistState();
+        }
+    },
+
+    requestImmediateSync(reason = 'immediate') {
+        this.enqueueSync(reason).catch(error => {
+            console.error(`TrippenGistSyncV2.requestImmediateSync failed (${reason})`, error);
+        });
+    },
+
+    scheduleImmediateSync(reason = 'scheduled', delay = 400) {
+        if (this.schedulerTimer) clearTimeout(this.schedulerTimer);
+        this.schedulerTimer = setTimeout(() => {
+            this.schedulerTimer = null;
+            this.requestImmediateSync(reason);
+        }, delay);
+    },
+
+    manualWriteToCloud() {
+        return this.enqueueSync('manual');
+    },
+
+    async loadFromCloud() {
+        if (!this.isEnabled) throw new Error('同期設定が完了していません');
+        const remoteState = await this.fetchRemoteSnapshot();
+        this.state.lastRemoteEtag = remoteState.etag;
+        this.state.lastRemoteVersion = remoteState.version;
+        const snapshot = remoteState.snapshot;
+        if (!snapshot.syncedAt) snapshot.syncedAt = new Date().toISOString();
+        this.state.lastSyncedSnapshot = snapshot;
+        this.state.localSnapshot = snapshot;
+        this.lastSyncTime = snapshot.syncedAt;
+        this.lastReadTime = new Date().toISOString();
+        this.hasPendingChanges = false;
+        this.persistState();
+        return snapshot;
+    },
+
+    async initialAutoLoad() {
+        try {
+            const snapshot = await this.loadFromCloud();
+            this.hooks.applySnapshot?.(snapshot);
+            return snapshot;
+        } catch (error) {
+            this.hasError = true;
+            throw error;
+        }
+    },
+
+    startPeriodicSync() {
+        this.stopPeriodicSync();
+        if (!this.isEnabled) return;
+        this.periodicTimer = setInterval(() => {
+            this.enqueueSync('periodic');
+        }, this.periodicIntervalMs);
+    },
+
+    stopPeriodicSync() {
+        if (this.periodicTimer) {
+            clearInterval(this.periodicTimer);
+            this.periodicTimer = null;
+        }
+    },
+
+    loadConfig() {
+        if (!this.isEnabled) return null;
+        return {
+            token: this.token,
+            gistId: this.gistId
+        };
+    },
+
+    calculateHash(snapshot) {
+        try {
+            return JSON.stringify(snapshot.data || {});
+        } catch {
+            return '';
+        }
+    },
 
     /**
      * 実際の同期処理（差分検出→プッシュ→プル）
@@ -247,6 +339,8 @@ const TrippenGistSyncV2 = {
                 this.state.lastRemoteVersion = pushResult.version;
                 this.state.lastSyncedSnapshot = updatedSnapshot;
                 this.state.localSnapshot = updatedSnapshot;
+                this.lastSyncTime = updatedSnapshot.syncedAt;
+                this.hasPendingChanges = false;
                 this.persistState();
             }
 
@@ -257,8 +351,10 @@ const TrippenGistSyncV2 = {
             const mergedSnapshot = this.mergeRemoteChanges(this.state.lastSyncedSnapshot, remoteState.snapshot);
             this.state.lastSyncedSnapshot = mergedSnapshot;
             this.state.localSnapshot = mergedSnapshot;
+            this.lastSyncTime = mergedSnapshot.syncedAt;
             this.persistState();
             this.hooks.applySnapshot?.(mergedSnapshot);
+            this.hasPendingChanges = false;
 
             return true;
         } finally {
@@ -270,13 +366,8 @@ const TrippenGistSyncV2 = {
     async initialSync() {
         if (!this.isEnabled) return;
         try {
-            const remoteState = await this.fetchRemoteSnapshot();
-            this.state.lastRemoteEtag = remoteState.etag;
-            this.state.lastRemoteVersion = remoteState.version;
-            this.state.lastSyncedSnapshot = remoteState.snapshot;
-            this.state.localSnapshot = remoteState.snapshot;
-            this.persistState();
-            this.hooks.applySnapshot?.(remoteState.snapshot);
+            const snapshot = await this.loadFromCloud();
+            this.hooks.applySnapshot?.(snapshot);
         } catch (error) {
             console.error('TrippenGistSyncV2.initialSync failed', error);
         }
@@ -290,6 +381,7 @@ const TrippenGistSyncV2 = {
         this.gistId = gistId?.trim() || null;
         this.isEnabled = Boolean(this.token && this.gistId);
         this.persistState();
+        if (this.isEnabled) this.initialSync();
     },
 
     /**
@@ -299,6 +391,7 @@ const TrippenGistSyncV2 = {
         try {
             const payload = {
                 gistId: this.gistId,
+                token: this.token,
                 lastRemoteEtag: this.state.lastRemoteEtag,
                 lastRemoteVersion: this.state.lastRemoteVersion,
                 lastSyncedSnapshot: this.state.lastSyncedSnapshot,
@@ -317,11 +410,13 @@ const TrippenGistSyncV2 = {
         try {
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
             this.gistId = stored.gistId || this.gistId;
+            this.token = stored.token || this.token;
             this.state.lastRemoteEtag = stored.lastRemoteEtag || null;
             this.state.lastRemoteVersion = stored.lastRemoteVersion || null;
             this.state.lastSyncedSnapshot = stored.lastSyncedSnapshot || createEmptySnapshot();
             this.state.localSnapshot = stored.lastSyncedSnapshot || createEmptySnapshot();
             this.state.queueRevision = stored.queueRevision || 0;
+            this.isEnabled = Boolean(this.token && this.gistId);
         } catch {
             this.state.lastSyncedSnapshot = createEmptySnapshot();
             this.state.localSnapshot = createEmptySnapshot();
@@ -344,6 +439,14 @@ const TrippenGistSyncV2 = {
             lastRemoteVersion: null,
             queueRevision: 0
         };
+        this.hasPendingChanges = false;
+        this.lastSyncTime = null;
+        this.lastReadTime = null;
+        if (this.schedulerTimer) {
+            clearTimeout(this.schedulerTimer);
+            this.schedulerTimer = null;
+        }
+        this.stopPeriodicSync();
     },
 
     /**
@@ -351,11 +454,15 @@ const TrippenGistSyncV2 = {
      * 既存アプリとのインターフェース継続のためダミー提供。
      */
     start() {
-        // TODO: ポーリングの起動をここで実装予定
+        this.startPeriodicSync();
     },
 
     stop() {
-        // TODO: ポーリング停止処理
+        this.stopPeriodicSync();
+        if (this.schedulerTimer) {
+            clearTimeout(this.schedulerTimer);
+            this.schedulerTimer = null;
+        }
     }
 };
 
