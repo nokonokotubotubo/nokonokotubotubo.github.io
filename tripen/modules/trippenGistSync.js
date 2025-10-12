@@ -113,6 +113,17 @@ const cloneDeep = value => {
     }
 };
 
+const stableStringify = value => {
+    if (value === null || value === undefined) return 'null';
+    if (typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) {
+        return `[${value.map(item => stableStringify(item)).join(',')}]`;
+    }
+    const keys = Object.keys(value).sort();
+    const serializedEntries = keys.map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`);
+    return `{${serializedEntries.join(',')}}`;
+};
+
 const isEqual = (a, b) => {
     if (a === b) return true;
     try {
@@ -127,8 +138,11 @@ const normalizeTimeString = value => {
     if (typeof value !== 'string') return value;
     const match = value.match(/^(\d{1,2}):(\d{1,2})$/);
     if (!match) return value;
-    const hours = Math.max(0, Math.min(23, Number.parseInt(match[1], 10)));
-    const minutes = Math.max(0, Math.min(59, Number.parseInt(match[2], 10)));
+    const rawHours = Number.parseInt(match[1], 10);
+    const rawMinutes = Number.parseInt(match[2], 10);
+    if (rawHours === 24 && rawMinutes === 0) return '24:00';
+    const hours = Math.max(0, Math.min(23, rawHours));
+    const minutes = Math.max(0, Math.min(59, rawMinutes));
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -457,8 +471,7 @@ const TrippenGistSync = {
     calculateHash(snapshot) {
         try {
             const payload = snapshot?.data || {};
-            const orderedKeys = Object.keys(payload).sort();
-            const jsonString = JSON.stringify(payload, orderedKeys);
+            const jsonString = stableStringify(payload);
             let hash = 0;
             for (let i = 0; i < jsonString.length; i += 1) {
                 const chr = jsonString.charCodeAt(i);
