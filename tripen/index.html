@@ -314,7 +314,7 @@
 
 <div class="sync-status" :class="{ disabled: !gistSync.isEnabled, error: gistSync.hasError }">
 <div v-if="gistSync.isEnabled">
-<strong>同期状態:</strong> 有効（変更フラグ管理版・手動書き込みボタンヘッダー移動版）<br>
+<strong>同期状態:</strong> 有効<br>
 <span v-if="gistSync.gistId">Gist ID: {{ gistSync.gistId }}</span><br>
 <span v-if="gistSync.lastReadTime">最終読込: {{ formatSyncTime(gistSync.lastReadTime) }}</span><br>
 <span v-if="gistSync.lastSyncTime">最終書込: {{ formatSyncTime(gistSync.lastSyncTime) }}</span>
