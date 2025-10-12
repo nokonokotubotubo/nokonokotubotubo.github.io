@@ -4,7 +4,7 @@
 /** biome-ignore-all lint/suspicious/noGlobalIsNan: 既存ロジックがグローバル isNaN を直接呼び出すため */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: API 互換性のため未使用の引数を保持する必要があるため */
 /** biome-ignore-all lint/correctness/noUnusedVariables: デバッグ用の一時変数を残す必要があるため */
-import TrippenGistSyncV2 from './modules/trippenGistSyncV2.js';
+import TrippenGistSync from './modules/trippenGistSync.js';
 import { saveAppData, loadAppData, saveLayerState, loadLayerState } from './modules/storage.js';
 import { timeStringToMinutes, minutesToTimeString, timeStringToPixels, pixelsToTimeString } from './modules/timeUtils.js';
 import {
@@ -21,13 +21,8 @@ import {
 
 const { createApp } = Vue;
 
-const TrippenGistSync = TrippenGistSyncV2;
 window.TrippenGistSync = TrippenGistSync;
 
-TrippenGistSync.loadState();
-if (TrippenGistSync.isEnabled && TrippenGistSync.gistId) {
-    TrippenGistSync.initialSync();
-}
 
 // GitHub Gist同期システム（軽量化版）
 const app = createApp({
@@ -1152,6 +1147,9 @@ const app = createApp({
         },
 
         handleSyncConflict() { this.showConflictModal = true; },
+        handleRemoteMergeNotice() {
+            alert('他の端末で更新された内容を反映しました。内容を確認してから再度保存してください。');
+        },
         closeConflictModal() { this.showConflictModal = false; },
         
         async forceLoadFromCloud() {
@@ -1262,18 +1260,19 @@ const app = createApp({
                 };
                 try {
                     const currentHash = TrippenGistSync.calculateHash({ data: JSON.parse(JSON.stringify(snapshot)) });
-                    const baselineSnapshot = TrippenGistSync.state?.lastSyncedSnapshot || null;
-                    const baselineHash = baselineSnapshot ? TrippenGistSync.calculateHash(baselineSnapshot) : null;
-                    if (!baselineHash) return Boolean(currentHash);
-                    return currentHash !== baselineHash;
+                    const baseline = TrippenGistSync.state?.lastBaseHash || TrippenGistSync.state?.lastRemoteHash || null;
+                    if (!baseline) return Boolean(currentHash);
+                    return currentHash !== baseline;
                 } catch {
-                    return TrippenGistSync.hasPendingChanges === true;
+                    return TrippenGistSync.hasChanged === true;
                 }
             },
+            onRemoteMerge: () => this.handleRemoteMergeNotice(),
             onSyncStatus: status => {
-                this.gistSync.isSyncing = status?.status === 'syncing';
-                if (status?.status === 'idle') {
-                    this.gistSync.lastSyncTime = TrippenGistSync.state?.lastSyncedSnapshot?.syncedAt || this.gistSync.lastSyncTime;
+                const normalized = typeof status === 'string' ? { status } : (status || {});
+                this.gistSync.isSyncing = normalized.status === 'syncing';
+                if (normalized.status === 'idle') {
+                    this.gistSync.lastSyncTime = TrippenGistSync.lastSyncTime || this.gistSync.lastSyncTime;
                     this.gistSync.lastReadTime = TrippenGistSync.lastReadTime || this.gistSync.lastReadTime;
                     this.gistSync.hasError = false;
                 }
