@@ -4,7 +4,6 @@
 /** biome-ignore-all lint/suspicious/noGlobalIsNan: 既存ロジックがグローバル isNaN を直接呼び出すため */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: API 互換性のため未使用の引数を保持する必要があるため */
 /** biome-ignore-all lint/correctness/noUnusedVariables: デバッグ用の一時変数を残す必要があるため */
-import TrippenGistSyncV1 from './modules/trippenGistSync.js';
 import TrippenGistSyncV2 from './modules/trippenGistSyncV2.js';
 import { saveAppData, loadAppData, saveLayerState, loadLayerState } from './modules/storage.js';
 import { timeStringToMinutes, minutesToTimeString, timeStringToPixels, pixelsToTimeString } from './modules/timeUtils.js';
@@ -1258,17 +1257,19 @@ const app = createApp({
                 };
                 try {
                     const currentHash = TrippenGistSync.calculateHash({ data: JSON.parse(JSON.stringify(snapshot)) });
-                    const baseline = TrippenGistSync.state?.lastBaseHash || TrippenGistSync.state?.lastRemoteHash || null;
-                    if (!baseline) return Boolean(currentHash);
-                    return currentHash !== baseline;
+                    const baselineSnapshot = TrippenGistSync.state?.lastSyncedSnapshot || null;
+                    const baselineHash = baselineSnapshot ? TrippenGistSync.calculateHash(baselineSnapshot) : null;
+                    if (!baselineHash) return Boolean(currentHash);
+                    return currentHash !== baselineHash;
                 } catch {
-                    return TrippenGistSync.hasChanged === true;
+                    return TrippenGistSync.hasPendingChanges === true;
                 }
             },
             onSyncStatus: status => {
                 this.gistSync.isSyncing = status?.status === 'syncing';
                 if (status?.status === 'idle') {
                     this.gistSync.lastSyncTime = TrippenGistSync.state?.lastSyncedSnapshot?.syncedAt || this.gistSync.lastSyncTime;
+                    this.gistSync.lastReadTime = TrippenGistSync.lastReadTime || this.gistSync.lastReadTime;
                     this.gistSync.hasError = false;
                 }
             }
