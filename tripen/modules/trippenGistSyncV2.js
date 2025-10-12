@@ -417,9 +417,12 @@ const TrippenGistSyncV2 = {
             this.state.localSnapshot = stored.lastSyncedSnapshot || createEmptySnapshot();
             this.state.queueRevision = stored.queueRevision || 0;
             this.isEnabled = Boolean(this.token && this.gistId);
+            this.lastSyncTime = this.state.lastSyncedSnapshot?.syncedAt || null;
         } catch {
             this.state.lastSyncedSnapshot = createEmptySnapshot();
             this.state.localSnapshot = createEmptySnapshot();
+            this.isEnabled = false;
+            this.lastSyncTime = null;
         }
     },
 
@@ -465,5 +468,10 @@ const TrippenGistSyncV2 = {
         }
     }
 };
+
+TrippenGistSyncV2.loadState();
+if (TrippenGistSyncV2.isEnabled) {
+    TrippenGistSyncV2.initialSync();
+}
 
 export default TrippenGistSyncV2;
