@@ -24,6 +24,11 @@ const { createApp } = Vue;
 const TrippenGistSync = TrippenGistSyncV2;
 window.TrippenGistSync = TrippenGistSync;
 
+TrippenGistSync.loadState();
+if (TrippenGistSync.isEnabled && TrippenGistSync.gistId) {
+    TrippenGistSync.initialSync();
+}
+
 // GitHub Gist同期システム（軽量化版）
 const app = createApp({
     data: () => ({
