@@ -23,6 +23,9 @@ const { createApp } = Vue;
 
 window.TrippenGistSync = TrippenGistSync;
 
+const TOUCH_TAP_DELAY_MS = 150;
+const TOUCH_DRAG_DELAY_MS = 150;
+
 
 // GitHub Gist同期システム（軽量化版）
 const app = createApp({
@@ -40,6 +43,7 @@ const app = createApp({
         showContextMenu: false, contextMenuStyle: {}, pasteTargetTime: null,
         isMobile: false, hasUserActivated: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
         longPressTimer: null, longPressExecuted: false,
+        dragWarmupTimer: null,
         draggingEvent: null,
         isDragComplete: false, isResizeComplete: false, dragStarted: false,
         longPressEventData: null, longPressEvent: null, readyToMoveEventId: null,
@@ -419,7 +423,29 @@ const app = createApp({
                 if (!event.target.closest('.event-action-btn, .resize-handle')) {
                     event.preventDefault();
                     event.stopPropagation();
-                    this.startEventDragTouch(event, eventData);
+                    if (this.dragWarmupTimer) {
+                        clearTimeout(this.dragWarmupTimer);
+                        this.dragWarmupTimer = null;
+                    }
+                    let onTouchFinalize;
+                    const cleanupWarmup = () => {
+                        if (this.dragWarmupTimer) {
+                            clearTimeout(this.dragWarmupTimer);
+                            this.dragWarmupTimer = null;
+                        }
+                        document.removeEventListener('touchend', onTouchFinalize);
+                        document.removeEventListener('touchcancel', onTouchFinalize);
+                    };
+                    const startDragAfterDelay = () => {
+                        cleanupWarmup();
+                        this.startEventDragTouch(event, eventData);
+                    };
+                    onTouchFinalize = () => {
+                        cleanupWarmup();
+                    };
+                    this.dragWarmupTimer = setTimeout(startDragAfterDelay, TOUCH_DRAG_DELAY_MS);
+                    document.addEventListener('touchend', onTouchFinalize, { passive: true });
+                    document.addEventListener('touchcancel', onTouchFinalize, { passive: true });
                 }
             } else {
                 if (!event.target.closest('.event-action-btn, .resize-handle, .weather-emoji-top-left')) {
@@ -457,12 +483,16 @@ const app = createApp({
                     const handleTouchEnd = () => {
                         clearTimeout(this.longPressTimer);
                         this.longPressTimer = null;
+                        if (this.dragWarmupTimer) {
+                            clearTimeout(this.dragWarmupTimer);
+                            this.dragWarmupTimer = null;
+                        }
                         const touchDuration = Date.now() - this.touchStartTime;
                         
                         if (this.longPressExecuted && !this.dragStarted) {
                             this.editModeEvent = eventData;
                             this.readyToMoveEventId = null;
-                        } else if (!this.longPressExecuted && touchDuration < 500) {
+                        } else if (!this.longPressExecuted && touchDuration >= TOUCH_TAP_DELAY_MS && touchDuration < 500) {
                             this.openDetailModal(eventData);
                         }
                         
