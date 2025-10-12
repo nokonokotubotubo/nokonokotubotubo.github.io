@@ -1122,7 +1122,7 @@ const app = createApp({
             if (!silent) {
                 const eventCount = events?.length || 0;
                 const dayCount = days?.length || 0;
-                alert(`クラウドからデータを読み込みました\\n日程: ${dayCount}日分\\n予定: ${eventCount}件`);
+                alert(`クラウドからデータを読み込みました\n日程: ${dayCount}日分\n予定: ${eventCount}件`);
             }
         },
 
