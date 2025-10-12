@@ -24,7 +24,8 @@ const { createApp } = Vue;
 window.TrippenGistSync = TrippenGistSync;
 
 const TOUCH_TAP_DELAY_MS = 150;
-const TOUCH_DRAG_DELAY_MS = 150;
+const LONG_PRESS_DELAY_MS = 500;
+const TOUCH_MOVE_CANCEL_THRESHOLD_PX = 12;
 
 
 // GitHub Gist同期システム（軽量化版）
@@ -43,7 +44,6 @@ const app = createApp({
         showContextMenu: false, contextMenuStyle: {}, pasteTargetTime: null,
         isMobile: false, hasUserActivated: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
         longPressTimer: null, longPressExecuted: false,
-        dragWarmupTimer: null,
         draggingEvent: null,
         isDragComplete: false, isResizeComplete: false, dragStarted: false,
         longPressEventData: null, longPressEvent: null, readyToMoveEventId: null,
@@ -418,96 +418,98 @@ const app = createApp({
 
         handleEventTouchStart(event, eventData) {
             if (this.isDragComplete || this.draggingEvent) return;
-            
-            if (this.editModeEvent?.id === eventData.id) {
-                if (!event.target.closest('.event-action-btn, .resize-handle')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (this.dragWarmupTimer) {
-                        clearTimeout(this.dragWarmupTimer);
-                        this.dragWarmupTimer = null;
-                    }
-                    let onTouchFinalize;
-                    const cleanupWarmup = () => {
-                        if (this.dragWarmupTimer) {
-                            clearTimeout(this.dragWarmupTimer);
-                            this.dragWarmupTimer = null;
-                        }
-                        document.removeEventListener('touchend', onTouchFinalize);
-                        document.removeEventListener('touchcancel', onTouchFinalize);
-                    };
-                    const startDragAfterDelay = () => {
-                        cleanupWarmup();
-                        this.startEventDragTouch(event, eventData);
-                    };
-                    onTouchFinalize = () => {
-                        cleanupWarmup();
-                    };
-                    this.dragWarmupTimer = setTimeout(startDragAfterDelay, TOUCH_DRAG_DELAY_MS);
-                    document.addEventListener('touchend', onTouchFinalize, { passive: true });
-                    document.addEventListener('touchcancel', onTouchFinalize, { passive: true });
-                }
-            } else {
-                if (!event.target.closest('.event-action-btn, .resize-handle, .weather-emoji-top-left')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.touchStartTime = Date.now();
-                    this.longPressExecuted = false;
-                    this.dragStarted = false;
-                    this.longPressEventData = eventData;
-                    this.longPressEvent = event;
-                    this.readyToMoveEventId = null;
-                    this.touchStartPosition = { 
-                        x: event.touches[0].clientX, 
-                        y: event.touches[0].clientY 
-                    };
-                    
-                    this.longPressTimer = setTimeout(() => {
-                        this.longPressExecuted = true;
-                        this.readyToMoveEventId = eventData.id;
-                        this.safeVibrate(50);
-                    }, 500);
+            if (event.target.closest('.event-action-btn, .resize-handle, .weather-emoji-top-left')) return;
 
-                    const handleTouchMove = e => {
-                        if (!this.longPressExecuted) return;
-                        const deltaX = Math.abs(e.touches[0].clientX - this.touchStartPosition.x);
-                        const deltaY = Math.abs(e.touches[0].clientY - this.touchStartPosition.y);
-                        if ((deltaX > 5 || deltaY > 5) && !this.dragStarted) {
-                            this.dragStarted = true;
-                            this.editModeEvent = eventData;
-                            this.readyToMoveEventId = null;
-                            this.startEventDragTouch(this.longPressEvent, eventData);
-                        }
-                    };
+            this.touchStartTime = Date.now();
+            this.longPressExecuted = false;
+            this.dragStarted = false;
+            this.longPressEventData = eventData;
+            this.longPressEvent = event;
+            this.readyToMoveEventId = null;
+            this.touchStartPosition = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
 
-                    const handleTouchEnd = () => {
-                        clearTimeout(this.longPressTimer);
-                        this.longPressTimer = null;
-                        if (this.dragWarmupTimer) {
-                            clearTimeout(this.dragWarmupTimer);
-                            this.dragWarmupTimer = null;
-                        }
-                        const touchDuration = Date.now() - this.touchStartTime;
-                        
-                        if (this.longPressExecuted && !this.dragStarted) {
-                            this.editModeEvent = eventData;
-                            this.readyToMoveEventId = null;
-                        } else if (!this.longPressExecuted && touchDuration >= TOUCH_TAP_DELAY_MS && touchDuration < 500) {
-                            this.openDetailModal(eventData);
-                        }
-                        
-                        this.dragStarted = false;
-                        this.longPressEventData = null;
-                        this.longPressEvent = null;
-                        this.readyToMoveEventId = null;
-                        document.removeEventListener('touchmove', handleTouchMove);
-                        document.removeEventListener('touchend', handleTouchEnd);
-                    };
-
-                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-                }
+            if (this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+                this.longPressTimer = null;
             }
+
+            this.longPressTimer = setTimeout(() => {
+                this.longPressExecuted = true;
+                this.readyToMoveEventId = eventData.id;
+                this.safeVibrate(50);
+            }, LONG_PRESS_DELAY_MS);
+
+            const cancelLongPress = () => {
+                if (this.longPressTimer) {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                }
+            };
+
+            let handleTouchMove;
+            let handleTouchEnd;
+            let handleTouchCancel;
+
+            const cleanup = () => {
+                cancelLongPress();
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+                document.removeEventListener('touchcancel', handleTouchCancel);
+                this.longPressEventData = null;
+                this.longPressEvent = null;
+                this.readyToMoveEventId = null;
+            };
+
+            handleTouchMove = e => {
+                const current = e.touches[0];
+                const deltaX = Math.abs(current.clientX - this.touchStartPosition.x);
+                const deltaY = Math.abs(current.clientY - this.touchStartPosition.y);
+
+                if (!this.longPressExecuted) {
+                    if (deltaX > TOUCH_MOVE_CANCEL_THRESHOLD_PX || deltaY > TOUCH_MOVE_CANCEL_THRESHOLD_PX) {
+                        cleanup();
+                        this.dragStarted = false;
+                        this.longPressExecuted = false;
+                    }
+                    return;
+                }
+
+                if (!this.dragStarted) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.dragStarted = true;
+                    this.editModeEvent = eventData;
+                    cleanup();
+                    this.startEventDragTouch(e, eventData);
+                }
+            };
+
+            handleTouchEnd = () => {
+                const touchDuration = Date.now() - this.touchStartTime;
+                const wasLongPress = this.longPressExecuted;
+                const wasDragged = this.dragStarted;
+                cleanup();
+                this.dragStarted = false;
+                if (wasLongPress && !wasDragged) {
+                    this.editModeEvent = eventData;
+                } else if (!wasLongPress && touchDuration >= TOUCH_TAP_DELAY_MS) {
+                    this.openDetailModal(eventData);
+                }
+                this.longPressExecuted = false;
+            };
+
+            handleTouchCancel = () => {
+                cleanup();
+                this.dragStarted = false;
+                this.longPressExecuted = false;
+            };
+
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+            document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
         },
 
         handleCutButtonClick(event, eventData) {
