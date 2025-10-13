@@ -40,7 +40,7 @@ const app = createApp({
         timeSlots: Array.from({length: 20}, (_, i) => i + 4),
         slotPixelHeight: 60,
         timelineHeight: 1200,
-        events: [], editModeEvent: null, clipboardEvent: null,
+        events: [], editModeEvent: null, clipboardEvent: null, clipboardMode: null,
         showContextMenu: false, contextMenuStyle: {}, pasteTargetTime: null,
         isMobile: false, hasUserActivated: false, touchStartTime: 0, touchStartPosition: { x: 0, y: 0 },
         longPressTimer: null, longPressExecuted: false,
@@ -512,49 +512,81 @@ const app = createApp({
             document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
         },
 
+        handleCopyButtonClick(event, eventData) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.copyEvent(eventData);
+        },
         handleCutButtonClick(event, eventData) {
             event.preventDefault();
             event.stopPropagation();
             this.cutEvent(eventData);
         },
 
-        cutEvent(event) {
-            try {
-                this.clipboardEvent = { ...event };
-                const eventIndex = this.events.findIndex(e => e.id === event.id);
-                if (eventIndex !== -1) {
-                    this.events.splice(eventIndex, 1);
-                    this.editModeEvent = null;
-                    this.saveData();
-                    this.safeVibrate([100, 50, 100]);
-                }
-            } catch (error) {
-                console.error('予定の切り取り中にエラーが発生しました:', error);
-                alert('予定の切り取りに失敗しました。');
+        copyEvent(event) {
+            if (!event) {
+                alert('コピーする予定が見つかりません。');
+                return;
             }
+
+            this.clipboardEvent = { ...event };
+            this.clipboardMode = 'copy';
+            this.safeVibrate(50);
+        },
+        cutEvent(event) {
+            if (!event) {
+                alert('切り取り対象の予定が見つかりません。');
+                return;
+            }
+
+            this.clipboardEvent = { ...event };
+            this.clipboardMode = 'cut';
+
+            const eventIndex = this.events.findIndex(e => e.id === event.id);
+            if (eventIndex === -1) {
+                this.clipboardEvent = null;
+                this.clipboardMode = null;
+                alert('予定が見つかりませんでした。');
+                return;
+            }
+
+            this.events.splice(eventIndex, 1);
+            this.editModeEvent = null;
+            this.saveData();
+            this.safeVibrate([100, 50, 100]);
         },
 
         pasteFromContext() {
-            if (!this.clipboardEvent) return;
-            
+            if (!this.clipboardEvent) {
+                return;
+            }
+
+            const isCutClipboard = this.clipboardMode === 'cut';
+            const sourceEvent = this.clipboardEvent;
+
             const newEvent = {
-                ...this.clipboardEvent,
+                ...sourceEvent,
                 id: Date.now() + Math.random(),
                 dayIndex: this.activeDay
             };
-            
+
             if (this.pasteTargetTime) {
-                const duration = this.timeToMinutes(this.clipboardEvent.endTime) - 
-                               this.timeToMinutes(this.clipboardEvent.startTime);
+                const duration = this.timeToMinutes(sourceEvent.endTime) -
+                    this.timeToMinutes(sourceEvent.startTime);
                 const startMinutes = this.timeToMinutes(this.pasteTargetTime);
                 const endMinutes = Math.min(startMinutes + duration, 1440);
-                
+
                 newEvent.startTime = this.pasteTargetTime;
                 newEvent.endTime = this.minutesToTime(endMinutes);
             }
-            
+
             this.events.push(newEvent);
-            this.clipboardEvent = null;
+
+            if (isCutClipboard) {
+                this.clipboardEvent = null;
+                this.clipboardMode = null;
+            }
+
             this.hideContextMenu();
             this.saveData();
         },

@@ -135,9 +135,12 @@
 {{ getEventWeatherEmoji(event) }}
 </span>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
-<button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
-<i class="fas fa-cut"></i>
-</button>
+        <button class="event-action-btn copy" @click="handleCopyButtonClick($event, event)" @mousedown.stop title="コピー">
+          <i class="fas fa-copy"></i>
+        </button>
+        <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @mousedown.stop title="切り取り">
+          <i class="fas fa-cut"></i>
+        </button>
 </div>
 <div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @mousedown="startResize($event, event, 'top')"></div>
 <div class="resize-handle bottom" v-if="editModeEvent && editModeEvent.id === event.id" @mousedown="startResize($event, event, 'bottom')"></div>
@@ -200,9 +203,12 @@
 {{ getEventWeatherEmoji(event) }}
 </span>
 <div class="event-actions" v-if="editModeEvent && editModeEvent.id === event.id">
-<button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @touchstart.stop title="切り取り">
-<i class="fas fa-cut"></i>
-</button>
+        <button class="event-action-btn copy" @click="handleCopyButtonClick($event, event)" @touchstart.stop title="コピー">
+          <i class="fas fa-copy"></i>
+        </button>
+        <button class="event-action-btn cut" @click="handleCutButtonClick($event, event)" @touchstart.stop title="切り取り">
+          <i class="fas fa-cut"></i>
+        </button>
 </div>
 <div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @touchstart="startResizeTouch($event, event, 'top')"></div>
 <div class="resize-handle bottom" v-if="editModeEvent && editModeEvent.id === event.id" @touchstart="startResizeTouch($event, event, 'bottom')"></div>
