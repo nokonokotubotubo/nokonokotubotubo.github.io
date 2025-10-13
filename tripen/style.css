@@ -127,6 +127,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 .event-category-custom{background:#FECA57}
 .event-actions{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:20}
 .event-action-btn{width:30px;height:30px;border-radius:8px;border:none;color:white;font-size:0.8rem;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.event-action-btn.copy{background:#4D96FF;border:2px solid #fff}
+.event-action-btn.copy:hover{background:#3C7CE0;transform:scale(1.1)}
 .event-action-btn.cut{background:#FF6B6B;border:2px solid #fff}
 .event-action-btn.cut:hover{background:#FF5252;transform:scale(1.1)}
 .context-menu{position:fixed;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:2000;opacity:0;visibility:hidden;transform:scale(0.8);transition:var(--transition);min-width:150px}

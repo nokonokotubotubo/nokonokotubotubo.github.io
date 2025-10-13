@@ -531,6 +531,7 @@ const app = createApp({
 
             this.clipboardEvent = { ...event };
             this.clipboardMode = 'copy';
+            this.editModeEvent = null;
             this.safeVibrate(50);
         },
         cutEvent(event) {
