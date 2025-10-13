@@ -1058,7 +1058,6 @@ const app = createApp({
                         );
                         this.applyCloudData(remoteSnapshot, { silent: !hasRemoteContent });
                         remoteApplied = true;
-                        if (hasRemoteContent) alert('クラウドの最新データを読み込みました。');
                     }
                 } catch (error) {
                     console.warn('初回クラウド読み込みに失敗しました', error);
