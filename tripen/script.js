@@ -522,6 +522,11 @@ const app = createApp({
             event.stopPropagation();
             this.cutEvent(eventData);
         },
+        handleDeleteButtonClick(event, eventData) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.deleteEvent(eventData);
+        },
 
         copyEvent(event) {
             if (!event) {
@@ -555,6 +560,29 @@ const app = createApp({
             this.editModeEvent = null;
             this.saveData();
             this.safeVibrate([100, 50, 100]);
+        },
+        deleteEvent(event) {
+            if (!event) {
+                alert('削除する予定が見つかりません。');
+                return;
+            }
+
+            const eventIndex = this.events.findIndex(e => e.id === event.id);
+            if (eventIndex === -1) {
+                alert('予定が見つかりませんでした。');
+                return;
+            }
+
+            const eventTitle = event.title ? `「${event.title}」` : 'この予定';
+            const shouldDelete = confirm(`${eventTitle}を削除しますか？`);
+            if (!shouldDelete) {
+                return;
+            }
+
+            this.events.splice(eventIndex, 1);
+            this.editModeEvent = null;
+            this.saveData();
+            this.safeVibrate([150]);
         },
 
         pasteFromContext() {
