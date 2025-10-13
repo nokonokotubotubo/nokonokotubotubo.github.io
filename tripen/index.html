@@ -142,7 +142,7 @@
           <i class="fas fa-cut"></i>
         </button>
         <button class="event-action-btn delete" @click="handleDeleteButtonClick($event, event)" @mousedown.stop title="削除">
-          <span aria-hidden="true">✘</span>
+          <span aria-hidden="true">×</span>
         </button>
 </div>
 <div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @mousedown="startResize($event, event, 'top')"></div>
@@ -213,7 +213,7 @@
           <i class="fas fa-cut"></i>
         </button>
         <button class="event-action-btn delete" @click="handleDeleteButtonClick($event, event)" @touchstart.stop title="削除">
-          <span aria-hidden="true">✘</span>
+          <span aria-hidden="true">×</span>
         </button>
 </div>
 <div class="resize-handle top" v-if="editModeEvent && editModeEvent.id === event.id" @touchstart="startResizeTouch($event, event, 'top')"></div>
