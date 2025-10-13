@@ -803,6 +803,11 @@ const app = createApp({
                 zIndex = this.baseZIndex + sortedByDuration.length - currentEventIndex;
             }
 
+            if (this.editModeEvent && this.editModeEvent.id === event.id) {
+                const topLayer = Math.max(this.maxZIndex ?? this.baseZIndex, zIndex);
+                zIndex = topLayer + 10;
+            }
+
             return {
                 top: `${startPixels}px`,
                 height: `${duration}px`,
