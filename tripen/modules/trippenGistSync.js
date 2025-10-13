@@ -11,6 +11,8 @@ const defaultState = {
     gistId: null,
     deviceId: null,
     pendingChangeId: null,
+    initialBaselineReady: false,
+    initialBaselineError: false,
     lastPendingHash: null,
     localRevision: 0,
     lastSyncedRevision: 0,
@@ -187,6 +189,10 @@ const TrippenGistSync = {
     isSyncing: false,
     hasError: false,
     hasChanged: false,
+    initialBaselineReady: false,
+    initialBaselineError: false,
+    initialBaselinePromise: null,
+    pendingLocalChange: false,
     status: 'idle',
     periodicSyncInterval: null,
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
@@ -270,6 +276,10 @@ const TrippenGistSync = {
         this.lastLocalHash = this.state.lastLocalHash || this.state.lastRemoteHash || null;
         this.lastSyncTime = this.state.lastLocalSyncTime || null;
         this.lastReadTime = this.state.lastReadTime || null;
+        this.initialBaselineReady = Boolean(this.state.initialBaselineReady);
+        this.initialBaselineError = Boolean(this.state.initialBaselineError);
+        this.initialBaselinePromise = null;
+        this.pendingLocalChange = false;
         this.isEnabled = !!this.token;
         return this.state;
     },
@@ -331,6 +341,12 @@ const TrippenGistSync = {
             this.lastReadTime = null;
             this.lastLocalHash = null;
             this.hasChanged = false;
+            this.state.initialBaselineReady = false;
+            this.state.initialBaselineError = false;
+            this.initialBaselineReady = false;
+            this.initialBaselineError = false;
+            this.initialBaselinePromise = null;
+            this.pendingLocalChange = false;
         }
         this.persistState();
         if (this.isEnabled) {
@@ -366,6 +382,37 @@ const TrippenGistSync = {
             return;
         }
 
+        if (this.isEnabled && !this.initialBaselineReady && !this.initialBaselineError) {
+            if (this.pendingLocalChange) return;
+            this.pendingLocalChange = true;
+            const baselinePromise = this.initialBaselinePromise || this.ensureInitialBaseline();
+            if (baselinePromise && typeof baselinePromise.finally === 'function') {
+                baselinePromise
+                    .then(success => {
+                        if (!success && !this.initialBaselineError) {
+                            this.initialBaselineError = true;
+                            this.state.initialBaselineError = true;
+                            this.persistState();
+                        }
+                    })
+                    .catch(error => {
+                        if (error) console.error('TrippenGistSync.ensureInitialBaseline error', error);
+                        if (!this.initialBaselineError) {
+                            this.initialBaselineError = true;
+                            this.state.initialBaselineError = true;
+                            this.persistState();
+                        }
+                    })
+                    .finally(() => {
+                        this.pendingLocalChange = false;
+                        this.markChanged();
+                    });
+            } else {
+                this.pendingLocalChange = false;
+            }
+            return;
+        }
+
         this.ensurePendingChangeContext();
         this.pendingChangeId = this.state.pendingChangeId;
         this.state.lastPendingHash = currentHash;
@@ -398,6 +445,62 @@ const TrippenGistSync = {
         this.lastSyncedRevision = this.state.lastSyncedRevision;
         this.localRevision = this.state.localRevision;
         this.persistState();
+    },
+    async ensureInitialBaseline() {
+        if (!this.isEnabled) {
+            this.initialBaselineReady = true;
+            this.initialBaselineError = false;
+            this.state.initialBaselineReady = true;
+            this.state.initialBaselineError = false;
+            this.persistState();
+            return true;
+        }
+        if (this.initialBaselineReady && !this.initialBaselineError) return true;
+        if (this.initialBaselineError) return false;
+        if (this.initialBaselinePromise) return this.initialBaselinePromise;
+
+        this.initialBaselinePromise = (async () => {
+            try {
+                const remoteState = await this.fetchRemoteState();
+                const snapshotCopy = remoteState?.snapshot ? cloneDeep(remoteState.snapshot) : null;
+                const remoteVersion = remoteState?.remoteVersion || this.state.lastRemoteVersion || null;
+                const remoteHash = remoteState?.remoteHash || this.state.lastRemoteHash || null;
+
+                if (snapshotCopy) {
+                    this.state.lastBaseSnapshot = cloneDeep(snapshotCopy);
+                    this.lastBaseSnapshot = cloneDeep(snapshotCopy);
+                } else if (!this.state.lastBaseSnapshot) {
+                    this.state.lastBaseSnapshot = null;
+                    this.lastBaseSnapshot = null;
+                }
+
+                this.state.lastBaseVersion = remoteVersion;
+                this.state.lastBaseHash = remoteHash;
+                if (!this.state.lastLocalHash) this.state.lastLocalHash = remoteHash || this.state.lastLocalHash || null;
+
+                this.lastBaseVersion = remoteVersion;
+                this.lastBaseHash = remoteHash;
+                if (!this.lastLocalHash) this.lastLocalHash = this.state.lastLocalHash || null;
+
+                this.hasError = false;
+                this.initialBaselineReady = true;
+                this.initialBaselineError = false;
+                this.state.initialBaselineReady = true;
+                this.state.initialBaselineError = false;
+                this.persistState();
+                return true;
+            } catch (error) {
+                console.error('TrippenGistSync.ensureInitialBaseline failed', error);
+                this.initialBaselineError = true;
+                this.state.initialBaselineError = true;
+                this.persistState();
+                return false;
+            } finally {
+                this.initialBaselinePromise = null;
+            }
+        })();
+
+        return this.initialBaselinePromise;
     },
 
     ensurePendingChangeContext() {
@@ -885,6 +988,8 @@ const TrippenGistSync = {
         this.state.lastSyncedRevision = this.state.localRevision || this.state.lastSyncedRevision || 0;
         this.state.localRevision = this.state.lastSyncedRevision;
         this.state.pendingChangeId = null;
+        this.state.initialBaselineReady = true;
+        this.state.initialBaselineError = false;
         this.persistState();
 
         this.lastRemoteVersion = remoteVersion;
@@ -900,6 +1005,10 @@ const TrippenGistSync = {
         this.lastSyncedRevision = this.state.lastSyncedRevision;
         this.localRevision = this.state.localRevision;
         this.hasChanged = false;
+        this.initialBaselineReady = true;
+        this.initialBaselineError = false;
+        this.initialBaselinePromise = null;
+        this.pendingLocalChange = false;
 
         this.applyMergedSnapshot(snapshot, { silent });
         return true;
@@ -1127,6 +1236,8 @@ const TrippenGistSync = {
         this.state.lastSyncedRevision = this.state.localRevision || this.state.lastSyncedRevision || 0;
         this.state.localRevision = this.state.lastSyncedRevision;
         this.state.pendingChangeId = null;
+        this.state.initialBaselineReady = true;
+        this.state.initialBaselineError = false;
         this.persistState();
 
         this.lastRemoteVersion = remoteVersion;
@@ -1142,6 +1253,10 @@ const TrippenGistSync = {
         this.lastSyncedRevision = this.state.lastSyncedRevision;
         this.localRevision = this.state.localRevision;
         this.hasChanged = false;
+        this.initialBaselineReady = true;
+        this.initialBaselineError = false;
+        this.initialBaselinePromise = null;
+        this.pendingLocalChange = false;
         this.isEnabled = !!this.token;
         return result;
     },
@@ -1206,6 +1321,8 @@ const TrippenGistSync = {
             this.state.lastSyncedRevision = this.state.localRevision || this.state.lastSyncedRevision || 0;
             this.state.localRevision = this.state.lastSyncedRevision;
             this.state.pendingChangeId = null;
+            this.state.initialBaselineReady = true;
+            this.state.initialBaselineError = false;
             this.persistState();
 
             this.lastRemoteVersion = remoteVersion;
@@ -1221,6 +1338,10 @@ const TrippenGistSync = {
             this.lastSyncedRevision = this.state.lastSyncedRevision;
             this.localRevision = this.state.localRevision;
             this.hasChanged = false;
+            this.initialBaselineReady = true;
+            this.initialBaselineError = false;
+            this.initialBaselinePromise = null;
+            this.pendingLocalChange = false;
             return snapshot;
         } finally {
             this.setStatus('idle');
@@ -1275,6 +1396,17 @@ const TrippenGistSync = {
         if (!this.isEnabled || !this.token) throw new Error('GitHub同期が設定されていません');
 
         if (window.app?.saveData) window.app.saveData();
+        if (!this.initialBaselineReady && !this.initialBaselineError) {
+            const baselineReady = await this.ensureInitialBaseline();
+            if (!baselineReady) {
+                this.hasError = true;
+                throw new Error('初回のクラウド同期情報を取得できませんでした');
+            }
+        }
+        if (this.pendingLocalChange) {
+            this.hasError = true;
+            throw new Error('初回同期処理が完了するまで操作をお待ちください');
+        }
         if (!this.hasChanged) {
             this.hasError = false;
             return true;
@@ -1345,6 +1477,14 @@ const TrippenGistSync = {
 
     async autoWriteToCloud(remoteStateInput = null) {
         if (!this.isEnabled || !this.token || this.isSyncing) return false;
+        if (!this.initialBaselineReady && !this.initialBaselineError) {
+            const baselineReady = await this.ensureInitialBaseline();
+            if (!baselineReady) {
+                this.hasError = true;
+                return false;
+            }
+        }
+        if (this.pendingLocalChange) return false;
         if (!this.hasChanged) return false;
 
         if (window.app?.saveData) window.app.saveData();
@@ -1438,6 +1578,10 @@ const TrippenGistSync = {
         this.isSyncing = false;
         this.hasError = false;
         this.hasChanged = false;
+        this.initialBaselineReady = false;
+        this.initialBaselineError = false;
+        this.initialBaselinePromise = null;
+        this.pendingLocalChange = false;
         this.status = 'idle';
         this.syncBackoffMs = 0;
         this.pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
